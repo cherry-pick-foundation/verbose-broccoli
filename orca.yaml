@@ -1,0 +1,22 @@
+scripts:
+  setup: |
+    set -eu
+
+    project_root="$(git rev-parse --show-toplevel)"
+    cd "$project_root"
+
+    if [ -x "$HOME/.deno/bin/deno" ]; then
+      deno_bin="$HOME/.deno/bin/deno"
+    elif command -v deno >/dev/null 2>&1; then
+      deno_bin="$(command -v deno)"
+    else
+      echo 'Deno 2.9.6 was not found.' >&2
+      exit 127
+    fi
+
+    export PATH="$(dirname "$deno_bin"):$PATH"
+
+    "$deno_bin" install --frozen --no-prompt
+    "$deno_bin" install --frozen --cached-only --no-prompt
+    "$deno_bin" task doctor
+setupAgentStartupPolicy: wait-for-setup

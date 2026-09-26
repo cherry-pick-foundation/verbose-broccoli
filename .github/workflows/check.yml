@@ -1,0 +1,45 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out the revision
+        env:
+          CHECK_TOKEN: ${{ github.token }}
+          CHECK_REVISION: ${{ github.sha }}
+        run: |
+          git init --quiet --template= .
+          git -c credential.helper= -c 'credential.helper=!f() { printf "%s\n" "username=x-access-token" "password=$CHECK_TOKEN"; }; f' fetch --no-tags --depth=1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$CHECK_REVISION"
+          git checkout --detach FETCH_HEAD
+      - name: Prepare standalone Deno 2.9.6
+        run: |
+          curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output "$RUNNER_TEMP/deno.zip"
+          echo "394f07f4da2bebe6ce6f1e7ce0fa16429b29b08c35e3fac3fe25972676dff4b2  $RUNNER_TEMP/deno.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/deno.zip" -d "$RUNNER_TEMP/deno"
+          echo "$RUNNER_TEMP/deno" >> "$GITHUB_PATH"
+      - name: Prepare Quarto 1.10.18
+        run: |
+          curl --fail --silent --show-error --location https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb --output "$RUNNER_TEMP/quarto.deb"
+          echo "4bdf5a17df300003beb2f8f0e4dfe568e2ca0ff91318220c8537d2655015c430  $RUNNER_TEMP/quarto.deb" | sha256sum --check --strict
+          sudo dpkg --install "$RUNNER_TEMP/quarto.deb"
+      - name: Prepare the CI Git identity
+        run: |
+          git config --global user.name 'CI'
+          git config --global user.email 'ci@users.noreply.github.com'
+      - name: Prepare frozen dependencies
+        run: |
+          deno install --frozen --no-prompt
+          deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt
+      - name: Run all checks
+        run: deno task check

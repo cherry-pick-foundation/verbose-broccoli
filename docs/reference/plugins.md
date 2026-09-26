@@ -1,0 +1,40 @@
+# Plugin reference
+
+Generated file. Do not edit; refresh with deno task docs:generate.
+
+Input owners: [plugins/chat/plugin.json](../../plugins/chat/plugin.json), [plugins/code/plugin.json](../../plugins/code/plugin.json), [plugins/code/mcp.json](../../plugins/code/mcp.json), [plugins/work/plugin.json](../../plugins/work/plugin.json), [plugins/work/mcp.json](../../plugins/work/mcp.json).
+
+Server names below are declarations, not runtime availability or tool catalogs.
+
+## chat
+
+| Field            | Declared value                                                              |
+| ---------------- | --------------------------------------------------------------------------- |
+| Description      | Chat plugin for the ChatGPT and Claude chat projects; it has no skills yet. |
+| Version          | 0.1.0                                                                       |
+| Package          | [plugins/chat](../../plugins/chat/)                                         |
+| Manifest         | [plugin.json](../../plugins/chat/plugin.json)                               |
+| MCP declaration  | Not declared                                                                |
+| MCP server names | None declared                                                               |
+
+## code
+
+| Field            | Declared value                                      |
+| ---------------- | --------------------------------------------------- |
+| Description      | Development skills and coding harness integrations. |
+| Version          | 0.1.0                                               |
+| Package          | [plugins/code](../../plugins/code/)                 |
+| Manifest         | [plugin.json](../../plugins/code/plugin.json)       |
+| MCP declaration  | [mcp.json](../../plugins/code/mcp.json)             |
+| MCP server names | None declared                                       |
+
+## work
+
+| Field            | Declared value                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------- |
+| Description      | Work skills for Quarto authoring and session continuity; business capabilities are specified anew. |
+| Version          | 0.1.0                                                                                              |
+| Package          | [plugins/work](../../plugins/work/)                                                                |
+| Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                      |
+| MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                            |
+| MCP server names | None declared                                                                                      |

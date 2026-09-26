@@ -1,0 +1,244 @@
+import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
+import {dirname, fromFileUrl, join} from '@std/path';
+import {probeVersion, runDoctor} from './doctor.ts';
+import {sha256} from './hash.ts';
+
+const executable = Deno.execPath();
+const script = fromFileUrl(new URL('./doctor.ts', import.meta.url));
+const config = fromFileUrl(new URL('../deno.json', import.meta.url));
+const lock = fromFileUrl(new URL('../deno.lock', import.meta.url));
+
+async function temporary(run: (root: string) => Promise<void>) {
+  const root = await Deno.makeTempDir({prefix: 'doctor-test-'});
+  try {
+    await run(root);
+  } finally {
+    await Deno.remove(root, {recursive: true});
+  }
+}
+
+async function fixture(root: string, name: string, code: string) {
+  const path = join(root, name);
+  await Deno.writeTextFile(path, `#!${executable} run\n${code}\n`, {
+    mode: 0o755,
+  });
+  return path;
+}
+
+async function cli(
+  root: string,
+  args: string[] = [],
+  permissions = ['--allow-read', '--allow-run'],
+) {
+  return await new Deno.Command(executable, {
+    cwd: root,
+    args: [
+      'run',
+      '--config',
+      config,
+      '--frozen',
+      '--cached-only',
+      '--no-prompt',
+      ...permissions,
+      script,
+      ...args,
+    ],
+    stdout: 'piped',
+    stderr: 'piped',
+  }).output();
+}
+
+function json(output: Deno.CommandOutput) {
+  return JSON.parse(
+    new TextDecoder().decode(output.success ? output.stdout : output.stderr),
+  );
+}
+
+Deno.test('doctor: root task permits relocated and symlinked runtimes', async () => {
+  await temporary(async root => {
+    const installed = join(root, 'standalone runtime');
+    const alias = join(root, 'alias runtime');
+    await Deno.mkdir(installed);
+    await Deno.mkdir(alias);
+    const binary = join(installed, 'deno');
+    await Deno.copyFile(executable, binary);
+    await Deno.symlink(binary, join(alias, 'deno'));
+    for (const directory of [installed, alias]) {
+      const output = await new Deno.Command(join(directory, 'deno'), {
+        args: ['task', '--config', config, 'doctor'],
+        env: {PATH: `${directory}:${Deno.env.get('PATH')}`},
+        stdout: 'piped',
+        stderr: 'piped',
+      }).output();
+      assert(output.success, new TextDecoder().decode(output.stderr));
+      assertEquals(json(output).deno.canonical, binary);
+    }
+  });
+});
+
+Deno.test('doctor: installed identities, versions and root lock work outside the checkout', async () => {
+  await temporary(async root => {
+    const output = await cli(root);
+    assert(output.success, new TextDecoder().decode(output.stderr));
+    const report = json(output);
+    assertEquals(report.status, 'PASS');
+    assertEquals(report.deno.canonical, await Deno.realPath(executable));
+    assertEquals(
+      report.quarto.canonical,
+      await Deno.realPath('/usr/local/bin/quarto'),
+    );
+    assertEquals(report.deno.version, '2.9.6');
+    assertEquals(report.quarto.version, '1.10.18');
+    assertEquals(report.runtime.version, Deno.version);
+    assertEquals(report.runtime.build, Deno.build);
+    assertEquals(report.lock.path, lock);
+    assertEquals(report.lock.sha256, await sha256(await Deno.readFile(lock)));
+    assertEquals(report.lock.dependencies['jsr:@std/assert@1'], '1.0.19');
+    assert(!new TextDecoder().decode(output.stdout).includes('HOME='));
+  });
+});
+
+Deno.test('doctor: missing, relative, non-executable and wrong-identity paths fail before report creation', async () => {
+  await temporary(async root => {
+    const report = join(root, 'report.json');
+    const wrong = await fixture(
+      root,
+      'other-deno',
+      "console.log('deno 2.9.6');",
+    );
+    const plain = join(root, 'not-executable');
+    await Deno.writeTextFile(plain, 'not executable', {mode: 0o644});
+    for (const options of [
+      {deno: 'deno'},
+      {deno: join(root, 'missing')},
+      {deno: wrong},
+      {quarto: root},
+      {quarto: plain},
+    ]) {
+      await assertRejects(() => runDoctor({...options, report}));
+      await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);
+    }
+    await assertRejects(
+      () => runDoctor({deno: wrong}),
+      Error,
+      'differs from the executing',
+    );
+    await assertRejects(
+      () => runDoctor({quarto: executable}),
+      Error,
+      'quarto must report',
+    );
+  });
+});
+
+Deno.test('doctor: standalone aliases pass but .venv and Quarto runtime paths are refused', async () => {
+  await temporary(async root => {
+    const alias = join(root, 'standalone');
+    await Deno.symlink(executable, alias);
+    assertEquals(
+      (await runDoctor({deno: alias})).deno.canonical,
+      await Deno.realPath(executable),
+    );
+    for (const directory of ['.venv', 'quarto']) {
+      await Deno.mkdir(join(root, directory));
+      const path = join(root, directory, 'deno');
+      await Deno.symlink(executable, path);
+      await assertRejects(
+        () => runDoctor({deno: path}),
+        Error,
+        directory === '.venv' ? 'outside .venv' : 'outside Quarto',
+      );
+    }
+  });
+});
+
+Deno.test('doctor: version probes require exact versions, successful exit and bounded duration', async () => {
+  await temporary(async root => {
+    const wrong = await fixture(root, 'wrong', "console.log('deno 2.9.5');");
+    await assertRejects(() => probeVersion(wrong, 'deno'), Error, '2.9.6');
+    const failure = await fixture(
+      root,
+      'failure',
+      "console.log('1.10.18'); Deno.exit(1);",
+    );
+    await assertRejects(
+      () => probeVersion(failure, 'quarto'),
+      Error,
+      'probe failed',
+    );
+    const noisy = await fixture(
+      root,
+      'noisy',
+      "console.log('x'.repeat(4097));",
+    );
+    await assertRejects(
+      () => probeVersion(noisy, 'quarto'),
+      Error,
+      'probe failed',
+    );
+    const slow = await fixture(
+      root,
+      'slow',
+      'await new Promise(resolve => setTimeout(resolve, 30000));',
+    );
+    const started = performance.now();
+    await assertRejects(() => probeVersion(slow, 'quarto'));
+    assert(performance.now() - started < 15000);
+  });
+});
+
+Deno.test('doctor: report is private, create-only and refuses README paths and symlinks', async () => {
+  await temporary(async root => {
+    const report = join(root, 'report.json');
+    const result = await runDoctor({report});
+    assertEquals(JSON.parse(await Deno.readTextFile(report)), result);
+    assertEquals((await Deno.stat(report)).mode! & 0o777, 0o600);
+    await assertRejects(() => runDoctor({report}), Deno.errors.AlreadyExists);
+    for (const path of [
+      join(root, 'README.md'),
+      join(root, 'README.md', 'report.json'),
+    ])
+      await assertRejects(() => runDoctor({report: path}), Error, 'README');
+    const alias = join(root, 'report-link.json');
+    await Deno.symlink(join(root, 'README.md'), alias);
+    await assertRejects(
+      () => runDoctor({report: alias}),
+      Deno.errors.AlreadyExists,
+    );
+    assertEquals(JSON.parse(await Deno.readTextFile(report)), result);
+  });
+});
+
+Deno.test('doctor: CLI rejects invalid flags and missing runtime/report permissions', async () => {
+  await temporary(async root => {
+    for (const args of [['--unknown'], ['--deno'], ['unexpected']]) {
+      const output = await cli(root, args);
+      assertEquals(output.code, 2);
+      assertEquals(output.stdout.length, 0);
+      assertEquals(json(output).error.code, 'INVALID_ARGUMENT');
+    }
+    const deniedRun = await cli(root, [], ['--allow-read']);
+    assertEquals(deniedRun.code, 1);
+    assertMatch(json(deniedRun).error.message, /run access/);
+    const deniedRead = await cli(
+      root,
+      [],
+      ['--allow-read', `--deny-read=${lock}`, '--allow-run'],
+    );
+    assertEquals(deniedRead.code, 1);
+    assertMatch(json(deniedRead).error.message, /read access/);
+    const report = join(root, 'report.json');
+    const deniedWrite = await cli(root, ['--report', report]);
+    assertEquals(deniedWrite.code, 1);
+    assertMatch(json(deniedWrite).error.message, /write access/);
+    await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);
+    const written = await cli(
+      root,
+      ['--report', report],
+      ['--allow-read', '--allow-run', `--allow-write=${report}`],
+    );
+    assert(written.success);
+    assertEquals(JSON.parse(await Deno.readTextFile(report)), json(written));
+    assertEquals(dirname(report), root);
+  });
+});

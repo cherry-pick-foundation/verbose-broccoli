@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254" width="1254" height="1254" role="img" aria-labelledby="title">
+  <title id="title">Logo white favicon</title>
+  <rect id="background" width="1254" height="1254" fill="#242424"/>
+  <path id="w" fill="#FFFFFF" d="M82 354H262V735C262 777 282 802 321 802S381 777 381 735V354H561V735C561 777 581 802 621 802S681 777 681 735V354H861V735C861 855 767 940 638 940C570 940 516 919 470 882C423 919 367 940 299 940C170 940 82 855 82 735Z"/>
+  <g id="semicolon" fill="#FFFFFF">
+    <rect x="966" y="354" width="212" height="192" rx="34"/>
+    <path d="M1000 591H1144Q1178 591 1178 625V782Q1178 798 1167 811L1087 912Q1076 926 1059 926H976Q955 926 955 905Q955 895 963 885L1048 789H1000Q966 789 966 755V625Q966 591 1000 591Z"/>
+  </g>
+</svg>

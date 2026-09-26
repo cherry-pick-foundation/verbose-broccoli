@@ -1,0 +1,73 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.deno",
+      "!**/deno.lock",
+      "!**/*.md",
+      "!.agents",
+      "!.codex",
+      "!.specify",
+      "!tools",
+      "!specs",
+      "!docs",
+      "!artifacts/*.json",
+      "!scripts/vendor",
+      "!plugins/code/hooks",
+      "!plugins/code/tests/hooks.test.js",
+      "!plugins/work/skills/quarto-authoring"
+    ]
+  },
+  "assist": { "enabled": false },
+  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 80 },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "bracketSpacing": false,
+      "trailingCommas": "all",
+      "arrowParentheses": "asNeeded"
+    }
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended",
+      "style": { "noNonNullAssertion": "off" },
+      "nursery": { "noFloatingPromises": "error" }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["plugins/**/domain/**", "packages/**/domain/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Deno": "Domain code must not use runtime or I/O globals.",
+                  "Bun": "Domain code must not use runtime or I/O globals.",
+                  "process": "Domain code must not use runtime or I/O globals.",
+                  "fetch": "Domain code must not use runtime or I/O globals.",
+                  "Request": "Domain code must not use runtime or I/O globals.",
+                  "Response": "Domain code must not use runtime or I/O globals.",
+                  "WebSocket": "Domain code must not use runtime or I/O globals.",
+                  "XMLHttpRequest": "Domain code must not use runtime or I/O globals.",
+                  "localStorage": "Domain code must not use runtime or I/O globals.",
+                  "sessionStorage": "Domain code must not use runtime or I/O globals.",
+                  "globalThis": "Domain code must not reach globals through the global object.",
+                  "self": "Domain code must not reach globals through the global object.",
+                  "window": "Domain code must not reach globals through the global object.",
+                  "global": "Domain code must not reach globals through the global object."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
