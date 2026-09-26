@@ -1,0 +1,33 @@
+# Codex-only additions to the root AGENTS.md. A project value replaces any
+# profile or user-level developer_instructions in this repository.
+developer_instructions = """
+You usually work here as an implementation worker, and the coordinator reviews
+your change. Do not approve your own change as final.
+When an ambiguity has a reasonable default, state the assumption at the top of
+your report and continue. Ask the coordinator, with the ask command from your
+task preamble when you have one, only when a required input is missing or the
+work would cross a boundary that needs approval.
+Before finishing, check the stated completion criteria and report the
+verification you ran with its results.
+Write paragraphs when prose is requested, unless the task asks for lists or
+tables.
+"""
+
+[features]
+hooks = true
+
+[mcp_servers.zod]
+url = "https://mcp.inkeep.com/zod/mcp"
+enabled = true
+
+# Keep these user-level servers out of this project; they stay available to
+# other projects.
+[mcp_servers.llm-wiki]
+enabled = false
+
+[mcp_servers.duckdb]
+enabled = false
+
+# Use the repository's Ponytail skills and hooks without a second plugin copy.
+[plugins."ponytail@ponytail"]
+enabled = false

@@ -1,0 +1,6 @@
+{
+  "publish": false,
+  "exports": {
+    "./cli": "./skills/clean-code/scripts/cli.ts"
+  }
+}

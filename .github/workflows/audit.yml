@@ -1,0 +1,40 @@
+name: Dependency audit
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the revision
+        env:
+          CHECK_TOKEN: ${{ github.token }}
+          CHECK_REVISION: ${{ github.sha }}
+        run: |
+          git init --quiet --template= .
+          git -c credential.helper= -c 'credential.helper=!f() { printf "%s\n" "username=x-access-token" "password=$CHECK_TOKEN"; }; f' fetch --no-tags --depth=1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$CHECK_REVISION"
+          git checkout --detach FETCH_HEAD
+      - name: Prepare standalone Deno 2.9.6
+        run: |
+          curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output "$RUNNER_TEMP/deno.zip"
+          echo "394f07f4da2bebe6ce6f1e7ce0fa16429b29b08c35e3fac3fe25972676dff4b2  $RUNNER_TEMP/deno.zip" | sha256sum --check --strict
+          unzip -q "$RUNNER_TEMP/deno.zip" -d "$RUNNER_TEMP/deno"
+          echo "$RUNNER_TEMP/deno" >> "$GITHUB_PATH"
+      - name: Audit workspace dependencies
+        if: ${{ !cancelled() }}
+        run: |
+          deno install --frozen --no-prompt
+          deno audit
+      - name: Audit clean-code dependencies
+        if: ${{ !cancelled() }}
+        working-directory: plugins/code/skills/clean-code
+        run: |
+          deno install --frozen --no-prompt
+          deno audit

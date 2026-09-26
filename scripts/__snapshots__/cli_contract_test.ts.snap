@@ -1,0 +1,88 @@
+export const snapshot = {};
+
+snapshot[`CLI doctor: help and invalid arguments 1`] = `
+"
+Usage: doctor
+
+Description:
+
+  Check runtime identities, versions and locked dependencies.
+
+Options:
+
+  -h, --help          - Show this help.                                       
+  --deno      <path>  - Absolute path to standalone Deno.                     
+  --quarto    <path>  - Absolute path to Quarto.                              
+  --report    <path>  - Create a new JSON report; requires write permission.  
+
+"
+`;
+
+snapshot[`CLI workflow: help and invalid arguments 1`] = `
+'
+Usage: workflow
+
+Description:
+
+  Select work mode, inspect code graphs and verify the current Git snapshot.
+
+Options:
+
+  -h, --help            - Show this help.                                                  
+  --task      <id>      - Task identity for the evidence loop.       (Default: "workspace")
+  --base      <ref>     - Baseline Git commit or reference.          (Default: "HEAD")     
+  --plan      <path>    - JSON plan with exact files for each task.                        
+  --verify              - Run all checks and retain evidence.        (Default: false)      
+  --graph     <choice>  - Inspect impact, symbol or policy.                                
+  --file      <path>    - Repository-relative graph target file.                           
+  --line      <line>    - Positive 1-based symbol line.                                    
+  --column    <column>  - Positive 1-based UTF-16 symbol column.                           
+
+'
+`;
+
+snapshot[`CLI clean-architecture: help and invalid arguments 1`] = `
+"
+Usage: clean-architecture
+
+Description:
+
+  Check import directions, cycles and public package boundaries from the workspace root.
+
+Options:
+
+  -h, --help  - Show this help.  
+
+"
+`;
+
+snapshot[`CLI plugins:validate: help and invalid arguments 1`] = `
+"
+Usage: plugins:validate [roots...]
+
+Description:
+
+  Validate portable plugin and MCP manifests against the pinned schemas.
+
+Options:
+
+  -h, --help  - Show this help.  
+
+"
+`;
+
+snapshot[`CLI clean-code: help and invalid arguments 1`] = `
+"
+Usage: clean-code
+
+Description:
+
+  Check the mechanically selected Clean Code subset from the target workspace root.
+
+Options:
+
+  -h, --help  - Show this help.                                   
+  --scope     - Report the shared skill/checker file scope only.  
+
+"
+`;
