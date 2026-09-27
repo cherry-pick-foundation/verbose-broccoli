@@ -179,10 +179,8 @@ packages/backfire/                 # all backfire code; not a root Deno workspac
 │   │   ├── provider.py            # AsyncOpenAIProvider subclass driven by the profile, response metadata
 │   │   ├── validate.py            # answer checks, Score mean, request limits
 │   │   ├── failures.py            # error types, SDK error classes with profile status overrides, SDK retry policy
-│   │   ├── config.py              # XDG paths, profile selection and loading, credential
-│   │   └── profiles/
-│   │       ├── hive.toml          # the shipped provider profile
-│   │       └── default.toml       # the shipped default selection: hive
+│   │   ├── config.py              # XDG paths, config.toml selection and loading, credential
+│   │   └── config.toml            # shipped selection (hive) and one [providers.<name>] table per provider
 │   ├── acceptance/                # gate probes, evaluation runner and upstream capture
 │   │   ├── evaluate.ts
 │   │   ├── metrics.ts
@@ -265,9 +263,10 @@ These gates come first in `tasks.md`; a failed gate stops the dependent work.
 1. A worker who does not implement the feature writes the held-out set and
    commits only its seal, before implementation starts.
 2. Provider settings, run against the selected `hive` profile: its request
-   options (`chat_template_kwargs: {"thinking": true}` with
-   `max_tokens: 32768` and JSON-object output) are accepted (one probe passed
-   on 2026-09-26), every benchmark response carries the thinking evidence the
+   options (`reasoning_effort: "medium"` with `max_tokens: 32768` and
+   JSON-object output) are accepted (probes with the earlier thinking switch
+   passed on 2026-09-26 and 2026-09-27; medium showed thinking evidence in the
+   2026-09-27 quality probes), every benchmark response carries the thinking evidence the
    profile names, and the profile's 401, 400, 405 and 429 mappings hold.
 3. Request limits: three runs each at 150, 200 and 250 options and at each
    tool's upstream maximum request, with `backfire_verify`, which has no claim

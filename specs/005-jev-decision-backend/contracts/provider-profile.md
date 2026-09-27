@@ -7,31 +7,36 @@ request and reads each response, including its finish-reason check, and the
 TypeSafe SDK maps standard HTTP statuses to its error classes, which the
 single retry policy uses. The endpoint's code names no provider, and a
 provider whose departures from the standard behavior a profile can state
-needs only a new profile and its selection, not a code change. Profiles and
-selection files are TOML.
+needs only a new profile and its selection, not a code change. Every profile
+lives in a `config.toml` as one `[providers.<name>]` table; there is no file
+per provider.
 
 ## Location and selection
 
-- Shipped profiles: `packages/backfire/src/backfire_backend/profiles/<name>.toml`,
-  copied into a built code plugin with the endpoint package.
-- Shipped default selection: `profiles/default.toml` in the same directory,
-  with the same shape as the operator's selection. It holds
-  `profile = "hive"`, the user-selected backend of FR-002. `default` is
-  therefore not a valid profile name, and the code reads the default only from
-  this file.
-- Selection: `$XDG_CONFIG_HOME/verbose-broccoli/backfire/provider.toml`, holding
-  exactly `profile = "<name>"`. Without the file, the shipped default
-  selection applies. A selection file that is not valid TOML of exactly that
-  shape, or that names no shipped profile, fails each judgment with
-  `backend_not_configured`, whose message names the path.
+- Shipped configuration: `packages/backfire/src/backfire_backend/config.toml`,
+  copied into a built code plugin with the endpoint package. It holds
+  `provider = "hive"`, the user-selected backend of FR-002, and one
+  `[providers.<name>]` table per shipped provider. The code reads the default
+  selection only from this file.
+- Operator configuration: `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`,
+  optional, with the same shape. Its `provider`, when present, replaces the
+  shipped selection, and each of its `[providers.<name>]` tables adds a provider
+  or replaces the shipped table of that name as a whole; tables are never merged
+  key by key. Without the file, the shipped configuration applies unchanged.
+- Either file with invalid TOML, a top-level key other than `provider` and
+  `providers`, or a selection that names no configured provider fails each
+  judgment with `backend_not_configured`, whose message names the path.
 - Credential: `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<name>.env`, holding
-  `<credential>=<key>` for the profile's `credential` name, under the rules of
-  [configuration.md](configuration.md).
+  `<credential>=<key>` for the selected table's `credential` name, under the
+  rules of [configuration.md](configuration.md). Keys never go into
+  `config.toml`.
 
 ## Format
 
 ```toml
-name = "hive"
+provider = "hive"
+
+[providers.hive]
 api = "openai"
 base_url = "https://api-cdn.thehive.ai/api/v3"
 model = "deepseek-ai/deepseek-v4.1-flash"
@@ -40,7 +45,8 @@ rate_limit_per_second = 5
 
 # Added to every request, beyond what the adapter sends. Hive cuts output at
 # 128 tokens without max_tokens and still reports finish_reason "stop".
-request = { max_tokens = 32768, response_format = { type = "json_object" }, chat_template_kwargs = { thinking = true } }
+# Medium reasoning effort measured best on 2026-09-27 (research.md).
+request = { max_tokens = 32768, response_format = { type = "json_object" }, reasoning_effort = "medium" }
 
 # Where Hive shows that thinking ran.
 thinking = { requested = "on", content_path = "reasoning_content", token_path = "reasoning_tokens" }
@@ -55,7 +61,7 @@ absent. An absent optional value is an omitted key, since TOML has no null.
 
 | Key | Rules |
 | --- | --- |
-| `name` | Equals the file name without `.toml`; lowercase letters, digits and `-`; not `default`. |
+| `<name>` | The table key: lowercase letters, digits and `-`. It names the credential file. |
 | `api` | The adapter provider class that handles the protocol. `openai` selects `AsyncOpenAIProvider`, which uses Chat Completions for hosts other than `api.openai.com`. `anthropic` is reserved for `AsyncAnthropicProvider` and fails each judgment with `backend_not_configured` and a message that it is not supported yet. |
 | `base_url` | The API root passed to the provider class. |
 | `model` | The exact model identifier sent with every request and pinned under FR-012. |
@@ -67,8 +73,9 @@ absent. An absent optional value is an omitted key, since TOML has no null.
 | `thinking.token_path` | Optional. A path in the response's `usage` whose positive integer shows that thinking ran. When `requested` is `on`, at least one of the two paths is set, and a response that shows neither fails with `thinking_not_confirmed`. When `requested` is `off`, neither is set and no thinking evidence is checked. |
 | `statuses` | Optional. Maps an HTTP status whose meaning at this provider differs from the standard one to `credential_rejected`, `balance_exhausted`, `request_rejected` or `rate_limited`. Every other status keeps the meaning of the SDK's error class: 400 is `request_rejected`, 401 is `credential_rejected`, 429 is `rate_limited`, and any other status is `provider_error` ([system-one-endpoint.md](system-one-endpoint.md#error-responses)). Only `rate_limited` is retried. |
 
-A profile with a missing or unknown key, or a key that breaks these rules,
-fails each judgment with `backend_not_configured`, naming the profile.
+A selected table with a missing or unknown key, or a key that breaks these
+rules, fails each judgment with `backend_not_configured`, naming the table and
+the file it came from.
 
 Known limit: a provider that answers one status for two causes cannot be told
 apart by status alone. OpenAI's own API, for example, answers 429 both for
@@ -78,17 +85,19 @@ provider needs a small code change when one is selected
 
 ## Shipped profile
 
-`hive` is the only shipped profile, and `default.toml` selects it. Hive
+`hive` is the only shipped profile, and the shipped `provider` selects it. Hive
 documents only an OpenAI-compatible Chat Completions API. Its values come from
 [research.md](../research.md#hive-request-behavior--2026-09-26): the 128-token
 cutoff without `max_tokens` while the finish reason still reads `stop`, the
-rejected strict JSON schema, the thinking switch and its evidence, 405 for an
+rejected strict JSON schema, the medium reasoning effort and its thinking
+evidence ("Judgment quality probes" in research.md), 405 for an
 exhausted balance while 400, 401 and 429 keep their standard meanings, and the
 documented default of 5 requests per second.
 
 ## Adding a profile
 
-A new profile records the evidence for its values in `research.md`, like the
+A new profile, a new `[providers.<name>]` table in either `config.toml`,
+records the evidence for its values in `research.md`, like the
 Hive section, and passes the probe of gate 2, readiness and the acceptance sets
 before it is selected; changing the selected profile, endpoint or model is an
 FR-012 upgrade.

@@ -177,11 +177,11 @@ tool reports one.
 
 | Item | Value | Source |
 | --- | --- | --- |
-| Provider profile | The profile `provider.toml` selects, or else the one the shipped `profiles/default.toml` selects (`hive`) ([provider-profile.md](contracts/provider-profile.md)) | Operator or shipped default; changing it is an FR-012 upgrade |
+| Provider profile | The `[providers.<name>]` table that the operator's `config.toml` selects, or else the one the shipped `config.toml` selects (`hive`) ([provider-profile.md](contracts/provider-profile.md)) | Operator or shipped default; changing it is an FR-012 upgrade |
 | Protocol | The adapter provider class the profile's `api` names (Hive: `openai`, Chat Completions) | Profile |
 | Endpoint | The profile's `base_url` (Hive: `https://api-cdn.thehive.ai/api/v3`) | Profile |
 | Model | The profile's `model` (Hive: `deepseek-ai/deepseek-v4.1-flash`) | Profile; changing it is an FR-012 upgrade |
-| Request additions | The profile's `request`, including the thinking switch and the output budget (Hive: `chat_template_kwargs: {"thinking": true}`, `response_format: {"type": "json_object"}`, `max_tokens: 32768`) | Profile |
+| Request additions | The profile's `request`, including the thinking switch and the output budget (Hive: `reasoning_effort: "medium"`, `response_format: {"type": "json_object"}`, `max_tokens: 32768`) | Profile |
 | Thinking evidence | The profile's `thinking` fields (Hive: `reasoning_content`, `usage.reasoning_tokens`) | Profile |
 | Status meanings | The SDK's standard error classes, with the profile's `statuses` overrides (Hive: 405 is `balance_exhausted`) | SDK and profile |
 | Rate limit | The profile's `rate_limit_per_second` (Hive: 5); not enforced by the endpoint | Profile |

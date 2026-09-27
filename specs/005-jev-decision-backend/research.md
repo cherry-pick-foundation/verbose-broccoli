@@ -60,8 +60,11 @@ Probes during the plan revision, same day:
 
 Decision: the shipped `hive` provider profile
 ([provider profiles](#provider-profiles--2026-09-27)) makes every request send
-`max_tokens` 32,768, JSON-object output and
-`chat_template_kwargs: {"thinking": true}`. The backend treats a response as
+`max_tokens` 32,768, JSON-object output and a thinking request, which is
+`reasoning_effort: "medium"` since 2026-09-27
+([Judgment quality probes](#judgment-quality-probes--2026-09-27)); the probes
+below used the earlier `chat_template_kwargs: {"thinking": true}`. The backend
+treats a response as
 truncated when its completion tokens reach the profile's limit, whatever the
 finish reason says.
 
@@ -99,6 +102,20 @@ Alternatives considered: relying on Hive defaults (the 128-token cutoff
 truncates thinking silently); strict JSON schema (rejected by Hive); streaming
 (the same cutoff applies and it adds parsing without benefit).
 
+### Gate 2 probe, settings part — 2026-09-27
+
+T002's profile-driven probe (`packages/backfire/src/acceptance/probe_provider.ts`)
+ran once with the shipped `hive` profile (reported at 16:30 KST). The settings request
+(the profile's `max_tokens` 32,768, JSON-object output and the thinking switch)
+returned 200 in 1.1 s, with a response `model` of exactly
+`deepseek-ai/deepseek-v4.1-flash`, non-empty `reasoning_content` and 54
+reasoning tokens of 60 completion tokens, finishing with `stop`. An invalid key
+returned 401, an unknown model 400, and a burst of six concurrent requests,
+above the profile's 5 requests per second, returned five 200s and one 429 while
+other evaluation traffic shared the account. Observed: 200, 401, 400 and 429;
+405 stays documented-only and is covered offline by T049. The probe printed no
+key, request or response content, or provider error text.
+
 ## Tool source: `jev-mcp` 0.9.0, copied — 2026-09-26
 
 Decision: the code plugin does not depend on the npm package
@@ -119,8 +136,9 @@ copied files and their SHA-256 at that revision:
 The copy changes only these recorded points; `src/upstream/upstream.json` holds the
 source, revision, original hashes and the diff:
 
-1. `src/index.ts` imports `./lib.ts` and `./provider.ts` instead of the
-   compiled `.js` names, which Deno does not map.
+1. `src/index.ts` imports `./lib.ts` and `./provider.ts`, and `src/provider.ts`
+   imports `./lib.ts`, instead of the compiled `.js` names, which Deno does
+   not map. (The provider's import was found during T006 on 2026-09-27.)
 2. `src/index.ts` opens its regex worker source with
    `const { parentPort, workerData } = require("node:worker_threads");`
    instead of the ESM import, which Deno 2.9.6 rejects in an `eval` worker.
@@ -586,30 +604,33 @@ user's approval, but not a dependency).
 
 ## Provider profiles — 2026-09-27
 
-Decision: every provider-specific value lives in a provider profile, a TOML
-file shipped in `src/backfire_backend/profiles/`
+Decision: every provider-specific value lives in a provider profile, one
+`[providers.<name>]` table of the shipped `src/backfire_backend/config.toml`
 ([provider-profile.md](contracts/provider-profile.md)), and a profile holds
 only what is specific to its provider. Its `api` key names the adapter
 provider class that handles the protocol (`openai`, implemented; `anthropic`,
 reserved and failing as not supported yet). The rest is the provider's own
 characteristics: the API root, the model, the credential's variable name, the
 request fields it needs beyond what the adapter sends (for Hive `max_tokens`,
-JSON-object output and the thinking switch), the paths to the response fields
+JSON-object output and the medium reasoning effort), the paths to the response fields
 that show thinking ran, the statuses whose meaning differs from the standard
 one (for Hive, 405 for an exhausted balance), and the documented rate limit,
 which the gate 2 probe exceeds on purpose. Standard status meanings come from
 the TypeSafe SDK's error classes, the finish-reason check from the adapter, and
 only `rate_limited` is retried. The endpoint's code, file names, tasks and
-commands name no provider. The operator selects a profile in
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/provider.toml`; without that file
-the shipped `profiles/default.toml` selects `hive`, so the default is data
+commands name no provider. The operator selects a profile, and may add or
+replace provider tables, in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`;
+without that file the shipped `config.toml` selects `hive`, so the default is data
 rather than code, and the Hive credential file stays `hive.env` with
 `HIVE_API_KEY`. The endpoint reports the selected model on its port line, so
 the server sets the transport's model name without reading a profile. A test
 runs the same code with a second, test-only profile that has different request
 fields, a nested reasoning-token path and a different status override, and
-another fails when any file under `packages/backfire/src/` outside
-`src/backfire_backend/profiles/` names Hive.
+another fails when any file under `packages/backfire/src/` other than
+`src/backfire_backend/config.toml` names Hive. Later the same day the user
+replaced the file per provider with one `config.toml` that holds a table per
+provider, in both the shipped and the operator location, so provider settings
+live in one place.
 
 Rationale: on 2026-09-27 the user rejected building Hive into the backend and
 asked for an abstraction that allows reuse, choosing profiles over a broader
@@ -869,6 +890,80 @@ Alternatives considered: per-tool expectation fields named after the decision
 units (per-tool code, and no place for top candidates or extracted values);
 counting deferrals as wrong (the option the user rejected); failure cases in the
 held-out set (they measure no judgment).
+
+## Judgment quality probes — 2026-09-27
+
+Question: which thinking request and how many questions per request the
+selected backend should use, and where its judgments fail, measured before
+implementation.
+
+Setup: `system-one-adapter` 0.2.1 in this feature's strict mode
+(`normalize_probabilities=False`, `n_retry_malformed_structure=0`, retries only
+through the SDK's policy) against Hive's Chat Completions, driven by a
+throwaway runner outside version control; the JevBench public hard tier at the
+revision and SHA-256 of [evaluation.md](contracts/evaluation.md#sets) (111
+English decisions: 67 Choice, 38 Noul, 6 Score); an off-sum or all-zero
+distribution counted invalid and a failed call counted wrong; five runs per
+setting, each with a different question order, one decision per request unless
+stated. Other traffic shared the account during some runs, so times are
+indicative.
+
+DeepSeek V4.1 Flash, one decision per request, 555 decisions per setting:
+
+| Thinking request | Correct per run | Wrong (confident ≥ 0.9) | Failed calls | Call time median / 95th | Output tokens per decision |
+| --- | --- | --- | --- | --- | --- |
+| `chat_template_kwargs: {"thinking": true}` | 109–110 | 4 (4) | 2 malformed | 4.5 s / 18.4 s | 1,206 |
+| `reasoning_effort: "xhigh"` | 108–111 | 5 (3) | 0 | 5.9 s / 21.8 s | 1,484 |
+| `reasoning_effort: "high"` | 108–111 | 6 (4) | 0 | 5.1 s / 16.2 s | 1,205 |
+| `reasoning_effort: "medium"` | 109–111 | 3 (2) | 1 malformed | 5.2 s / 15.9 s | 1,159 |
+| `reasoning_effort: "low"` | 108–111 | 6 (5) | 0 | 4.2 s / 12.9 s | 821 |
+| none | 109–111 | 7 (5) | 0 | 5.4 s / 17.0 s | 1,192 |
+
+Every setting carried non-empty `reasoning_content` and `reasoning_tokens` on
+probe requests. The medium runs had an expected calibration error of 0.031 to
+0.038 and no call over 33 s. With the thinking switch and eight decisions per
+request, five runs gave 108 to 110 correct, 10 wrong answers and calls of 33 s
+median and 60 s at most.
+
+Findings:
+
+- Wrong answers are mostly confident: 31 of 41 wrong DeepSeek answers had a
+  top probability of at least 0.9, so the upstream tools' 0.85 thresholds would
+  mark them automatic.
+- The same decisions failed at every setting: approving a response that
+  contains a small arithmetic error (`hard-sol-b-judge_hard-02`, wrong in 13 of
+  the 30 one-per-request runs) and multi-step lookups among distractors
+  (`hard-sol-a-multi_hop-09` and `-12`). Adversarial, ambiguous, probability,
+  routing and trap questions were never answered wrong.
+- More reasoning did not mean fewer errors: `xhigh` made more than `medium`.
+- Asking again and accepting only agreement: two agreeing medium answers
+  accepted no wrong answer over all 20 run pairs and left 1.4% of decisions for
+  review; with the thinking switch, even three agreeing answers accepted wrong
+  ones (0.36%).
+- GLM 5.3 Flash on Hive, measured the same way over 37 runs, gave 102 to 111
+  correct per run; its `max` effort made more errors than its default (17
+  against 8 over ten runs of eight decisions per request) and three requests
+  over 80 s, and one malformed answer lost all eight decisions of its request.
+- The benchmark has no Korean content, so Korean behavior is unmeasured.
+- Five runs per setting is a small sample; the settings differ by a few
+  decisions.
+
+Decision: the shipped `hive` table requests `reasoning_effort = "medium"`
+instead of the thinking switch, with the same thinking evidence paths, and gate
+2's probe reruns with it (the user's decision of 2026-09-27). Agreement voting
+stays out of this feature: FR-007 forbids requesting a valid verdict again and
+FR-013 keeps the upstream decision logic (the user's decision of 2026-09-27),
+so it is a follow-up feature and the agent-facing reference states the weak
+spots (T040). Gate 3 (T036) also measures requests of several hard questions.
+
+Rationale: medium gave the fewest wrong answers and the fewest confident ones,
+still showed thinking, and stayed far inside the 80 s endpoint budget.
+
+Alternatives considered: keeping the thinking switch (more errors and
+malformed answers, and wrong answers even under three agreeing asks); `xhigh`
+or `high` (more errors, slower); `low` (cheapest, but more errors, including a
+Score); GLM 5.3 Flash (less reliable; the user excluded it on 2026-09-27);
+agreement voting now (a spec change that doubles provider calls).
 
 ## Testing layers — 2026-09-26
 

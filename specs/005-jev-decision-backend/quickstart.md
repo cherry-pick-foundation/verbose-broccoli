@@ -3,7 +3,8 @@
 Validation scenarios for the finished feature. Commands run from the
 repository root unless a step says otherwise. Live scenarios make billed calls
 to the selected provider; the offline suite does not. The steps use the shipped
-`hive` profile, which is selected when no `provider.toml` exists.
+`hive` profile, which the shipped `config.toml` selects unless the operator's
+`config.toml` selects another.
 
 ## Prerequisites
 
@@ -66,7 +67,7 @@ scripted provider, and covers:
 
 - provider profiles: the same code sends a second, test-only profile's
   settings and applies its status overrides, and no file under
-  `packages/backfire/src/` outside `src/backfire_backend/profiles/` names Hive;
+  `packages/backfire/src/` other than `src/backfire_backend/config.toml` names Hive;
 - the build: the built plugin holds the runtime files and no test, test
   double, acceptance, build or linked file;
 

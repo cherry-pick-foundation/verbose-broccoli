@@ -116,12 +116,26 @@ plugins are out of scope. API keys stay outside the repository.
   profile with DeepSeek V4.1 Flash ships with the feature and stays the
   selected backend; another OpenAI-compatible provider needs only a new
   profile.
-- Q: How are provider profiles organized? → A: One TOML file per provider
-  holding only that provider's own characteristics. Protocol compatibility
+- Q: How are provider profiles organized? → A: One `config.toml` holding a
+  `[providers.<name>]` table per provider (first one TOML file per provider,
+  replaced the same day), each with only that provider's own
+  characteristics. The operator's own `config.toml` selects a provider and
+  may add or replace provider tables. Protocol compatibility
   stays with the reused adapter and SDK and is not duplicated: a profile's
   `api` key names the adapter provider class (`openai` now; `anthropic`
   reserved and not supported yet), and standard status meanings come from
   the SDK, so a profile lists only the statuses whose meaning differs.
+- Q: Which reasoning setting should the shipped Hive profile request? → A:
+  `reasoning_effort = "medium"` instead of the thinking switch
+  `chat_template_kwargs: {"thinking": true}`. In repeated strict-mode runs of
+  the JevBench public hard tier it gave the fewest wrong answers, still
+  carried thinking evidence, and kept every call within the endpoint's 80 s
+  budget (research.md, "Judgment quality probes").
+- Q: Should a judgment be asked twice and count only when both answers
+  agree, the one measure that stopped confident wrong answers in those runs?
+  → A: Not in this feature. FR-007 (a valid verdict is never requested again)
+  and FR-013 (upstream decision logic unchanged) stand; agreement voting is a
+  follow-up feature, and the agent-facing documentation states the weakness.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -532,6 +546,12 @@ check reports either success or the specific failure.
   Enforcement, for example making verification-before-completion require the
   gate, and recording real test runs (commands, exit codes, log identifiers,
   and partial, full, not-run or cancelled states) are a follow-up feature.
+- Wrong verdicts can be confident. In the 2026-09-27 probes most wrong answers
+  carried a top probability of at least 0.9, so the upstream thresholds mark
+  them automatic; judging a response that contains a small arithmetic error
+  and multi-step lookups among distractors failed most often. Agreement
+  voting across repeated or different-model judgments is a follow-up
+  feature.
 - The clients are Codex CLI and Claude Code opened in Orca (constitution IX).
   Installing into live client configurations requires the user's separate
   go-ahead.

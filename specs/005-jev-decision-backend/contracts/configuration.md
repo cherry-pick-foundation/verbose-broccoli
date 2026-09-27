@@ -8,7 +8,7 @@ unset, its default applies: `~/.config`, `~/.local/state`, `~/.cache` and
 
 | Path | Content | Rules |
 | --- | --- | --- |
-| `$XDG_CONFIG_HOME/verbose-broccoli/backfire/provider.toml` | `profile = "<name>"` | Optional; without it the shipped default selection applies, which selects the `hive` profile ([provider-profile.md](provider-profile.md#location-and-selection)). |
+| `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` | `provider = "<name>"` and optional `[providers.<name>]` tables | Optional; its `provider` replaces the shipped selection (`hive`), and its tables add or replace shipped provider tables whole ([provider-profile.md](provider-profile.md#location-and-selection)). |
 | `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<name>.env` | `<credential>=<key>`, with the selected profile's credential name (for `hive`: `hive.env` with `HIVE_API_KEY=<key>`) | Mode exactly 0600 and owned by the operator. A missing or empty file, any group or other permission bit, or another owner fails each judgment with `backend_not_configured`, whose message names the path. |
 
 There are no other settings. The files live in neither the repository nor the
