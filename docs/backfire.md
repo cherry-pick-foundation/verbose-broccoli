@@ -96,9 +96,10 @@ judgments are pseudonymized too.
 
 ## Work build
 
-The work build pseudonymizes every judgment, for its server, its readiness
-check and any other caller in the same process. The operator cannot turn this
-off; the build's shipped `config.toml` sets it.
+The work build pseudonymizes every judgment of its server and its readiness
+check. The build's shipped `config.toml` turns this on, and the operator's
+configuration cannot turn it off. Only a program that calls the judge directly
+can choose otherwise, as the education measurement does to compare both arms.
 
 ### Before sending real student records
 
@@ -140,8 +141,9 @@ grades, observations and other learning content are sent as is.
 
 The work build cannot detect names, schools or guardians missing from the
 roster, nicknames, one-syllable given names, shortened school names such as
-`별빛고` for `가상별빛고`, or addresses. They reach the provider as written;
-add them to the roster or leave them out of tool inputs. A student removed
+`별빛고` for `가상별빛고`, addresses, or Hangul written in decomposed form
+(NFD), as some file names and PDF copies are. They reach the provider as
+written; add them to the roster or leave them out of tool inputs. A student removed
 from the roster is no longer detected. Ordinary words that equal a roster
 value, such as a given name inside another word, are replaced too, which can
 cost some judgment quality.

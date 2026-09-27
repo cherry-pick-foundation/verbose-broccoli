@@ -23,10 +23,21 @@ restores them in the results, so tool results use the text you supplied:
 
 The backend cannot detect other identifiers. Names, schools or guardians that
 the roster does not list, nicknames, one-syllable given names, shortened
-school names such as `별빛고` for `가상별빛고`, and addresses reach the
+school names such as `별빛고` for `가상별빛고`, addresses, and Hangul written
+in decomposed form (NFD), as some file names and PDF copies are, reach the
 provider as written. Leave them out of tool inputs, or ask the operator to add
 them to the roster. Learning content, such as scores, dates, grades and
 observations, is sent as is.
+
+Pseudonyms stay the same across calls, sessions and restarts because of the
+operator's mapping table, `$XDG_DATA_HOME/verbose-broccoli/backfire/pseudonyms.json`
+(`~/.local/share` when `XDG_DATA_HOME` is unset). It is readable only by the
+operator and holds keyed digests and pseudonyms, never the names or contact
+details themselves. Never read it into a tool input or a report.
+
+Before real student records are sent, the operator turns off model training in
+the Claude and ChatGPT account settings. If you do not know that this was done,
+ask before sending real records.
 
 A call fails without sending anything when the roster or the mapping table
 cannot be used (`backend_not_configured`), or when two keys or labels of one

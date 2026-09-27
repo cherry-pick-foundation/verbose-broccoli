@@ -157,8 +157,8 @@ profile: the development profile `hive` from
 profile from `packages/backfire/src/backfire_education/config.toml` for work.
 The work build's file also sets `pseudonymize = true`, which makes the shared
 judge replace roster names, schools and contact details with stable
-pseudonyms before each judgment leaves the process. An operator can select or
-replace profiles in the optional
+pseudonyms before a server or readiness judgment leaves the process. An
+operator can select or replace profiles in the optional
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
 Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
 recorded differences are in

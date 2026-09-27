@@ -325,8 +325,10 @@ arm.
   reason, and the scripted provider receives no request.
 - **SC-005**: The code build passes all of feature 005's offline tests and
   contains no pseudonymization module or education profile. The only changed
-  tests are the build tests, for the new plugin argument, and the
-  provider-name guard, for the second shipped profile.
+  tests are the build tests, for the new plugin argument; the provider-name
+  guard, for the second shipped profile; the failure table, for
+  `pseudonym_conflict`; and the readiness tests, for the work build's install
+  command.
 - **SC-006**: A work build installed alone lists the eleven tools and answers
   one tool call through the live provider, in both Codex CLI and Claude Code,
   registered for that run only without changing saved client settings.
