@@ -37,10 +37,10 @@ and in Phase 8 only after the user's decision for that location.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Add the task `test:wiki-raw-import` to `deno.json` (`deno test
+- [x] T001 Add the task `test:wiki-raw-import` to `deno.json` (`deno test
   --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env
   --allow-run TEST`) and add it to the `test` dependencies.
-- [ ] T002 [P] Add `"$uv_bin" sync --locked --script SCRIPT` to the setup
+- [x] T002 [P] Add `"$uv_bin" sync --locked --script SCRIPT` to the setup
   script in `orca.yaml`, after the `tools/spec-kit` sync; check with `deno fmt
   --check orca.yaml`.
 
@@ -51,7 +51,7 @@ and in Phase 8 only after the user's decision for that location.
 **Purpose**: The script runs, resolves its roots and can create the raw
 folders every story's tests need.
 
-- [ ] T003 Create SCRIPT with the PEP 723 block (`requires-python =
+- [x] T003 Create SCRIPT with the PEP 723 block (`requires-python =
   ">=3.14"`, `dependencies = ["bagit==1.9.0"]`), the `init`, `admit
   --selection <file>` and `verify` commands with `--wiki <name>` (default
   `default`), XDG root resolution where unset, empty or relative means the default under
@@ -59,11 +59,11 @@ folders every story's tests need.
   [contracts/raw-import-cli.md](contracts/raw-import-cli.md). `init` creates
   `raw/{web,files,notes,assets}/` and changes nothing that exists; `admit`
   and `verify` exit 2 when the instance is missing.
-- [ ] T004 Run `uv lock --script SCRIPT` to write
+- [x] T004 Run `uv lock --script SCRIPT` to write
   `plugins/work/skills/wiki-raw-import/scripts/raw_import.py.lock`, then
   confirm `uv run --locked --offline --script SCRIPT --help` works (depends
   on T003).
-- [ ] T005 Create TEST's fixture helper: a temporary `HOME` with every XDG
+- [x] T005 Create TEST's fixture helper: a temporary `HOME` with every XDG
   root inside it, a synthetic-file writer, a selection writer, a runner that
   calls `uv run --locked --offline --script SCRIPT` with that environment,
   and a snapshot of originals (bytes, modification time) and of `raw/`
@@ -81,7 +81,7 @@ provenance, leaving the original unchanged.
 **Independent Test**: Admit one fixture file, compare bytes, read the record,
 check the original, run `verify` (spec US1).
 
-- [ ] T006 [US1] Add TEST cases for spec US1 scenarios 1 to 4: one admitted
+- [x] T006 [US1] Add TEST cases for spec US1 scenarios 1 to 4: one admitted
   revision under `raw/files/<uuid7>/<revision>/` whose payload bytes and
   `manifest-sha256.txt` digest match the original and whose `bag-info.txt`
   holds `External-Identifier`, `Internal-Sender-Identifier`,
@@ -93,7 +93,9 @@ check the original, run `verify` (spec US1).
   dash are kept; originals unchanged in every case. Test an original that
   changes during the copy (contract step 5) only with a deterministic method;
   otherwise record it in this file as an unperformed check.
-- [ ] T007 [US1] Implement in SCRIPT `admit` steps 1 to 6 of the contract for
+  Unperformed check (2026-09-28): no deterministic way was found to change an
+  original during the copy, so the step 5 recheck is untested.
+- [x] T007 [US1] Implement in SCRIPT `admit` steps 1 to 6 of the contract for
   a path with no existing source (UUID version 7 source ID, UTC revision
   name, staging under `CACHE/raw-import/<wiki>/<run-id>/`, `bagit.make_bag`
   with SHA-256, validation, digest recheck of the original, rename, read-only
@@ -110,13 +112,13 @@ check the original, run `verify` (spec US1).
 
 **Independent Test**: Admit, re-admit unchanged, change, re-admit (spec US2).
 
-- [ ] T008 [US2] Add TEST cases for spec US2 scenarios 1 to 3: unchanged
+- [x] T008 [US2] Add TEST cases for spec US2 scenarios 1 to 3: unchanged
   rerun reports `already_admitted` and leaves the `raw/` snapshot unchanged;
   a changed original adds exactly one revision to the same source ID and the
   earlier revision still validates; a change back to earlier bytes adds a new
   revision; two identical files at different paths become two sources; two
   existing sources with one original path fail that item.
-- [ ] T009 [US2] Implement in SCRIPT the source lookup by
+- [x] T009 [US2] Implement in SCRIPT the source lookup by
   `Internal-Sender-Identifier` over `raw/*/*/*/bag-info.txt`, the
   latest-revision digest comparison and the new-revision path, until T008
   passes.
@@ -130,14 +132,14 @@ check the original, run `verify` (spec US1).
 **Independent Test**: Selections with unlisted, excluded and invalid entries
 copy nothing for them (spec US3).
 
-- [ ] T010 [US3] Add TEST cases: a file beside a listed file is not copied; a
+- [x] T010 [US3] Add TEST cases: a file beside a listed file is not copied; a
   path under a `[wiki.raw_import] exclude` entry in `CONFIG/config.toml`, a
   path under the data, state or cache root, and a symbolic link resolving
   into an excluded folder are `refused`; a symbolic link, folder or other
   non-regular path is `refused`; duplicate paths, a relative path, an unknown
   field or an unknown kind make the selection invalid (exit 2, `raw/`
   unchanged); a missing configuration file means no user exclusions.
-- [ ] T011 [US3] Implement in SCRIPT the selection validation, the exclusion
+- [x] T011 [US3] Implement in SCRIPT the selection validation, the exclusion
   list (fixed roots plus `tomllib` configuration, compared after resolving
   links) and the refusal reasons, until T010 passes.
 
@@ -151,7 +153,7 @@ time.
 **Independent Test**: Failure points and reruns leave only valid revisions
 (spec US4).
 
-- [ ] T012 [US4] Add TEST cases: a leftover staging folder with a partial
+- [x] T012 [US4] Add TEST cases: a leftover staging folder with a partial
   copy and one with a complete bag that was never renamed are removed at the
   next run and never appear in `raw/`; a publication failure (the target
   source folder made unwritable) fails that item, keeps the others and exits
@@ -160,7 +162,8 @@ time.
   nothing; a lock file left by a process killed with `SIGKILL` during a run
   does not block the next run, and after that rerun `verify` passes with no
   duplicate revision; the staging root is empty after every run.
-- [ ] T013 [US4] Implement in SCRIPT the `flock` on
+  Unperformed check (2026-09-28): a full disk is not simulated.
+- [x] T013 [US4] Implement in SCRIPT the `flock` on
   `STATE/wikis/<name>/raw-import.lock`, staging cleanup at start and end,
   per-item error handling that continues, and the summary line, until T012
   passes.
@@ -179,11 +182,11 @@ the instance's Git status (spec US5).
   the four kinds, the bag layout and fields, that raw is create-only and
   outside the instance's Git history, that conversation records are not raw,
   and that page conventions and ingest come from a later feature.
-- [ ] T015 [US5] Add TEST cases: `init` creates the full layout of
+- [x] T015 [US5] Add TEST cases: `init` creates the full layout of
   [data-model.md](data-model.md) ("Wiki instance"); a second `init` changes
   no byte and no modification time; `git status --ignored` in the instance
   lists `raw/` as ignored after an admission; no `conversations` folder.
-- [ ] T016 [US5] Extend `init` in SCRIPT to copy the schema template, write
+- [x] T016 [US5] Extend `init` in SCRIPT to copy the schema template, write
   `.gitignore`, `wiki/index.md`, `wiki/overview.md` and `wiki/log.md`, and
   create the instance's Git repository without committing, until T015 passes
   (depends on T014).
@@ -287,7 +290,7 @@ decision on the task line (decision and date only). Findings come from
   prepares JSON for `wiki apply --input <file>`, a command that does not
   exist, and align the example with the schema template from T014. Added on
   2026-09-28 at the develop session's request instead of a separate issue.
-- [ ] T034 Run `deno task docs:generate`, then `deno task test:plugin-skills`
+- [x] T034 Run `deno task docs:generate`, then `deno task test:plugin-skills`
   and fix any packaging finding for the new skill's `assets/` and lock file.
 - [ ] T035 Run `deno task workflow`, then `deno task verify`, and repeat
   diagnosis, repair and verification until it passes.
