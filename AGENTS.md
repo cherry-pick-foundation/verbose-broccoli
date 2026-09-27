@@ -50,6 +50,8 @@ If the requirement cannot be met without substantial new local implementation, s
   `deno task workflow` and follow the execution instructions it prints.
 - Before completion, `deno task verify` must pass; it runs all checks and
   records evidence.
+- The main agent chooses each worker's and reviewer's model, reasoning effort
+  and time budget from the code plugin's backfire judgments.
 
 ## Review
 
@@ -59,6 +61,9 @@ If the requirement cannot be met without substantial new local implementation, s
   or expected outcomes.
 - Resolve actionable findings, rerun the affected verification, and repeat the
   review when fixes change the implementation materially.
+- Before each commit, the implementer or the orchestrator reviews the diff.
+- A review before merging into `develop` favors speed; one before merging into
+  `main` favors accuracy.
 
 ## Records
 
