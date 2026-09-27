@@ -298,8 +298,10 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   A commit that changes the file must raise its version exactly one step: a
   breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
   the middle digit, `docs` or `fix` the last digit. Other types and an
-  unchanged version are refused. A `commit-msg` hook is not told about
-  `--amend`, so an amend is compared with the commit it replaces.
+  unchanged version are refused. A breaking change also needs the user's
+  approval before it is committed, which the hook cannot check. A `commit-msg`
+  hook is not told about `--amend`, so an amend is compared with the commit it
+  replaces.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,
