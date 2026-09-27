@@ -275,10 +275,18 @@ following it.
 - [ ] T024 Run the quickstart, `deno task verify` and `deno task docs:check`
   on the combined result; rerun `deno task workflow` with the same task and
   base; repair until they pass. Check SC-002 (the check adds at most 5 s).
-- [ ] T025 SC-005: on a scratch branch that renames a task
+- [x] T025 SC-005: on a scratch branch that renames a task
   `docs/architecture.md` describes in prose, run `prepare` and
   `backfire_verify` three times; the paragraph must come back `contradicted`
   or `review` every time. Record the results in this file.
+  - 2026-09-28, in a scratch clone of `cdbf004` whose `deno.json` renamed
+    `doc-regions:check` to `regions:verify`: `prepare --base HEAD~1` gave one
+    request (197 claims, `deno.json` as the only evidence). In three runs of
+    `backfire_verify` (Hive, `deepseek-ai/deepseek-v4.1-flash`),
+    `docs/architecture.md:417-422` came back `contradicted` with `auto` at
+    confidence 1.0, 0.91 and 0.925; every other unit was `unsupported`, with
+    at most four `review` flags in a run. Each run used 61,895 input tokens.
+    SC-002: `deno task doc-regions:check` takes about 0.26 s.
 - [ ] T026 Merge review for `develop`, favoring speed: fresh reviewers from
   the other provider for the Codex code and for main's prose, given only the
   scope and requirements; resolve findings; add the review-record commit and
