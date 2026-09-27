@@ -13,6 +13,10 @@ the Linux `pidfd_open` (434) and `pidfd_send_signal` (424) syscalls through
 `ctypes`, checking their results. So the tests run on uv's managed CPython
 3.14.4, which lacks both wrappers, as well as on the system build.
 
+The line numbers in the assessment's Suspected Code Paths refer to develop
+`8ab332b`. After this fix, the failing calls sit in `pattern_process()`, and
+the fallback is the new `pidfd_syscall()` helper.
+
 ## Changes
 
 | File | Change | Notes |

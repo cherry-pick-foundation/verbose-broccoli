@@ -17,7 +17,7 @@ merged into it.
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Interpreter still lacks the wrappers | `packages/backfire/.venv/bin/python -c "import os; print(hasattr(os, 'pidfd_open'))"` | pass | Printed `3.14.4 False`, so the fallback path is the one exercised. |
+| Interpreter still lacks the wrappers | `packages/backfire/.venv/bin/python -c "import os,sys;print(sys.version.split()[0], hasattr(os,'pidfd_open'))"` | pass | Printed `3.14.4 False`, so the fallback path is the one exercised. |
 | Reproduction (post-fix) | `PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests/test_lifecycle.py -q` | pass | `10 passed in 17.46s`, run by the coordinator on `fb5a970`. |
 | New / updated tests | the same command | pass | Includes `test_pattern_process_without_pidfd_wrappers`. |
 | System interpreter | the same file with `/usr/bin/python3.14` in a temporary environment | pass | Run by the implementing worker: `10 passed`; not rerun by the coordinator. |
