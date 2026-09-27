@@ -60,9 +60,10 @@ with the already approved Ajv dependency. Sources:
 
 - Source: <https://github.com/github/spec-kit/tree/9118ed15a0ba65053469a94c560ea5d233f75884>
 - Revision: `9118ed15a0ba65053469a94c560ea5d233f75884` (release 1.0.1).
-- Reused: the files Spec Kit generated under `.specify/` and the ten
-  `speckit-*` skills in `plugins/code/skills/`. Later local edits are recorded
-  in Git history.
+- Reused: the ten core `speckit-*` skills in `plugins/code/skills/` and Spec
+  Kit 1.0.1's generated files under `.specify/`, except `.specify/extensions/`
+  and `.specify/extensions.yml` (see release 1.0.12 below). Later local edits
+  are recorded in Git history.
 - Extensions: the bundled `agent-context`, `assess`, `bug` and `git` extensions
   from release 1.0.12
   (<https://github.com/github/spec-kit/tree/e77daa9021d20db26b878f7dfa5640fe5a42d04e/extensions>)
