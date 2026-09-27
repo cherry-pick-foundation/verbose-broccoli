@@ -20,18 +20,19 @@ temporary folder. Names in this contract refer to
 | `admit --selection <file>` | Validate the selection, then admit each item in order. |
 | `verify` | Validate every revision under `raw/`; write nothing. |
 
-`--wiki <name>` selects `wikis/<name>/` and defaults to `default`.
+`--wiki <name>` selects `wikis/<name>/` and defaults to `default`. An empty
+name, `.`, `..`, or a name containing `/` or NUL is invalid.
 
 ## Exit status and output
 
 | Case | Exit | stdout | stderr |
 | --- | --- | --- | --- |
-| `init` done | 0 | One JSON object listing created paths | Empty |
+| `init` done | 0 | `{"created": [...]}`: absolute paths created, empty when nothing was missing | Empty |
 | `admit`: every item admitted or already admitted | 0 | Report (JSON Lines) | Empty |
 | `admit`: at least one item refused or failed | 1 | Report (JSON Lines) | One line naming the counts |
-| `verify`: every revision valid | 0 | JSON object with the count | Empty |
-| `verify`: at least one invalid revision | 1 | JSON object listing each invalid revision and its reason | One line naming the count |
-| Invalid arguments or selection, missing instance, lock held | 2 | Empty | Error message; nothing written |
+| `verify`: every revision valid | 0 | `{"count": N, "invalid": []}` | Empty |
+| `verify`: at least one invalid revision | 1 | `{"count": N, "invalid": [{"revision": ..., "reason": ...}]}`, each revision as its path relative to the instance | One line naming the count |
+| Invalid arguments, Wiki name or selection, malformed configuration, missing instance, lock held | 2 | Empty | Error message; nothing written |
 
 Upstream warnings (for example bagit's `DeprecationWarning` on Python 3.14)
 are suppressed so stderr carries only this contract's messages.
@@ -39,12 +40,16 @@ are suppressed so stderr carries only this contract's messages.
 ## `admit` item rules, in order
 
 1. Resolve the path. Refuse when it is not a regular file, lies under an
-   excluded location, or its name is not valid UTF-8.
+   excluded location, or its name is not valid UTF-8. Refuse when the path
+   already has a source under another kind; a source never moves or repeats
+   across kinds.
 2. Read the original's digest and modification time.
 3. Find the source by original path. If its latest revision has the same
    digest, report `already_admitted`.
 4. Copy into staging with its modification time, make the bag, and validate
-   it.
+   it. Read `bag-info.txt` back through bagit; if any recorded value differs
+   from the value written (bagit drops line breaks and trims values), fail
+   the item.
 5. Read the original's digest again; if it differs from step 2, fail the item.
 6. Rename the bag into `raw/<kind>/<source-id>/<revision>/` and make it
    read-only; report `admitted`.

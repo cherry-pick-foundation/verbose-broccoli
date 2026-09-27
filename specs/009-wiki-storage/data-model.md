@@ -95,19 +95,22 @@ exclude = ["/absolute/path", "..."]
 ```
 
 A missing file or table means no user exclusions. The data, state and cache
-roots are always excluded.
+roots are always excluded. A file that does not parse, a table or `exclude`
+of the wrong type, or an entry that is not an absolute path string stops the
+command with exit 2 before anything is written.
 
 ## Run state
 
 | Item | Location | Lifetime |
 | --- | --- | --- |
 | lock | `STATE/wikis/default/raw-import.lock` | kept; held with `flock` during a run |
-| staging | `CACHE/raw-import/<run-id>/` | removed at the end of the run and at the start of the next |
+| staging | `CACHE/raw-import/<wiki>/<run-id>/` | removed at the end of the run and at the start of the next run of the same Wiki, only while that Wiki's lock is held |
 
 ## Import report
 
-JSON Lines on standard output, one object per selected item (`path`,
-`outcome`, `source_id`, `revision`, `reason`), then one summary object with
-counts per outcome. Outcomes: `admitted`, `already_admitted`, `refused`,
+JSON Lines on standard output, one object per selected item with all of
+`path`, `outcome`, `source_id`, `revision` and `reason` (null where not
+applicable), then one line `{"summary": {"admitted": n,
+"already_admitted": n, "refused": n, "failed": n}}`. Outcomes: `admitted`, `already_admitted`, `refused`,
 `failed`. The agent keeps the report outside the repository; the repository
 gets counts only.

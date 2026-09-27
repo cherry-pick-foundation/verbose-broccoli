@@ -95,8 +95,8 @@ check the original, run `verify` (spec US1).
   otherwise record it in this file as an unperformed check.
 - [ ] T007 [US1] Implement in SCRIPT `admit` steps 1 to 6 of the contract for
   a path with no existing source (UUID version 7 source ID, UTC revision
-  name, staging under `CACHE/raw-import/<run-id>/`, `bagit.make_bag` with
-  SHA-256, validation, digest recheck of the original, rename, read-only
+  name, staging under `CACHE/raw-import/<wiki>/<run-id>/`, `bagit.make_bag`
+  with SHA-256, validation, digest recheck of the original, rename, read-only
   modes) and `verify` with `bagit.Bag(...).validate()` over every revision,
   until T006 passes.
 
@@ -210,44 +210,57 @@ Confirm each location with the user through the orchestrator, then record the
 decision on the task line (decision and date only). Findings come from
 [research.md](research.md) R6.
 
-- [ ] T018 [US6] Confirm `~/Documents/20_reference` (63 MB, 78 files). First
+- [x] T018 [US6] Confirm `~/Documents/20_reference` (63 MB, 78 files). First
   judgment: grammar books and vocabulary profiles are raw candidates; where a
   `.md` is a conversion of a PDF, the PDF is the raw original and the `.md`
   may be rebuildable cache. Finding: 47 docx, 6 pdf, 16 md, 4 hwp.
-- [ ] T019 [US6] Confirm `~/Documents/10_midterm`, `~/Documents/11_final` and
+  Decision (2026-09-28): originals only (docx, pdf, hwp); Markdown
+  conversions left out.
+- [x] T019 [US6] Confirm `~/Documents/10_midterm`, `~/Documents/11_final` and
   the loose PDF and docx files in `~/Documents` (625 MB, 261 files). First
   judgment: original exam papers go to raw; the user's edited versions stay.
   Finding: 10_midterm also holds scripts (py, bat) and Markdown conversions.
-- [ ] T020 [US6] Confirm `~/projects/work/sources` (26 MB, 8 entries). First
+  Decision (2026-09-28): original exam papers only; the user's edits,
+  conversions and scripts left out.
+- [x] T020 [US6] Confirm `~/projects/work/sources` (26 MB, 8 entries). First
   judgment: raw candidates. Finding: each entry is one original beside JSON
   and lock files from an earlier tool (not evidence under principle IV), and
   two entries look like operational references.
-- [ ] T021 [US6] Confirm `~/projects/work/materials` (2.7 MB, 3 entries).
+  Decision (2026-09-28): the eight originals only, without the tool's JSON
+  and lock files; the file list marks the two operational-looking entries.
+- [x] T021 [US6] Confirm `~/projects/work/materials` (2.7 MB, 3 entries).
   First judgment: raw candidates. Finding: mostly the user's own lesson
   materials and tool JSON, which the brief says stay in the user's workspace.
-- [ ] T022 [US6] Confirm `~/projects/work/intake` (1.6 GB, 9 entries). First
+  Decision (2026-09-28): left out.
+- [x] T022 [US6] Confirm `~/projects/work/intake` (1.6 GB, 9 entries). First
   judgment: raw candidates. Finding: one entry is a 1.5 GB tree of program
   code and extracted text (5,420 files), not documents.
-- [ ] T023 [US6] Confirm `~/projects/work/{concepts,decisions,stable,draft}`
+  Decision (2026-09-28): documents from the other eight entries; the code
+  tree left out.
+- [x] T023 [US6] Confirm `~/projects/work/{concepts,decisions,stable,draft}`
   (316 MB). First judgment: reference only; the Wiki is rebuilt from raw.
-  Nothing is copied.
-- [ ] T024 [US6] Confirm `~/projects/work/students`. First judgment:
+  Nothing is copied. Decision (2026-09-28): reference only, no exclusion.
+- [x] T024 [US6] Confirm `~/projects/work/students`. First judgment:
   operational data outside the Wiki; add it to the exclusions. Not surveyed.
-- [ ] T025 [US6] Confirm `~/Zotero` (42 MB). First judgment: stays in place;
+  Decision (2026-09-28): excluded.
+- [x] T025 [US6] Confirm `~/Zotero` (42 MB). First judgment: stays in place;
   copy selected items with their source. Finding: `storage/` is empty, so
-  there are no attachments to copy.
-- [ ] T026 [US6] Confirm `~/ownCloud` (989 MB). First judgment: stays in
+  there are no attachments to copy. Decision (2026-09-28): nothing copied
+  now, no exclusion.
+- [x] T026 [US6] Confirm `~/ownCloud` (989 MB). First judgment: stays in
   place; copy selected items with their source. Finding: almost all of it is
   one shared-materials folder; the client's journals and logs are never
-  copied.
-- [ ] T027 [US6] Confirm `~/data` (39 GB). First judgment: legacy archives,
-  not raw; add it to the exclusions.
-- [ ] T028 [US6] Ask whether any location outside the brief's table joins:
+  copied. Decision (2026-09-28): the user picks files of the
+  shared-materials folder from its file list.
+- [x] T027 [US6] Confirm `~/data` (39 GB). First judgment: legacy archives,
+  not raw; add it to the exclusions. Decision (2026-09-28): excluded.
+- [x] T028 [US6] Ask whether any location outside the brief's table joins:
   `~/Documents/ChatGPT` and `~/Documents/Codex` (first judgment: conversation
   records or earlier projects, excluded), `~/Documents/var`,
   `~/Documents/Restore Firefox`, `~/Documents/verbose-broccoli-artifacts` and
   `~/projects/work/{datasets,rules,deprecated}` (first judgment: out of
-  scope).
+  scope). Decision (2026-09-28): `~/Documents/ChatGPT` and `~/Documents/Codex`
+  excluded as conversation records; the others left out, no exclusion.
 - [ ] T029 [US6] After the user approves the list, write the exclusions from
   T018 to T028 to `~/.config/verbose-broccoli/config.toml` under
   `[wiki.raw_import]`.
@@ -302,8 +315,11 @@ decision on the task line (decision and date only). Findings come from
 
 | Worker | Tasks | Writable files |
 | --- | --- | --- |
-| Codex A | T003, T005 to T013, T015, T016 | SCRIPT, TEST |
-| Main | T001, T002, T004, T014, T017 to T037 | `deno.json`, `orca.yaml`, the lock file, `assets/AGENTS.md`, `SKILL.md`, `docs/`, this file, everything outside the repository |
+| Codex A | T003 to T013, T015, T016 | SCRIPT, the lock file, TEST |
+| Main | T001, T002, T014, T017 to T037 | `deno.json`, `orca.yaml`, `assets/AGENTS.md`, `SKILL.md`, `docs/`, this file, everything outside the repository |
+
+T004 moved from main to Codex A on 2026-09-28, because the worker's tests
+need the lock file.
 
 ## Parallel Example
 
