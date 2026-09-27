@@ -125,6 +125,14 @@ with `stop`; the invalid key returned 401, the unknown model 400, and the burst
 of six five 200s and one 429. The medium setting is therefore accepted and
 carries the thinking evidence the profile names.
 
+Python port (T065), 2026-09-27: `backfire_tools.acceptance.probe_provider`
+keeps the TypeScript probe's behavior and printed fields and ran once with the
+shipped configuration at 20:00 KST. The settings request returned 200 in 1.9 s
+with a response `model` of exactly `deepseek-ai/deepseek-v4.1-flash`, non-empty
+`reasoning_content` and 97 reasoning tokens of 103 completion tokens, finishing
+with `stop`; the invalid key returned 401, the unknown model 400, and the burst
+of six five 200s and one 429.
+
 ## Python package — 2026-09-27
 
 Decision: backfire is one Python package. It supersedes the two-runtime design
