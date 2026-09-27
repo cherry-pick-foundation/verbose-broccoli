@@ -202,9 +202,14 @@ use live in `plugins/code/skills` instead.
 - Every `git` hook is disabled in `.specify/extensions.yml`. Each worktree is
   created on its own feature branch, and the `before_specify` hook would create
   and switch to another branch inside it; the auto-commit hooks would bypass
-  the constitution's commit rules. Only `speckit-git-validate` is packaged, as
-  an on-demand check that the branch and spec directory match.
+  the constitution's commit rules. Only `speckit-git-validate` is packaged; it
+  checks numeric or timestamp-prefixed branches against matching spec directory
+  prefixes, so it does not validate unnumbered `feature/<name>` branches.
 - `agent-context` writes its current-plan pointer to the gitignored
   `.claude/rules/current-plan.md`, which Claude Code loads and Codex does not.
   The pointer differs per worktree, and the root `AGENTS.md` is maintained as
-  the user supplied it. Both of its hooks run automatically.
+  the user supplied it. Both after hooks are enabled and non-optional, and they
+  require Python 3 with PyYAML. `deno task doctor` does not check this host
+  dependency. Before use, run `python3 -c 'import yaml'`, or
+  `"$SPECKIT_PYTHON" -c 'import yaml'` when that override is set. The bundled
+  extension README has installation details.
