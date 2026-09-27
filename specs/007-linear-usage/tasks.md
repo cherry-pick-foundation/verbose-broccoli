@@ -28,10 +28,15 @@ Linear.
 
 ## Phase 1: Setup
 
-- [ ] T001 In this worktree run `deno task backfire:install` (develop now has
+- [x] T001 In this worktree run `deno task backfire:install` (develop now has
   `packages/backfire`, which `deno task check` tests) and `deno task workflow
   --task linear-usage --base 8ab332b`; confirm `deno task verify --task
   linear-usage --base 8ab332b` passes before any change.
+  - 2026-09-28: `backfire:install` built the ignored `.venv` on uv's managed
+    CPython 3.14.4, which lacks `os.pidfd_open`, so `test:backfire` failed
+    (Linear CHE-14, owned by `develop`). Rebuilt it with `uv sync --project
+    packages/backfire --frozen --python /usr/bin/python3.14` (system
+    3.14.4); 1233 backfire tests then passed.
 
 ---
 
@@ -44,7 +49,7 @@ to Linear.
 `AGENTS.md` has the approved rule; features 007 to 010 each have one issue,
 one linked worktree and one spec line (SC-001).
 
-- [ ] T002 [P] [US1] Create the preset source outside the repository
+- [x] T002 [P] [US1] Create the preset source outside the repository
   (`preset.yml` with one `append` layer for `spec-template`, and
   `templates/spec-template.md` holding the comment and the line
   `**Linear issue**: [CHE-###]` described in [research.md](research.md) R2),
@@ -53,7 +58,9 @@ one linked worktree and one spec line (SC-001).
   `.specify/presets/linear-issue/`. Check with `specify preset resolve
   spec-template` and `.specify/scripts/bash/resolve-template.sh
   spec-template`.
-- [ ] T003 [US1] Add under "Records" in the root `AGENTS.md` the approved
+  - 2026-09-28: installed from a scratch source; `specify preset resolve
+    spec-template` lists the core base and the `append` layer.
+- [x] T003 [US1] Add under "Records" in the root `AGENTS.md` the approved
   line: "Only the main agent writes to Linear. It creates one issue per
   feature or bug, without sub-issues, after searching for similar ones; other
   agents report out-of-scope bugs to it through Orca messages."
@@ -70,12 +77,15 @@ one linked worktree and one spec line (SC-001).
 **Independent Test**: `deno task test:workflow` passes with a test that every
 mode prints the Linear instruction.
 
-- [ ] T005 [P] [US2] In `scripts/workflow.ts`, add to
+- [x] T005 [P] [US2] In `scripts/workflow.ts`, add to
   `buildWorkModeInstructions` the instruction in [research.md](research.md) R3
   for every mode; in `scripts/workflow_test.ts`, test that DIRECT, DELEGATE,
   PARALLEL and REVIEW each print it with "main agent only", "In Review",
   "Done", "merge commit" and "record location". Run `deno task
   test:workflow`.
+  - 2026-09-28: `deno task test:workflow` passed (56 tests); no other
+    instruction contains "main agent only", so the test fails without the
+    line.
 
 ---
 
@@ -85,7 +95,7 @@ mode prints the Linear instruction.
 
 **Independent Test**: `grep -n Linear AGENTS.md` shows the privacy line.
 
-- [ ] T006 [US3] Add under "Records" in the root `AGENTS.md`, before T003's
+- [x] T006 [US3] Add under "Records" in the root `AGENTS.md`, before T003's
   line: "Treat Linear issues and comments as writing to an external service:
   never put operational data such as student records, or secret values, in
   them." (depends on nothing; same file as T003, so not parallel with it)
@@ -101,9 +111,13 @@ mode prints the Linear instruction.
 - [ ] T007 [US4] Outside the repository, ask the user to set Team Settings >
   Issue statuses & automations > auto-archive to 1 month for team
   `cherry-pick-foundation` (R5), and record the answer here.
-- [ ] T008 [P] [US5] Confirm no Linear plugin is enabled in Claude Code's or
+- [x] T008 [P] [US5] Confirm no Linear plugin is enabled in Claude Code's or
   Codex's saved configuration and no Linear extension is in
   `.specify/extensions.yml`; record the result.
+  - 2026-09-28: Claude Code's `enabledPlugins` has no Linear plugin,
+    `~/.codex/config.toml` has no `linear@` entry, and
+    `.specify/extensions.yml` installs only `agent-context`, `assess`, `bug`
+    and `git`.
 
 ---
 
@@ -113,7 +127,7 @@ mode prints the Linear instruction.
 
 **Independent Test**: The section answers SC-003's four moments.
 
-- [ ] T009 [US6] Add "Linear — 2026-09-27" to `docs/architecture.md` after
+- [x] T009 [US6] Add "Linear — 2026-09-27" to `docs/architecture.md` after
   "Commit messages" (team, labels, life cycle with the commands of
   [contracts/linear-lifecycle.md](contracts/linear-lifecycle.md), limit and
   archiving, where each rule lives), and name the `linear-issue` preset in
