@@ -203,8 +203,12 @@ of the sections below that carry a note naming this one.
   and the benchmark runner, which each set a 118 s deadline per judgment and
   write no judgment record; they read the returned judgment metadata. The
   request check reuses the adapter's own question schema through its private
-  `system_one_adapter._schema` function, which the exact 0.2.1 pin keeps
-  stable; adopting another adapter version rechecks that import.
+  `system_one_adapter._schema` function, and the profile-driven provider
+  rebuilds `AsyncOpenAIProvider.request` from the adapter's private request
+  and result helpers, because that method offers no hook for the profile's
+  extra request fields, a per-attempt timeout or the raw response that the
+  thinking and model checks read. The exact 0.2.1 pin keeps these stable;
+  adopting another adapter version rechecks both.
 - **Patterns.** `backfire_extract` runs each field's pattern with Python `re`
   in a child process, one field after another, and kills the child after
   1,000 ms, as upstream bounds its regex worker; cancellation and session end
