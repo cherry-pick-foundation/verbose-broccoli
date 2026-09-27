@@ -123,11 +123,16 @@ with the already approved Ajv dependency. Sources:
   <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
 - Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
 - Reused: the tool definitions and decision logic of `src/index.ts` and
-  `src/lib.ts`, which the Python package `packages/backfire/src/backfire/`
-  ports as the `backfire` tools, with differences recorded in that package.
-  No upstream file is copied into the repository.
+  `src/lib.ts`, ported to Python as the `backfire` tools in
+  `packages/backfire/src/backfire/`. The port's five recorded differences, the
+  original files' SHA-256 and the license text are in
+  `packages/backfire/src/backfire/UPSTREAM.md`. No upstream source file is
+  copied into the repository.
+- Reused: the agent skill `skills/jev`, vendored as
+  `plugins/code/skills/backfire/` with four recorded changes that its
+  `upstream.json` lists.
 - Copyright (c) 2026 Joey Kudish.
-  [MIT license](https://github.com/jkudish/jev-mcp/blob/a1fcc1e47fc696614f081e23a66ff48a890f22fd/LICENSE).
+  [MIT license](../plugins/code/skills/backfire/LICENSE).
 
 ## typesafe-ai/system-one-adapter-python — backfire judgments
 

@@ -530,7 +530,9 @@ check reports either success or the specific failure.
   with an explicit reason and none returns a judgment.
 - **SC-006**: A scan of the repository and the plugin package finds no
   credential, and the acceptance-run logs contain no credential or request
-  content.
+  content. (The separate scan task was dropped on 2026-09-27 by the user's
+  decision; the offline tests keep credentials and request content out of
+  records, logs and errors.)
 - **SC-007**: On a machine where the selected provider's API key and the
   required runtimes are already installed, the operator can enable the feature
   and pass the readiness check by following the documented steps. (The
