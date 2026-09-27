@@ -17,11 +17,11 @@ description: "Task list for Wiki document consistency"
 1. **Feature 009, Wiki storage** (CHE-7, `feature/wiki-storage`) has merged:
    the instance layout, the bags and the schema template come from it.
 2. **CHE-9, backfire for education work** (feature 011,
-   `feature/backfire-education`) has merged: it decides which personal data a
-   backfire provider profile may receive (FR-019), declares backfire in the
-   work plugin, and adds the per-plugin build whose work-plugin list this
-   feature extends; that build's interface is fixed only in 011's plan, and
-   no task here assumes it before T002 reads it.
+   `feature/backfire-education`) has merged: its work-plugin backfire replaces
+   personal identifiers before the provider call (FR-019), it declares
+   backfire in the work plugin, and it adds the per-plugin build whose
+   work-plugin list this feature extends; that build's interface is fixed
+   only in 011's plan, and no task here assumes it before T002 reads it.
 3. **Feature 008, repository document consistency** (CHE-6,
    `feature/doc-consistency`) has merged: `packages/doc-regions` and lychee
    come from it.
@@ -55,9 +55,9 @@ code tasks in the Worker Assignment section.
   difference in [research.md](research.md), then update the contracts before
   workers start: feature 009's bag fields, revision names, `log.md`
   convention and schema template (R1, R2); `packages/doc-regions`' modules
-  against the three needs in R8; feature 011's personal-data policy (where it
-  lives and how a unit's evidence is classified) and its work-plugin backfire
-  declaration and build (R7, R9); backfire's input schemas and limits (R6).
+  against the three needs in R8; feature 011's pseudonymization and its
+  work-plugin backfire declaration and build (R7, R9); backfire's input
+  schemas and limits (R6).
   - 2026-09-28: 011's spec is `075896f` on `feature/backfire-education`. Its
     orchestrator reports that pseudonymization runs only in the work build,
     on every request at backfire's exit to the provider, and hides
@@ -233,20 +233,17 @@ suggestions.
 
 ## Phase 6: User Story 4 - Personal data and credentials stay where the user allows (Priority: P2)
 
-**Goal**: Requests hold only page text and cited converted evidence, filtered
-by feature 011's policy.
+**Goal**: Requests hold only page text and cited converted evidence, and go
+to the work plugin's backfire server.
 
 **Independent Test**: `deno task test:wiki-consistency` (the data-boundary
 tests).
 
 - [ ] T023 [US4] Write `tests/test_boundary.py`: with synthetic
   configuration, state and credential files containing a marker string, no
-  request contains the marker; with a synthetic policy in feature 011's
-  format that withholds a cited source's data for the selected profile, the
-  citing units are listed as `withheld` with the policy's reason and are in
-  no request. Fails before T024.
-- [ ] T024 [US4] Read feature 011's policy as T002 recorded it and apply it
-  in `requests.py`. T023 passes (depends on T020).
+  request contains the marker (depends on T020).
+- T024 Removed on 2026-09-28: feature 011 withholds no data, and the user
+  chose to rely on its pseudonymization (spec.md Clarifications).
 
 ---
 
@@ -317,7 +314,7 @@ the code plugin; the schema and the skill describe the procedure.
 - US1: T010 → T011; T012 after T002; T013 → T014 need T009, T011 and T012.
 - US2: T015 → T016 and T017 → T018 are parallel after T005; T019 → T020 need
   T009, T016 and T018.
-- US3: T021 → T022 need T020. US4: T023 → T024 need T020.
+- US3: T021 → T022 need T020. US4: T023 needs T020.
 - US5: T025 after T006; T026 and T027 can be written while workers work;
   T028 needs T014 and T027; T029 needs T026.
 - T030 needs all implementation; T031 and T032 follow T030.
@@ -328,7 +325,7 @@ the code plugin; the schema and the skill describe the procedure.
 | --- | --- | --- |
 | Codex A | T008 to T014 | `packages/wiki-consistency/src/wiki_consistency/{instance,sources,lint,__main__}.py`, their tests and helper; `packages/doc-regions/src/`, `packages/doc-regions/tests/` for T012 only |
 | Codex B | T015 to T018 | `src/wiki_consistency/{evidence,search}.py` and their tests |
-| Codex C | T019 to T024 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py` |
+| Codex C | T019 to T023 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py` |
 | Codex D | T007, T025 | `scripts/doctor.ts`, `scripts/doctor_test.ts`, `packages/backfire/src/backfire_tools/build.py` and its tests |
 | Main | T001 to T006, T026 to T032 | shared files, the skill, the schema template, `docs/`, `licenses/`, the constitution, prose, Git, the instance |
 

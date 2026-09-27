@@ -52,7 +52,8 @@ Wiki pattern are deterministic and which are backfire judgments.
 ### Session 2026-09-28
 
 Five questions went to the user through the orchestrator on 2026-09-28; the
-orchestrator relayed the answers the same day. Each names the requirements it
+orchestrator relayed the answers the same day. A sixth, on FR-019, followed
+the same day after feature 011's plan. Each names the requirements it
 affects.
 
 - Q: Principle VI says "The LLM maintains pages, cross-references,
@@ -91,6 +92,14 @@ affects.
   revision) to feature 009's schema template after 009 merges; a later ingest
   feature may add fields but does not redefine these. Affects FR-003 and
   FR-022.
+- Q: Feature 011 withholds no personal data: the work plugin's backfire
+  replaces identifiers (roster names, guardian names, schools, phone numbers,
+  emails) before the provider call and sends everything else as is. What does
+  FR-019 become? → A (the user's choice): this feature relies on that
+  replacement and adds no filter of its own; the judgment step sends its
+  requests to the work plugin's backfire server. No unit is withheld, so the
+  `withheld` list and its task are dropped. Affects User Story 4, FR-016,
+  FR-019, SC-004 and SC-006.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -224,7 +233,7 @@ the result is a suggestion that is not marked final.
 1. **Given** a lint request, **When** the preparation command runs in lint
    scope, **Then** it covers every agent-region unit of every page except
    `log.md` exactly once in the evidence requests, except units listed as
-   unverifiable or withheld.
+   unverifiable.
 2. **Given** two related pages that do not link to each other, **When** the
    lint preparation runs, **Then** a find request for each page lists the
    other among its candidates.
@@ -241,28 +250,26 @@ the result is a suggestion that is not marked final.
 
 The preparation command sends backfire only Wiki pages and the converted text
 of raw revisions the pages cite. It never includes credentials, configuration,
-state, or files outside the instance, and it follows feature 011's policy for
-which personal data the selected provider profile may receive. When a request
-would break that policy, the command leaves the unit out and reports why.
+state, or files outside the instance. The agent sends the requests to the work
+plugin's backfire server, whose judge replaces personal identifiers before the
+provider call, as feature 011 defines.
 
 **Why this priority**: Backfire sends what it judges to an external provider.
 The user wants backfire used for education work, so the rule must be exact
 rather than a blanket ban.
 
-**Independent Test**: With a synthetic instance, a configured policy that
-forbids a marked class of data for the selected profile, and a page citing a
-source of that class, run the preparation command and confirm the unit is left
-out and reported; confirm no configuration or credential file content appears
-in any request.
+**Independent Test**: With a synthetic instance and synthetic configuration,
+state and credential files, run the preparation command and confirm no
+content of those files appears in any request.
 
 **Acceptance Scenarios**:
 
 1. **Given** any instance, **When** the preparation command runs, **Then** no
    request contains text read from outside the instance's `wiki/` pages and
    the converted text of cited raw revisions.
-2. **Given** feature 011's policy forbids the data of a cited source for the
-   selected profile, **When** the command runs, **Then** units citing it are in
-   no request and are reported as withheld with the policy's reason.
+2. **Given** prepared requests, **When** the agent runs the judgment step,
+   **Then** it sends them to the work plugin's backfire server, not the code
+   plugin's.
 
 ---
 
@@ -401,7 +408,7 @@ run the offline check against a temporary instance from that copy.
   reported.
 - **FR-016**: Requests MUST stay within backfire's published input limits,
   every in-scope unit MUST appear in exactly one evidence request unless it is
-  unverifiable or withheld, and the output MUST state the number of requests
+  unverifiable, and the output MUST state the number of requests
   per tool before any is sent.
 - **FR-017**: The agent MUST correct contradicted or review-flagged units
   before the operation's commit or report them with the reason they stand,
@@ -414,9 +421,10 @@ run the offline check against a temporary instance from that copy.
   pages and the converted text of cited raw revisions. Credentials,
   configuration, state and files outside the instance MUST NOT be read into
   a request.
-- **FR-019**: Which personal data the selected backfire provider profile may
-  receive MUST follow feature 011's policy; units whose evidence that policy
-  withholds MUST be left out of requests and reported as withheld.
+- **FR-019**: The agent MUST send the requests to the work plugin's backfire
+  server, whose judge replaces personal identifiers before the provider call
+  as feature 011 defines. This feature MUST NOT add a personal-data filter of
+  its own.
 
 **Packaging (constraint)**
 
@@ -464,13 +472,12 @@ run the offline check against a temporary instance from that copy.
   test case.
 - **SC-004**: The preparation command gives byte-identical output for the same
   instance and cache, and every in-scope unit appears in exactly one evidence
-  request or in the unverifiable or withheld list.
+  request or in the unverifiable list.
 - **SC-005**: On a synthetic instance with one paragraph contradicting its
   cited source and one pair of contradicting pages, backfire flags both
   (`contradicted` or review) in each of three runs.
 - **SC-006**: In the automated tests, no request contains text from outside
-  the instance's pages and cited converted evidence, and every withheld unit
-  is reported.
+  the instance's pages and cited converted evidence.
 - **SC-007**: The offline check runs from a work plugin built outside the
   repository, without the code plugin.
 

@@ -95,9 +95,7 @@ Candidates are not stored; `prepare` computes them from the index.
 ## Unit outcome
 
 Every in-scope unit ends in exactly one of: `requested` (in one evidence
-request), `unverifiable` (all cited sources unreadable), `withheld` (feature
-011's policy forbids its evidence for the selected profile, with the policy's
-reason).
+request) or `unverifiable` (all cited sources unreadable).
 
 ## Drift finding (additions)
 

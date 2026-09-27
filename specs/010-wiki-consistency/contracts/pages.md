@@ -52,8 +52,8 @@ sources:
 2. `convert`, `index`, `prepare --scope changed`; send each request to the
    backfire tool it names; confirm `contradicted` page results with
    `backfire_compare`; fix contradicted or review-flagged units or report why
-   they stand; report contradictions between pages and withheld or
-   unverifiable units to the user.
+   they stand; report contradictions between pages and unverifiable
+   units to the user.
 3. `check` again, append one `log.md` entry, commit the instance.
 4. A lint operation does the same with `--scope lint` and also handles the
    cross-reference suggestions and the orphan and stale-citation findings.

@@ -286,11 +286,11 @@ needs three things 008's plan does not state:
 - **Decision**: The preparation command reads only `wiki/` pages and the
   converted evidence of cited revisions; it never opens the configuration,
   state, credential files or anything outside the instance and its cache
-  folders. Which personal data a provider profile may receive follows feature
-  011's policy (CHE-9): the implementation reads that policy as 011 defines
-  it and leaves out, and reports as withheld, every unit whose evidence the
-  policy withholds for the selected profile. No blanket prohibition is
-  written here, as the brief asks.
+  folders. Personal identifiers are handled by feature 011 (CHE-9): the
+  agent sends the requests to the work plugin's backfire server, whose judge
+  replaces them before the provider call. This feature adds no filter of its
+  own and no blanket prohibition, as the brief asks (the user's choice of
+  2026-09-28, spec.md Clarifications).
 - **Current conflict**: [docs/backfire.md](../../docs/backfire.md), "Requests,
   data, and records", says "Do not send secrets, credentials, or private
   personal records such as student data." Feature 011 is expected to replace
@@ -306,8 +306,8 @@ needs three things 008's plan does not state:
   given names, guardian names, schools, phone numbers, emails) before the
   provider call, and sends everything else as is (011
   `contracts/pseudonymization.md`). So there is no policy for FR-019 to
-  read; what FR-019 and the `withheld` list become is a question for the
-  user. Both plugins' `mcp.json` declare the server as `backfire` with the
+  read; the user chose to rely on that replacement and drop the `withheld`
+  list. Both plugins' `mcp.json` declare the server as `backfire` with the
   same eleven tool names; how Codex CLI and Claude Code tell two same-named
   servers from two plugins apart is unverified, and 011's client check (its
   T020) will report it. The judgment step must use the work plugin's server.

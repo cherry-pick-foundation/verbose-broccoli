@@ -88,7 +88,7 @@ a constitution patch amendment.
 | VII. One owner, minimum implementation | PASS. Each region has one generator and named sources; cache writers have budgets and cleanup (R3, R4); `doc-regions` owns region, unit and request logic. |
 | VIII. No new exceptions | PASS. None claimed. |
 | IX. Layout | PASS. Runtime package in `packages/wiki-consistency/src/`; procedure in the work plugin; the work plugin gains no Deno configuration. |
-| Product and Data Boundaries | PASS. Synthetic fixtures only; personal data follows feature 011 (R9). |
+| Product and Data Boundaries | PASS. Synthetic fixtures only; personal identifiers are replaced by the work plugin's backfire as feature 011 defines (R9). |
 | Governance | A patch amendment of principle VI, point 2, chosen by the user (R2); a `docs` commit, so a patch bump. |
 
 Re-check after design: unchanged.
@@ -157,7 +157,8 @@ a work-plugin skill because Wiki maintenance is a work capability
   `convert`, `index`, `prepare`; send the requests; fix or report; `check`
   again; append one `log.md` entry; commit the instance.
 - **Data boundary**: requests hold only page text and cited converted
-  evidence; feature 011's policy filters units (R9).
+  evidence and go to the work plugin's backfire server, which replaces
+  personal identifiers as feature 011 defines (R9).
 
 ## Work Split and Ownership
 

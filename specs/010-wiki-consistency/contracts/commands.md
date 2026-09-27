@@ -66,7 +66,6 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
   "head": "<instance HEAD commit or null>",
   "units": [{"id": "wiki/concepts/quad.md:8-9", "page": "wiki/concepts/quad.md", "heading_path": ["Quadratic formula"], "kind": "paragraph", "first_line": 8, "last_line": 9, "added": true, "outcome": "requested"}],
   "unverifiable": [{"unit": "...", "sources": ["<source-id>/<revision>"]}],
-  "withheld": [{"unit": "...", "reason": "<feature 011 policy reason>"}],
   "search": {"keyword": true, "semantic": false},
   "calls": {"backfire_verify": 3, "backfire_find": 0, "backfire_classify": 1},
   "requests": [
@@ -91,8 +90,8 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
 - Crossref requests (lint only): per page, candidate pages it does not link
   to, at least two, at most 20.
 - Each request stays within backfire's limits (research.md R6); every
-  in-scope unit is in exactly one evidence request or in `unverifiable` or
-  `withheld`. Output is sorted, so the same instance and cache give
+  in-scope unit is in exactly one evidence request or in `unverifiable`.
+  Output is sorted, so the same instance and cache give
   byte-identical output.
 - Text comes only from `wiki/` pages and the converted evidence of cited
   revisions.
@@ -101,12 +100,13 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
 
 1. Run `update`, `check`, `convert`, `index`, `prepare`; read `calls` before
    sending anything.
-2. Send each request to the tool it names through the MCP client. If
+2. Send each request to the tool it names on the work plugin's backfire
+   server through the MCP client. If
    backfire is unavailable, stop and report that the step did not run.
 3. For a `pages` result `contradicted`, call `backfire_compare` with the two
    units' texts (`passage_a`, `passage_b`) and report a confirmed
    contradiction to the user.
 4. Fix `evidence` results that are `contradicted` or `review`, or report why
-   they stand; report `unverifiable` and `withheld` units.
+   they stand; report `unverifiable` units.
 5. Treat `crossref` and `classify` results as suggestions.
 6. `check`, one `log.md` entry, commit.
