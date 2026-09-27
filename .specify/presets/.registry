@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "presets": {
+    "linear-issue": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:68b5601bf126bc0f6890b3b210208480cfe10fa5a57ff39c9e7c37f6e9a25b09",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {},
+      "registered_skills": {},
+      "installed_at": "2026-09-27T15:51:59.150555+00:00"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+schema_version: "1.0"
+preset:
+  id: "linear-issue"
+  name: "Linear issue line"
+  version: "1.0.0"
+  description: "Adds the Linear issue line to new feature specifications"
+requires:
+  speckit_version: ">=1.0.0"
+provides:
+  templates:
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      strategy: "append"
+      description: "The feature's Linear issue ID, moved into the spec header"
