@@ -15,7 +15,8 @@
   | Archive, never delete; auto-archive 1 month (FR-008) | Linear's team setting; Orca cannot delete | Configuration |
   | Single team, labels (FR-009) | Linear configuration, done 2026-09-28 | Configuration |
   | No monitoring; a failed creation is the signal (FR-010) | Orca's error at creation; `docs/architecture.md` | When it happens |
-  | Orca only (FR-001, FR-013) | Client configuration (no Linear plugin enabled), `docs/architecture.md` | Configuration |
+  | Orca only (FR-001) | Client configuration (no Linear plugin enabled), `docs/architecture.md` | Configuration |
+  | Use Linear's UI for what Orca lacks (FR-013) | `deno task workflow` instruction, every mode | Before editing and before completion |
   | Explanation (FR-014) | `docs/architecture.md`, "Linear" | For readers |
 
 - **Rationale**: The brief asks that `AGENTS.md` take only rules that always
@@ -79,8 +80,14 @@
   merge review, commit the feature's record and move its Linear issue to In
   Review; after git flow feature finish, move the issue to Done with one
   completion comment giving the merge commit and the record location instead
-  of a PR link." A test in `scripts/workflow_test.ts` checks that every mode
-  prints it.
+  of a PR link. Ask the user to do in Linear's UI what Orca cannot (archive,
+  delete, labels, projects, documents, cycles, milestones); add no other
+  Linear integration." A test in `scripts/workflow_test.ts` checks that every
+  mode prints it. The last sentence was added after the merge review found
+  that the rule for Orca's gaps (FR-013) otherwise lived only in
+  `docs/architecture.md`, which no step makes an agent read when a gap
+  appears; only the main agent writes to Linear, so it is the one that meets
+  a gap, and it runs the workflow tool for every request.
 - **Rationale**: The root `AGENTS.md` makes every agent run `deno task
   workflow` before completion, which is exactly when the In Review move is
   due; the brief names "printed workflow text" as a carrier. Printing it in

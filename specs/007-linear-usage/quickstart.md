@@ -49,7 +49,7 @@ naming the merge commit and `specs/007-linear-usage/`.
 A fresh agent given only the repository at HEAD answers, for each moment, where
 the rule is and what it says: start a feature (spec template and `AGENTS.md`),
 report a bug as a worker (`AGENTS.md`), complete a feature (`deno task
-workflow`), need archiving or labels (`docs/architecture.md`). Record the
+workflow`), need archiving or labels (`deno task workflow`). Record the
 answers and the agent in `tasks.md`.
 
 ## SC-006, after the user's setting

@@ -19,10 +19,12 @@ data, student records or secret values.
    ```sh
    printf '%s\n' "<one or two sentences>. Spec Kit record: specs/<NNN>-<name>/ on feature/<name>." |
      orca linear create --title "<name>" --team CHE --state "In Progress" --assignee me \
-       --label Feature [--label code|work|chat ...] --workspace <W> --body-file - --json
+       --label Feature [--label <plugin> ...] --workspace <W> --body-file - --json
    ```
 
    Use `--label Bug` for a bug and `--label Improvement` for an improvement.
+   Repeat `--label <plugin>` with `code`, `work` or `chat` for each plugin the
+   work concerns, and leave it out for repository-wide tooling.
 3. Create the worktree linked to it:
 
    ```sh
