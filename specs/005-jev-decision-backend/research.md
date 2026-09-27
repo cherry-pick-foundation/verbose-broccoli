@@ -201,7 +201,10 @@ of the sections below that carry a note naming this one.
   callers are the tools, whose deadline and record file come from the MCP
   boundary, and three direct callers, the readiness check, the gate 3 probe
   and the benchmark runner, which each set a 118 s deadline per judgment and
-  write no judgment record; they read the returned judgment metadata.
+  write no judgment record; they read the returned judgment metadata. The
+  request check reuses the adapter's own question schema through its private
+  `system_one_adapter._schema` function, which the exact 0.2.1 pin keeps
+  stable; adopting another adapter version rechecks that import.
 - **Patterns.** `backfire_extract` runs each field's pattern with Python `re`
   in a child process, one field after another, and kills the child after
   1,000 ms, as upstream bounds its regex worker; cancellation and session end
