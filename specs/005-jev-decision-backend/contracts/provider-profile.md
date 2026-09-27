@@ -5,7 +5,7 @@ Protocol handling stays with the reused libraries and is not restated here:
 the System One adapter's provider class for the profile's `api` builds each
 request and reads each response, including its finish-reason check, and the
 TypeSafe SDK maps standard HTTP statuses to its error classes, which the
-single retry policy uses. The endpoint's code names no provider, and a
+single retry policy uses. The package's code names no provider, and a
 provider whose departures from the standard behavior a profile can state
 needs only a new profile and its selection, not a code change. Every profile
 lives in a `config.toml` as one `[providers.<name>]` table; there is no file
@@ -13,8 +13,8 @@ per provider.
 
 ## Location and selection
 
-- Shipped configuration: `packages/backfire/src/backfire_backend/config.toml`,
-  copied into a built code plugin with the endpoint package. It holds
+- Shipped configuration: `packages/backfire/src/backfire/config.toml`,
+  copied into a built code plugin with the package. It holds
   `provider = "hive"`, the user-selected backend of FR-002, and one
   `[providers.<name>]` table per shipped provider. The code reads the default
   selection only from this file.
@@ -66,12 +66,12 @@ absent. An absent optional value is an omitted key, since TOML has no null.
 | `base_url` | The API root passed to the provider class. |
 | `model` | The exact model identifier sent with every request and pinned under FR-012. |
 | `credential` | The variable name that holds the key in `<name>.env`. |
-| `rate_limit_per_second` | Optional. The request rate per account that the provider documents. The endpoint does not throttle to it; the single retry layer handles rate-limit answers. The gate 2 probe sends a burst above it, and when it is absent skips the burst and reports it as not applicable, with that reason. |
+| `rate_limit_per_second` | Optional. The request rate per account that the provider documents. The judge does not throttle to it; the single retry layer handles rate-limit answers. The gate 2 probe sends a burst above it, and when it is absent skips the burst and reports it as not applicable, with that reason. |
 | `request` | Optional. Fields added to every request beyond those the adapter sends; it MUST NOT set `model`, `messages`, `stream` or `n`. When it sets `max_tokens`, completion tokens that reach that value give `truncated_output`, for providers that report a normal finish when they cut output. |
 | `thinking.requested` | `on` or `off`, as readiness reports it. A profile that requests `off` is an explicit choice, never a fallback for a profile that requests `on` (FR-002). |
 | `thinking.content_path` | Optional. A path in the response message whose non-empty string shows that thinking ran. |
 | `thinking.token_path` | Optional. A path in the response's `usage` whose positive integer shows that thinking ran. When `requested` is `on`, at least one of the two paths is set, and a response that shows neither fails with `thinking_not_confirmed`. When `requested` is `off`, neither is set and no thinking evidence is checked. |
-| `statuses` | Optional. Maps an HTTP status whose meaning at this provider differs from the standard one to `credential_rejected`, `balance_exhausted`, `request_rejected` or `rate_limited`. Every other status keeps the meaning of the SDK's error class: 400 is `request_rejected`, 401 is `credential_rejected`, 429 is `rate_limited`, and any other status is `provider_error` ([system-one-endpoint.md](system-one-endpoint.md#error-responses)). Only `rate_limited` is retried. |
+| `statuses` | Optional. Maps an HTTP status whose meaning at this provider differs from the standard one to `credential_rejected`, `balance_exhausted`, `request_rejected` or `rate_limited`. Every other status keeps the meaning of the SDK's error class: 400 is `request_rejected`, 401 is `credential_rejected`, 429 is `rate_limited`, and any other status is `provider_error` ([judgment.md](judgment.md#errors)). Only `rate_limited` is retried. |
 
 A selected table with a missing or unknown key, or a key that breaks these
 rules, fails each judgment with `backend_not_configured`, naming the table and

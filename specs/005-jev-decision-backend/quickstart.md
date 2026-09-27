@@ -8,17 +8,18 @@ to the selected provider; the offline suite does not. The steps use the shipped
 
 ## Prerequisites
 
-- Deno 2.9.6, `uv`, and the Python version in
-  `packages/backfire/.python-version`.
+- Deno 2.9.6 for the repository's tasks, `uv` 0.11.32 or later, and the Python
+  version in `packages/backfire/.python-version`.
 - An API key with a positive balance for the selected provider (Hive).
 - Codex CLI and Claude Code signed in, for the client scenarios.
 
 ## 1. Build, install and configure (SC-007)
 
 ```bash
+deno task backfire:install
 out="$(mktemp -d)/code"
 deno task backfire:build -- "$out"
-"$out/backfire/src/bin/backfire" install
+(cd "$out/backfire" && uv sync --frozen --no-dev)
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/backfire"
 mkdir -p "$cfg"
 [ -e "$cfg/hive.env" ] || (umask 077 && : > "$cfg/hive.env")
@@ -26,12 +27,13 @@ chmod 600 "$cfg/hive.env"
 # add HIVE_API_KEY=<key> to that file with an editor
 ```
 
-Expected: the build writes a copy of `plugins/code` with the component's
-runtime files under `$out/backfire/`, and none of Backfire's tests or
-acceptance files; the install step reports the
-pinned server packages, adapter and interpreter versions and the copied
-`jev-mcp` revision, and writes nothing inside the repository. Running the
-steps again keeps an existing key. From a prepared machine, this step and step 2
+Expected: `backfire:install` makes the repository copy's git-ignored
+environment, `packages/backfire/.venv`, which the build runs in; the build
+writes a copy of `plugins/code` with the component's runtime files under
+`$out/backfire/`, and none of Backfire's tests or acceptance files; the second
+install makes `$out/backfire/.venv` from `uv.lock` with the pinned interpreter
+and writes nothing inside the repository. Running the steps again keeps an
+existing key. From a prepared machine, this step and step 2
 take under 10 minutes.
 Contracts: [configuration.md](contracts/configuration.md),
 [provider-profile.md](contracts/provider-profile.md),
@@ -40,7 +42,7 @@ Contracts: [configuration.md](contracts/configuration.md),
 ## 2. Readiness (FR-011)
 
 ```bash
-"$out/backfire/src/bin/backfire" ready
+uv --directory "$out/backfire" run --frozen --offline --no-sync backfire ready
 ```
 
 Expected: exit 0; `requested` names the `hive` profile's provider, endpoint,
@@ -52,51 +54,50 @@ Contract: [readiness.md](contracts/readiness.md).
 
 ## 3. Offline suite (FR-003 to FR-010, FR-016, FR-018, FR-019)
 
-Prepare once, with network access, as CI does:
+Prepare once with network access, as CI does, by running
+`deno task backfire:install` (step 1 already did), then:
 
 ```bash
-deno install --config packages/backfire/deno.json --frozen --no-prompt
-packages/backfire/src/bin/backfire install
-(cd packages/backfire && uv sync --frozen)
 deno task test:backfire
 ```
 
 Expected: all tests pass without network access and without Node. The suite
-drives the real server over MCP stdio, with the real endpoint in front of a
-scripted provider, and covers:
+drives the real server over MCP stdio, with the real in-process judge in front
+of a scripted provider, and covers:
 
 - provider profiles: the same code sends a second, test-only profile's
   settings and applies its status overrides, and no file under
-  `packages/backfire/src/` other than `src/backfire_backend/config.toml` names Hive;
+  `packages/backfire/src/` other than `src/backfire/config.toml` names Hive;
 - the build: the built plugin holds the runtime files and no test, test
   double, acceptance, build or linked file;
 
-- the endpoint contract, validation without rescaling, placeholder rejection
+- the judgment contract, validation without rescaling, placeholder rejection
   with a genuine 0.5 accepted, the request limits, a single-candidate
   `backfire_find` failing with `invalid_request`, and the adapter's Score at the
   three-level boundaries (`{0: 0, 1: 0.005, 2: 1}` and `{0: 0, 1: 0, 2: 0.99}`)
   accepted by the real `backfire_review`;
 - every error type with its retry behavior, including a response without a
-  model, `Retry-After` that does not fit, and wrong or foreign tokens that never
-  reach the provider;
-- tool fidelity: the tool list, and the results and error texts for every
-  known-answer argument set, match the fixtures captured from `jev-mcp` 0.9.0
-  on Node after mapping the upstream names to `backfire`, including the four `backfire_extract` cases;
-- the MCP boundary: messages passed unchanged, one tool-call record per call
+  model and `Retry-After` that does not fit;
+- tool fidelity: the tool list, and the judgment requests, results and error
+  texts for every known-answer argument set, match the fixtures captured from `jev-mcp` 0.9.0
+  on Node after mapping the upstream names to `backfire` and applying the
+  port's recorded differences, including the four `backfire_extract` cases;
+- the MCP boundary: messages passed unchanged, a line over 10 MiB (unterminated,
+  padded with whitespace, or carrying a large argument) ending the session, one tool-call record per call
   including local-only `backfire_extract` results, tool errors and the SDK's
   argument errors, and a completed response held back until after its
   cancellation, then dropped;
 - `backfire_verify` with 100,000 evidence items sharing one id reaches its
   judgment call within seconds;
 - sessions: concurrent sessions, closing one, the client's input ending during a
-  call and while idle, a killed client, a killed server leaving no endpoint, a
+  call and while idle, a killed client, a killed server leaving no pattern child, a
   client that dies during start, and a message over 10 MiB;
-- records: digests, positions instead of labels, the `X-Judgment-Metadata` fields,
+- records: digests, positions instead of labels, the judgment metadata fields,
   the 50 MiB bound across rotation, normal close and a killed writer while two
   sessions write, an interrupted final line, and both kinds of record write
   failure;
 - privacy: a planted request string, synthetic identifiers and the key value
-  never appear in records, logs or endpoint errors.
+  never appear in records, logs or judgment errors.
 
 The deadline tests wait out the real limits, so they run separately:
 
@@ -105,8 +106,8 @@ deno task test:backfire-slow
 ```
 
 Expected: `backfire_extract` with 31 timed-out patterns and one matching
-pattern against a stalled provider fails with the transport's error within
-120 s; a call made to stall past 118 s gets `deadline_exceeded`, its provider
+pattern against a stalled provider fails with a specific judgment error or
+`deadline_exceeded` within 120 s; a call made to stall past 118 s gets `deadline_exceeded`, its provider
 request is cancelled, and another call in the same session still answers;
 cancelling during pattern matching makes no provider call.
 
@@ -159,9 +160,9 @@ automatically, and at least 90% accuracy per tool and per language.
 1. Start two client sessions (two Orca tabs) with the server registered, and
    call a tool in each at the same time. Both answer.
 2. Close one tab; the other still answers, and `ps` shows no server or
-   endpoint process left from the closed tab.
+   pattern child left from the closed tab.
 3. Send `kill -9` to one client process during a long call; its server and
-   endpoint are gone within five seconds.
+   any pattern child are gone within five seconds.
 4. Cancel a long tool call in a client; its tool-call record shows `cancelled`
    and no later answer reaches the client.
 

@@ -8,7 +8,7 @@
 | Classification set `classify-60-v1` | `scripts/backfire/fixtures/classify-60-v1.jsonl` (committed) | SC-004: one 60-item `backfire_classify` case |
 | Safety set `safety-v1` | `scripts/backfire/fixtures/safety-v1.jsonl` (committed) | SC-009: cases that must never be approved automatically |
 | Held-out general set `heldout-v1` | `$XDG_DATA_HOME/verbose-broccoli/backfire-eval/heldout-v1.jsonl`, sealed by `scripts/backfire/fixtures/heldout-v1.seal.json` | SC-010: final acceptance only |
-| JevBench public hard tier | Downloaded to the cache from `fstandhartinger/jevbench` revision `3749b4fc1b88e4f5f02a3c0b9766c4ffa57891c0`, path `datasets/public/hard.jsonl`, SHA-256 `89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb`, 111 decisions, MIT | SC-001, SC-002: regression through the local endpoint |
+| JevBench public hard tier | Downloaded to the cache from `fstandhartinger/jevbench` revision `3749b4fc1b88e4f5f02a3c0b9766c4ffa57891c0`, path `datasets/public/hard.jsonl`, SHA-256 `89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb`, 111 decisions, MIT | SC-001, SC-002: regression through the in-process judge |
 
 All committed and held-out content is synthetic and English or Korean. No set
 contains credentials or real personal records. Synthetic identifiers such as
@@ -140,7 +140,8 @@ rejected, and one ECE example.
 
 - Each criterion runs three times; every run must pass. There is no best-of-three.
 - Runs use the pinned versions from the readiness report and record them.
-- The benchmark runs through the local endpoint. SC-003 runs in both Codex CLI
+- The benchmark runs through the in-process judge as a direct caller
+  ([judgment.md](judgment.md#request)). SC-003 runs in both Codex CLI
   and Claude Code against the staged package
   ([mcp-server.md](mcp-server.md#client-registration-for-acceptance)) and reads
   each tool's arguments and result from the client's event stream, not from the

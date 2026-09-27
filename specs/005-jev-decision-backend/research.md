@@ -125,7 +125,123 @@ with `stop`; the invalid key returned 401, the unknown model 400, and the burst
 of six five 200s and one 429. The medium setting is therefore accepted and
 carries the thinking evidence the profile names.
 
+## Python package — 2026-09-27
+
+Decision: backfire is one Python package. It supersedes the two-runtime design
+of the sections below that carry a note naming this one.
+
+- **Runtime.** The package `backfire` lives in
+  `packages/backfire/src/backfire/` and runs on the pinned Python 3.14.4 in a
+  uv environment made from `uv.lock`. Nothing in the package runs on Deno or
+  Node; the repository's own automation stays on Deno 2.9.6 and calls uv.
+- **Server.** The MCP server uses the official MCP Python SDK (`mcp` 2.2.0,
+  MIT) over stdio, one process per client session. The SDK's `stdio_server`
+  reads whole lines with no size limit but accepts the caller's input stream
+  (`mcp/server/stdio.py` in the 2.2.0 wheel), so the server passes a bounded
+  line reader that ends the session when a line passes 10 MiB; the SDK still
+  parses every message.
+- **Tools.** The eleven tools are a Python port of `jev-mcp` 0.9.0's
+  `src/index.ts` and `src/lib.ts` at revision
+  `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (MIT), served as
+  `backfire_<suffix>` by the server `backfire`. The port keeps that release's
+  descriptions, input schemas, question design, decision logic, result formats
+  and error texts, with `ensureUniqueIds` in linear time (formerly recorded
+  change 4). It differs from the release only in these recorded points, which
+  `src/backfire/UPSTREAM.md` lists with the source revision and the original
+  files' SHA-256:
+  1. `backfire_extract`'s patterns are Python `re` regular expressions, and
+     its argument description says so (the user's decision of 2026-09-27).
+     Patterns whose meaning differs between JavaScript and Python are
+     documented, not emulated.
+  2. A failed judgment surfaces as the backend's fixed error text for its
+     type ([judgment.md](contracts/judgment.md)), not as upstream's
+     `Jev-compatible endpoint <status>: <body>`, because no HTTP transport
+     exists.
+  3. The tools make judgments through the in-process judge below instead of
+     upstream's provider layer; `src/provider.ts` is not ported.
+- **Judgments.** The tools call `system-one-adapter` 0.2.1's asynchronous
+  client in the same process, with the profile-driven provider subclass, the
+  SDK's retry policy and answer validation without rescaling. The local HTTP
+  endpoint, its session token, port line and `X-Judgment-Metadata` header, the
+  copied transport and its judgment-record hook (formerly recorded change 6)
+  are gone; a per-call context carries the provider's reported model, thinking
+  evidence, usage, attempts and latency to the judgment record. The judge's
+  callers are the tools, whose deadline and record file come from the MCP
+  boundary, and three direct callers, the readiness check, the gate 3 probe
+  and the benchmark runner, which each set a 118 s deadline per judgment and
+  write no judgment record; they read the returned judgment metadata.
+- **Patterns.** `backfire_extract` runs each field's pattern with Python `re`
+  in a child process, one field after another, and kills the child after
+  1,000 ms, as upstream bounds its regex worker; cancellation and session end
+  kill it too. The child also sets a timer on itself whose default action ends
+  it at the same limit, so no child outlives a killed server for long.
+- **Deadline.** Each tool call runs as one task. At 118 s after its request the
+  MCP boundary cancels it, which cancels the provider request and kills a
+  pattern child, and answers `deadline_exceeded`; provider attempts and retry
+  waits use only the time left. The endpoint's 80 s and the transport's 82 s
+  layers are gone.
+- **Records.** The server writes the same tool-call and judgment records
+  ([data-model.md](data-model.md#record-files)); digests use `rfc8785` 0.1.4
+  (RFC 8785 canonical JSON).
+- **Fidelity.** Gate 5 still captures `jev-mcp` 0.9.0's tool list and results
+  on Node against a scripted System One endpoint, together with every judgment
+  request the tools send (`state` and `questions`, in order); the offline
+  fidelity tests give the port the same scripted answers through a test-only
+  judge and require the same tool list, the same judgment requests and the
+  same results after mapping the names, except where a recorded difference
+  applies. With scripted answers, comparing results alone would not show a
+  changed instruction or question.
+- **Layout and launch.** The project follows the standard Python src layout
+  (the user's decision of 2026-09-27): the runtime package
+  `src/backfire/` with `__main__.py` and a `backfire` console command from
+  `pyproject.toml`'s `[project.scripts]`, the tools in the subpackage
+  `backfire.tools`, the development and release programs (the build, the
+  probes, the evaluation runner and the upstream capture) in a second package
+  `src/backfire_tools/` that is not shipped, and the pytest suites in
+  `tests/`. The code plugin starts the server the standard way for Python MCP
+  servers, `uv --directory ${PLUGIN_ROOT}/backfire run --frozen --offline
+  --no-sync backfire serve-mcp`, and installing a copy is
+  `uv sync --frozen --no-dev` in its `backfire/` directory, which creates the
+  copy's own `.venv` there without the test tools. `pyproject.toml` requires uv
+  0.11.32 or later (`required-version = ">=0.11.32"`, relaxed from the exact
+  pin the same day at the user's choice), so clients with a newer uv can start
+  the server while `uv.lock` still fixes every package. This replaces the POSIX
+  `sh` launcher and the per-copy environments under `~/.cache` of the
+  two-runtime design.
+- **Tests.** The offline tests are pytest suites run through
+  `deno task test:backfire`.
+
+Rationale: the user decided on 2026-09-27 that one Python package is cleaner.
+TypeSafe publishes its adapter only in Python, so a single runtime means either
+porting the tools to Python or rewriting the adapter in TypeScript; the port
+keeps the adapter's prompt, parsing and confidence formula unchanged (FR-013).
+Removing the second runtime removes the process boundary between the server
+and the endpoint: the local HTTP contract, the child's lifecycle, the session
+token, the metadata header, the layered deadlines, a second test stack, lock
+and build path, and the record hook inside copied code.
+
+Cost, accepted by the user: about 2,100 lines of upstream logic become locally
+owned code; `backfire_extract` accepts Python patterns instead of JavaScript
+ones; each upstream release needs a re-port instead of a re-copy; and fidelity
+now rests on captured upstream results instead of a byte-for-byte copy.
+
+Alternatives considered for the launch: keeping a small `sh` launcher with
+per-copy environments in the cache, so nothing is written inside a plugin copy
+(more code and not the standard Python layout; the user chose `uv run` with the
+copy's own `.venv`).
+
+Alternatives considered: the two-runtime design of 2026-09-26 (a TypeScript
+copy of the tools plus a Python endpoint; the process boundary above);
+TypeScript only (rewrites the adapter and TypeSafe's formula, against FR-013);
+Python with a JavaScript-compatible regex engine (the user chose Python `re`);
+calling upstream `jev-mcp` on Node from Python (keeps two runtimes).
+
 ## Tool source: `jev-mcp` 0.9.0, copied — 2026-09-26
+
+Superseded on 2026-09-27 by [Python package](#python-package--2026-09-27): the
+tools are ported to Python instead of copied, and the recorded changes below
+are replaced by the port's recorded differences. The evidence about the
+release's behavior still applies.
 
 Decision: the code plugin does not depend on the npm package
 `@jkudish/jev-mcp`. It copies the package's TypeScript source at revision
@@ -286,6 +402,8 @@ not); `judgment` (the domain word the records and contracts already use);
 
 ## MCP boundary — 2026-09-26
 
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the boundary observes the MCP Python SDK's message streams in the same way; the rules below still apply.
+
 Decision: the plugin's entry creates the MCP SDK's stdio transport, connects
 the copied `server` through it and observes the JSON-RPC messages that pass in
 both directions, already parsed. It writes one tool-call record for every
@@ -315,6 +433,8 @@ plan; only needed around a black box); reading the SDK's private tool registry
 (an unpinned internal).
 
 ## One retry layer and one deadline — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the retry layer stays the SDK's policy, but the endpoint's 80 s and the transport's 82 s layers are gone; the 118 s call deadline cancels the in-process judgment directly.
 
 Decision: the copied transport runs with `JEV_MCP_MAX_ATTEMPTS=1` and
 `JEV_MCP_REQUEST_TIMEOUT_MS=82000`. The endpoint owns every retry through the
@@ -410,6 +530,8 @@ uncertainty).
 
 ## Request size limits — 2026-09-26
 
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the in-process judge applies the limits, and requests must finish within the time left of the 118 s call deadline instead of the endpoint's 80 s budget.
+
 Decision: the endpoint fails a request with `request_limit_exceeded` before any
 provider call when a Choice has more options than the option limit or the
 request has more answer cells than the cell limit. A cell is one Noul, one
@@ -438,6 +560,8 @@ answers as errors (a genuinely uncertain answer can be uniform over few
 options).
 
 ## Session lifecycle — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): there is no endpoint child; a session is one Python process, and shutdown cancels its calls and kills any pattern child.
 
 Decision: the code plugin's MCP entry starts one server process per client
 session, on Deno 2.9.6. The server starts the local System One endpoint as its
@@ -470,6 +594,8 @@ on the child (tied to the spawning thread).
 
 ## Server runtime and dependencies — 2026-09-26
 
+Superseded on 2026-09-27 by [Python package](#python-package--2026-09-27): the server runs on Python 3.14.4 with its dependencies in `uv.lock`; the package has no Deno configuration or lock.
+
 Decision: the server runs on the repository's Deno 2.9.6 with its own
 configuration and lockfile in `packages/backfire/`, like the clean-code skill,
 so a built code plugin installs from its own lockfile
@@ -494,6 +620,8 @@ runtime for one component); floating semver ranges (unpinned resolution);
 switching Deno's minimum age off (a supply-chain guard for no benefit).
 
 ## Gate 4, packaging — 2026-09-27
+
+Superseded on 2026-09-27 by [Python package](#python-package--2026-09-27): this evidence is for the TypeScript server and is repeated for the Python package.
 
 Evidence (T013, Deno 2.9.6 with TypeScript 6.0.3, uv 0.11.32): a plugin built
 with `deno task backfire:build` into a directory outside the repository, run
@@ -531,6 +659,8 @@ the locally owned code).
 
 ## Local endpoint and Python environment — 2026-09-26
 
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the interpreter pin and the lock stay; the endpoint becomes an in-process judge without Starlette or Uvicorn, and each copy's environment is its own `.venv` instead of one under the XDG cache.
+
 Decision: the endpoint is a Python package managed by `uv`, with an exact
 interpreter pin in `.python-version` (3.14.4, the host version) and a committed
 `uv.lock`. Dependencies: `system-one-adapter[openai]` 0.2.1 (MIT, Python 3.10
@@ -555,6 +685,8 @@ library HTTP server (no asynchronous cancellation); an endpoint of our own in
 TypeScript (reimplements the adapter, against FR-013).
 
 ## Component location and distribution build — 2026-09-27
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the location stands; the build is a Python program in `backfire_tools` and copies only the runtime package, and the `sh` launcher and per-copy cache environments are replaced by `uv run` with the copy's own `.venv`.
 
 Decision: all backfire code is the implementation package `packages/backfire/`,
 with every source file under `src/`: the `bin/backfire` entry, the copied
@@ -600,6 +732,8 @@ recorded diff describe, and cannot carry the Python endpoint); `git archive`
 (the built plugin would need a generated lockfile).
 
 ## Hive provider glue — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the provider subclass and its checks stay; the metadata reaches the judgment record through a per-call context instead of the `X-Judgment-Metadata` header.
 
 Revised on 2026-09-27: the glue is provider-neutral and reads every
 provider-specific value from the selected profile
@@ -648,6 +782,8 @@ reporting an upstream issue for request options (still worth filing, with the
 user's approval, but not a dependency).
 
 ## Provider profiles — 2026-09-27
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the shipped file is `src/backfire/config.toml`, the judge reads the selected profile in the server process, and there is no port line or transport model name.
 
 Decision: every provider-specific value lives in a provider profile, one
 `[providers.<name>]` table of the shipped `src/backfire_backend/config.toml`
@@ -721,6 +857,8 @@ both runtimes, and implicit typing that reads an unquoted `on` as true).
 
 ## Records — 2026-09-26
 
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the Python server writes the same records, with digests from `rfc8785`; the judgment record's metadata come from the in-process judge.
+
 Decision: the server is the only record writer. It writes two kinds of JSON
 Lines records to one file per session under
 `$XDG_STATE_HOME/verbose-broccoli/backfire/records/`:
@@ -775,6 +913,8 @@ operator setup step outside this feature's need).
 
 ## Upstream error text returned to the agent — 2026-09-26
 
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): judgment failures now surface as the backend's fixed error texts; tool errors thrown by the ported tools still repeat the caller's input as release 0.9.0 does.
+
 Decision: FR-009's ban on request content in error messages applies to what the
 backend writes: endpoint error bodies, server logs, records and reports. Tool
 results that the copied tools return to the calling agent over MCP, such as
@@ -790,6 +930,8 @@ Alternatives considered: rewriting tool errors at the MCP boundary (changes
 upstream behavior and would need its own contract).
 
 ## Credential location — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the file and its rules stand; the in-process judge reads it for each judgment, and nothing else in the server does.
 
 Decision: the operator puts the selected profile's credential variable in
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env` (default `~/.config`)
@@ -1011,6 +1153,8 @@ Score); GLM 5.3 Flash (less reliable; the user excluded it on 2026-09-27);
 agreement voting now (a spec change that doubles provider calls).
 
 ## Testing layers — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): all offline suites are pytest; the fidelity suite feeds scripted answers through a test-only judge.
 
 Decision: offline tests run in `deno task check` without network access.
 `deno test` drives the real server over MCP stdio, with the real endpoint in

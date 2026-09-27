@@ -28,7 +28,7 @@ plugins are out of scope. API keys stay outside the repository.
   supported? → A: Only when its normal, boundary and failure cases pass through
   the real tool path in both Codex CLI and Claude Code, on the runtime the tools
   run on (first the upstream package's Node 22 or later; Deno 2.9.6 since the
-  plan revision below); for `backfire_extract` the cases
+  plan revision below; Python 3.14.4 since 2026-09-27); for `backfire_extract` the cases
   include Korean text returned exactly as written, no candidates, an invalid
   pattern and a pattern timeout; the feature is not done while any tool has a
   known failure.
@@ -96,7 +96,8 @@ plugins are out of scope. API keys stay outside the repository.
   (`src/provider.ts` and `@jkudish/jev-agent-tools`), and `@typesafe-ai/sdk`
   still supplies the question builders. Arguments and results stay those of
   jev-mcp 0.9.0 (names: next clarification), and the npm package is not a
-  runtime dependency.
+  runtime dependency. (Superseded on 2026-09-27: backfire is one Python
+  package; see Session 2026-09-27.)
 - Q (during plan revision): What should the MCP server and its tools be called?
   → A: The server is `backfire`, and the eleven tools use the `backfire_`
   prefix with the upstream suffixes (formerly `jev_gate` and so on). The
@@ -125,6 +126,15 @@ plugins are out of scope. API keys stay outside the repository.
   `api` key names the adapter provider class (`openai` now; `anthropic`
   reserved and not supported yet), and standard status meanings come from
   the SDK, so a profile lists only the statuses whose meaning differs.
+- Q: Should backfire keep two runtimes, a TypeScript copy of the tools plus a
+  Python endpoint for the adapter? → A: No. backfire is one Python package:
+  the MCP server on the official Python SDK, the eleven tools ported from
+  `jev-mcp` 0.9.0, and judgments made in the same process by
+  `system-one-adapter`. TypeSafe publishes the adapter only in Python, so
+  the tools are ported rather than the adapter rewritten.
+- Q: Which pattern language should the ported `backfire_extract` accept?
+  → A: Python's `re`; its argument description says so, and patterns whose
+  meaning differs from JavaScript are documented, not emulated.
 - Q: Which reasoning setting should the shipped Hive profile request? → A:
   `reasoning_effort = "medium"` instead of the thinking switch
   `chat_template_kwargs: {"thinking": true}`. In repeated strict-mode runs of
@@ -327,11 +337,12 @@ check reports either success or the specific failure.
   `backfire_verify`, `backfire_noul`, `backfire_classify`, `backfire_find`, `backfire_rerank`,
   `backfire_compare`, `backfire_screen`, `backfire_extract` and `backfire_decide`, with that
   release's arguments and results under the `backfire_` names (release 0.9.0
-  uses the `jev_` prefix). The plugin serves them from its own
-  MCP server running on Deno 2.9.6, with that release's tool definitions and
-  decision logic copied at the revision recorded in the Clarifications and
-  changed only at the points recorded in the plan's research ("Tool source");
-  the npm package is not a runtime dependency.
+  uses the `jev_` prefix), except that `backfire_extract`'s patterns are
+  Python regular expressions. The plugin serves them from its own MCP server,
+  a Python package, with that release's tool definitions and decision logic
+  ported from the revision recorded in the Clarifications; the port differs
+  from the release only at the points recorded in the plan's research
+  ("Python package"), and the npm package is not a runtime dependency.
   Adopting a later upstream revision is an explicit upgrade under FR-012. A tool
   counts as supported only when its normal, boundary and failure cases pass
   through the real tool path in both clients on that runtime. The feature is not
@@ -408,9 +419,10 @@ check reports either success or the specific failure.
   and the service endpoint) MUST be pinned to an exact version or identifier; an upgrade is an explicit change followed by re-verification. The
   tested versions of every component, runtime and prompt MUST be recorded, and
   the compatibility checks MUST pass again after any update.
-- **FR-013**: The feature MUST reuse the upstream tools' question design and
-  decision logic, copied with only the recorded changes, and the upstream
-  adapter's answer conversion, without reimplementing either. Other locally
+- **FR-013**: The feature MUST keep the upstream tools' question design and
+  decision logic, ported with only the recorded differences and checked
+  against results captured from the upstream release, and MUST reuse the
+  upstream adapter's answer conversion without reimplementing it. Other locally
   owned code is limited to integration glue; service-specific settings are
   provider profiles (FR-019).
 - **FR-014**: The code plugin's documentation MUST state which content the tools
