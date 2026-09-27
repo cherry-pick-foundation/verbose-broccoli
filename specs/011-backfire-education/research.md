@@ -284,5 +284,35 @@ of the temporary directory.
 
 ## Results
 
-Filled in during implementation: the offline suites, the client check and the
-education measurement.
+### Offline suites
+
+On 2026-09-28 at `0c1416d`, the coordinator ran quickstart steps 1 to 4 and the
+checks of T022:
+
+- `deno task backfire:install`, then `deno task test:backfire`: 1,337 passed,
+  3 deselected (the slow tests). The end-to-end suite
+  (`packages/backfire/tests/test_education_e2e.py`) covers step 4, SC-001 to
+  SC-004, the eleven tools of FR-003 and a roster edit taking effect at the
+  next call (FR-012).
+- `deno task test:backfire-slow`: 3 passed.
+- Steps 2 and 3 in a scratch directory outside the repository: the code build's
+  `src/` holds only `backfire/` with the development profile; the work build's
+  holds `backfire/` and `backfire_education/`, its only `config.toml` equals
+  `backfire_education/config.toml`, and it installed offline with
+  `uv sync --frozen --no-dev --extra education`. A `chat` build exited with 1
+  and wrote nothing.
+- `deno task check` and `deno task verify` passed.
+
+A probe of the pseudonymizer replaced Korean mobile numbers written as
+`010-1234-5678`, `01012345678`, `010 1234 5678` and `+82 10-1234-5678` with one
+pseudonym and a Seoul landline with another, and left dates such as
+`2026.09.28` and `20260928`, scores and ranges unchanged; `0c1416d` added these
+cases to the unit tests.
+
+### Client check
+
+Pending the user's go-ahead (T020).
+
+### Education measurement
+
+Pending the user's go-ahead (T014).
