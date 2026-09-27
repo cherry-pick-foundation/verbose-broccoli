@@ -493,6 +493,42 @@ Alternatives considered: Node 22 or later with npm (a second JavaScript
 runtime for one component); floating semver ranges (unpinned resolution);
 switching Deno's minimum age off (a supply-chain guard for no benefit).
 
+## Gate 4, packaging — 2026-09-27
+
+Evidence (T013, Deno 2.9.6 with TypeScript 6.0.3, uv 0.11.32): a plugin built
+with `deno task backfire:build` into a directory outside the repository, run
+with `DENO_DIR` and `XDG_CACHE_HOME` pointing at empty directories and a
+separate uv Python directory, installed through its own
+`backfire/src/bin/backfire install`: Deno fetched 95 npm and six JSR packages
+from the built copy of `deno.lock` under its default minimum dependency age, uv
+downloaded CPython 3.14.4 and `uv sync --frozen` installed the lock (26
+applicable packages, with `typesafe-sdk` 0.7.1), both locks stayed
+byte-identical to the source, and a later cached-only install and
+`uv sync --frozen --offline --check` changed nothing. Offline,
+`load_test.ts` builds two copies, installs them with `UV_OFFLINE=1`, runs
+`serve-mcp` under `env -i` with the transport environment, and sees the server
+`backfire` at version 0.9.0 (read through `createRequire`) with exactly the
+eleven tools; each copy's environment imports `backfire_backend` from its own
+copy and survives installing the source package and removing the other copy.
+
+Decision: the copied `src/upstream/src/index.ts` stays out of type checking.
+`deno check` reports 135 errors in it, all from the upstream source: 78
+TS7006 and 53 TS7031 (implicit `any` parameters and bindings), and one each of
+TS18046, TS2345 and TS2339 twice. With `strict` off, four remain (TS2339 three
+times, TS2345 once), so no compiler setting makes it pass, and fixing them would
+change the copied source beyond the recorded changes. No test imports it or
+`main.ts` statically; `deno run` loads them at runtime and the load test
+exercises them. The copied `lib.ts` and `provider.ts` pass strict checking.
+
+Rationale: constitution I asks that the entry points be proven, which the
+fresh-cache install and the load test do; keeping the copy unchanged matters
+more than type-checking code this feature does not own (constitution VII).
+
+Alternatives considered: relaxing the compiler options for the package (still
+fails, and weakens checking of the locally owned code); editing the copied
+source (an unrecorded change); `--no-check` for the tests (would hide errors in
+the locally owned code).
+
 ## Local endpoint and Python environment — 2026-09-26
 
 Decision: the endpoint is a Python package managed by `uv`, with an exact
