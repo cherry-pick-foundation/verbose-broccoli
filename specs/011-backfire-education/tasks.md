@@ -127,7 +127,9 @@ profile-selection tests.
 - [ ] T020 On demand, after the user's go-ahead: the client check of [quickstart.md](quickstart.md#5-client-check-live-with-the-users-go-ahead) in Codex CLI and Claude Code (SC-006). Also find out, from each client's documentation or a per-invocation run, how it names two servers called `backfire` from two plugins, and record it as unverified if only an installation could show it; return the outcomes to the coordinator for [research.md](research.md#results) (depends on T008, T009, T011).
   - 2026-09-28: T008 is done; waiting for the user's go-ahead for the live client calls.
 - [ ] T021 Coordinator: scan the repository for the ten names and schools of the operator's EduOK list without writing them anywhere, and record only the outcome in [research.md](research.md#results) (SC-008).
+  - 2026-09-28: waiting for the user to say where the EduOK list is saved (Orca question msg_40b030e48503, asked with T014's and T020's go-ahead); none of the operator's files names it yet.
 - [ ] T022 Run quickstart steps 1 to 4, `deno task test:backfire-slow`, `deno task check` and `deno task verify`, and report the results (depends on every task above except T014 and T020).
+  - 2026-09-28: steps 1 to 4, the slow tests, `deno task check` and `deno task verify` passed at 0c1416d and again at 04b7788 (1,342 tests) after the develop merge review's fixes; results in research.md. The develop merge review of 51378be (Claude Code claude-opus-5-5 high for code, Codex gpt-6-luna max for prose; reports in the ignored `.local/reviews/011-develop-merge/`) approved; its should-fix and must-fix findings were fixed in 8d495ea, 8239bc9 and 04b7788. Next: T014, T020 and T021 after the user's answer, then a short review of 51378be..HEAD and the review record.
 
 ---
 
