@@ -22,6 +22,9 @@ def roster(tmp_path, monkeypatch):
         writer.writerow(("가라온", "가상별학교", "다누리", "3"))
         writer.writerow(("나하늘", "가상별", "", "2"))
         writer.writerow(("다하늘", "바람숲학교", "다누리", "1"))
+        writer.writerow(("Ann", "", "", "3"))
+        writer.writerow(("Ann Lee", "", "", "3"))
+        writer.writerow(("example.test Tail", "", "", "3"))
     config = xdg_path("config") / "backfire" / "education.toml"
     config.parent.mkdir(parents=True)
     config.write_text(f"roster = {json.dumps(str(path))}\n", encoding="utf-8")
@@ -81,6 +84,21 @@ def test_phone_email_normalization_and_pseudonym_like_text(roster):
     assert "Synthetic.One+2@Example.test" not in masked
     assert masked.count("이메일") == 2
     assert masked.endswith("keep 학생10명.")
+
+
+def test_longer_email_wins_roster_match_at_same_start(roster):
+    masked, _, _ = pseudonymize("Ann@example.test", {})
+    assert masked == "이메일01"
+
+
+def test_roster_overlap_masks_the_rest_of_an_email(roster):
+    masked, _, _ = pseudonymize("Ann Lee.one@example.test", {})
+    assert masked == "학생01"
+
+
+def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
+    masked, _, _ = pseudonymize("Ann Lee.one@example.test Tail!", {})
+    assert masked == "학생01!"
 
 
 def test_korean_phone_formats_and_non_phone_numbers(roster):

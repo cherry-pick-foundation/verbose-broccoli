@@ -63,6 +63,29 @@ def test_installation_check_matches_project_extra(tmp_path, monkeypatch, educati
     assert all(("--extra" in command) is education for command in commands)
 
 
+@pytest.mark.parametrize("education", [False, True])
+def test_installation_failure_prints_matching_sync_command(tmp_path, monkeypatch, capsys, education):
+    root = tmp_path / "component"
+    (root / "src/backfire").mkdir(parents=True)
+    if education:
+        (root / "src/backfire_education").mkdir()
+    (root / ".python-version").write_text(platform.python_version(), encoding="utf-8")
+    monkeypatch.setattr(ready, "_ROOT", root)
+    monkeypatch.setattr(ready.sys, "prefix", str(root / ".venv"))
+    monkeypatch.setattr(ready.backfire, "__file__", str(root / "src/backfire/__init__.py"))
+    monkeypatch.setattr(ready, "_versions", lambda: {
+        key: "synthetic" for key in (
+            "jev_mcp_port", "mcp", "rfc8785", "system_one_adapter", "typesafe_sdk",
+            "openai", "python", "uv", "prompt_sha256",
+        )
+    })
+    monkeypatch.setattr(ready.subprocess, "run", lambda command, **kwargs: subprocess.CompletedProcess(command, 1, "", ""))
+
+    assert ready.main() == 1
+    install = "uv sync --frozen --no-dev --extra education" if education else "uv sync --frozen --no-dev"
+    assert capsys.readouterr().err == f"Readiness failed: run `{install}` in this component, then retry.\n"
+
+
 def test_direct_noul_uses_118_second_deadline_without_records(monkeypatch):
     observed = {}
 

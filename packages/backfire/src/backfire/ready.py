@@ -89,8 +89,8 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
     if any(versions[key] is None for key in required):
         return "A required package version, uv version, or port revision is unavailable."
 
-    extra = ["--extra", "education"] if (_ROOT / "src" / "backfire_education").is_dir() else []
-    base = ["uv", "sync", "--project", str(_ROOT), "--check", "--frozen", "--offline", *extra]
+    education_extra = ["--extra", "education"] if (_ROOT / "src" / "backfire_education").is_dir() else []
+    base = ["uv", "sync", "--project", str(_ROOT), "--check", "--frozen", "--offline", *education_extra]
     for extra in ([], ["--no-dev"]):
         try:
             result = subprocess.run([*base, *extra], cwd=_ROOT, capture_output=True, text=True, timeout=20)
@@ -271,7 +271,8 @@ def main() -> int:
         _unconfirmed(report, "installation", problem)
         report["tool_checks"] = _skipped_tool_checks("not run: installation check failed")
         print(json.dumps(report, ensure_ascii=False))
-        print("Readiness failed: run `uv sync --frozen --no-dev` in this component, then retry.", file=sys.stderr)
+        education_extra = " --extra education" if (_ROOT / "src" / "backfire_education").is_dir() else ""
+        print(f"Readiness failed: run `uv sync --frozen --no-dev{education_extra}` in this component, then retry.", file=sys.stderr)
         return 1
 
     profile = None

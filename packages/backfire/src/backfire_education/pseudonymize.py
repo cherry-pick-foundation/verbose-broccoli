@@ -84,6 +84,10 @@ def pseudonymize(
             if start >= end:
                 selected.append((start, stop, identifier))
                 end = stop
+            else:
+                kept_start, kept_stop, kept_identifier = selected[-1]
+                end = max(end, stop)
+                selected[-1] = (kept_start, end, kept_identifier)
         spans_by_text[text] = selected
         return selected
 
