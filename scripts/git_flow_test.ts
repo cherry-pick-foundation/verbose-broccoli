@@ -46,6 +46,34 @@ async function attemptFinish(cwd: string) {
   };
 }
 
+async function addReviewRecord(
+  feature: string,
+  options: {
+    reviewedCommit?: string;
+    trailers?: string[];
+    changedFile?: boolean;
+  } = {},
+) {
+  const parent = await git(feature, 'rev-parse', 'HEAD');
+  const trailers = options.trailers ?? [
+    'Reviewed-by: Claude Code (claude-opus-5-5)',
+    `Reviewed-commit: ${options.reviewedCommit ?? parent}`,
+  ];
+  if (options.changedFile) {
+    await Deno.writeTextFile(join(feature, 'reviewed.txt'), 'changed\n');
+    await git(feature, 'add', 'reviewed.txt');
+  }
+  await git(
+    feature,
+    'commit',
+    '--allow-empty',
+    '-m',
+    'chore(review): record merge review',
+    ...(trailers.length ? ['-m', trailers.join('\n')] : []),
+  );
+  return await git(feature, 'rev-parse', 'HEAD');
+}
+
 async function temporary(
   run: (root: string, develop: string, feature: string) => Promise<void>,
   verifyExit = 0,
@@ -142,6 +170,7 @@ Deno.test('git-flow: finish is refused when develop has a commit the feature lac
 
 Deno.test('git-flow: finish is refused when feature verification fails', async () => {
   await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature);
     const before = await snapshot(develop, feature);
     const result = await attemptFinish(develop);
     assert(result.code !== 0, result.output);
@@ -153,19 +182,207 @@ Deno.test('git-flow: finish is refused when feature verification fails', async (
   }, 1);
 });
 
+async function assertRefusedUnchanged(
+  develop: string,
+  feature: string,
+  message: RegExp,
+) {
+  const before = await snapshot(develop, feature);
+  const result = await attemptFinish(develop);
+  assert(result.code !== 0, result.output);
+  assertMatch(result.output, message);
+  assertEquals(await snapshot(develop, feature), before);
+}
+
+Deno.test('git-flow: finish is refused when the feature tip has no review record', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /feature\/flow-test.*(tree|review-record)/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-commit is not the record parent', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature, {
+      reviewedCommit: await git(develop, 'rev-parse', 'HEAD'),
+    });
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /Reviewed-commit.*(parent|reviewed commit)/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when the review record changes the tree', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature, {changedFile: true});
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /tip tree differs.*review-record/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-by is missing', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature, {
+      trailers: [`Reviewed-commit: ${parent}`],
+    });
+    await assertRefusedUnchanged(develop, feature, /Reviewed-by/i);
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-commit is missing', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature, {
+      trailers: ['Reviewed-by: Claude Code'],
+    });
+    await assertRefusedUnchanged(develop, feature, /Reviewed-commit/i);
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature, {
+      trailers: [
+        'Reviewed-by: Claude Code',
+        'Reviewed-by: Codex',
+        `Reviewed-commit: ${parent}`,
+      ],
+    });
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /exactly one non-empty Reviewed-by/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-by is empty', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature, {
+      trailers: ['Reviewed-by:', `Reviewed-commit: ${parent}`],
+    });
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /exactly one non-empty Reviewed-by/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-by has an empty duplicate', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature, {
+      trailers: [
+        'Reviewed-by: X',
+        'Reviewed-by:',
+        `Reviewed-commit: ${parent}`,
+      ],
+    });
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /exactly one non-empty Reviewed-by/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature, {
+      trailers: [
+        'Reviewed-by: X',
+        `Reviewed-commit: ${parent}`,
+        'Reviewed-commit:',
+      ],
+    });
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /exactly one non-empty Reviewed-commit/i,
+    );
+  });
+});
+
+Deno.test('git-flow: finish is refused after develop is merged after the review record', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature);
+    await Deno.writeTextFile(join(develop, 'develop-only.txt'), 'develop\n');
+    await git(develop, 'add', 'develop-only.txt');
+    await git(develop, 'commit', '-m', 'develop advances');
+    await git(feature, 'merge', 'develop', '--no-edit');
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      /single-parent|review-record/i,
+    );
+  });
+});
+
+Deno.test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    const record = await addReviewRecord(feature, {
+      reviewedCommit: parent.slice(0, 8),
+    });
+    const result = await attemptFinish(develop);
+    assertEquals(result.code, 0, result.output);
+    const commit = (
+      await git(develop, 'rev-list', '--parents', '-n', '1', 'HEAD')
+    ).split(' ');
+    assertEquals(commit.slice(2), [record]);
+    assertEquals(
+      await git(develop, 'rev-parse', 'HEAD^{tree}'),
+      await git(feature, 'rev-parse', `${parent}^{tree}`),
+    );
+  });
+});
+
+Deno.test('git-flow: lower-case review trailer keys are accepted', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const parent = await git(feature, 'rev-parse', 'HEAD');
+    const record = await addReviewRecord(feature, {
+      trailers: ['reviewed-by: Codex', `reviewed-commit: ${parent}`],
+    });
+    const result = await attemptFinish(develop);
+    assertEquals(result.code, 0, result.output);
+    const commit = (
+      await git(develop, 'rev-list', '--parents', '-n', '1', 'HEAD')
+    ).split(' ');
+    assertEquals(commit.slice(2), [record]);
+  });
+});
+
 Deno.test('git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree', async () => {
   await temporary(async (_root, develop, feature) => {
+    const reviewedCommit = await git(feature, 'rev-parse', 'HEAD');
+    const reviewRecord = await addReviewRecord(feature);
     const developBefore = await git(develop, 'rev-parse', 'HEAD');
     const featureHead = await git(feature, 'rev-parse', 'HEAD');
-    const featureTree = await git(feature, 'rev-parse', 'HEAD^{tree}');
+    const reviewedTree = await git(
+      feature,
+      'rev-parse',
+      `${reviewedCommit}^{tree}`,
+    );
     const result = await attemptFinish(develop);
     assertEquals(result.code, 0, result.output);
 
     const commit = (
       await git(develop, 'rev-list', '--parents', '-n', '1', 'HEAD')
     ).split(' ');
-    assertEquals(commit.slice(1), [developBefore, featureHead]);
-    assertEquals(await git(develop, 'rev-parse', 'HEAD^{tree}'), featureTree);
+    assertEquals(commit.slice(1), [developBefore, reviewRecord]);
+    assertEquals(await git(develop, 'rev-parse', 'HEAD^{tree}'), reviewedTree);
     assertEquals(
       await git(develop, 'log', '-1', '--format=%s'),
       `Merge branch '${featureBranch}' into develop`,
