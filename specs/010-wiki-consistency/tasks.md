@@ -58,6 +58,13 @@ code tasks in the Worker Assignment section.
   against the three needs in R8; feature 011's personal-data policy (where it
   lives and how a unit's evidence is classified) and its work-plugin backfire
   declaration and build (R7, R9); backfire's input schemas and limits (R6).
+  - 2026-09-28: 011's spec is `075896f` on `feature/backfire-education`. Its
+    orchestrator reports that pseudonymization runs only in the work build,
+    on every request at backfire's exit to the provider, and hides
+    identifiers only (student and guardian names and schools from the roster,
+    phone numbers and emails by format); learning content such as scores and
+    observations is sent as is. So FR-019 must keep personal records out of
+    010's calls itself. 011's plan will fix the build interface.
 - [ ] T003 Apply the amendment the user chose (spec.md Clarifications): amend
   point 2 of principle VI in
   `.specify/memory/constitution.md` as [research.md](research.md) R2 says, in
