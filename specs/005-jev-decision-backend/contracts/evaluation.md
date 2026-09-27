@@ -1,5 +1,7 @@
 # Evaluation Contract
 
+Superseded in part on 2026-09-27 by the user's decision that acceptance checks function only ([research.md](../research.md#acceptance-scope--2026-09-27)): only the known-answer set's normal cases are used, once per tool through the live provider (T042), and the other sets, metrics and runs below are not built or run.
+
 ## Sets
 
 | Set | Location | Used for |
@@ -8,7 +10,7 @@
 | Classification set `classify-60-v1` | `scripts/backfire/fixtures/classify-60-v1.jsonl` (committed) | SC-004: one 60-item `backfire_classify` case |
 | Safety set `safety-v1` | `scripts/backfire/fixtures/safety-v1.jsonl` (committed) | SC-009: cases that must never be approved automatically |
 | Held-out general set `heldout-v1` | `$XDG_DATA_HOME/verbose-broccoli/backfire-eval/heldout-v1.jsonl`, sealed by `scripts/backfire/fixtures/heldout-v1.seal.json` | SC-010: final acceptance only |
-| JevBench public hard tier | Downloaded to the cache from `fstandhartinger/jevbench` revision `3749b4fc1b88e4f5f02a3c0b9766c4ffa57891c0`, path `datasets/public/hard.jsonl`, SHA-256 `89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb`, 111 decisions, MIT | SC-001, SC-002: regression through the local endpoint |
+| JevBench public hard tier | Downloaded to the cache from `fstandhartinger/jevbench` revision `3749b4fc1b88e4f5f02a3c0b9766c4ffa57891c0`, path `datasets/public/hard.jsonl`, SHA-256 `89e9e6becb33ed88c1de7d42dcc87531b2fb64cfaef4e1986faf7c37b3f80ebb`, 111 decisions, MIT | SC-001, SC-002: regression through the in-process judge |
 
 All committed and held-out content is synthetic and English or Korean. No set
 contains credentials or real personal records. Synthetic identifiers such as
@@ -49,14 +51,29 @@ One JSON object per line:
   "tool": "backfire_gate",
   "language": "en",
   "kind": "normal",
-  "arguments": {"request": "...", "diff": "...", "claims": ["..."], "evidence": "...", "tests": "..."},
-  "expect": {"result": {"action": ["review", "escalate"], "claims": ["verified", "contradicted"]}}
+  "arguments": {"request": "...", "diff": "...", "claims": ["...", "..."], "evidence": "...", "tests": "..."},
+  "expect": {"result": {"action": ["review", "escalate"], "verification.results.0.verdict": "verified", "verification.results.1.verdict": "contradicted"}}
 }
 ```
 
-`kind` is `normal`, `boundary` or `failure`. `expect` holds either `result`
-(the fields that must match) or `error` (the expected explicit error). A failure
-case passes only when the call fails with that error and returns no judgment.
+`language` is `en` or `ko`, and `kind` is `normal`, `boundary` or `failure`.
+`arguments` are the tool's arguments exactly as sent. `expect` holds exactly
+one of these:
+
+- `result`: an object that maps paths to expected values. A path names a value
+  in the tool's result object, which is the JSON object in the text of the
+  result's first content item, as dot-separated object keys and zero-based
+  array indices, such as `recommendation.action` or
+  `verification.results.1.verdict`. An expected JSON scalar must equal the
+  value at its path; an expected array lists the accepted values. The case is
+  correct only when every path matches; a missing path does not match.
+- `error`: a string. The case passes only when the call returns a JSON-RPC
+  error or a result with `isError: true`, and its error text (the JSON-RPC
+  error's `message`, or the text of the result's content items) contains the
+  string. Such a call returns no judgment.
+
+Safety and held-out cases use `result` only; failure cases belong to the
+known-answer set.
 
 ## Automatic decisions and approvals
 
@@ -82,7 +99,12 @@ it is not an automatic decision.
 
 - **Correct:** the tool's primary result matches `expect` (verdict, action,
   classification, selected option, top candidate, extracted value, or the
-  expected error). A failed or invalid response is wrong.
+  expected error). A failed or invalid response is wrong. Where the primary
+  result is an action or label and the right outcome is an automatic one, the
+  case also accepts the outcomes that defer the decision: `review` and
+  `escalate` for `backfire_gate` and `backfire_review`, `review` for
+  `backfire_screen`, and `uncertain` for `backfire_noul`. Such a case lists
+  them in its expected array. A wrong automatic outcome is never accepted.
 - **Accuracy:** correct cases divided by all cases.
 - **Automatic-decision rate:** cases decided automatically divided by the cases
   of tools that have an automatic decision; `backfire_find`, `backfire_rerank` and
@@ -91,6 +113,15 @@ it is not an automatic decision.
   automatic decisions.
 - **Per-tool and per-language accuracy:** accuracy over each tool's cases and
   over each language's cases.
+- **FR-003 contract:** a tool result shows only some of each answer's fields
+  (`backfire_find`, for example, keeps the top option), so the check has three
+  parts. Every answer field a tool result exposes has its declared labels,
+  probabilities in [0, 1] summing to one within 0.01, and the required choice,
+  score or confidence. Every judgment record of the run shows `ok`, or the
+  expected error type for a failure case, with recorded results in range; the
+  judge validated each full answer before any tool received it, and an answer
+  that failed ends as an error outcome. Direct judge calls, such as the
+  benchmark, check the full answer itself.
 - **Expected calibration error (benchmark):** for each decision, the confidence
   is the chosen option's probability (for Noul, the larger of p and 1 − p).
   Decisions fall into ten equal-width bins over [0, 1];
@@ -120,7 +151,8 @@ rejected, and one ECE example.
 
 - Each criterion runs three times; every run must pass. There is no best-of-three.
 - Runs use the pinned versions from the readiness report and record them.
-- The benchmark runs through the local endpoint. SC-003 runs in both Codex CLI
+- The benchmark runs through the in-process judge as a direct caller
+  ([judgment.md](judgment.md#request)). SC-003 runs in both Codex CLI
   and Claude Code against the staged package
   ([mcp-server.md](mcp-server.md#client-registration-for-acceptance)) and reads
   each tool's arguments and result from the client's event stream, not from the
@@ -134,8 +166,9 @@ rejected, and one ECE example.
   change must produce a different digest.
 - After the runs, a credential scan searches every file under the repository
   root except `.git/`, the staged package, the run's records and the
-  acceptance logs for the configured key value and for `HIVE_API_KEY=` followed
-  by a value other than the documented placeholder `<key>`, and searches the
+  acceptance logs for the configured key value and for the selected profile's
+  credential variable followed by `=` and a value other than the documented
+  placeholder `<key>` (for Hive, `HIVE_API_KEY=`), and searches the
   records and logs for the synthetic identifiers and a unique string planted in
   one request (SC-006). It reports paths and counts, never the matching text.
   The scanner's own tests show that the placeholder passes and a planted
@@ -145,7 +178,10 @@ rejected, and one ECE example.
   that would pass it fails. The run directory is removed when the run ends,
   fails or is interrupted; a new run first removes leftovers of killed runs.
   The clients keep no session files ([mcp-server.md](mcp-server.md#client-registration-for-acceptance)).
-  Nothing else accumulates.
+  The staged package and its `.venv` live in the runner's own temporary
+  directory outside this cache, bounded by the build's 16 MiB and by
+  `uv.lock`, and are removed with the run; each session reserves the 50 MiB
+  record maximum within the cache budget. Nothing else accumulates.
 - Final acceptance replaces `artifacts/jev-decision-backend/acceptance.json`
   with one atomic write: per-criterion run results, case ids and outcomes,
   metrics, versions, digest and scan results, and no case content. The file
@@ -156,6 +192,7 @@ rejected, and one ECE example.
 1. Before implementation starts, a worker who does not implement the feature
    writes `heldout-v1.jsonl` to the path above.
 2. Only its SHA-256, case count and per-tool and per-language counts are
-   committed in `heldout-v1.seal.json`.
+   committed in `heldout-v1.seal.json`, as
+   `{"set": "heldout-v1", "sha256": "<hex of the file's bytes>", "cases": <n>, "by_tool": {"<tool>": <n>, ...}, "by_language": {"en": <n>, "ko": <n>}}`.
 3. Implementers do not open the file. Final acceptance verifies the hash before
    the first run; a mismatch stops acceptance.

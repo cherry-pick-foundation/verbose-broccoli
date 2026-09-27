@@ -116,3 +116,29 @@ with the already approved Ajv dependency. Sources:
   in its `UPSTREAM.md`.
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
+
+## jkudish/jev-mcp — backfire tools
+
+- Source:
+  <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
+- Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
+- Reused: the tool definitions and decision logic of `src/index.ts` and
+  `src/lib.ts`, ported to Python as the `backfire` tools in
+  `packages/backfire/src/backfire/`. The port's five recorded differences, the
+  original files' SHA-256 and the license text are in
+  `packages/backfire/src/backfire/UPSTREAM.md`. No upstream source file is
+  copied into the repository.
+- Reused: the agent skill `skills/jev`, vendored as
+  `plugins/code/skills/backfire/` with four recorded changes that its
+  `upstream.json` lists.
+- Copyright (c) 2026 Joey Kudish.
+  [MIT license](../plugins/code/skills/backfire/LICENSE).
+
+## typesafe-ai/system-one-adapter-python — backfire judgments
+
+- Source: <https://github.com/typesafe-ai/system-one-adapter-python>, published
+  on PyPI as `system-one-adapter` 0.2.1.
+- Used as a pinned Python dependency of `packages/backfire/`, locked in its
+  `uv.lock` and installed with it by `uv sync`. No source is copied into the
+  repository.
+- Copyright (c) 2026 TypeSafe AI. MIT license.

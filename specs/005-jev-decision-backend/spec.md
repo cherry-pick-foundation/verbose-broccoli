@@ -1,12 +1,11 @@
 # Feature Specification: Jev-Style Decision Backend for the Code Plugin
 
-**Feature Branch**: None yet; drafted on `main`. Implementation uses its own
-feature branch.
+**Feature Branch**: `feature/005-backfire-mcp`
 
 **Created**: 2026-09-26
 
-**Status**: Draft. Planned on 2026-09-26 and revised the same day; not yet
-implemented.
+**Status**: Draft. Planned on 2026-09-26, revised the same day and on
+2026-09-27; not yet implemented.
 
 **Input**: On 2026-09-26 the user decided to adopt a Jev-style decision backend
 for verbose-broccoli-code. Agents get typed judgments (a yes probability for
@@ -29,7 +28,7 @@ plugins are out of scope. API keys stay outside the repository.
   supported? → A: Only when its normal, boundary and failure cases pass through
   the real tool path in both Codex CLI and Claude Code, on the runtime the tools
   run on (first the upstream package's Node 22 or later; Deno 2.9.6 since the
-  plan revision below); for `backfire_extract` the cases
+  plan revision below; Python 3.14.4 since 2026-09-27); for `backfire_extract` the cases
   include Korean text returned exactly as written, no candidates, an invalid
   pattern and a pattern timeout; the feature is not done while any tool has a
   known failure.
@@ -97,12 +96,64 @@ plugins are out of scope. API keys stay outside the repository.
   (`src/provider.ts` and `@jkudish/jev-agent-tools`), and `@typesafe-ai/sdk`
   still supplies the question builders. Arguments and results stay those of
   jev-mcp 0.9.0 (names: next clarification), and the npm package is not a
-  runtime dependency.
+  runtime dependency. (Superseded on 2026-09-27: backfire is one Python
+  package; see Session 2026-09-27.)
 - Q (during plan revision): What should the MCP server and its tools be called?
   → A: The server is `backfire`, and the eleven tools use the `backfire_`
   prefix with the upstream suffixes (formerly `jev_gate` and so on). The
   plugin's folder, command, configuration and record paths, tasks and skill use
   the same name.
+
+### Session 2026-09-27
+
+- Q: The model's judgment quality was already measured on JevBench and
+  backfire sends the same requests to the same model; does acceptance still
+  need the benchmark, safety, held-out and 60-item classification runs? → A:
+  No. Acceptance checks function only: readiness, each tool once through the
+  live provider, the server loading and answering in Codex CLI and Claude
+  Code, and the offline tests. SC-001, SC-002, SC-004, SC-009 and SC-010 are
+  dropped, SC-003 and SC-007 are narrowed, and the evaluation runner, metrics
+  and evaluation sets are not built.
+- Q: Where does the backfire code live, given constitution IX's
+  `packages/<name>/src/` rule for MCP servers? → A: All backfire code,
+  including its acceptance tooling, moves to `packages/backfire/`, with the
+  evaluation fixtures staying under `scripts/backfire/fixtures/`. The
+  repository keeps no `plugins/code/backfire/`; a build step copies the
+  component into the code plugin for distribution.
+- Q: Should Hive be built into the backend? → A: No. Provider-specific settings
+  live in provider profiles, and the backend's code names no provider. The Hive
+  profile with DeepSeek V4.1 Flash ships with the feature and stays the
+  selected backend; another OpenAI-compatible provider needs only a new
+  profile.
+- Q: How are provider profiles organized? → A: One `config.toml` holding a
+  `[providers.<name>]` table per provider (first one TOML file per provider,
+  replaced the same day), each with only that provider's own
+  characteristics. The operator's own `config.toml` selects a provider and
+  may add or replace provider tables. Protocol compatibility
+  stays with the reused adapter and SDK and is not duplicated: a profile's
+  `api` key names the adapter provider class (`openai` now; `anthropic`
+  reserved and not supported yet), and standard status meanings come from
+  the SDK, so a profile lists only the statuses whose meaning differs.
+- Q: Should backfire keep two runtimes, a TypeScript copy of the tools plus a
+  Python endpoint for the adapter? → A: No. backfire is one Python package:
+  the MCP server on the official Python SDK, the eleven tools ported from
+  `jev-mcp` 0.9.0, and judgments made in the same process by
+  `system-one-adapter`. TypeSafe publishes the adapter only in Python, so
+  the tools are ported rather than the adapter rewritten.
+- Q: Which pattern language should the ported `backfire_extract` accept?
+  → A: Python's `re`; its argument description says so, and patterns whose
+  meaning differs from JavaScript are documented, not emulated.
+- Q: Which reasoning setting should the shipped Hive profile request? → A:
+  `reasoning_effort = "medium"` instead of the thinking switch
+  `chat_template_kwargs: {"thinking": true}`. In repeated strict-mode runs of
+  the JevBench public hard tier it gave the fewest wrong answers, still
+  carried thinking evidence, and kept every call within the endpoint's 80 s
+  budget (research.md, "Judgment quality probes").
+- Q: Should a judgment be asked twice and count only when both answers
+  agree, the one measure that stopped confident wrong answers in those runs?
+  → A: Not in this feature. FR-007 (a valid verdict is never requested again)
+  and FR-013 (upstream decision logic unchanged) stand; agreement voting is a
+  follow-up feature, and the agent-facing documentation states the weakness.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -232,7 +283,7 @@ check reports either success or the specific failure.
 4. **Given** a working configuration with only the operator's Hive credential
    and no TypeSafe credential, **When** the operator runs the readiness check,
    **Then** it reports the requested provider (Hive), model (DeepSeek V4.1
-   Flash) and thinking mode (on) separately from what Hive's response
+   Flash) and thinking mode (on) separately from what the provider's response
    confirms, lists each unconfirmed item with its reason, shows which tool
    checks passed, and gives one sample judgment and its response time.
 5. **Given** the selected model, provider route or thinking mode is
@@ -244,7 +295,7 @@ check reports either success or the specific failure.
 7. **Given** a tool call in progress, **When** the agent cancels it, **Then**
    the backend stops that call's queued, retrying and in-flight requests and
    discards any answer that arrives afterwards; charges already incurred at
-   Hive are not guaranteed to be cancelled.
+   the provider are not guaranteed to be cancelled.
 8. **Given** a valid verdict with low confidence, a negative outcome or too
    little evidence, **When** the backend receives it, **Then** it returns that
    verdict as final and does not ask again for a different one.
@@ -266,9 +317,10 @@ check reports either success or the specific failure.
   fails as a response error.
 - State text that tries to instruct the model is treated as data and does not
   redirect the judgment.
-- Several sessions and split requests share one Hive account limit (five
-  requests per second by default, per Hive's documentation): rate limits are
-  handled by the single retry layer, and answers never mix between requests.
+- Several sessions and split requests share one provider account limit (for
+  Hive, five requests per second by default, per its documentation): rate
+  limits are handled by the single retry layer, and answers never mix between
+  requests.
 - A request is too large for the output limit: independent questions may be
   split across requests as long as each answer keeps its question, but
   candidates, questions and required answer fields are never dropped, and one
@@ -293,19 +345,21 @@ check reports either success or the specific failure.
   `backfire_verify`, `backfire_noul`, `backfire_classify`, `backfire_find`, `backfire_rerank`,
   `backfire_compare`, `backfire_screen`, `backfire_extract` and `backfire_decide`, with that
   release's arguments and results under the `backfire_` names (release 0.9.0
-  uses the `jev_` prefix). The plugin serves them from its own
-  MCP server running on Deno 2.9.6, with that release's tool definitions and
-  decision logic copied at the revision recorded in the Clarifications and
-  changed only at the points recorded in the plan's research ("Tool source");
-  the npm package is not a runtime dependency.
+  uses the `jev_` prefix), except that `backfire_extract`'s patterns are
+  Python regular expressions. The plugin serves them from its own MCP server,
+  a Python package, with that release's tool definitions and decision logic
+  ported from the revision recorded in the Clarifications; the port differs
+  from the release only at the points recorded in the plan's research
+  ("Python package"), and the npm package is not a runtime dependency.
   Adopting a later upstream revision is an explicit upgrade under FR-012. A tool
   counts as supported only when its normal, boundary and failure cases pass
   through the real tool path in both clients on that runtime. The feature is not
   complete while any tool has a known failure.
 - **FR-002**: Every judgment MUST come from the user-selected backend: DeepSeek
-  V4.1 Flash with thinking mode through Hive. The feature MUST NOT switch
-  silently to another model, provider, thinking-disabled or token-probability
-  mode, or subscription sign-in route.
+  V4.1 Flash with thinking mode through Hive, configured as the selected
+  provider profile (FR-019). The feature MUST NOT switch silently to another
+  model, provider, thinking-disabled or token-probability mode, or
+  subscription sign-in route.
 - **FR-003**: The backend MUST accept the Jev System One request contract (a
   state and named Noul, Choice and Score questions with their criteria) and
   return answers in the same contract: a yes probability for each Noul
@@ -330,9 +384,10 @@ check reports either success or the specific failure.
   that covers waiting, retries and split requests. Only network errors and rate
   limits MAY be retried, in exactly one layer, with at most four attempts in
   total including the first. Credential errors, insufficient balance and
-  unsupported settings MUST fail at once, classified by Hive's documented
-  responses (for example, 405 for insufficient balance) rather than by generic
-  status codes. A valid verdict with low confidence, a negative outcome or too
+  unsupported settings MUST fail at once, classified by the selected
+  provider's documented responses as its profile records them (for Hive, 405
+  for insufficient balance) rather than by generic status codes. A valid
+  verdict with low confidence, a negative outcome or too
   little evidence is final and MUST NOT be requested again.
 - **FR-008**: The backend MUST NOT rescale probabilities. Probabilities that
   sum to one within 0.01 pass unchanged; a larger deviation, a missing option
@@ -362,8 +417,9 @@ check reports either success or the specific failure.
   in-flight requests and discard answers that arrive afterwards.
 - **FR-011**: The operator MUST be able to run one documented readiness check,
   a command or a tool call, that performs one real judgment and reports
-  separately the requested provider, model and thinking mode; what Hive's
-  response confirms; each item it could not confirm, with the reason; and which
+  separately the requested provider, model and thinking mode; what the
+  provider's response confirms; each item it could not confirm, with the
+  reason; and which
   tool checks passed, with the answer and its response time. Thinking mode
   counts as confirmed only when the response carries evidence of it.
 - **FR-012**: Every external component (the upstream revision the tools are
@@ -371,10 +427,12 @@ check reports either success or the specific failure.
   and the service endpoint) MUST be pinned to an exact version or identifier; an upgrade is an explicit change followed by re-verification. The
   tested versions of every component, runtime and prompt MUST be recorded, and
   the compatibility checks MUST pass again after any update.
-- **FR-013**: The feature MUST reuse the upstream tools' question design and
-  decision logic, copied with only the recorded changes, and the upstream
-  adapter's answer conversion, without reimplementing either. Other locally
-  owned code is limited to integration glue and service-specific settings.
+- **FR-013**: The feature MUST keep the upstream tools' question design and
+  decision logic, ported with only the recorded differences and checked
+  against results captured from the upstream release, and MUST reuse the
+  upstream adapter's answer conversion without reimplementing it. Other locally
+  owned code is limited to integration glue; service-specific settings are
+  provider profiles (FR-019).
 - **FR-014**: The code plugin's documentation MUST state which content the tools
   send to the external service, and no instruction may direct agents to send
   credentials or private personal records to the tools.
@@ -394,6 +452,18 @@ check reports either success or the specific failure.
   across requests only if each answer keeps its question; a single Choice MUST
   NOT be replaced by several smaller choices unless that method passes its own
   quality checks.
+- **FR-019**: Every provider-specific setting MUST come from a provider
+  profile: the protocol client to use, the service endpoint, the model
+  identifier, the credential's name, the request fields it needs beyond the
+  standard protocol (including the thinking switch and the output budget),
+  the response fields that show thinking ran, the status codes whose meaning
+  differs from the standard one, and its documented rate limit. Protocol
+  handling that the reused adapter and SDK provide MUST NOT be restated in
+  profiles. The backend's code MUST NOT name a provider. Supporting another
+  provider whose API the adapter supports MUST need only a new profile and its
+  selection, not a code change, as long as its departures from the standard
+  protocol are ones a profile states. The Hive profile ships with the feature and is selected
+  when the operator selects no other profile.
 
 ### Key Entities _(include if feature involves data)_
 
@@ -405,11 +475,14 @@ check reports either success or the specific failure.
 - **Tool result**: the upstream tool's combination of answers into verdicts,
   scores and an action (automatic, review or escalate), with token usage and
   the answering model.
-- **Backend configuration**: the selected model and service endpoint, a
-  reference to the operator's credential outside the repository, the output
-  budget, and the retry and deadline limits.
+- **Provider profile**: one provider's service endpoint, model identifier,
+  credential name, request options, thinking evidence and status meanings
+  (FR-019).
+- **Backend configuration**: the selected provider profile, a reference to the
+  operator's credential outside the repository, and the retry and deadline
+  limits.
 - **Readiness report**: the requested provider, model and thinking mode; what
-  Hive's response confirmed; unconfirmed items with reasons; the tool checks
+  the provider's response confirmed; unconfirmed items with reasons; the tool checks
   that passed; and one sample answer with its response time.
 - **Verdict record**: a local entry per tool call with the calling tool, the
   digest of the input the agent submitted, the result's fixed-vocabulary
@@ -435,42 +508,47 @@ check reports either success or the specific failure.
   correctly, with no invalid answer and an expected calibration error of at
   most 0.08, computed over ten equal-width bins of the chosen option's
   probability. The check runs three times, every run must pass, and a failed
-  response counts as wrong.
+  response counts as wrong. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-002**: Tracked goal, not a pass/fail condition: over those 111
   single-question judgments, measured from the operator's machine, the median
-  response time is at most 5 seconds and 95% finish within 20 seconds.
-- **SC-003**: In each of Codex CLI and Claude Code, the versioned synthetic
-  known-answer set, with normal, boundary and failure cases for every tool from
-  FR-001, returns the expected result in 100% of cases. A failure case passes
-  only when the call fails with the expected explicit error and returns no
-  judgment. Every answer in the set satisfies the FR-003 contract: all
-  declared labels present, probabilities between zero and one summing to one
-  within 0.01, a yes probability for each Noul answer, the selected option and
+  response time is at most 5 seconds and 95% finish within 20 seconds. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
+- **SC-003**: With a code plugin built and installed outside the repository,
+  the readiness check passes, each of the eleven tools returns the expected
+  result for its normal known-answer case through the live provider, and in
+  each of Codex CLI and Claude Code the staged `backfire` server loads and
+  answers a tool call. Every answer the judge accepts satisfies the FR-003
+  contract, which the judge checks before any tool receives it: all declared
+  labels present, probabilities between zero and one summing to one within
+  0.01, a yes probability for each Noul answer, the selected option and
   confidence for each Choice answer, and the score and confidence for each
-  Score answer.
+  Score answer. (Narrowed on 2026-09-27 from the full known-answer set in both
+  clients by the user's decision; see Clarifications.)
 - **SC-004**: A 60-question classification request completes correctly within
   the 120-second limit; completing within 60 seconds is a tracked goal, not a
-  pass/fail condition.
+  pass/fail condition. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-005**: Under each injected fault from User Story 3, 100% of calls fail
   with an explicit reason and none returns a judgment.
 - **SC-006**: A scan of the repository and the plugin package finds no
   credential, and the acceptance-run logs contain no credential or request
-  content.
-- **SC-007**: On a machine where the Hive API key and the required runtimes are
-  already installed, the operator can enable the feature and pass the
-  readiness check within 10 minutes by following the documented steps.
+  content. (The separate scan task was dropped on 2026-09-27 by the user's
+  decision; the offline tests keep credentials and request content out of
+  records, logs and errors.)
+- **SC-007**: On a machine where the selected provider's API key and the
+  required runtimes are already installed, the operator can enable the feature
+  and pass the readiness check by following the documented steps. (The
+  10-minute timing was dropped on 2026-09-27 by the user's decision.)
 - **SC-008**: At acceptance, every external component is identified by an
   exact version or identifier, and only the code plugin exposes the judgment
   tools.
 - **SC-009**: On the safety set (failed tests, unsupported completion claims,
   truncated evidence, answers the user later corrected, observations about a
   different student, summaries with content not in the source), zero cases are
-  approved automatically, in each of three runs.
+  approved automatically, in each of three runs. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-010**: On the held-out general set, in each of three runs, at least 97%
   of automatic decisions are correct, at least 70% of the cases for tools that
   can mark a result automatic are decided automatically, and every tool and
   each of English and Korean is at least 90% correct; a failed response counts
-  as wrong.
+  as wrong. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.) The sealed held-out set stays unused.
 - **SC-011**: For every tool call in the acceptance runs, including split
   requests, the verdict record's digest matches the digest of the submitted
   input, and changing any one field of that input produces a different digest.
@@ -492,6 +570,12 @@ check reports either success or the specific failure.
   Enforcement, for example making verification-before-completion require the
   gate, and recording real test runs (commands, exit codes, log identifiers,
   and partial, full, not-run or cancelled states) are a follow-up feature.
+- Wrong verdicts can be confident. In the 2026-09-27 probes most wrong answers
+  carried a top probability of at least 0.9, so the upstream thresholds mark
+  them automatic; judging a response that contains a small arithmetic error
+  and multi-step lookups among distractors failed most often. Agreement
+  voting across repeated or different-model judgments is a follow-up
+  feature.
 - The clients are Codex CLI and Claude Code opened in Orca (constitution IX).
   Installing into live client configurations requires the user's separate
   go-ahead.
@@ -514,5 +598,7 @@ check reports either success or the specific failure.
 - Acceptance uses synthetic content only, including the external text and
   prompt-injection samples.
 - The backend reproduces Jev's answer format, not Jev's trained calibration.
-  How well its probabilities match reality is measured by SC-001, SC-009 and
-  SC-010 rather than assumed.
+  How well its probabilities match reality was measured on the selected model
+  by the 2026-09-26 harness and the 2026-09-27 JevBench probes (research.md);
+  since 2026-09-27 the feature does not measure it again, by the user's
+  decision.

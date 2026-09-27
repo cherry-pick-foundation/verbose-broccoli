@@ -11,6 +11,8 @@ coverage/
 *.lcov
 
 node_modules/
+.venv/
+packages/backfire/src/*.egg-info/
 
 # Local Python and Rust build output
 __pycache__/

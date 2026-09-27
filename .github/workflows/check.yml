@@ -28,6 +28,12 @@ jobs:
           echo "394f07f4da2bebe6ce6f1e7ce0fa16429b29b08c35e3fac3fe25972676dff4b2  $RUNNER_TEMP/deno.zip" | sha256sum --check --strict
           unzip -q "$RUNNER_TEMP/deno.zip" -d "$RUNNER_TEMP/deno"
           echo "$RUNNER_TEMP/deno" >> "$GITHUB_PATH"
+      - name: Prepare standalone uv 0.11.32
+        run: |
+          curl --fail --silent --show-error --location https://github.com/astral-sh/uv/releases/download/0.11.32/uv-x86_64-unknown-linux-gnu.tar.gz --output "$RUNNER_TEMP/uv.tar.gz"
+          echo "aab924fd522efd06f1c5f3b93a243864fc453132c94b2dc49f1371b528a4b967  $RUNNER_TEMP/uv.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/uv.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/uv-x86_64-unknown-linux-gnu" >> "$GITHUB_PATH"
       - name: Prepare Quarto 1.10.18
         run: |
           curl --fail --silent --show-error --location https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb --output "$RUNNER_TEMP/quarto.deb"
@@ -39,7 +45,11 @@ jobs:
           git config --global user.email 'ci@users.noreply.github.com'
       - name: Prepare frozen dependencies
         run: |
+          uv python install --no-bin "$(cat packages/backfire/.python-version)"
           deno install --frozen --no-prompt
           deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt
+          deno task backfire:install
       - name: Run all checks
         run: deno task check
+      - name: Run Backfire deadline tests
+        run: deno task test:backfire-slow

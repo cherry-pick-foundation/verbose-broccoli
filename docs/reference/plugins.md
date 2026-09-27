@@ -26,7 +26,7 @@ Server names below are declarations, not runtime availability or tool catalogs.
 | Package          | [plugins/code](../../plugins/code/)                 |
 | Manifest         | [plugin.json](../../plugins/code/plugin.json)       |
 | MCP declaration  | [mcp.json](../../plugins/code/mcp.json)             |
-| MCP server names | None declared                                       |
+| MCP server names | backfire                                            |
 
 ## work
 

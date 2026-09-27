@@ -35,7 +35,10 @@ Deno.test('plugin skills: isolated packages retain resources and executable help
         const mcp = JSON.parse(
           await Deno.readTextFile(join(target, 'mcp.json')),
         );
-        assertEquals(Object.keys(mcp.mcpServers), []);
+        assertEquals(
+          Object.keys(mcp.mcpServers),
+          pluginDirectory === 'code' ? ['backfire'] : [],
+        );
       }
       for (const component of ['skills', 'hooks', 'tests']) {
         if (!(await exists(join(source, component)))) continue;

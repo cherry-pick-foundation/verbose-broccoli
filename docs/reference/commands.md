@@ -6,6 +6,10 @@ Input owners: [deno.json](../../deno.json), [scripts/doctor.ts](../../scripts/do
 
 | Task                    | Invocation                        | Declared description                                                                                                                  |
 | ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| backfire:build          | deno task backfire:build          |                                                                                                                                       |
+| backfire:eval           | deno task backfire:eval           |                                                                                                                                       |
+| backfire:install        | deno task backfire:install        |                                                                                                                                       |
+| backfire:ready          | deno task backfire:ready          |                                                                                                                                       |
 | check                   | deno task check                   |                                                                                                                                       |
 | clean-architecture      | deno task clean-architecture      |                                                                                                                                       |
 | clean-code              | deno task clean-code              |                                                                                                                                       |
@@ -20,6 +24,8 @@ Input owners: [deno.json](../../deno.json), [scripts/doctor.ts](../../scripts/do
 | lint:fix                | deno task lint:fix                |                                                                                                                                       |
 | plugins:validate        | deno task plugins:validate        |                                                                                                                                       |
 | test                    | deno task test                    |                                                                                                                                       |
+| test:backfire           | deno task test:backfire           |                                                                                                                                       |
+| test:backfire-slow      | deno task test:backfire-slow      |                                                                                                                                       |
 | test:clean-architecture | deno task test:clean-architecture |                                                                                                                                       |
 | test:clean-code         | deno task test:clean-code         |                                                                                                                                       |
 | test:cli-contract       | deno task test:cli-contract       |                                                                                                                                       |

@@ -24,6 +24,12 @@
     "clean-code": "deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-code/scripts/clean_code.ts",
     "clean-code:scope": "deno task clean-code --scope",
     "test:clean-code": "deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+    "backfire:build": "uv run --project packages/backfire --frozen --offline --no-sync python -m backfire_tools.build",
+    "backfire:install": "uv sync --project packages/backfire --frozen",
+    "backfire:ready": "uv run --project packages/backfire --frozen --offline --no-sync backfire ready",
+    "backfire:eval": "uv run --project packages/backfire --frozen --offline --no-sync python -m backfire_tools.acceptance.evaluate",
+    "test:backfire": "(test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m 'not slow'",
+    "test:backfire-slow": "(test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m slow",
     "check": {
       "dependencies": [
         "doctor",
@@ -52,11 +58,12 @@
         "test:clean-architecture",
         "test:workflow",
         "test:cli-contract",
-        "test:docs"
+        "test:docs",
+        "test:backfire"
       ]
     },
-    "docs:generate": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-write=docs --allow-env --allow-sys --allow-run=deno scripts/docs.ts generate",
-    "docs:check": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-env --allow-sys --allow-run=deno scripts/docs.ts check",
+    "docs:generate": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-write=docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts generate",
+    "docs:check": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts check",
     "test:docs": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts"
   },
   "fmt": { "singleQuote": true },

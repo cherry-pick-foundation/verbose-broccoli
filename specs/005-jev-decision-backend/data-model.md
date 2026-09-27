@@ -12,17 +12,18 @@ a value. Any independent RFC 8785 implementation reproduces it.
   `tools/call` request, exactly as the client sent it (missing arguments count
   as `{}`). Any changed argument, including a patch with uncommitted changes, a
   claim, evidence, test text or a policy threshold, changes it.
-- **Payload digest**: over the `{model, state, questions}` body of one endpoint
-  request, that is, what the tool sent for judgment after its own truncation.
+- **Payload digest**: over `{model, state, questions}` for one judgment:
+  `state` and `questions` as the tool sent them after its own truncation, and
+  `model` as the model the judge took from the selected profile, or null when
+  the judgment failed before a profile was loaded.
 - **Result digest**: over the `result` object of one `tools/call` response.
 
 ## Judgment request
 
-The body the copied transport posts to the local endpoint.
+What a ported tool hands to the in-process judge ([judgment.md](contracts/judgment.md)).
 
 | Field | Type | Rules |
 | --- | --- | --- |
-| `model` | string | Echo of the tools' configured model name; not used to choose the model. |
 | `state` | string, JSON object or array | Passed to the adapter unchanged; size is bounded by each tool. |
 | `questions` | object: id → question | At least one question. Ids are the tools' own keys; some embed caller ids. |
 
@@ -35,10 +36,9 @@ Question types:
 - **Score**: `instructions`; `criteria` is an ordered list of at least 2 level
   descriptions, lowest first; level indices start at 0. One cell per level.
 
-Request size limits: a Choice may have at most the option limit (150 until
-feasibility fixes it) and a request at most the cell limit (provisionally 300,
-the 60-item, five-class request that passed on 2026-09-26, until feasibility
-fixes it). A request over either fails with `request_limit_exceeded` before
+Request size limits: a Choice may have at most 250 options and a request at
+most 672 cells, as gate 3 measured on 2026-09-27
+([research.md](research.md#gate-3-request-limits--2026-09-27)). A request over either fails with `request_limit_exceeded` before
 any provider call. The adapter rejects unknown keys and malformed questions,
 also before any provider call.
 
@@ -61,25 +61,25 @@ judgment.
 
 ## Judgment response and error response
 
-Success (HTTP 200): `{model, answers, usage}` where `model` is the model name in
-Hive's response for this request, passed through even when it differs from the
-requested one, and `usage` holds integer `input_tokens` and `output_tokens`
-from Hive's `prompt_tokens` and `completion_tokens` (completion includes
-reasoning). A Hive response without a non-empty `model` is
-`model_not_confirmed`; one without usage is `malformed_output`. The body stays
-under 1,000,000 bytes.
+Success: `{model, answers, usage}` where `model` is the model name in the
+provider's response for this request, passed through even when it differs from
+the requested one, and `usage` holds integer `input_tokens` and
+`output_tokens` from the provider's `prompt_tokens` and `completion_tokens`
+(for Hive, completion includes reasoning). A provider response without a
+non-empty `model` is `model_not_confirmed`; one without usage is
+`malformed_output`.
 
-Failure: an HTTP status and `{error: {type, message}}`. Types and statuses are
-defined in [system-one-endpoint.md](contracts/system-one-endpoint.md). A
-message is fixed per type, names the cause and the corrective action, and never
-includes request content, provider or adapter error text, or credentials.
+Failure: an error whose text is `<type>: <message>`, with the types of
+[judgment.md](contracts/judgment.md#errors). A message is fixed per type, names
+the cause and the corrective action, and never includes request content,
+provider or adapter error text, or credentials.
 
-Every success and every failure after authentication carries the
-`X-Judgment-Metadata` header: compact JSON with `attempts` (provider attempts,
-including the first), `latency_ms` (from receipt to response),
-`thinking_evidence` (true when Hive's response carried reasoning content or
-reasoning tokens, null without a Hive response) and `reasoning_tokens` (or
-null). It holds no other field and no text.
+Every judgment, successful or failed, fills its call's judgment metadata:
+`attempts` (provider attempts, including the first), `latency_ms` (from the
+judge's start to its end), `thinking_evidence` (true when the provider's
+response showed the thinking evidence the profile names, null without a
+provider response) and `reasoning_tokens` (the value at the profile's
+`thinking.token_path`, or null). It holds no other field and no text.
 
 ## Tool-call record
 
@@ -95,7 +95,7 @@ it is the spec's verdict record.
 | `call` | Sequence number of the call within the session |
 | `tool` | One of the eleven tool names, or `unknown` |
 | `input_digest` | Input digest |
-| `outcome` | `ok`, `tool_error` (`result.isError`), `protocol_error` (a JSON-RPC error, such as the SDK's argument validation), `cancelled` (the client cancelled it), `deadline_exceeded` (still open 118 s after its request) or `session_ended` (open when the session shut down) |
+| `outcome` | `ok`, `tool_error` (`result.isError`), `protocol_error` (a JSON-RPC error, such as malformed request parameters), `cancelled` (the client cancelled it), `deadline_exceeded` (still open 118 s after its request) or `session_ended` (open when the session shut down) |
 | `decisions` | The result's decision units, by position ([below](#decision-units)); null without a parsable result |
 | `result_digest` | Result digest, or null |
 | `model` | The `model` field of the result, or null |
@@ -103,8 +103,10 @@ it is the spec's verdict record.
 
 ## Judgment record
 
-Written by the copied transport (recorded change 6) for each endpoint request,
-before its result reaches the tool.
+Written by the judge for each judgment a tool requests, before its result
+reaches the tool. Direct judgments by the readiness check, the gate 3 probe and
+the benchmark runner write no judgment record; those callers read the returned
+judgment metadata ([judgment.md](contracts/judgment.md#request)).
 
 | Field | Content |
 | --- | --- |
@@ -115,13 +117,13 @@ before its result reaches the tool.
 | `calls_in_flight` | `call` numbers of the tool calls open when the request was sent; exactly one links the judgment to its call |
 | `payload_digest` | Payload digest |
 | `questions` | Per question, in request order: `{type, cells}` |
-| `outcome` | `ok`, the endpoint's error type, `cancelled` (the tool's signal aborted the request) or `transport_failed` (no endpoint answer: connection failure, the 82 s transport deadline, or an oversized or unreadable body) |
+| `outcome` | `ok`, the judgment's error type, or `cancelled` (the call was cancelled by the client or at its deadline) |
 | `results` | Per question, in request order: Noul `{p}`, Choice `{index, confidence}` (the position of the chosen label in the declared order), Score `{score, confidence}` |
-| `model` | Model name Hive reported, or null |
-| `thinking_evidence` | From the `X-Judgment-Metadata` header, or null |
-| `usage` | Input and output tokens from the body, and reasoning tokens from the header |
-| `attempts` | From the header, or null |
-| `latency_ms` | From the header, or null |
+| `model` | Model name the provider reported, or null |
+| `thinking_evidence` | From the judgment metadata, or null |
+| `usage` | Input and output tokens from the result, and reasoning tokens from the judgment metadata |
+| `attempts` | From the judgment metadata, or null |
+| `latency_ms` | From the judgment metadata, or null |
 
 Neither record holds state, instructions, criteria, answer text, question ids,
 option labels or any other caller-supplied identifier.
@@ -167,8 +169,8 @@ tool reports one.
   another session's file.
 - If the directory cannot be created, locked or written at start, the session
   fails to start with a message naming the path. If a judgment record cannot be
-  written, the transport fails that request, and the tool reports an error and
-  no verdict. If a tool-call record cannot be written, the MCP boundary answers
+  written, the judge fails that judgment, and the tool reports an error and no
+  verdict. If a tool-call record cannot be written, the MCP boundary answers
   the call with the fixed tool error `record_write_failed` instead of its
   result, so no unrecorded verdict reaches the client.
 
@@ -176,18 +178,20 @@ tool reports one.
 
 | Item | Value | Source |
 | --- | --- | --- |
-| Endpoint | `https://api-cdn.thehive.ai/api/v3` chat completions | Constant |
-| Model | `deepseek-ai/deepseek-v4.1-flash` | Constant; changing it is an FR-012 upgrade |
-| Thinking | `chat_template_kwargs: {"thinking": true}` | Constant |
-| Output | `response_format: {"type": "json_object"}`, `max_tokens: 32768` | Constant |
+| Provider profile | The `[providers.<name>]` table that the operator's `config.toml` selects, or else the one the shipped `config.toml` selects (`hive`) ([provider-profile.md](contracts/provider-profile.md)) | Operator or shipped default; changing it is an FR-012 upgrade |
+| Protocol | The adapter provider class the profile's `api` names (Hive: `openai`, Chat Completions) | Profile |
+| Endpoint | The profile's `base_url` (Hive: `https://api-cdn.thehive.ai/api/v3`) | Profile |
+| Model | The profile's `model` (Hive: `deepseek-ai/deepseek-v4.1-flash`) | Profile; changing it is an FR-012 upgrade |
+| Request additions | The profile's `request`, including the thinking switch and the output budget (Hive: `reasoning_effort: "medium"`, `response_format: {"type": "json_object"}`, `max_tokens: 32768`) | Profile |
+| Thinking evidence | The profile's `thinking` fields (Hive: `reasoning_content`, `usage.reasoning_tokens`) | Profile |
+| Status meanings | The SDK's standard error classes, with the profile's `statuses` overrides (Hive: 405 is `balance_exhausted`) | SDK and profile |
+| Rate limit | The profile's `rate_limit_per_second` (Hive: 5); not enforced by the judge | Profile |
 | Adapter | `structured_outputs=False`, `llm_answer_mode="probabilities"`, `normalize_probabilities=False`, `n_retry_malformed_structure=0` | Constant |
-| Endpoint deadline | 80 s from receipt, enforced by an outer timeout | Constant |
-| Transport | `JEV_PROVIDER=compatible`, `JEV_MCP_MAX_ATTEMPTS=1`, `JEV_MCP_REQUEST_TIMEOUT_MS=82000`, set in the server's environment | Constant |
-| Call deadline | 118 s after a call's request arrives, the MCP boundary answers `deadline_exceeded` and cancels the call | Constant |
-| MCP message size | At most 10 MiB, the pinned MCP SDK's input buffer | Upstream |
-| Attempts | At most 4, including the first, in the endpoint | Constant |
-| Request limits | Options per Choice (150 until feasibility); cells per request (300 until feasibility) | Constant |
-| Credential | `HIVE_API_KEY` in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env`, mode 0600, read by the endpoint only | Operator |
+| Call deadline | 118 s after a call's request arrives, the MCP boundary answers `deadline_exceeded` and cancels the call; the judge's attempts and retry waits use only the time left | Constant |
+| MCP message size | At most 10 MiB; a larger message ends the session | Constant |
+| Attempts | At most 4, including the first, in the judge | Constant |
+| Request limits | 250 options per Choice; 672 cells per request (gate 3) | Constant |
+| Credential | The profile's `credential` variable in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env` (Hive: `HIVE_API_KEY` in `hive.env`), mode 0600, read by the judge only | Operator |
 
 ## Session
 
@@ -196,38 +200,32 @@ One per client MCP session, served by one server process.
 | Field | Content |
 | --- | --- |
 | `id` | Random id used in records |
-| `port` | Loopback port the endpoint chose and reported at start |
-| `token` | Random bearer token shared only with the endpoint child |
-| `endpoint` | The endpoint's process id |
 | `calls` | Open tool calls: JSON-RPC id → call number, tool, input digest, start time and deadline |
 
 States: `starting` → `serving` → `stopping` → `stopped`.
 
-- `starting` → `serving`: the record file is locked and the endpoint has
-  reported its port.
+- `starting` → `serving`: the record file is locked.
 - `serving` → `stopping`: the client's input ends or a write to the client
-  fails, the endpoint exits, a message exceeds 10 MiB, or the server receives
-  SIGTERM or SIGINT.
-- `stopping` → `stopped`: open calls are cancelled, which aborts their endpoint
-  requests, and recorded as `session_ended`; the endpoint has exited (its
-  standard input closed, then SIGTERM after 2 s, then SIGKILL after 2 s more)
-  and the record file is closed.
-- A killed server skips these steps; the endpoint sees its standard input end
-  and exits, open provider connections close with it, and the kernel releases
-  the record file's lock.
+  fails, a message exceeds 10 MiB, or the server receives SIGTERM or SIGINT.
+- `stopping` → `stopped`: open calls are cancelled, which cancels their
+  provider requests and kills any pattern child, and recorded as
+  `session_ended`; the record file is closed.
+- A killed server skips these steps; open provider connections close with it,
+  a pattern child ends at its own 1,000 ms timer, and the kernel releases the
+  record file's lock.
 
 ## Request lifecycle
 
-At the endpoint: `received` → `validated` → `provider attempt n` →
-`answer validated` → `responded`.
+In the judge: `received` → `validated` → `provider attempt n` →
+`answer validated` → `returned`.
 
-- Invalid request or limit: `received` → `responded` (4xx).
+- Invalid request or limit: `received` → failed, before any provider call.
 - Retryable failure: `provider attempt n` → `provider attempt n+1` while
-  attempts remain and the wait fits the deadline.
-- Final provider or answer failure: → `responded` (502 or 504).
-- Transport abort at any point (the tool's signal, including the call
-  deadline): the provider call and any pending retry are cancelled and no
-  response is sent; the transport records the judgment as `cancelled`.
+  attempts remain and the wait fits the time left.
+- Final provider or answer failure: → failed with its error type.
+- Cancellation at any point (by the client or at the call deadline): the
+  provider call and any pending retry are cancelled and nothing is returned;
+  the judgment record shows `cancelled`.
 
 ## Readiness report
 

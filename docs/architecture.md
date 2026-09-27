@@ -12,7 +12,7 @@ Each package has a `plugin.json`; the code and work packages also have
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
-an MCP declaration without servers.
+an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring` and
 `session-migrate` skills and an MCP declaration without servers; its business
 capabilities have no implementation until new features specify them.
@@ -135,13 +135,38 @@ internal layers only when a specified capability has an actual consumer. Selecte
 Wiki storage follows constitution principle VI; restructuring code does not move
 live data or other external operational or source roots.
 
+### Backfire server
+
+`plugins/code/mcp.json` declares the `backfire` stdio server and starts it with
+`uv --directory ${PLUGIN_ROOT}/backfire run --frozen --offline --no-sync
+backfire serve-mcp`. Its Python runtime package lives in
+`packages/backfire/src/backfire/`, outside the root Deno workspace.
+`deno task backfire:build -- <output>` copies the code plugin and runtime
+package into a complete plugin at an output path outside `plugins/` and
+`packages/`. The development and release programs in
+`packages/backfire/src/backfire_tools/` are not shipped; they include the build,
+probes, and upstream capture.
+
+`packages/backfire/src/backfire/config.toml` contains the shipped provider
+profiles and selects Hive by default. An operator can select or replace
+profiles in the optional
+`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
+Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
+recorded differences are in
+[`UPSTREAM.md`](../packages/backfire/src/backfire/UPSTREAM.md). See the
+[Backfire operator guide](backfire.md) for setup, provider selection, records,
+and troubleshooting.
+
 ## Sharing and distribution
 
-Reuse existing dependencies directly first. Add a package under `packages/` only
-for a concrete shared need and register it in the root workspace. Shared
-packages are implementation dependencies, not a fourth plugin. Plugins do not
-deep-import another plugin's private files or open another plugin's private
-operational store.
+Reuse existing dependencies directly first. Constitution IX puts reusable
+implementation packages, including libraries and MCP servers, under
+`packages/<name>/src/`; add one only for a concrete shared need. A package joins
+a toolchain workspace only when it has executable code for that toolchain, so
+the Python package `packages/backfire/` stays outside the root Deno workspace.
+Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
+another plugin's private files or open another plugin's private operational
+store.
 
 A shipped plugin must include its required package files or resolve explicitly
 pinned runtime dependencies. Do not distribute `skills/` or package components

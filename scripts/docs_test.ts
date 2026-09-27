@@ -198,7 +198,7 @@ Deno.test('references: source facts, optional MCP and Markdown characters surviv
     assertEquals(plugins.includes('not-for-output'), false);
     assertEquals(plugins.includes('never-run'), false);
     assertEquals(commands.includes('do-not-execute-this'), false);
-    assertEquals((plugins.match(/None declared/g) ?? []).length, 2);
+    assertEquals((plugins.match(/None declared/g) ?? []).length, 1);
     assertEquals((plugins.match(/Not declared/g) ?? []).length, 1);
   });
 });
