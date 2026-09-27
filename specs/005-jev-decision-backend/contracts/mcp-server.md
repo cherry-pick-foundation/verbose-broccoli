@@ -40,9 +40,13 @@ which writes a complete code plugin to `<output>`:
   `pyproject.toml`, `.python-version`, `uv.lock`, `src/bin/`,
   `src/upstream/`, `src/server/` except `*_test.ts` files and
   `src/server/testing/`, and `src/backfire_backend/` except `__pycache__/`.
-- It copies file contents and never writes a link.
+- It copies file contents and never writes a link. A symbolic link among the
+  copied inputs fails the build with a message naming its path; the inputs
+  hold none.
 - Its storage budget is 16 MiB for the whole output, checked before each file
   is written; a copy that would pass it fails the build.
+  The test-only variable `BACKFIRE_TEST_BUILD_MAX_BYTES` lowers the budget
+  (never above 16 MiB) so tests can exceed it with a small build.
 - On any failure, and on SIGINT or SIGTERM, it removes its own partial
   directory and exits non-zero; it never removes anything else. After success
   only `<output>` remains, and the caller owns it.
