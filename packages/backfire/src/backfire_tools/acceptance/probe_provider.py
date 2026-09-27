@@ -71,7 +71,7 @@ def select_profile(value, provider_override=None):
         or ("rate_limit_per_second" in profile
             and (type(rate) not in (int, float) or not math.isfinite(rate) or rate < 0))
         or not isinstance(statuses, dict)
-        or any(not _matches(r"[0-9]+", status) or not 100 <= int(status) <= 599
+        or any(not _matches(r"[0-9]+", status) or not 400 <= int(status) <= 599
                or meaning not in (
                    "credential_rejected", "balance_exhausted",
                    "request_rejected", "rate_limited",

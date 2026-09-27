@@ -124,6 +124,7 @@ def test_selection_rejects_bad_config(value, override):
     *({"rate_limit_per_second": rate} for rate in (True, -1, float("inf"), float("nan"), None)),
     {"statuses": []}, {"statuses": {"99": "rate_limited"}},
     {"statuses": {"600": "rate_limited"}}, {"statuses": {"429": "unknown"}},
+    {"statuses": {"200": "rate_limited"}}, {"statuses": {"399": "request_rejected"}},
 ])
 def test_selection_rejects_invalid_profile_fields(changes):
     value = config()

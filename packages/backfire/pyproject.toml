@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "backfire"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   "jsonschema==4.26.0",
   "mcp==2.2.0",
