@@ -63,7 +63,13 @@ code tasks in the Worker Assignment section.
   `.specify/memory/constitution.md` as [research.md](research.md) R2 says, in
   its own `docs` commit (patch bump; the commit-msg hook checks it), with the
   Sync Impact Report and the Governance record updated. Check first whether
-  the constitution cleanup feature changed that sentence on `develop`.
+  the constitution cleanup feature changed that sentence on `develop`. As of
+  2026-09-28 the develop session expects that feature to merge first: it
+  only drops the tail "under the selected operation's scope", so the sentence
+  reads "The LLM maintains pages, cross-references, `index.md`,
+  `overview.md`, and the append-only `log.md`.", and it sets the version to
+  1.0.0, so this `docs` amendment would make it 1.0.1. Merge `develop` into
+  this branch before amending.
 - [ ] T004 Prove qmd's semantic search (constitution I; R4): in a scratch
   folder with the pinned `package-lock.json`, `npm ci --ignore-scripts`, run
   `qmd embed` and `qmd vsearch --json` on synthetic Korean and English pages
