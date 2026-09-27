@@ -31,9 +31,9 @@ Expected: all pass, and `git status --short` is empty after the check.
 
 1. On a scratch branch from `develop`, rename a task that
    `docs/architecture.md` describes in prose, without editing the document.
-2. `deno task doc-regions:prepare -- --base develop --max-claims 20
-   --max-evidence-chars 20000` prints requests; the describing paragraph is a
-   claim, and `deno.json`'s diff is evidence.
+2. `deno task doc-regions:prepare -- --base develop --max-evidence-chars
+   20000` prints requests; the describing paragraph is a claim, and
+   `deno.json`'s diff is evidence.
 3. Send the `backfire_verify` request through the agent's MCP client; the
    paragraph comes back `contradicted` or with `action` `review` (SC-005: in
    each of three runs).

@@ -152,9 +152,24 @@ Read from `feature/005-backfire-mcp` without changing it: the tool sources
     `mechanical_candidate` (text fully derivable from named repository files
     by a deterministic generator) and `agent_region` (anything else);
     `purpose` names the target document.
-  The command splits claims, items and evidence into several requests when
-  they pass these limits or the request limits in backfire's readiness report
-  (`backfire ready`), given to the command as arguments.
+  The command splits claims and items into several requests when they pass
+  these limits or backfire's request limits (below).
+- **Checked after the 005 merge (T001, 2026-09-28)**: the input schemas in
+  `packages/backfire/src/backfire/tools/verify.py` and `classify.py` on
+  `develop` match the above. One assumption was wrong: `backfire ready` does
+  not report request limits. They are fixed in
+  `packages/backfire/src/backfire/validate.py` (`OPTION_LIMIT = 250`,
+  `CELL_LIMIT = 672`): a Choice has at most 250 options and a request at most
+  672 answer cells, and backfire does not split requests
+  (`docs/backfire.md`, "Request limits"). In `backfire_verify`, each claim is
+  a three-option Choice, and with more than one evidence item also a Choice
+  among the items plus `none`. So a request with `C` claims and `E` evidence
+  items uses `3C` cells when `E` is 1 and `C(E + 4)` cells otherwise, and `E`
+  may be at most 249. The preparation command therefore derives the claims per
+  request from the number of evidence items instead of taking a fixed maximum,
+  and fails, naming the limit, when the evidence alone has more than 249
+  items. In `backfire_classify`, 64 items of two classes use 128 cells, within
+  the limit; item text past 2,000 characters is truncated by the tool.
 - **Rationale**: In `verify.py`, each claim becomes a Choice among
   `supports`, `contradicts` and `says_nothing`, mapped to `verified`,
   `contradicted` and `unsupported`, with `action` `auto` or `review` at
@@ -251,3 +266,14 @@ Feature 010 reuses, without redefining: the region model (data-model.md), the
 marker and source-naming rule (R2), `packages/doc-regions` for the check,
 regeneration, unit splitting and request preparation, and lychee. It adds its
 own target list and generators, and markitdown and qmd as its brief says.
+
+Feature 010's research (R8 in `specs/010-wiki-consistency/research.md` on
+`feature/wiki-consistency`, 2026-09-28) found that the Wiki needs three things
+this plan did not state: target globs such as `wiki/**/*.md`, a root other
+than the repository with a generator path outside it, and request preparation
+with evidence the caller supplies per unit. Feature 010 calls the package's
+modules as a library, not its commands. Because User Story 4 requires that
+feature 010 need no change to the package, this feature builds all three as
+library parameters ([contracts/commands.md](contracts/commands.md), "Library
+interface"); its own commands keep the repository as root and the feature
+diff as evidence.

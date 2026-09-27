@@ -316,7 +316,10 @@ interface, and add a mechanical region to a scratch document by following them.
 
 - **FR-014**: Region parsing, unit splitting, request preparation and the
   check MUST live in one reusable package under `packages/`, so feature 010 can
-  use them with its own target list and generators.
+  use them with its own target list and generators. Its library functions
+  MUST accept target globs, a root other than the repository with a generator
+  path outside it, and evidence the caller supplies per group of units.
+  Feature 010's research asked for these on 2026-09-28.
 - **FR-015**: Repository-specific generators and the target list MUST live
   outside that package, in repository automation.
 - **FR-016**: `docs/architecture.md` MUST describe the region model, how to

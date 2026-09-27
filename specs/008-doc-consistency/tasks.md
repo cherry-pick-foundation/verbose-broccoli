@@ -37,19 +37,29 @@ Codex workers own the code tasks marked in the Worker Assignment section.
 **Purpose**: Bring in backfire and create the shared environment every worker
 runs in.
 
-- [ ] T001 Confirm `feature/005-backfire-mcp` has merged into `develop`
+- [x] T001 Confirm `feature/005-backfire-mcp` has merged into `develop`
   (`git merge-base --is-ancestor feature/005-backfire-mcp develop`), merge
   `develop` into `feature/doc-consistency`, and run `deno task verify`. Then
   compare `backfire_verify`'s and `backfire_classify`'s input schemas and the
   request limits in `backfire ready`'s report with
   [research.md](research.md) R6; record any difference in research.md and
   update [contracts/commands.md](contracts/commands.md) before workers start.
-- [ ] T002 Ask the user to approve installing lychee 0.24.2 into
+  - 2026-09-28: `develop` is at the 005 merge (8ab332b), already in this
+    branch. The schemas match R6, but `backfire ready` reports no limits;
+    the fixed option and cell limits now set the claims per request (R6), so
+    `--max-claims` is gone. Feature 010's needs (target globs, another root,
+    caller evidence) became the library interface in the commands contract
+    and FR-014. Baseline `deno task verify` failed only on CHE-14 and passed
+    `test:backfire` after `uv sync --project packages/backfire --frozen
+    --python /usr/bin/python3.14`.
+- [x] T002 Ask the user to approve installing lychee 0.24.2 into
   `~/.local/bin/lychee` (a host change). After approval, download
   `lychee-x86_64-unknown-linux-gnu.tar.gz` and its `.sha256` from the
   `lychee-v0.24.2` release, check the hash
   (`1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a`),
   install the binary, and confirm `lychee --version` prints `lychee 0.24.2`.
+  - 2026-09-28: approved and installed; the hash matched and
+    `lychee --version` prints `lychee 0.24.2`.
 - [ ] T003 Create `packages/doc-regions/pyproject.toml` (project
   `doc-regions`, console script `doc-regions = "doc_regions.__main__:main"`,
   dependencies `cogapp==3.6.0` and `markdown-it-py==4.2.0`, dev group
@@ -82,9 +92,13 @@ their suites.
 ## Phase 2: Foundational (Blocking Prerequisites)
 
 - [ ] T007 Create `packages/doc-regions/src/doc_regions/config.py` and
-  `tests/test_config.py`: load the TOML with `tomllib`, and fail with the path
-  when a listed file is missing, a path is in both lists, or a field is
-  missing. Tests first; they fail before the module exists.
+  `tests/test_config.py`: `load(config_path, root)` reads the TOML with
+  `tomllib`, expands path and glob entries against `root` into sorted
+  root-relative paths, resolves a relative `generator_path` against `root`,
+  and fails with the entry when it matches no file, a file is matched by both
+  lists, or a field is missing (library interface in
+  [contracts/commands.md](contracts/commands.md)). Tests first; they fail
+  before the module exists.
 
 **Checkpoint**: Every command can load its configuration.
 
@@ -149,7 +163,9 @@ unit; the workflow tool prints the step.
   paragraphs, items of a top-level list, a table, a fenced code block and an
   HTML block become units with 1-based inclusive lines and their heading path;
   mechanical-region lines never appear in a unit; units cover every
-  non-blank agent-region line exactly once. Fails before T015.
+  non-blank agent-region line exactly once; `split(document, text,
+  base_text)` marks `added` by `difflib` (false for all with `None`, true for
+  all with `""`). Fails before T015.
 - [ ] T015 [US2] Implement `packages/doc-regions/src/doc_regions/units.py`
   with markdown-it-py (`commonmark` preset, `table` enabled) per
   [data-model.md](data-model.md). T014 passes.
@@ -159,11 +175,14 @@ unit; the workflow tool prints the step.
   [contracts/commands.md](contracts/commands.md); every `arguments` object
   validates against copies of backfire's `backfire_verify` and
   `backfire_classify` input schemas kept as test fixtures (taken in T001);
-  claims and items respect `--max-claims` and the 64-item limit, long diffs
-  split into numbered evidence items within `--max-evidence-chars`, and each
-  unit is in exactly one request per tool; `added` is true only for fully
-  added units; two runs give byte-identical output; no file changes and no
-  socket opens. Fails before T017.
+  every verify request stays within 672 answer cells and 250 options as the
+  contract computes them, classify requests have at most 64 items, more than
+  249 evidence items raise, long diffs split into numbered evidence items
+  within `--max-evidence-chars`, and each unit is in exactly one request per
+  tool; `added` is true only for fully added units; two runs give
+  byte-identical output; no file changes and no socket opens. Library cases:
+  `verify_requests` with several `(units, evidence)` groups keeps input
+  order and passes evidence through unchanged. Fails before T017.
 - [ ] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
   and the `prepare` command (`git merge-base`, `git diff` through
   `subprocess`, splitting and sorting). T016 passes.

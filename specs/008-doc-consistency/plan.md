@@ -143,6 +143,10 @@ package's layout copies backfire's so a plugin build can copy it the same way.
   `doc-regions check|update|prepare|audit` with a config path, run through
   `deno task doc-regions:*`. `check` joins `deno task check`; `prepare` and
   `audit` run only in the pre-review step.
+- **Library interface** ([contracts/commands.md](contracts/commands.md)):
+  the commands wrap functions that take a root, globbed targets and
+  caller-supplied `(units, evidence)` groups, so feature 010 calls them on a
+  Wiki instance without changing the package (research, "For feature 010").
 - **Judgment step**: the main agent runs `prepare` and `audit`, sends each
   printed request to backfire through its MCP client, fixes contradicted or
   review-flagged units of target documents, reports findings for `AGENTS.md`

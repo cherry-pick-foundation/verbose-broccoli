@@ -8,12 +8,13 @@ Feature 010 uses the same model with its own configuration.
 
 | Field | Type | Rule |
 | --- | --- | --- |
-| `targets` | list of repository-relative paths | updated documents; each must exist |
-| `report_only` | list of paths | judged and audited, never changed by the tooling |
+| `targets` | list of paths or globs relative to the root | updated documents; each entry must match at least one file |
+| `report_only` | list of paths or globs | judged and audited, never changed by the tooling |
 | `generators` | module name | the one module whose functions mechanical regions may call (`doc_sources`) |
-| `generator_path` | directory | added to Cog's import path (`scripts`) |
+| `generator_path` | directory, relative to the root or absolute | added to Cog's import path (`scripts`) |
 
-A path may appear in only one list. For this repository, `targets` is
+A file may be matched by only one list. The root is the repository for this
+feature's commands and a Wiki instance for feature 010. For this repository, `targets` is
 `README.md`, `docs/architecture.md` and `docs/backfire.md` plus project-written plugin documents,
 and `report_only` is `AGENTS.md` and `.specify/memory/constitution.md`.
 
@@ -52,7 +53,7 @@ no marker and no attributes beyond its line range.
 | `kind` | `heading`, `paragraph`, `list_item`, `table`, `code` or `html` |
 | `first_line`, `last_line` | 1-based, inclusive, from markdown-it-py's `map` |
 | `text` | the unit's source lines |
-| `added` | true when every line of the unit is added in the feature diff |
+| `added` | true when every line of the unit is inserted relative to the base text (for `prepare`, the file at the merge base) |
 
 Units come only from agent regions. A unit is a top-level block, or an item of
 a top-level list.
