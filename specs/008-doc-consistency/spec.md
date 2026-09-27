@@ -48,33 +48,39 @@ neither and does not grow `scripts/docs.ts`.
 
 ### Session 2026-09-27
 
-Four questions went to the user through the orchestrator on 2026-09-27 and
-were still unanswered when this specification was committed. The documents
-follow the recommended answer to each; they are provisional, not the user's
-decisions, and a different answer changes the files named after it.
+Four questions went to the user through the orchestrator on 2026-09-27. The
+user chose the recommended answer to each on 2026-09-28, after this
+specification was first committed with those answers marked provisional.
 
 - Q: Which plugin documents are targets? Every plugin document on `develop` is
   upstream or generated: the `speckit-*` skills (Spec Kit), `git-commit`
   (awesome-copilot), `clean-code` (adapted from wondelai), `ponytail*`,
   `session-migrate` and `quarto-authoring` (with `UPSTREAM.md`), and
   `verification-before-completion` (upstream text without a recorded source).
-  → Provisional: none today; a plugin document becomes a target when the
+  → A: None today; a plugin document becomes a target when the
   project writes one, and adapted upstream skills count as vendored. Affects
   FR-004 and `scripts/doc_regions.toml` (tasks T006).
 - Q: Should project-written documents the brief does not list
   (`docs/examples/wiki/AGENTS.md`, `licenses/THIRD_PARTY_NOTICES.md`,
-  `.claude/rules/claude-code.md`) be targets? → Provisional: no, as the brief
+  `.claude/rules/claude-code.md`) be targets? → A: No, as the brief
   lists; the example Wiki schema belongs to feature 010. Affects FR-004.
 - Q: Which tools report drift in `AGENTS.md` and the constitution? →
-  Provisional: MemoryLint's audit script run from its pinned release archive
+  A: MemoryLint's audit script run from its pinned release archive
   (not installed as a Spec Kit extension) plus `backfire_verify` on their
   paragraphs, both report-only; docguard is not used
   ([research.md](research.md) R7). Affects FR-013 and tasks T019 and T020.
 - Q: How do the backfire judgments run before the merge review? →
-  Provisional: an offline command prepares the requests, the main agent sends
+  A: An offline command prepares the requests, the main agent sends
   them through its MCP client and acts on the results, and `deno task
   workflow` prints the step; no hook enforces it (R6, R8). Affects FR-008 to
   FR-012 and tasks T016 to T018.
+
+### Session 2026-09-28
+
+- Q: Feature 005 merged into `develop` and added `docs/backfire.md`, the
+  project-written Backfire operator guide. Is it a target? → A: Yes. It joins
+  `README.md` and `docs/architecture.md` in the target list. Affects FR-004
+  and tasks T006 and T023.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -262,7 +268,8 @@ interface, and add a mechanical region to a scratch document by following them.
   place, changing nothing outside the regions, and a second run MUST change
   nothing.
 - **FR-004**: The target list MUST be one committed list: `README.md`,
-  `docs/architecture.md` and the plugin documents this project wrote itself.
+  `docs/architecture.md`, `docs/backfire.md` and the plugin documents this
+  project wrote itself.
   `AGENTS.md` and the constitution MUST be listed as report-only. `specs/`,
   vendored skills (with `UPSTREAM.md`) and `docs/reference/` MUST NOT be
   listed.

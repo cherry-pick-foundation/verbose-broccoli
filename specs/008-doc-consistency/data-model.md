@@ -14,7 +14,7 @@ Feature 010 uses the same model with its own configuration.
 | `generator_path` | directory | added to Cog's import path (`scripts`) |
 
 A path may appear in only one list. For this repository, `targets` is
-`README.md` and `docs/architecture.md` plus project-written plugin documents,
+`README.md`, `docs/architecture.md` and `docs/backfire.md` plus project-written plugin documents,
 and `report_only` is `AGENTS.md` and `.specify/memory/constitution.md`.
 
 ## Document

@@ -69,9 +69,8 @@ runs in.
   `orca.yaml`'s setup script next to the `tools/spec-kit` line; check with
   `deno fmt --check orca.yaml`.
 - [ ] T006 Create `scripts/doc_regions.toml` with `targets = ["README.md",
-  "docs/architecture.md"]` plus any project-written plugin documents per the
-  spec's Clarifications (none today; first confirm the four provisional
-  answers there with the user and apply any change), `report_only = ["AGENTS.md",
+  "docs/architecture.md", "docs/backfire.md"]` plus any project-written plugin
+  documents per the spec's Clarifications (none today), `report_only = ["AGENTS.md",
   ".specify/memory/constitution.md"]`, `generators = "doc_sources"` and
   `generator_path = "scripts"` (see [data-model.md](data-model.md)).
 
@@ -226,8 +225,8 @@ following it.
 - [ ] T022 [US4] Add lychee, cogapp, markdown-it-py and MemoryLint to
   `licenses/THIRD_PARTY_NOTICES.md` with source, version and license.
 - [ ] T023 [US4] Run the judgment step on this feature's own changes: send
-  `backfire_classify` the current units of `README.md` and
-  `docs/architecture.md` and convert the candidates the main agent confirms
+  `backfire_classify` the current units of `README.md`,
+  `docs/architecture.md` and `docs/backfire.md` and convert the candidates the main agent confirms
   into regions with tested generators (R9); send `backfire_verify` and fix
   what it flags; report `AGENTS.md` and constitution findings to the user
   (depends on T013, T017, T020).

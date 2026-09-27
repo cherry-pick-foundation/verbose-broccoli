@@ -7,8 +7,8 @@
 
 ## Summary
 
-Keep `README.md`, `docs/architecture.md` and project-written plugin documents
-consistent with the repository by splitting them into mechanical and agent
+Keep `README.md`, `docs/architecture.md`, `docs/backfire.md` and
+project-written plugin documents consistent with the repository by splitting them into mechanical and agent
 regions:
 
 - Mechanical regions are Cog blocks whose code is one call of a registered
