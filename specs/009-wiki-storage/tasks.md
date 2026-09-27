@@ -270,6 +270,10 @@ decision on the task line (decision and date only). Findings come from
   `plugins/work/skills` row of the skill ownership table and a short
   paragraph on where the default Wiki instance lives and how raw provenance
   is recorded.
+- [ ] T037 [P] In `docs/examples/wiki/AGENTS.md`, remove the paragraph that
+  prepares JSON for `wiki apply --input <file>`, a command that does not
+  exist, and align the example with the schema template from T014. Added on
+  2026-09-28 at the develop session's request instead of a separate issue.
 - [ ] T034 Run `deno task docs:generate`, then `deno task test:plugin-skills`
   and fix any packaging finding for the new skill's `assets/` and lock file.
 - [ ] T035 Run `deno task workflow`, then `deno task verify`, and repeat
@@ -291,7 +295,7 @@ decision on the task line (decision and date only). Findings come from
 - US6: T017 can be written any time. T018 to T028 are conversations with the
   user and can start any time, but T029 to T032 need T035 to pass first, so
   the real import runs only on verified code.
-- T033 and T034 after T016 and T017; T035 after all code; T036 after T032
+- T033 and T034 after T016 and T017; T037 after T014; T035 after all code; T036 after T032
   and T035.
 
 ## Worker Assignment
@@ -299,7 +303,7 @@ decision on the task line (decision and date only). Findings come from
 | Worker | Tasks | Writable files |
 | --- | --- | --- |
 | Codex A | T003, T005 to T013, T015, T016 | SCRIPT, TEST |
-| Main | T001, T002, T004, T014, T017 to T036 | `deno.json`, `orca.yaml`, the lock file, `assets/AGENTS.md`, `SKILL.md`, `docs/`, this file, everything outside the repository |
+| Main | T001, T002, T004, T014, T017 to T037 | `deno.json`, `orca.yaml`, the lock file, `assets/AGENTS.md`, `SKILL.md`, `docs/`, this file, everything outside the repository |
 
 ## Parallel Example
 
