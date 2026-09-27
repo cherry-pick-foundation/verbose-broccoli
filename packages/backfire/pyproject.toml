@@ -3,20 +3,20 @@ requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "backfire-backend"
+name = "backfire"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
+  "mcp==2.2.0",
+  "rfc8785==0.1.4",
   "system-one-adapter[openai]==0.2.1",
-  "starlette==0.52.1",
-  "uvicorn==0.54.0",
 ]
 
 [dependency-groups]
 dev = ["pytest==9.1.1"]
 
 [tool.uv]
-required-version = "==0.11.32"
+required-version = ">=0.11.32"
 constraint-dependencies = ["typesafe-sdk==0.7.1"]
 
 [tool.setuptools]
@@ -24,9 +24,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["backfire", "backfire.*", "backfire_tools", "backfire_tools.*"]
 
 [tool.setuptools.package-data]
-backfire_backend = ["config.toml"]
+backfire = ["config.toml", "UPSTREAM.md"]
 
 [tool.pytest.ini_options]
 addopts = ["-p", "no:cacheprovider"]
+markers = ["slow: deadline and other long-running tests"]

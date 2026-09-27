@@ -16,7 +16,6 @@
       "!docs",
       "!artifacts/*.json",
       "!scripts/vendor",
-      "!packages/backfire/src/upstream",
       "!plugins/code/hooks",
       "!plugins/code/tests/hooks.test.js",
       "!plugins/work/skills/quarto-authoring"
