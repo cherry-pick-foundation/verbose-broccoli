@@ -106,6 +106,14 @@ plugins are out of scope. API keys stay outside the repository.
 
 ### Session 2026-09-27
 
+- Q: The model's judgment quality was already measured on JevBench and
+  backfire sends the same requests to the same model; does acceptance still
+  need the benchmark, safety, held-out and 60-item classification runs? → A:
+  No. Acceptance checks function only: readiness, each tool once through the
+  live provider, the server loading and answering in Codex CLI and Claude
+  Code, and the offline tests. SC-001, SC-002, SC-004, SC-009 and SC-010 are
+  dropped, SC-003 and SC-007 are narrowed, and the evaluation runner, metrics
+  and evaluation sets are not built.
 - Q: Where does the backfire code live, given constitution IX's
   `packages/<name>/src/` rule for MCP servers? → A: All backfire code,
   including its acceptance tooling, moves to `packages/backfire/`, with the
@@ -500,22 +508,24 @@ check reports either success or the specific failure.
   correctly, with no invalid answer and an expected calibration error of at
   most 0.08, computed over ten equal-width bins of the chosen option's
   probability. The check runs three times, every run must pass, and a failed
-  response counts as wrong.
+  response counts as wrong. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-002**: Tracked goal, not a pass/fail condition: over those 111
   single-question judgments, measured from the operator's machine, the median
-  response time is at most 5 seconds and 95% finish within 20 seconds.
-- **SC-003**: In each of Codex CLI and Claude Code, the versioned synthetic
-  known-answer set, with normal, boundary and failure cases for every tool from
-  FR-001, returns the expected result in 100% of cases. A failure case passes
-  only when the call fails with the expected explicit error and returns no
-  judgment. Every answer in the set satisfies the FR-003 contract: all
-  declared labels present, probabilities between zero and one summing to one
-  within 0.01, a yes probability for each Noul answer, the selected option and
+  response time is at most 5 seconds and 95% finish within 20 seconds. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
+- **SC-003**: With a code plugin built and installed outside the repository,
+  the readiness check passes, each of the eleven tools returns the expected
+  result for its normal known-answer case through the live provider, and in
+  each of Codex CLI and Claude Code the staged `backfire` server loads and
+  answers a tool call. Every answer the judge accepts satisfies the FR-003
+  contract, which the judge checks before any tool receives it: all declared
+  labels present, probabilities between zero and one summing to one within
+  0.01, a yes probability for each Noul answer, the selected option and
   confidence for each Choice answer, and the score and confidence for each
-  Score answer.
+  Score answer. (Narrowed on 2026-09-27 from the full known-answer set in both
+  clients by the user's decision; see Clarifications.)
 - **SC-004**: A 60-question classification request completes correctly within
   the 120-second limit; completing within 60 seconds is a tracked goal, not a
-  pass/fail condition.
+  pass/fail condition. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-005**: Under each injected fault from User Story 3, 100% of calls fail
   with an explicit reason and none returns a judgment.
 - **SC-006**: A scan of the repository and the plugin package finds no
@@ -523,20 +533,20 @@ check reports either success or the specific failure.
   content.
 - **SC-007**: On a machine where the selected provider's API key and the
   required runtimes are already installed, the operator can enable the feature
-  and pass the
-  readiness check within 10 minutes by following the documented steps.
+  and pass the readiness check by following the documented steps. (The
+  10-minute timing was dropped on 2026-09-27 by the user's decision.)
 - **SC-008**: At acceptance, every external component is identified by an
   exact version or identifier, and only the code plugin exposes the judgment
   tools.
 - **SC-009**: On the safety set (failed tests, unsupported completion claims,
   truncated evidence, answers the user later corrected, observations about a
   different student, summaries with content not in the source), zero cases are
-  approved automatically, in each of three runs.
+  approved automatically, in each of three runs. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.)
 - **SC-010**: On the held-out general set, in each of three runs, at least 97%
   of automatic decisions are correct, at least 70% of the cases for tools that
   can mark a result automatic are decided automatically, and every tool and
   each of English and Korean is at least 90% correct; a failed response counts
-  as wrong.
+  as wrong. (Dropped on 2026-09-27 by the user's decision: acceptance checks function only; see Clarifications.) The sealed held-out set stays unused.
 - **SC-011**: For every tool call in the acceptance runs, including split
   requests, the verdict record's digest matches the digest of the submitted
   input, and changing any one field of that input produces a different digest.
@@ -586,5 +596,7 @@ check reports either success or the specific failure.
 - Acceptance uses synthetic content only, including the external text and
   prompt-injection samples.
 - The backend reproduces Jev's answer format, not Jev's trained calibration.
-  How well its probabilities match reality is measured by SC-001, SC-009 and
-  SC-010 rather than assumed.
+  How well its probabilities match reality was measured on the selected model
+  by the 2026-09-26 harness and the 2026-09-27 JevBench probes (research.md);
+  since 2026-09-27 the feature does not measure it again, by the user's
+  decision.

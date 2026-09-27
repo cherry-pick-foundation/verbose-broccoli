@@ -471,6 +471,28 @@ rejects during argument validation); a separate stdio relay process (the first
 plan; only needed around a black box); reading the SDK's private tool registry
 (an unpinned internal).
 
+## Acceptance scope — 2026-09-27
+
+Decision: acceptance checks function only (the user's decision of
+2026-09-27). It keeps the offline suites, `backfire ready`, each of the eleven
+tools once through the live provider with its normal known-answer case, and
+the staged server loading and answering a call in Codex CLI and Claude Code.
+The benchmark regression, the 60-item classification, the safety set, the
+held-out set, calibration error and the setup timing are dropped, and the
+evaluation runner, metrics and those sets are not built.
+
+Rationale: the selected model's judgment quality was measured on JevBench by
+the 2026-09-26 harness (111 of 111, calibration error 0.042) and the
+2026-09-27 probes ([Judgment quality probes](#judgment-quality-probes--2026-09-27)),
+and gate 5 shows that backfire sends jev-mcp's requests unchanged, so those
+measurements carry over; gate 3 already ran 672-cell requests correctly
+through backfire's judge. The remaining risk is functional: whether the built
+plugin installs, starts in the clients and answers.
+
+Alternatives considered: the full acceptance of the original plan (a runner,
+metrics, four evaluation sets and billed runs in both clients); functional
+checks plus the 60-item classification and the safety set in one client.
+
 ## Gate 6, bounded blocking — 2026-09-27
 
 Decision: the server runs each call's JSON Schema argument check in a worker

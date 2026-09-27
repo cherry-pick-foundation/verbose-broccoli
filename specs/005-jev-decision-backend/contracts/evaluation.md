@@ -1,5 +1,7 @@
 # Evaluation Contract
 
+Superseded in part on 2026-09-27 by the user's decision that acceptance checks function only ([research.md](../research.md#acceptance-scope--2026-09-27)): only the known-answer set's normal cases are used, once per tool through the live provider (T042), and the other sets, metrics and runs below are not built or run.
+
 ## Sets
 
 | Set | Location | Used for |
@@ -111,6 +113,15 @@ it is not an automatic decision.
   automatic decisions.
 - **Per-tool and per-language accuracy:** accuracy over each tool's cases and
   over each language's cases.
+- **FR-003 contract:** a tool result shows only some of each answer's fields
+  (`backfire_find`, for example, keeps the top option), so the check has three
+  parts. Every answer field a tool result exposes has its declared labels,
+  probabilities in [0, 1] summing to one within 0.01, and the required choice,
+  score or confidence. Every judgment record of the run shows `ok`, or the
+  expected error type for a failure case, with recorded results in range; the
+  judge validated each full answer before any tool received it, and an answer
+  that failed ends as an error outcome. Direct judge calls, such as the
+  benchmark, check the full answer itself.
 - **Expected calibration error (benchmark):** for each decision, the confidence
   is the chosen option's probability (for Noul, the larger of p and 1 − p).
   Decisions fall into ten equal-width bins over [0, 1];
@@ -167,7 +178,10 @@ rejected, and one ECE example.
   that would pass it fails. The run directory is removed when the run ends,
   fails or is interrupted; a new run first removes leftovers of killed runs.
   The clients keep no session files ([mcp-server.md](mcp-server.md#client-registration-for-acceptance)).
-  Nothing else accumulates.
+  The staged package and its `.venv` live in the runner's own temporary
+  directory outside this cache, bounded by the build's 16 MiB and by
+  `uv.lock`, and are removed with the run; each session reserves the 50 MiB
+  record maximum within the cache budget. Nothing else accumulates.
 - Final acceptance replaces `artifacts/jev-decision-backend/acceptance.json`
   with one atomic write: per-criterion run results, case ids and outcomes,
   metrics, versions, digest and scan results, and no case content. The file
