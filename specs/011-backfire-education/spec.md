@@ -186,11 +186,11 @@ arm.
 - A roster name or given name also occurs as an ordinary word, such as `하늘`
   in `하늘색`: it is still replaced. A wrong replacement costs some judgment
   quality, while a missed one reveals a name.
-- Two different labels of one request become the same text after replacement:
-  the call fails explicitly instead of merging the options.
-- The agent's input already contains text in the form of a pseudonym: the call
-  fails explicitly, because restoring it would turn the agent's own text into
-  a name.
+- Two different labels, question keys or keys of one object become the same
+  text after replacement: the call fails explicitly instead of merging them.
+- The agent's input already contains text in the form of a pseudonym, such as
+  `학생10명`: it is sent as is. Restoration maps each replaced label back to
+  the agent's own text, so it never turns the agent's text into a name.
 - A student is added to the roster: the student gets a new pseudonym, and every
   existing pseudonym stays the same.
 - A student leaves the roster: the pseudonym stays assigned and is never given
@@ -203,9 +203,6 @@ arm.
   Calls stay correct, but pseudonyms no longer match those of earlier calls.
 - Several sessions assign pseudonyms at the same time: no two entries get the
   same pseudonym, and no assignment is lost.
-- The provider answers with text that contains a pseudonym outside a label:
-  the pseudonym is restored to the name it stands for before anything reaches
-  the tool.
 - The code build receives student data by mistake: it sends it as feature 005
   does. Only the work build pseudonymizes, and the code plugin's documentation
   keeps telling agents not to send private personal records.
@@ -249,18 +246,17 @@ arm.
   repository and the plugin packages. It MUST NOT appear in records, logs,
   errors, reports or committed files. Concurrent sessions MUST NOT lose or
   duplicate assignments.
-- **FR-009**: Every pseudonym in the provider's response MUST be restored
-  before the tool receives it: labels to exactly the text the agent supplied,
-  and other text to the value the pseudonym stands for. The result the agent
-  receives MUST contain no pseudonym.
+- **FR-009**: Before the tool receives the provider's answers, every question
+  key, option label and level description in them MUST be restored to exactly
+  the text the agent supplied. The result the agent receives MUST contain no
+  pseudonym that the agent did not write itself.
 - **FR-010**: Learning content MUST be sent as is: apart from the replaced
   values, the provider's request MUST be the one the work build would send
   without pseudonymization.
 - **FR-011**: The work build MUST fail a call closed, with an explicit reason
   and no provider request, when the roster is missing, unreadable or
-  malformed; when the mapping table cannot be read or updated; when two labels
-  of one request would become the same; or when the input already contains
-  text in pseudonym form.
+  malformed; when the mapping table cannot be read or updated; or when two
+  question keys, option labels or keys of one object would become the same.
 - **FR-012**: The roster MUST be read in place from a file the operator names,
   and backfire MUST keep no copy of it. It MUST accept, per student, the
   student's name and school, and MAY list guardian names. A change to the
