@@ -175,10 +175,14 @@ workers implement code in disjoint files through Orca orchestration
 3. **Main**: the skill, the schema template, the documentation, and the first
    real judgment step on a synthetic instance (SC-005).
 
-Every Codex worker, implementer or reviewer, starts on `gpt-6-luna` at `max`
-effort (`orca orchestration worker-start --agent codex --model gpt-6-luna
---effort max`, confirmed in the receipt's `launch.effective`), as the user
-decided on 2026-09-28. Time budgets come from backfire's judgments.
+Every Codex worker, implementer or reviewer, runs on `gpt-6-luna` at `max`
+effort, as the user decided on 2026-09-28. Start it with `orca orchestration
+worker-start --agent codex --model gpt-6-luna` and no `--effort`: Orca
+1.4.215 rejects `--effort max` for this model, so Codex takes
+`model_reasoning_effort = "max"` from `~/.codex/config.toml`. Confirm the
+model in the receipt's `launch.effective` and the effort in the worker
+terminal's status line ("GPT-6-Luna max"). Time budgets come from backfire's
+judgments.
 
 ## Review and Finish
 
