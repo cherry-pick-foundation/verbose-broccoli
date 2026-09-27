@@ -408,6 +408,32 @@ Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions 
   });
 });
 
+Deno.test('raw import US2: a new revision must sort after the latest revision', async () => {
+  await fixture(async f => {
+    await f.init();
+    const path = await f.file('revision-order.txt', 'first');
+    const [first] = report(await f.admit([path]));
+    const source = dirname(revisionPath(f, first));
+    const latest = join(source, '99991231T000000000000Z');
+    await Deno.chmod(source, 0o700);
+    await Deno.rename(revisionPath(f, first), latest);
+    await Deno.chmod(source, 0o555);
+    await f.file('revision-order.txt', 'changed');
+    const originalBytes = await Deno.readFile(path);
+    const originalMtime = (await Deno.stat(path)).mtime?.getTime();
+    const before = await snapshot(f.raw);
+    const [item] = report(await f.admit([path]), 1);
+    assertEquals(item.outcome, 'failed');
+    assertEquals(
+      item.reason,
+      'new revision would not sort after the latest one',
+    );
+    assertEquals(await snapshot(f.raw), before);
+    assertEquals(await Deno.readFile(path), originalBytes);
+    assertEquals((await Deno.stat(path)).mtime?.getTime(), originalMtime);
+  });
+});
+
 Deno.test('raw import US2: equal bytes at different paths have distinct sources', async () => {
   await fixture(async f => {
     await f.init();
@@ -532,30 +558,85 @@ Deno.test('raw import US3: symlinks, folders, missing files, FIFOs and invalid U
   await fixture(async f => {
     await f.init();
     const path = await f.file('original.txt');
-    const symlink = join(f.home, 'symlink');
-    await Deno.symlink(path, symlink);
-    const fifo = join(f.home, 'pipe');
-    const prepared = await output(
-      new Deno.Command(python, {
-        args: ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo],
-        env: f.env,
-      }),
-    );
-    assertEquals(prepared.code, 0, prepared.stderr);
-    const paths = [
-      symlink,
-      dirname(path),
-      join(f.home, 'missing'),
-      fifo,
-      join(f.home, 'bad-\udcff'),
-    ];
-    const before = await snapshot(f.raw);
-    const items = report(await f.admit(paths), 1);
-    assertEquals(
-      items.map(item => item.outcome),
-      paths.map(() => 'refused'),
-    );
-    assertEquals(await snapshot(f.raw), before);
+    const originalInfo = async (create: boolean) => {
+      const result = await output(
+        new Deno.Command(python, {
+          args: [
+            '-c',
+            `
+import json, os, stat, sys
+path = os.fsencode(sys.argv[1]) + b'/bad-' + bytes([255])
+if sys.argv[2] == 'create':
+    with open(path, 'wb') as target:
+        target.write(b'invalid UTF-8 filename fixture\\n')
+metadata = os.stat(path)
+assert stat.S_ISREG(metadata.st_mode)
+with open(path, 'rb') as source:
+    contents = source.read()
+print(json.dumps({
+    'path': os.fsdecode(path),
+    'mtime_ns': metadata.st_mtime_ns,
+    'contents': contents.hex(),
+}, ensure_ascii=True))
+`,
+            f.home,
+            create ? 'create' : 'inspect',
+          ],
+          env: f.env,
+        }),
+      );
+      assertEquals(result.code, 0, result.stderr);
+      return JSON.parse(result.stdout) as {
+        path: string;
+        mtime_ns: number;
+        contents: string;
+      };
+    };
+    const invalidOriginal = await originalInfo(true);
+    try {
+      const symlink = join(f.home, 'symlink');
+      await Deno.symlink(path, symlink);
+      const fifo = join(f.home, 'pipe');
+      const prepared = await output(
+        new Deno.Command(python, {
+          args: ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo],
+          env: f.env,
+        }),
+      );
+      assertEquals(prepared.code, 0, prepared.stderr);
+      const paths = [
+        symlink,
+        dirname(path),
+        join(f.home, 'missing'),
+        fifo,
+        invalidOriginal.path,
+      ];
+      const before = await snapshot(f.raw);
+      const items = report(await f.admit(paths), 1);
+      assertEquals(
+        items.map(item => item.outcome),
+        paths.map(() => 'refused'),
+      );
+      const invalidItem = items.find(
+        item => item.path === invalidOriginal.path,
+      );
+      assert(invalidItem);
+      assertEquals(invalidItem.reason, 'original path is not valid UTF-8');
+      assertEquals(await snapshot(f.raw), before);
+      assertEquals(await originalInfo(false), invalidOriginal);
+    } finally {
+      const removed = await output(
+        new Deno.Command(python, {
+          args: [
+            '-c',
+            'import os,sys; os.unlink(os.fsencode(sys.argv[1]) + b"/bad-" + bytes([255]))',
+            f.home,
+          ],
+          env: f.env,
+        }),
+      );
+      assertEquals(removed.code, 0, removed.stderr);
+    }
   });
 });
 

@@ -186,6 +186,8 @@ def admit_item(item, raw, run, excluded):
                           revision=Path(latest.path).name)
             return result
         revision = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+        if latest and revision <= Path(latest.path).name:
+            raise ValueError("new revision would not sort after the latest one")
         staged.mkdir()
         payload = staged / original.name
         shutil.copy2(original, payload)
