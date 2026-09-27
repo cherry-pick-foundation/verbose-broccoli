@@ -79,12 +79,13 @@ generator module, one target list, four `deno.json` tasks, and edits to
 | V. Observable acceptance | PASS. Tests cover passing, stale, malformed and missing-source regions, unbalanced markers, broken links, no-network runs and unchanged files. SC-005 runs real backfire three times. |
 | VI. Storage | PASS. Only a rebuildable archive in the XDG cache; nothing in data or state. |
 | VII. Generated writers | PASS. The audit's cache writer has a 1 MiB budget and cleanup on success, failure and interruption (R7); `update` rewrites only region text. |
-| VII. Minimum implementation, one owner | PASS. Cog, markdown-it-py, lychee and MemoryLint own their parts; each generated region has one source; the generated reference stays with `scripts/docs.ts`. |
-| VIII. No new exceptions | PASS. None claimed. |
+| VII. Minimum implementation, one owner | PASS. Cog, markdown-it-py, lychee and MemoryLint own their parts; each generated region has one source and a non-mutating drift check in verification; the generated reference stays with `scripts/docs.ts`. |
 | IX. Layout | PASS. Reusable code in `packages/doc-regions/src/`, repository generators and list in `scripts/`. It is not a Deno workspace member (no Deno code). |
 | Governance | No constitution change. |
 
-Re-check after design: unchanged; no violations.
+Re-check after design: unchanged; no violations. Rechecked on 2026-09-28
+against constitution 1.0.0 after merging `develop`: principle VIII no longer
+exists, and the other rows hold.
 
 ## Project Structure
 
