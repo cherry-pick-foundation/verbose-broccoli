@@ -57,7 +57,8 @@
         "clean-code",
         "clean-architecture",
         "test",
-        "docs:check"
+        "docs:check",
+        "doc-regions:check"
       ]
     },
     "lint:fix": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --write --error-on-warnings .",
@@ -76,7 +77,8 @@
         "test:workflow",
         "test:cli-contract",
         "test:docs",
-        "test:backfire"
+        "test:backfire",
+        "test:doc-regions"
       ]
     },
     "docs:generate": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-write=docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts generate",

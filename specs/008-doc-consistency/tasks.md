@@ -68,7 +68,7 @@ runs in.
   `src/doc_regions/__init__.py`, and `uv.lock` with `uv lock --project
   packages/doc-regions`; confirm `uv sync --locked --project
   packages/doc-regions` works.
-- [ ] T004 Update `deno.json`: add the tasks `doc-regions:check`,
+- [x] T004 Update `deno.json`: add the tasks `doc-regions:check`,
   `doc-regions:update`, `doc-regions:prepare`, `doc-regions:audit` and
   `test:doc-regions` per [contracts/commands.md](contracts/commands.md), each
   running `uv run --project packages/doc-regions --frozen --offline
@@ -145,11 +145,14 @@ regions and broken local links, without writing or network.
   fail when `lychee --version` is not `lychee 0.24.2`, and when
   `packages/doc-regions/.venv` is missing or differs from its lock (reuse the
   existing `tools/spec-kit` check). Tests first.
-- [ ] T013 [US1] Replace the skill ownership table in `docs/architecture.md`
+- [x] T013 [US1] Replace the skill ownership table in `docs/architecture.md`
   with a mechanical region calling `doc_sources.skill_table("plugins/*/skills/*/SKILL.md")`,
   run `deno task doc-regions:update`, and confirm `deno task
   doc-regions:check` passes and `git status` shows only the region (depends
   on T009, T011).
+  - 2026-09-28: done; the generated table added the `backfire` skill that
+    the hand-written table had missed. `check` and `test` now include
+    `doc-regions:check` and `test:doc-regions` (the rest of T004).
 
 **Checkpoint**: User Story 1 works on its own; `deno task check` includes it.
 
