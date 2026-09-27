@@ -68,7 +68,6 @@ If the requirement cannot be met without substantial new local implementation, s
 - When a session ends or a task moves to another provider, the coordinator adds
   one or two lines under that task in `tasks.md`: what was done, what blocked,
   and what comes next. Main owns task-ledger updates.
-- Record decisions in `research.md`.
 - Commit with Conventional Commits and one `Spec-Kit-Task: Txxx` trailer per
   covered implementation task.
 - Lessons that hold across features belong in this file or in
