@@ -89,7 +89,8 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
     if any(versions[key] is None for key in required):
         return "A required package version, uv version, or port revision is unavailable."
 
-    base = ["uv", "sync", "--project", str(_ROOT), "--check", "--frozen", "--offline"]
+    extra = ["--extra", "education"] if (_ROOT / "src" / "backfire_education").is_dir() else []
+    base = ["uv", "sync", "--project", str(_ROOT), "--check", "--frozen", "--offline", *extra]
     for extra in ([], ["--no-dev"]):
         try:
             result = subprocess.run([*base, *extra], cwd=_ROOT, capture_output=True, text=True, timeout=20)

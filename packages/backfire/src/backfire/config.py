@@ -19,6 +19,7 @@ _PATH = {"type": "string", "pattern": r"^[^.]+(?:\.[^.]+)*\Z"}
 _CONFIG = Draft202012Validator({
     "type": "object", "additionalProperties": False,
     "properties": {
+        "pseudonymize": {"type": "boolean"},
         "provider": _NAME,
         "providers": {"type": "object", "propertyNames": _NAME,
                       "additionalProperties": {"type": "object"}},
@@ -67,7 +68,7 @@ def xdg_path(kind: Literal["config", "state", "cache", "data"]) -> Path:
     return root / "verbose-broccoli"
 
 
-def _read_config(path: Path, *, optional: bool = False) -> dict:
+def _read_config(path: Path, *, optional: bool = False, shipped: bool = False) -> dict:
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
         with os.fdopen(descriptor, "rb") as file:
@@ -80,15 +81,20 @@ def _read_config(path: Path, *, optional: bool = False) -> dict:
         raise JudgmentError("backend_not_configured", str(path)) from None
     except (OSError, ValueError):
         raise JudgmentError("backend_not_configured", str(path)) from None
-    if not _CONFIG.is_valid(value):
+    if not _CONFIG.is_valid(value) or ("pseudonymize" in value and not shipped):
         raise JudgmentError("backend_not_configured", str(path))
     return value
+
+
+def load_pseudonymize() -> bool:
+    """The shipped build alone decides whether judgments use pseudonyms."""
+    return _read_config(SHIPPED_CONFIG, shipped=True).get("pseudonymize", False)
 
 
 def load_profile() -> dict:
     """Select data from two files; operator tables replace shipped tables whole."""
     operator_path = xdg_path("config") / "backfire" / "config.toml"
-    shipped = _read_config(SHIPPED_CONFIG)
+    shipped = _read_config(SHIPPED_CONFIG, shipped=True)
     operator = _read_config(operator_path, optional=True)
     providers = {**shipped.get("providers", {}), **operator.get("providers", {})}
     # Check both explicit selections; a later override cannot hide a bad file.

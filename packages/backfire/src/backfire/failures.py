@@ -18,6 +18,7 @@ MESSAGES = {
     "invalid_request": "The questions do not match the request schema; correct the questions.",
     "request_limit_exceeded": "The request exceeds the option or answer-cell limit; split the request.",
     "backend_not_configured": "The configuration, profile or credential file is missing or invalid; correct the named configuration.",
+    "pseudonym_conflict": "Two keys or labels become the same after pseudonymization; make them differ by more than a name.",
     "credential_rejected": "The provider rejected the credential; replace the selected profile's credential.",
     "balance_exhausted": "The provider balance is exhausted; restore the account balance.",
     "request_rejected": "The provider rejected the request; check the profile's model and request settings.",

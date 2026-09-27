@@ -1,4 +1,19 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
-  "mcpServers": {}
+  "mcpServers": {
+    "backfire": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory",
+        "${PLUGIN_ROOT}/backfire",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "backfire",
+        "serve-mcp"
+      ]
+    }
+  }
 }
