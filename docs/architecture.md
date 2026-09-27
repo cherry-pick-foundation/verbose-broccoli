@@ -230,6 +230,11 @@ use live in `plugins/code/skills` instead.
 
 - `assess` and `bug` run only when invoked. They keep their records in
   `.specify/assessments/<slug>/` and `.specify/bugs/<slug>/`.
+- One local preset, `linear-issue` in `.specify/presets/`, adds an `append`
+  layer to the spec template for the feature's Linear issue line (see
+  [Linear](#linear--2026-09-27)). Spec Kit's `specify preset add --dev`
+  installed it and wrote `.specify/presets/.registry`; `specify preset resolve
+  spec-template` shows the layers.
 - Every `git` hook is disabled in `.specify/extensions.yml`. Each worktree is
   created on its own feature branch, and the `before_specify` hook would create
   and switch to another branch inside it; the auto-commit hooks would bypass
@@ -342,6 +347,48 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   the commit when neither exists.
 - `deno task test:commit-msg` checks the rule and real commits in temporary
   repositories.
+
+### Linear — 2026-09-27
+
+The project tracks its work in Linear's free plan, in the workspace
+`verbose-broccoli` with one team, `cherry-pick-foundation` (key `CHE`), and
+reaches it only through Orca: the `orca linear` commands and Orca's
+`orca-linear` skill. No Claude Code or Codex Linear plugin and no Spec Kit
+Linear extension is used. The design and its reasons are in
+[specs/007-linear-usage/](../specs/007-linear-usage/).
+
+- An issue is a to-do entry for one feature or bug; `tasks.md` stays the
+  detailed task record. There are no sub-issues. Each issue has one type label
+  (Feature, Bug or Improvement) and a plugin label (`code`, `work`, `chat`) for
+  each plugin the work concerns; repository-wide tooling has none.
+- Only the main agent writes to Linear, after searching for similar issues,
+  including archived ones (`orca linear list-issues --team CHE --query <words>
+  --include-archived`). Workers report out-of-scope bugs to it through Orca
+  messages. Linear is an external service, so issues and comments never hold
+  operational data or secret values. Both rules are in the root `AGENTS.md`.
+- A feature's worktree is linked to its issue when it is created (`orca
+  worktree create … --linear-issue CHE-<n>`, or `orca worktree set` later),
+  and its spec names the ID in one header line, `**Linear issue**: CHE-<n>`.
+  The Spec Kit preset `linear-issue` in `.specify/presets/` appends that line,
+  with instructions, to the spec template. Commits and branch names carry no
+  issue ID; a bug's `assessment.md` keeps the issue URL.
+- Merging into `develop` completes the issue. The main agent commits the
+  record on the feature branch, moves the issue to In Review, runs the merge
+  review and finish described under [Git flow](#git-flow--2026-09-27), then
+  moves the issue to Done with one completion comment giving the merge commit
+  and the record location instead of a PR link. `deno task workflow` prints
+  this order in every mode. The commands are in
+  [the life-cycle contract](../specs/007-linear-usage/contracts/linear-lifecycle.md).
+- Issues are archived, never deleted. The free plan counts only non-archived
+  issues toward its limit of 250, and Linear archives closed issues one month
+  after they close (Team Settings > Issue statuses & automations); archived
+  issues stay readable with `--include-archived`. Nothing monitors the count:
+  a failed creation at the limit is the signal, and the main agent reports it
+  to the user.
+- Orca cannot archive or delete issues or create labels, projects, documents,
+  cycles or milestones. Label, project and team-setting changes happen in
+  Linear's UI, and no other Linear integration is added; the same `deno task
+  workflow` instruction says so.
 
 ### Document consistency — 2026-09-28
 

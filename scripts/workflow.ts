@@ -68,6 +68,7 @@ export function buildWorkModeInstructions(
       : []),
     'Rerun deno task workflow with the same --base/--plan arguments after scope changes and before completion; follow the new result. The initial result is provisional, and import-graph checks do not provide runtime resource isolation.',
     'Run deno task verify on the combined result and follow its repair/review instructions until the current code is verified. This runs deno task check and records its actual result.',
+    "Linear, main agent only: before the develop merge review, commit the feature's record and move its Linear issue to In Review; after git flow feature finish, move the issue to Done with one completion comment giving the merge commit and the record location instead of a PR link. Ask the user to do in Linear's UI what Orca cannot (archive, delete, labels, projects, documents, cycles, milestones); add no other Linear integration.",
     'Difficulty is advisory and independent of execution mode and verification. Use per-task difficulty with --plan; workspace difficulty includes unrelated changes. Null means insufficient evidence, not an extra level. Select models separately using task requirements and observed performance.',
     'The comparison includes staged, unstaged, and untracked changes. Default baseline is HEAD; use --base <commit-or-ref> to compare against another commit.',
   ];
