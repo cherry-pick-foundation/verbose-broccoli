@@ -91,8 +91,9 @@ folder sizes, file counts and file types; it opened no file and did not enter
 - **Decision**: For each item, copy the original into a staging folder under
   `$XDG_CACHE_HOME/verbose-broccoli/raw-import/`, make and validate the bag
   there, check the original's digest again, then publish with one `rename`
-  into `raw/<kind>/<source-id>/<revision>/`. After publication the bag's files
-  and folder are made read-only. A run holds an exclusive `flock` on
+  into `raw/<kind>/<source-id>/<revision>/`. The bag's files and subfolders
+  are made read-only before the rename and the revision folder right after
+  it. A run holds an exclusive `flock` on
   `$XDG_STATE_HOME/verbose-broccoli/wikis/default/raw-import.lock` and removes
   stale staging folders when it starts.
 - **Rationale**:

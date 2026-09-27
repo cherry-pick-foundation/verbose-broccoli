@@ -8,8 +8,9 @@ uv run --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.
 ```
 
 It reads `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` and
-`XDG_CONFIG_HOME` (unset or empty means the default under `HOME`), so tests point every root at a
-temporary folder. Names in this contract refer to
+`XDG_CONFIG_HOME`. An unset, empty or relative value means the default under
+`HOME`, as the XDG Base Directory specification says, so tests point every
+root at a temporary folder. Names in this contract refer to
 [data-model.md](../data-model.md).
 
 ## Commands
@@ -51,11 +52,14 @@ are suppressed so stderr carries only this contract's messages.
    from the value written (bagit drops line breaks and trims values), fail
    the item.
 5. Read the original's digest again; if it differs from step 2, fail the item.
-6. Rename the bag into `raw/<kind>/<source-id>/<revision>/` and make it
-   read-only; report `admitted`.
+6. Make every file and subfolder of the staged bag read-only, rename the bag
+   into `raw/<kind>/<source-id>/<revision>/`, then make the revision folder
+   itself read-only (moving a folder to another parent needs write
+   permission on it); report `admitted`.
 
-Any error in steps 2 to 6 fails the item, removes its staging folder and
-continues with the next item. The original is only read.
+Any error in steps 2 to 6 fails the item, removes its staging folder
+(restoring write permission inside staging first) and continues with the
+next item. The original is only read.
 
 ## Guarantees checked by tests
 

@@ -82,8 +82,9 @@ hold the lasting provenance. One object per line:
 | `path` | absolute path of a regular file |
 | `kind` | `web`, `files`, `notes` or `assets` |
 
-Duplicate paths, relative paths, unknown fields and unknown kinds make the
-whole selection invalid before anything is copied.
+Duplicate paths (the same string twice), relative paths, unknown fields and
+unknown kinds make the whole selection invalid before anything is copied.
+Different strings that resolve to the same original are checked one by one.
 
 ## Configuration
 

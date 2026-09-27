@@ -54,7 +54,7 @@ folders every story's tests need.
 - [ ] T003 Create SCRIPT with the PEP 723 block (`requires-python =
   ">=3.14"`, `dependencies = ["bagit==1.9.0"]`), the `init`, `admit
   --selection <file>` and `verify` commands with `--wiki <name>` (default
-  `default`), XDG root resolution where unset or empty means the default under
+  `default`), XDG root resolution where unset, empty or relative means the default under
   `HOME`, suppression of upstream warnings, and the exit and output rules of
   [contracts/raw-import-cli.md](contracts/raw-import-cli.md). `init` creates
   `raw/{web,files,notes,assets}/` and changes nothing that exists; `admit`
