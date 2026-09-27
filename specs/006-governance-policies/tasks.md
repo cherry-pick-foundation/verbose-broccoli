@@ -264,13 +264,17 @@ flow form.
   - 2026-09-27: code review (Claude `claude-sonnet-5`, high) found nothing;
     prose review (Codex `gpt-6-luna`, high) found one should-fix, resolved in
     `585c447`. Next: T020, finish from the `develop` worktree.
-- [ ] T020 Add the review-record commit at the feature tip and finish with `git
+- [x] T020 Add the review-record commit at the feature tip and finish with `git
   flow feature finish governance-policies` from the `develop` worktree (FR-020);
   confirm the merge's parents and tree.
-- [ ] T021 Outside the repository, propose without applying which installed
+  - 2026-09-27: finished into `develop` as `af642be`; parents `c3f48d0` and
+    the review record `7cd1168`, tree equal to the reviewed tree.
+- [x] T021 Outside the repository, propose without applying which installed
   marketplace plugins connect apps Orca supports (Linear first) and could be
   removed. (The user turned off Orca's `autoRenameBranchFromWork` setting on
   2026-09-27, so no proposal is needed for it.)
+  - 2026-09-27: proposed removing Codex's `linear@openai-curated-remote`
+    plugin; nothing changed. The user will discuss Linear before any change.
 
 ---
 
