@@ -385,4 +385,5 @@ Linear extension is used. The design and its reasons are in
   to the user.
 - Orca cannot archive or delete issues or create labels, projects, documents,
   cycles or milestones. Label, project and team-setting changes happen in
-  Linear's UI.
+  Linear's UI, and no other Linear integration is added; the same `deno task
+  workflow` instruction says so.

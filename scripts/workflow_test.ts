@@ -475,7 +475,9 @@ Deno.test('workflow: every mode prints the Linear completion order', () => {
           line.includes('In Review') &&
           line.indexOf('In Review') < line.indexOf('Done') &&
           line.includes('merge commit') &&
-          line.includes('record location'),
+          line.includes('record location') &&
+          line.includes("Linear's UI") &&
+          line.includes('add no other Linear integration'),
       ),
     );
   }
