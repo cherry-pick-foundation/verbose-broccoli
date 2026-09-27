@@ -51,14 +51,14 @@ locations.
 
 - Q: How much of the default instance does this feature create, given that
   principle VI requires every instance to contain the Raw, Wiki and Schema
-  layers? → A: PENDING (asked through the orchestrator; recommended answer: a
-  minimal complete instance — `raw/` with the admitted copies, a schema
-  `AGENTS.md` that states only the raw admission and provenance rules, and
-  `wiki/` with empty `index.md` and `overview.md` and a `log.md` that gets one
-  entry per import, versioned by Git with `raw/` excluded; no Wiki pages are
-  generated). Until the answer arrives, the plan and tasks follow the
-  recommended answer; tasks T014 to T016 and T030 change if it differs, and no
-  implementation task starts before it is recorded here.
+  layers? → A: A minimal complete instance: `raw/` with the admitted copies, a
+  schema `AGENTS.md` that states only the raw admission and provenance rules,
+  and `wiki/` with empty `index.md` and `overview.md` and a `log.md` that gets
+  one entry per import, versioned by Git with `raw/` excluded; no Wiki pages
+  are generated. The orchestrator answered on 2026-09-28 from the governance
+  brief's addendum H, which already fixes the layout ("holds `AGENTS.md` (the
+  schema), `raw/{web,files,notes,assets}/` and `wiki/`"), and principle VI,
+  which requires all three layers in every instance.
 
 ## User Scenarios & Testing *(mandatory)*
 
