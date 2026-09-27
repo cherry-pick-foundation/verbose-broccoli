@@ -8,9 +8,11 @@ session. The copied transport is its only intended caller.
 - The server starts it with `backfire_backend serve` from the synced environment,
   with its standard input a pipe from the server and the session token in
   `BACKFIRE_ENDPOINT_TOKEN`.
-- It binds a free `127.0.0.1` port, prints `{"port": <n>}` as one line on its
-  standard output, and then logs only to stderr (status codes, error types and
-  timings).
+- It binds a free `127.0.0.1` port, prints `{"port": <n>, "model": <model>}`
+  as one line on its standard output, where `<model>` is the selected
+  profile's model or null when the selection or the profile is invalid
+  ([provider-profile.md](provider-profile.md)), and then logs only to stderr
+  (status codes, error types and timings).
 - It exits when its standard input ends, which happens when the server exits
   for any reason; it cancels its in-flight provider calls first. It writes no
   files.
@@ -33,7 +35,9 @@ session. The copied transport is its only intended caller.
 `Content-Type: application/json`, body as defined in
 [data-model.md](../data-model.md#judgment-request). The adapter validates the
 questions, and the endpoint checks the request size limits, before any provider
-call.
+call. The test-only `BACKFIRE_TEST_REQUEST_LIMITS=<options>,<cells>` replaces
+both limits for the gate 3 probe, which starts its own endpoint; the server
+never passes it to the endpoint it starts.
 
 ## Success response
 
@@ -63,7 +67,8 @@ with the header
 
 Body: `{"error": {"type": "<type>", "message": "<cause and corrective action>"}}`.
 The message is fixed per type and may name an HTTP status; it never contains
-request content, Hive's or the adapter's error text, credentials or headers.
+request content, the provider's or the adapter's error text, credentials or
+headers.
 The copied transport shows the first 200 characters of this body to the agent,
 as release 0.9.0 does. Every error after authentication carries the
 `X-Judgment-Metadata` header.
@@ -73,23 +78,26 @@ as release 0.9.0 does. Every error after authentication carries the
 | 400 | `invalid_request` | Body is not JSON, or a question fails the adapter's schema |
 | 401 | `unauthorized` | Missing or wrong session token |
 | 422 | `request_limit_exceeded` | A Choice has more options than the option limit, or the request more cells than the cell limit |
-| 502 | `backend_not_configured` | Credential file missing, empty or readable by group or others |
-| 502 | `credential_rejected` | Hive answered 401 |
-| 502 | `balance_exhausted` | Hive answered 405 |
-| 502 | `request_rejected` | Hive answered 400, as it does for an unsupported setting or model |
-| 502 | `rate_limited` | Hive answered 429 on the last allowed attempt, or its `Retry-After` does not fit the remaining time |
+| 502 | `backend_not_configured` | Profile selection or profile invalid, or credential file missing, empty or readable by group or others |
+| 502 | `credential_rejected` | The provider answered 401, or a status the profile's `statuses` maps to this type |
+| 502 | `balance_exhausted` | The provider answered a status the profile's `statuses` maps to this type (Hive: 405) |
+| 502 | `request_rejected` | The provider answered 400, as Hive does for an unsupported setting or model, or a status the profile maps to this type |
+| 502 | `rate_limited` | The provider answered 429, or a status the profile maps to this type, on the last allowed attempt, or its `Retry-After` does not fit the remaining time |
 | 502 | `provider_unavailable` | Connection failures on every allowed attempt, or a read error or timeout after the request was sent |
-| 502 | `provider_error` | Any other status, including 403, 404, 422 and every 5xx |
-| 502 | `truncated_output` | Completion tokens reached `max_tokens` |
+| 502 | `provider_error` | Any other status, including 403, 404, 422 and every 5xx unless the profile maps it |
+| 502 | `truncated_output` | The adapter's finish-reason check failed, or completion tokens reached the `max_tokens` that the profile's `request` sets |
 | 502 | `malformed_output` | No choices, empty content, missing usage, or output that fails the adapter's answer schema (missing or extra labels, values outside [0, 1], not JSON) |
 | 502 | `refused` | The response carries a refusal |
 | 502 | `invalid_distribution` | A Choice or Score sum off by more than 0.01, or an all-zero distribution |
-| 502 | `thinking_not_confirmed` | The response carries neither reasoning content nor reasoning tokens |
+| 502 | `thinking_not_confirmed` | The profile requests thinking, and the response shows none of the thinking evidence the profile names |
 | 502 | `model_not_confirmed` | The response names no model |
 | 504 | `deadline_exceeded` | No valid answer within 80 s of receipt |
 
-Status evidence: 405 and 429 are documented by Hive; 401 (invalid key) and 400
-(unknown model, strict JSON schema) were observed on 2026-09-26
+Standard statuses keep the meaning of the TypeSafe SDK's error classes, and
+the selected profile's `statuses` overrides only those whose meaning differs
+at its provider ([provider-profile.md](provider-profile.md)). For the Hive profile, 405 and 429
+are documented by Hive, and 401 (invalid key) and 400 (unknown model, strict
+JSON schema) were observed on 2026-09-26
 ([research.md](../research.md#hive-request-behavior--2026-09-26)).
 
 ## Retries and deadline
@@ -97,7 +105,8 @@ Status evidence: 405 and 429 are documented by Hive; 401 (invalid key) and 400
 - The adapter's retry policy is the only retry layer: the TypeSafe SDK's
   `RetryPolicy` with at most four attempts in total, including the first.
   The transport runs with `JEV_MCP_MAX_ATTEMPTS=1`.
-- Retried: 429, and connection failures before the request reached Hive.
+- Retried: 429 and any status the profile maps to `rate_limited`, and
+  connection failures before the request reached the provider.
   `Retry-After` is honored; backoff otherwise starts at 1 s and doubles with
   jitter. A wait that would not fit the remaining time ends the request with
   the last error.
@@ -115,7 +124,7 @@ Status evidence: 405 and 429 are documented by Hive; 401 (invalid key) and 400
 
 When the caller closes the connection, the endpoint cancels the provider call
 and any pending retry and sends nothing; the transport records the judgment as
-`cancelled`. Charges already incurred at Hive are not reversed.
+`cancelled`. Charges already incurred at the provider are not reversed.
 
 ## Judgment metadata
 

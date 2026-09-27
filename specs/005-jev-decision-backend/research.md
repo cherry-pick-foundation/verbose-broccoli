@@ -58,10 +58,12 @@ Probes during the plan revision, same day:
 
 ## Hive request behavior — 2026-09-26
 
-Decision: every request sends `max_tokens` 32,768, JSON-object output and
+Decision: the shipped `hive` provider profile
+([provider profiles](#provider-profiles--2026-09-27)) makes every request send
+`max_tokens` 32,768, JSON-object output and
 `chat_template_kwargs: {"thinking": true}`. The backend treats a response as
-truncated when its completion tokens reach the limit, whatever the finish
-reason says.
+truncated when its completion tokens reach the profile's limit, whatever the
+finish reason says.
 
 Rationale: on `POST https://api-cdn.thehive.ai/api/v3/chat/completions` with
 model `deepseek-ai/deepseek-v4.1-flash`, a request without `max_tokens` stopped
@@ -102,7 +104,7 @@ truncates thinking silently); strict JSON schema (rejected by Hive); streaming
 Decision: the code plugin does not depend on the npm package
 `@jkudish/jev-mcp`. It copies the package's TypeScript source at revision
 `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0, MIT) into
-`plugins/code/backfire/upstream/`, together with the package's `package.json` and
+`packages/backfire/src/upstream/`, together with the package's `package.json` and
 `LICENSE`, and runs it under Deno 2.9.6 in the plugin's own MCP server. The
 copied files and their SHA-256 at that revision:
 
@@ -114,7 +116,7 @@ copied files and their SHA-256 at that revision:
 | `package.json` | 57 | `26b822f14fb0eeffada9833cfa0905d40bc364e88e7785df01f40eeec8856d01` |
 | `LICENSE` | 21 | `61ada187d8ec32d7ee7a31fe6d9ec1623cf02e43b9333300fdf8b3508a383717` |
 
-The copy changes only these recorded points; `upstream/upstream.json` holds the
+The copy changes only these recorded points; `src/upstream/upstream.json` holds the
 source, revision, original hashes and the diff:
 
 1. `src/index.ts` imports `./lib.ts` and `./provider.ts` instead of the
@@ -292,15 +294,16 @@ Decision: the copied transport runs with `JEV_MCP_MAX_ATTEMPTS=1` and
 TypeSafe SDK's `RetryPolicy`, passed to the adapter, and ends each request
 within 80 s of receipt.
 
-- Retried, at most four attempts in total including the first: 429, and
-  connection failures before the request reached Hive (the policy's
-  `http_statuses={429}` plus a predicate that accepts only connect-phase
-  errors; the SDK's broader connection and timeout rules are off).
+- Retried, at most four attempts in total including the first: 429 and any
+  status the selected profile maps to `rate_limited`, and connection failures
+  before the request reached the provider (the policy's `http_statuses` set to
+  those statuses, plus a predicate that accepts only connect-phase errors; the
+  SDK's broader connection and timeout rules are off).
 - `Retry-After` is honored. The policy's time budget is the endpoint's
   remaining time, so a wait that would not fit ends the request with the last
   error instead of retrying early.
 - Everything else fails at once, including read errors and timeouts after the
-  request was sent, and every 5xx status. Malformed or truncated output is
+  request was sent, and every other status (for Hive, every 5xx status). Malformed or truncated output is
   never re-asked: the adapter runs with `n_retry_malformed_structure=0`. A
   valid verdict is final.
 
@@ -324,13 +327,18 @@ The deadline timer runs on the server's only thread, so it fires only if no
 tool blocks that thread. Upstream work before the judgment call is bounded once
 recorded change 4 removes the quadratic duplicate-id loop: every other input is
 capped by the tools or by the 10 MiB message limit. A feasibility gate measures
-each tool's work before its judgment call at that limit.
+each tool's longest event-loop stall at that limit and requires it to stay
+under 1 s, so an answer at the 118 s deadline still leaves the 120 s limit;
+`backfire_extract`'s pattern timeouts are awaited, not blocking, and count
+toward the whole-call time instead.
 
 Rationale: FR-007 allows retries only for network errors and rate limits, in
 exactly one layer. The SDK already implements attempt counting, backoff,
 `Retry-After` and a time budget, and the OpenAI SDK retries are already off
 inside the adapter (`max_retries=0`). Hive documents no 5xx retry semantics,
-and a failure after the request was sent may already have been processed.
+and a failure after the request was sent may already have been processed, so
+no 5xx status is retried unless a profile maps it to `rate_limited`, which
+the Hive profile does not.
 
 Alternatives considered: letting the transport retry (its allowlist includes
 every 5xx); retrying 502, 503 and 504 (not network errors under FR-007); ending
@@ -436,8 +444,10 @@ on the child (tied to the spawning thread).
 ## Server runtime and dependencies — 2026-09-26
 
 Decision: the server runs on the repository's Deno 2.9.6 with its own
-configuration and lockfile in `plugins/code/backfire/`, like the clean-code skill,
-so the plugin package stays self-contained. It declares its npm dependencies
+configuration and lockfile in `packages/backfire/`, like the clean-code skill,
+so a built code plugin installs from its own lockfile
+([component location](#component-location-and-distribution-build--2026-09-27)).
+It declares its npm dependencies
 there, pinned exactly: `@modelcontextprotocol/sdk` 1.30.1, `zod` 4.6.5 and
 `@typesafe-ai/sdk` 0.6.0, the versions `jev-mcp` 0.9.0's own lockfile resolves,
 and `canonicalize` 5.0.0 for RFC 8785 digests, the version the repository
@@ -463,9 +473,14 @@ interpreter pin in `.python-version` (3.14.4, the host version) and a committed
 `uv.lock`. Dependencies: `system-one-adapter[openai]` 0.2.1 (MIT, Python 3.10
 or later; it declares `typesafe-sdk>=0.7.0` with no upper bound, and the lock
 pins the tested 0.7.1), Starlette and Uvicorn for the endpoint, and pytest for
-tests. The environment lives in the XDG cache. The packaged install command
-runs `uv sync --frozen`; serving never syncs or downloads. The host has uv
-0.11.32.
+tests. Each component copy (the package in the repository, a built plugin, a
+staged acceptance copy) has its own environment in the XDG cache, keyed by the
+copy's resolved path and pruned when the copy is gone
+([mcp-server.md](contracts/mcp-server.md#entry-commands)); revised on
+2026-09-27, because uv installs the project editable and one shared
+environment would let the last-synced copy's source serve every other copy. The
+packaged install command runs `uv sync --frozen`; serving never syncs or
+downloads. The host has uv 0.11.32.
 
 Rationale: TypeSafe publishes its adapter only on PyPI, and the only npm port
 cannot be installed by Deno (evidence baseline); constitution 0.18.0 permits
@@ -476,19 +491,70 @@ Alternatives considered: FastAPI (not needed over Starlette); the standard
 library HTTP server (no asynchronous cancellation); an endpoint of our own in
 TypeScript (reimplements the adapter, against FR-013).
 
+## Component location and distribution build — 2026-09-27
+
+Decision: all backfire code is the implementation package `packages/backfire/`,
+with every source file under `src/`: the `bin/backfire` entry, the copied
+upstream source, the server, the Python endpoint package `backfire_backend`,
+the acceptance tooling (gate probes, evaluation runner, metrics, credential
+scan and upstream capture) and the build step. The package root holds only
+`deno.json`, `deno.lock`, `pyproject.toml`, `.python-version`, `uv.lock` and
+the pytest suites in `tests/`. The package is not a member of the root Deno
+workspace. The committed evaluation fixtures, including the held-out seal,
+stay in `scripts/backfire/fixtures/`. The repository has no
+`plugins/code/backfire/`: `deno task backfire:build -- <output>` writes a code
+plugin to an output directory outside `plugins/` and `packages/`, copying
+`plugins/code/` and, under `backfire/`, the package's configuration, locks,
+`src/bin/`, `src/upstream/`, `src/server/` without tests or test doubles, and
+`src/backfire_backend/`. It copies file contents, never links, with `@std/fs`.
+Acceptance stages, and the client-installation feature installs, such a built
+plugin.
+
+Rationale: constitution IX (0.20.0) puts reusable implementation packages,
+including MCP servers, under `packages/<name>/src/`, and on 2026-09-27 the user
+directed the move, extended it to all backfire code, and chose to keep no
+`plugins/code/backfire/` in the repository. A Deno workspace member shares the
+root lockfile, while a built plugin must install with `--frozen` from its own
+lock. The constitution permits a package outside the workspace: a package joins
+a toolchain workspace only when it has executable code for it, which is a
+necessary condition, not a requirement. Deno 2.9.6 ran a test under a
+configuration outside the workspace's members from the repository root, with
+and without `--config`, and from the package directory (checked on 2026-09-27
+in a temporary workspace). The same relative layout in the package and in the
+built plugin lets one entry script serve both. `docs/architecture.md` still
+admits packages only for a shared need and registers them in the root
+workspace; T057 aligns it with IX.
+
+Alternatives considered: keeping the component in `plugins/code/backfire/`
+(the earlier plan; against IX since 0.19.0); committing the built copy with a
+drift check, like `docs/reference/` (the user chose no copy in the
+repository); ignoring a built copy inside `plugins/code/` (also excluded by
+that choice); a symbolic link from the plugin into the package (the
+architecture forbids distributing package components as links); `deno bundle`
+(rewrites the copied upstream source that the fidelity fixtures and the
+recorded diff describe, and cannot carry the Python endpoint); `git archive`
+(misses uncommitted work during development); joining the root Deno workspace
+(the built plugin would need a generated lockfile).
+
 ## Hive provider glue — 2026-09-26
 
-Decision: subclass the adapter's `AsyncOpenAIProvider` to send `max_tokens`,
-`response_format: {"type": "json_object"}`, the thinking switch and a request
-timeout, and to check the Hive-specific response conditions: empty `choices` or
-content, a refusal, completion tokens at the limit, missing usage, and missing
-reasoning evidence. The adapter client runs with `structured_outputs=False`,
+Revised on 2026-09-27: the glue is provider-neutral and reads every
+provider-specific value from the selected profile
+([provider profiles](#provider-profiles--2026-09-27)); the heading keeps its
+date and name for existing links.
+
+Decision: subclass the adapter's `AsyncOpenAIProvider` to send the profile's
+request options (for Hive, `max_tokens`, `response_format: {"type":
+"json_object"}` and the thinking switch) and a request timeout, and to check
+the response conditions: empty `choices` or content, a refusal, completion
+tokens at the `max_tokens` its profile's request sets, missing usage, and missing thinking
+evidence as the profile names it. The adapter client runs with `structured_outputs=False`,
 `llm_answer_mode="probabilities"`, `normalize_probabilities=False`,
 `n_retry_malformed_structure=0` and the retry policy above. Prompt, schema,
 parsing and confidence stay in the adapter.
 
 Per-request metadata: for each endpoint request the endpoint opens a context
-variable that the provider fills with Hive's reported model, reasoning evidence
+variable that the provider subclass fills with the reported model, thinking evidence
 and usage; concurrent requests never share it. The adapter's own
 `SystemOneResponse.model` repeats the configured name and is not used. A
 response without a non-empty `model` fails with `model_not_confirmed`, because
@@ -518,6 +584,75 @@ reading the model from the adapter's debug capture (holds request content);
 reporting an upstream issue for request options (still worth filing, with the
 user's approval, but not a dependency).
 
+## Provider profiles — 2026-09-27
+
+Decision: every provider-specific value lives in a provider profile, a TOML
+file shipped in `src/backfire_backend/profiles/`
+([provider-profile.md](contracts/provider-profile.md)), and a profile holds
+only what is specific to its provider. Its `api` key names the adapter
+provider class that handles the protocol (`openai`, implemented; `anthropic`,
+reserved and failing as not supported yet). The rest is the provider's own
+characteristics: the API root, the model, the credential's variable name, the
+request fields it needs beyond what the adapter sends (for Hive `max_tokens`,
+JSON-object output and the thinking switch), the paths to the response fields
+that show thinking ran, the statuses whose meaning differs from the standard
+one (for Hive, 405 for an exhausted balance), and the documented rate limit,
+which the gate 2 probe exceeds on purpose. Standard status meanings come from
+the TypeSafe SDK's error classes, the finish-reason check from the adapter, and
+only `rate_limited` is retried. The endpoint's code, file names, tasks and
+commands name no provider. The operator selects a profile in
+`$XDG_CONFIG_HOME/verbose-broccoli/backfire/provider.toml`; without that file
+the shipped `profiles/default.toml` selects `hive`, so the default is data
+rather than code, and the Hive credential file stays `hive.env` with
+`HIVE_API_KEY`. The endpoint reports the selected model on its port line, so
+the server sets the transport's model name without reading a profile. A test
+runs the same code with a second, test-only profile that has different request
+fields, a nested reasoning-token path and a different status override, and
+another fails when any file under `packages/backfire/src/` outside
+`src/backfire_backend/profiles/` names Hive.
+
+Rationale: on 2026-09-27 the user rejected building Hive into the backend and
+asked for an abstraction that allows reuse, choosing profiles over a broader
+backend interface, TOML over JSON and YAML, and then only provider-specific
+values over per-API sections, because protocol compatibility is already
+handled elsewhere. The evidence for that: `system-one-adapter` 0.2.1 chooses
+the OpenAI client itself (Responses for `api.openai.com`, Chat Completions for
+other hosts), raises when the finish reason is not `stop`, and ships
+`AsyncAnthropicProvider` behind its `anthropic` extra; its errors go through
+the TypeSafe SDK's `api_error`, which maps 400, 401, 403, 404, 422, 429 and
+5xx to error classes, and its `RetryPolicy` retries by status (wheel sources
+of `system-one-adapter` 0.2.1 and `typesafe-sdk` 0.7.1, read on 2026-09-27).
+A profile that restated those rules would duplicate them. Hive documents only
+its OpenAI-compatible Chat Completions API. TOML needs no new dependency:
+Python 3.14 reads it with the standard library's `tomllib` and Deno with
+`@std/toml`, and it allows comments beside each value. FR-002 still fixes the
+selected backend, so the default profile is the user's selection, and changing
+the profile, endpoint or model stays an FR-012 upgrade. Keeping the credential
+file name per profile leaves the operator's existing `hive.env` valid.
+
+Known limit: a provider that answers one status for two causes cannot be
+distinguished by a status override. OpenAI's own API answers 429 both for
+"Rate limit reached" and for "Credit balance exhausted" and advises against
+retrying the latter
+([OpenAI error codes](https://developers.openai.com/api/docs/guides/error-codes)).
+No selected provider does this, so support for it waits until one is selected.
+
+Alternatives considered: Hive-specific code and names (rejected by the user);
+one backend interface over all of the adapter's provider types (the user chose
+profiles; it adds code for providers nobody selected); per-API sections with
+full error rules, a configurable budget field and error-body matching (they
+restate protocol handling that the adapter and SDK own; the user chose
+provider-only values); keeping `jev-mcp`'s own provider branches instead of
+recorded change 5 (they select System One services, not model providers, and
+need `@jkudish/jev-agent-tools`); profile settings in environment variables of
+`mcp.json` (Agent Plugins treats them as public package data, and the operator
+could not change them without editing the package); operator-supplied profile
+files (no second provider is needed yet; a shipped profile keeps its evidence
+in this record); implementing the Anthropic-compatible API now (a second
+subclass, the Anthropic SDK in the lock and a fake Messages server, with no
+provider that uses it); JSON (no comments); YAML (a new parser dependency in
+both runtimes, and implicit typing that reads an unquoted `on` as true).
+
 ## Records — 2026-09-26
 
 Decision: the server is the only record writer. It writes two kinds of JSON
@@ -529,7 +664,7 @@ Lines records to one file per session under
   result's fixed-vocabulary decisions and its digest, and the duration;
 - a judgment record per endpoint request, from the copied transport (recorded
   change 6), with the payload digest over the body it sent, the question types
-  and sizes, per-question numbers by position, Hive's model, and the thinking
+  and sizes, per-question numbers by position, the provider's model, and the thinking
   evidence, usage, attempts and latency from the `X-Judgment-Metadata` header.
 
 Digests are SHA-256 over RFC 8785 canonical JSON. Records hold no text from the
@@ -590,16 +725,18 @@ upstream behavior and would need its own contract).
 
 ## Credential location — 2026-09-26
 
-Decision: the operator puts `HIVE_API_KEY=...` in
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env` (default `~/.config`) with mode
-0600. The endpoint reads it; the server never does. A missing or empty file, or
-one readable by group or others, fails each judgment with
-`backend_not_configured`, which names the path. There is no other setting.
+Decision: the operator puts the selected profile's credential variable in
+`$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env` (default `~/.config`)
+with mode 0600; for the `hive` profile that is `HIVE_API_KEY=<key>` in
+`hive.env`. The endpoint reads it; the server never does. A missing or empty
+file, or one readable by group or others, fails each judgment with
+`backend_not_configured`, which names the path. The only other setting is the
+optional profile selection ([provider profiles](#provider-profiles--2026-09-27)).
 
 Rationale: FR-009 keeps credentials outside the repository and the package;
 Agent Plugins treats `env` values in `mcp.json` as public package data; the
 constitution already sets the `verbose-broccoli` XDG namespace. Only the
-process that calls Hive needs the key.
+process that calls the provider needs the key.
 
 Alternatives considered: `${PLUGIN_DATA}` (not provided by every client);
 reusing another tool's key file (a different owner); passing the key from the
@@ -607,7 +744,7 @@ server to the endpoint (puts it in a second process's environment).
 
 ## Agent-facing documentation — 2026-09-26
 
-Decision: vendor the upstream skill `skills/backfire` from `jev-mcp` 0.9.0 (MIT;
+Decision: vendor the upstream skill `skills/jev` from `jev-mcp` 0.9.0 (MIT;
 `SKILL.md` sha256 `53a2478ec24e2dfce94d3c427fe0b2895f553816d2918336e694658f0e725c27`,
 `reference/tools.md` sha256
 `1377d8cef66a70377fd36a10ea8b14086648cdff92b86e324d9cdbbb9d65a942`) into
@@ -618,14 +755,15 @@ changes:
    an unpinned server with TypeSafe as the default provider.
 2. Replace the first "Data handling and cost" bullet, which names TypeSafe as the
    provider and permits secrets, credentials or private source "unless policy
-   allows it", with: inputs go to Hive through the code plugin's local backend,
+   allows it", with: inputs go to the model provider of the local backend's
+   selected profile (Hive by default) through the code plugin's local backend,
    and never send secrets, credentials or private personal records such as
    student data.
 3. Add a "See also" link to a local `references/verbose-broccoli.md`.
 4. Rename the skill to `backfire` and every tool name in `SKILL.md` and
    `reference/tools.md` to `backfire_<suffix>`, matching the server.
 
-The local reference states what is sent to Hive (the tool inputs within the
+The local reference states what is sent to the selected provider (the tool inputs within the
 upstream size limits, and the questions), that the tools and this skill's
 "gate before done" advice are advisory and nothing enforces them, that a gate
 verdict judges only supplied text and does not prove that tests ran, and that a
@@ -643,9 +781,10 @@ credentials).
 
 ## Client acceptance — 2026-09-26
 
-Decision: acceptance in Codex CLI and Claude Code runs a staged copy of
-`plugins/code` alone, from a working directory outside the repository, with no
-repository task. Each run registers only the staged package's declared `backfire` server for that invocation, reads tool arguments and results from the client's
+Decision: acceptance in Codex CLI and Claude Code runs the code plugin alone,
+staged by building it into a temporary directory
+([component location](#component-location-and-distribution-build--2026-09-27)),
+from a working directory outside the repository, with no repository task. Each run registers only the staged package's declared `backfire` server for that invocation, reads tool arguments and results from the client's
 event stream, and keeps no client session: Claude Code with
 `-p --output-format stream-json --verbose --no-session-persistence
 --strict-mcp-config --mcp-config <file>`, Codex with
@@ -718,7 +857,7 @@ server's tool list and its results on the known-answer arguments with
 fixtures captured once from `jev-mcp` 0.9.0 on Node against the same scripted
 endpoint. pytest, through `uv run --frozen`, covers the endpoint: validation,
 the Score boundaries, fault classification and retries, the endpoint deadline,
-token checks and the `X-Judgment-Metadata` header. Live acceptance against Hive runs
+token checks and the `X-Judgment-Metadata` header. Live acceptance against the selected provider runs
 on demand through a separate task and covers readiness, the known-answer set in
 both clients, the 60-item classification, the benchmark, the safety and
 held-out sets, digests and the credential scan.

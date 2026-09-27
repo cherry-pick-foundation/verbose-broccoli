@@ -1,12 +1,11 @@
 # Feature Specification: Jev-Style Decision Backend for the Code Plugin
 
-**Feature Branch**: None yet; drafted on `main`. Implementation uses its own
-feature branch.
+**Feature Branch**: `feature/005-backfire-mcp`
 
 **Created**: 2026-09-26
 
-**Status**: Draft. Planned on 2026-09-26 and revised the same day; not yet
-implemented.
+**Status**: Draft. Planned on 2026-09-26, revised the same day and on
+2026-09-27; not yet implemented.
 
 **Input**: On 2026-09-26 the user decided to adopt a Jev-style decision backend
 for verbose-broccoli-code. Agents get typed judgments (a yes probability for
@@ -103,6 +102,26 @@ plugins are out of scope. API keys stay outside the repository.
   prefix with the upstream suffixes (formerly `jev_gate` and so on). The
   plugin's folder, command, configuration and record paths, tasks and skill use
   the same name.
+
+### Session 2026-09-27
+
+- Q: Where does the backfire code live, given constitution IX's
+  `packages/<name>/src/` rule for MCP servers? → A: All backfire code,
+  including its acceptance tooling, moves to `packages/backfire/`, with the
+  evaluation fixtures staying under `scripts/backfire/fixtures/`. The
+  repository keeps no `plugins/code/backfire/`; a build step copies the
+  component into the code plugin for distribution.
+- Q: Should Hive be built into the backend? → A: No. Provider-specific settings
+  live in provider profiles, and the backend's code names no provider. The Hive
+  profile with DeepSeek V4.1 Flash ships with the feature and stays the
+  selected backend; another OpenAI-compatible provider needs only a new
+  profile.
+- Q: How are provider profiles organized? → A: One TOML file per provider
+  holding only that provider's own characteristics. Protocol compatibility
+  stays with the reused adapter and SDK and is not duplicated: a profile's
+  `api` key names the adapter provider class (`openai` now; `anthropic`
+  reserved and not supported yet), and standard status meanings come from
+  the SDK, so a profile lists only the statuses whose meaning differs.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -232,7 +251,7 @@ check reports either success or the specific failure.
 4. **Given** a working configuration with only the operator's Hive credential
    and no TypeSafe credential, **When** the operator runs the readiness check,
    **Then** it reports the requested provider (Hive), model (DeepSeek V4.1
-   Flash) and thinking mode (on) separately from what Hive's response
+   Flash) and thinking mode (on) separately from what the provider's response
    confirms, lists each unconfirmed item with its reason, shows which tool
    checks passed, and gives one sample judgment and its response time.
 5. **Given** the selected model, provider route or thinking mode is
@@ -244,7 +263,7 @@ check reports either success or the specific failure.
 7. **Given** a tool call in progress, **When** the agent cancels it, **Then**
    the backend stops that call's queued, retrying and in-flight requests and
    discards any answer that arrives afterwards; charges already incurred at
-   Hive are not guaranteed to be cancelled.
+   the provider are not guaranteed to be cancelled.
 8. **Given** a valid verdict with low confidence, a negative outcome or too
    little evidence, **When** the backend receives it, **Then** it returns that
    verdict as final and does not ask again for a different one.
@@ -266,9 +285,10 @@ check reports either success or the specific failure.
   fails as a response error.
 - State text that tries to instruct the model is treated as data and does not
   redirect the judgment.
-- Several sessions and split requests share one Hive account limit (five
-  requests per second by default, per Hive's documentation): rate limits are
-  handled by the single retry layer, and answers never mix between requests.
+- Several sessions and split requests share one provider account limit (for
+  Hive, five requests per second by default, per its documentation): rate
+  limits are handled by the single retry layer, and answers never mix between
+  requests.
 - A request is too large for the output limit: independent questions may be
   split across requests as long as each answer keeps its question, but
   candidates, questions and required answer fields are never dropped, and one
@@ -303,9 +323,10 @@ check reports either success or the specific failure.
   through the real tool path in both clients on that runtime. The feature is not
   complete while any tool has a known failure.
 - **FR-002**: Every judgment MUST come from the user-selected backend: DeepSeek
-  V4.1 Flash with thinking mode through Hive. The feature MUST NOT switch
-  silently to another model, provider, thinking-disabled or token-probability
-  mode, or subscription sign-in route.
+  V4.1 Flash with thinking mode through Hive, configured as the selected
+  provider profile (FR-019). The feature MUST NOT switch silently to another
+  model, provider, thinking-disabled or token-probability mode, or
+  subscription sign-in route.
 - **FR-003**: The backend MUST accept the Jev System One request contract (a
   state and named Noul, Choice and Score questions with their criteria) and
   return answers in the same contract: a yes probability for each Noul
@@ -330,9 +351,10 @@ check reports either success or the specific failure.
   that covers waiting, retries and split requests. Only network errors and rate
   limits MAY be retried, in exactly one layer, with at most four attempts in
   total including the first. Credential errors, insufficient balance and
-  unsupported settings MUST fail at once, classified by Hive's documented
-  responses (for example, 405 for insufficient balance) rather than by generic
-  status codes. A valid verdict with low confidence, a negative outcome or too
+  unsupported settings MUST fail at once, classified by the selected
+  provider's documented responses as its profile records them (for Hive, 405
+  for insufficient balance) rather than by generic status codes. A valid
+  verdict with low confidence, a negative outcome or too
   little evidence is final and MUST NOT be requested again.
 - **FR-008**: The backend MUST NOT rescale probabilities. Probabilities that
   sum to one within 0.01 pass unchanged; a larger deviation, a missing option
@@ -362,8 +384,9 @@ check reports either success or the specific failure.
   in-flight requests and discard answers that arrive afterwards.
 - **FR-011**: The operator MUST be able to run one documented readiness check,
   a command or a tool call, that performs one real judgment and reports
-  separately the requested provider, model and thinking mode; what Hive's
-  response confirms; each item it could not confirm, with the reason; and which
+  separately the requested provider, model and thinking mode; what the
+  provider's response confirms; each item it could not confirm, with the
+  reason; and which
   tool checks passed, with the answer and its response time. Thinking mode
   counts as confirmed only when the response carries evidence of it.
 - **FR-012**: Every external component (the upstream revision the tools are
@@ -374,7 +397,8 @@ check reports either success or the specific failure.
 - **FR-013**: The feature MUST reuse the upstream tools' question design and
   decision logic, copied with only the recorded changes, and the upstream
   adapter's answer conversion, without reimplementing either. Other locally
-  owned code is limited to integration glue and service-specific settings.
+  owned code is limited to integration glue; service-specific settings are
+  provider profiles (FR-019).
 - **FR-014**: The code plugin's documentation MUST state which content the tools
   send to the external service, and no instruction may direct agents to send
   credentials or private personal records to the tools.
@@ -394,6 +418,18 @@ check reports either success or the specific failure.
   across requests only if each answer keeps its question; a single Choice MUST
   NOT be replaced by several smaller choices unless that method passes its own
   quality checks.
+- **FR-019**: Every provider-specific setting MUST come from a provider
+  profile: the protocol client to use, the service endpoint, the model
+  identifier, the credential's name, the request fields it needs beyond the
+  standard protocol (including the thinking switch and the output budget),
+  the response fields that show thinking ran, the status codes whose meaning
+  differs from the standard one, and its documented rate limit. Protocol
+  handling that the reused adapter and SDK provide MUST NOT be restated in
+  profiles. The backend's code MUST NOT name a provider. Supporting another
+  provider whose API the adapter supports MUST need only a new profile and its
+  selection, not a code change, as long as its departures from the standard
+  protocol are ones a profile states. The Hive profile ships with the feature and is selected
+  when the operator selects no other profile.
 
 ### Key Entities _(include if feature involves data)_
 
@@ -405,11 +441,14 @@ check reports either success or the specific failure.
 - **Tool result**: the upstream tool's combination of answers into verdicts,
   scores and an action (automatic, review or escalate), with token usage and
   the answering model.
-- **Backend configuration**: the selected model and service endpoint, a
-  reference to the operator's credential outside the repository, the output
-  budget, and the retry and deadline limits.
+- **Provider profile**: one provider's service endpoint, model identifier,
+  credential name, request options, thinking evidence and status meanings
+  (FR-019).
+- **Backend configuration**: the selected provider profile, a reference to the
+  operator's credential outside the repository, and the retry and deadline
+  limits.
 - **Readiness report**: the requested provider, model and thinking mode; what
-  Hive's response confirmed; unconfirmed items with reasons; the tool checks
+  the provider's response confirmed; unconfirmed items with reasons; the tool checks
   that passed; and one sample answer with its response time.
 - **Verdict record**: a local entry per tool call with the calling tool, the
   digest of the input the agent submitted, the result's fixed-vocabulary
@@ -456,8 +495,9 @@ check reports either success or the specific failure.
 - **SC-006**: A scan of the repository and the plugin package finds no
   credential, and the acceptance-run logs contain no credential or request
   content.
-- **SC-007**: On a machine where the Hive API key and the required runtimes are
-  already installed, the operator can enable the feature and pass the
+- **SC-007**: On a machine where the selected provider's API key and the
+  required runtimes are already installed, the operator can enable the feature
+  and pass the
   readiness check within 10 minutes by following the documented steps.
 - **SC-008**: At acceptance, every external component is identified by an
   exact version or identifier, and only the code plugin exposes the judgment

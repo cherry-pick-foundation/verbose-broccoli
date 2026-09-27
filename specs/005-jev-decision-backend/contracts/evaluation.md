@@ -134,8 +134,9 @@ rejected, and one ECE example.
   change must produce a different digest.
 - After the runs, a credential scan searches every file under the repository
   root except `.git/`, the staged package, the run's records and the
-  acceptance logs for the configured key value and for `HIVE_API_KEY=` followed
-  by a value other than the documented placeholder `<key>`, and searches the
+  acceptance logs for the configured key value and for the selected profile's
+  credential variable followed by `=` and a value other than the documented
+  placeholder `<key>` (for Hive, `HIVE_API_KEY=`), and searches the
   records and logs for the synthetic identifiers and a unique string planted in
   one request (SC-006). It reports paths and counts, never the matching text.
   The scanner's own tests show that the placeholder passes and a planted

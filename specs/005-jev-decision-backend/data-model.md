@@ -62,12 +62,12 @@ judgment.
 ## Judgment response and error response
 
 Success (HTTP 200): `{model, answers, usage}` where `model` is the model name in
-Hive's response for this request, passed through even when it differs from the
-requested one, and `usage` holds integer `input_tokens` and `output_tokens`
-from Hive's `prompt_tokens` and `completion_tokens` (completion includes
-reasoning). A Hive response without a non-empty `model` is
-`model_not_confirmed`; one without usage is `malformed_output`. The body stays
-under 1,000,000 bytes.
+the provider's response for this request, passed through even when it differs
+from the requested one, and `usage` holds integer `input_tokens` and
+`output_tokens` from the provider's `prompt_tokens` and `completion_tokens`
+(for Hive, completion includes reasoning). A provider response without a
+non-empty `model` is `model_not_confirmed`; one without usage is
+`malformed_output`. The body stays under 1,000,000 bytes.
 
 Failure: an HTTP status and `{error: {type, message}}`. Types and statuses are
 defined in [system-one-endpoint.md](contracts/system-one-endpoint.md). A
@@ -77,8 +77,9 @@ includes request content, provider or adapter error text, or credentials.
 Every success and every failure after authentication carries the
 `X-Judgment-Metadata` header: compact JSON with `attempts` (provider attempts,
 including the first), `latency_ms` (from receipt to response),
-`thinking_evidence` (true when Hive's response carried reasoning content or
-reasoning tokens, null without a Hive response) and `reasoning_tokens` (or
+`thinking_evidence` (true when the provider's response showed the thinking
+evidence the profile names, null without a provider response) and
+`reasoning_tokens` (the value at the profile's `thinking.token_path`, or
 null). It holds no other field and no text.
 
 ## Tool-call record
@@ -117,7 +118,7 @@ before its result reaches the tool.
 | `questions` | Per question, in request order: `{type, cells}` |
 | `outcome` | `ok`, the endpoint's error type, `cancelled` (the tool's signal aborted the request) or `transport_failed` (no endpoint answer: connection failure, the 82 s transport deadline, or an oversized or unreadable body) |
 | `results` | Per question, in request order: Noul `{p}`, Choice `{index, confidence}` (the position of the chosen label in the declared order), Score `{score, confidence}` |
-| `model` | Model name Hive reported, or null |
+| `model` | Model name the provider reported, or null |
 | `thinking_evidence` | From the `X-Judgment-Metadata` header, or null |
 | `usage` | Input and output tokens from the body, and reasoning tokens from the header |
 | `attempts` | From the header, or null |
@@ -176,10 +177,14 @@ tool reports one.
 
 | Item | Value | Source |
 | --- | --- | --- |
-| Endpoint | `https://api-cdn.thehive.ai/api/v3` chat completions | Constant |
-| Model | `deepseek-ai/deepseek-v4.1-flash` | Constant; changing it is an FR-012 upgrade |
-| Thinking | `chat_template_kwargs: {"thinking": true}` | Constant |
-| Output | `response_format: {"type": "json_object"}`, `max_tokens: 32768` | Constant |
+| Provider profile | The profile `provider.toml` selects, or else the one the shipped `profiles/default.toml` selects (`hive`) ([provider-profile.md](contracts/provider-profile.md)) | Operator or shipped default; changing it is an FR-012 upgrade |
+| Protocol | The adapter provider class the profile's `api` names (Hive: `openai`, Chat Completions) | Profile |
+| Endpoint | The profile's `base_url` (Hive: `https://api-cdn.thehive.ai/api/v3`) | Profile |
+| Model | The profile's `model` (Hive: `deepseek-ai/deepseek-v4.1-flash`) | Profile; changing it is an FR-012 upgrade |
+| Request additions | The profile's `request`, including the thinking switch and the output budget (Hive: `chat_template_kwargs: {"thinking": true}`, `response_format: {"type": "json_object"}`, `max_tokens: 32768`) | Profile |
+| Thinking evidence | The profile's `thinking` fields (Hive: `reasoning_content`, `usage.reasoning_tokens`) | Profile |
+| Status meanings | The SDK's standard error classes, with the profile's `statuses` overrides (Hive: 405 is `balance_exhausted`) | SDK and profile |
+| Rate limit | The profile's `rate_limit_per_second` (Hive: 5); not enforced by the endpoint | Profile |
 | Adapter | `structured_outputs=False`, `llm_answer_mode="probabilities"`, `normalize_probabilities=False`, `n_retry_malformed_structure=0` | Constant |
 | Endpoint deadline | 80 s from receipt, enforced by an outer timeout | Constant |
 | Transport | `JEV_PROVIDER=compatible`, `JEV_MCP_MAX_ATTEMPTS=1`, `JEV_MCP_REQUEST_TIMEOUT_MS=82000`, set in the server's environment | Constant |
@@ -187,7 +192,7 @@ tool reports one.
 | MCP message size | At most 10 MiB, the pinned MCP SDK's input buffer | Upstream |
 | Attempts | At most 4, including the first, in the endpoint | Constant |
 | Request limits | Options per Choice (150 until feasibility); cells per request (300 until feasibility) | Constant |
-| Credential | `HIVE_API_KEY` in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env`, mode 0600, read by the endpoint only | Operator |
+| Credential | The profile's `credential` variable in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env` (Hive: `HIVE_API_KEY` in `hive.env`), mode 0600, read by the endpoint only | Operator |
 
 ## Session
 

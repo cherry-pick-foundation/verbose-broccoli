@@ -4,13 +4,14 @@ All paths use the `verbose-broccoli` XDG namespace. When an XDG variable is
 unset, its default applies: `~/.config`, `~/.local/state`, `~/.cache` and
 `~/.local/share`.
 
-## Operator file (config)
+## Operator files (config)
 
 | Path | Content | Rules |
 | --- | --- | --- |
-| `$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env` | `HIVE_API_KEY=<key>` | Mode exactly 0600 and owned by the operator. A missing or empty file, any group or other permission bit, or another owner fails each judgment with `backend_not_configured`, whose message names the path. |
+| `$XDG_CONFIG_HOME/verbose-broccoli/backfire/provider.toml` | `profile = "<name>"` | Optional; without it the shipped default selection applies, which selects the `hive` profile ([provider-profile.md](provider-profile.md#location-and-selection)). |
+| `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<name>.env` | `<credential>=<key>`, with the selected profile's credential name (for `hive`: `hive.env` with `HIVE_API_KEY=<key>`) | Mode exactly 0600 and owned by the operator. A missing or empty file, any group or other permission bit, or another owner fails each judgment with `backend_not_configured`, whose message names the path. |
 
-There are no other settings. The file lives in neither the repository nor the
+There are no other settings. The files live in neither the repository nor the
 plugin package. The credential is read by the endpoint only; it never reaches
 the server, and never appears in environment variables, logs, records, reports
 or error messages.
@@ -28,11 +29,11 @@ Rules for writing, locking, interrupted writes and write failures are in
 
 | Path | Content |
 | --- | --- |
-| `$XDG_CACHE_HOME/verbose-broccoli/backfire/venv/` | Python environment from `uv.lock` |
+| `$XDG_CACHE_HOME/verbose-broccoli/backfire/venv/<copy id>/` | One Python environment from `uv.lock` per component copy, keyed by the copy's resolved path ([mcp-server.md](mcp-server.md#entry-commands)) |
 | `$DENO_DIR` (default `~/.cache/deno`) | The server's npm packages from the component's `deno.lock`, in Deno's shared module cache |
 | `$XDG_CACHE_HOME/verbose-broccoli/backfire/eval/` | Downloaded JevBench file, verified by SHA-256, and the working directory of a running evaluation; at most 256 MiB in total, checked before each write; the working directory is removed when the run ends, fails or is interrupted |
 
-Deleting the cache requires rerunning `<plugin root>/backfire/bin/backfire install`; it
+Deleting the cache requires rerunning `<plugin root>/backfire/src/bin/backfire install`; it
 never removes state or configuration.
 
 ## Evaluation data

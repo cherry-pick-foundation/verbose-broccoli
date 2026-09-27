@@ -1,20 +1,23 @@
 # Quickstart: Validate the Jev-Style Decision Backend
 
 Validation scenarios for the finished feature. Commands run from the
-repository root unless a step says otherwise. Live scenarios make billed Hive
-calls; the offline suite does not.
+repository root unless a step says otherwise. Live scenarios make billed calls
+to the selected provider; the offline suite does not. The steps use the shipped
+`hive` profile, which is selected when no `provider.toml` exists.
 
 ## Prerequisites
 
 - Deno 2.9.6, `uv`, and the Python version in
-  `plugins/code/backfire/backend/.python-version`.
-- A Hive API key with a positive balance.
+  `packages/backfire/.python-version`.
+- An API key with a positive balance for the selected provider (Hive).
 - Codex CLI and Claude Code signed in, for the client scenarios.
 
-## 1. Install and configure (SC-007)
+## 1. Build, install and configure (SC-007)
 
 ```bash
-plugins/code/backfire/bin/backfire install
+out="$(mktemp -d)/code"
+deno task backfire:build -- "$out"
+"$out/backfire/src/bin/backfire" install
 cfg="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/backfire"
 mkdir -p "$cfg"
 [ -e "$cfg/hive.env" ] || (umask 077 && : > "$cfg/hive.env")
@@ -22,35 +25,50 @@ chmod 600 "$cfg/hive.env"
 # add HIVE_API_KEY=<key> to that file with an editor
 ```
 
-Expected: the install step reports the pinned server packages, adapter and
-interpreter versions and the copied `jev-mcp` revision, and writes nothing
-inside the repository. Running the
+Expected: the build writes a copy of `plugins/code` with the component's
+runtime files under `$out/backfire/`, and none of Backfire's tests or
+acceptance files; the install step reports the
+pinned server packages, adapter and interpreter versions and the copied
+`jev-mcp` revision, and writes nothing inside the repository. Running the
 steps again keeps an existing key. From a prepared machine, this step and step 2
 take under 10 minutes.
 Contracts: [configuration.md](contracts/configuration.md),
-[mcp-server.md](contracts/mcp-server.md#entry-commands).
+[provider-profile.md](contracts/provider-profile.md),
+[mcp-server.md](contracts/mcp-server.md#distribution-build).
 
 ## 2. Readiness (FR-011)
 
 ```bash
-plugins/code/backfire/bin/backfire ready
+"$out/backfire/src/bin/backfire" ready
 ```
 
-Expected: exit 0; `confirmed` repeats the requested provider, model and
-thinking mode from Hive's response; `unconfirmed` is empty; all tool checks
+Expected: exit 0; `requested` names the `hive` profile's provider, endpoint,
+model and thinking mode; `confirmed` repeats the provider, model and thinking
+mode from the provider's response; `unconfirmed` is empty; all tool checks
 pass. With the key file removed, the check exits 1 before any network call and
 names the file.
 Contract: [readiness.md](contracts/readiness.md).
 
-## 3. Offline suite (FR-003 to FR-010, FR-016, FR-018)
+## 3. Offline suite (FR-003 to FR-010, FR-016, FR-018, FR-019)
+
+Prepare once, with network access, as CI does:
 
 ```bash
+deno install --config packages/backfire/deno.json --frozen --no-prompt
+packages/backfire/src/bin/backfire install
+(cd packages/backfire && uv sync --frozen)
 deno task test:backfire
 ```
 
 Expected: all tests pass without network access and without Node. The suite
 drives the real server over MCP stdio, with the real endpoint in front of a
 scripted provider, and covers:
+
+- provider profiles: the same code sends a second, test-only profile's
+  settings and applies its status overrides, and no file under
+  `packages/backfire/src/` outside `src/backfire_backend/profiles/` names Hive;
+- the build: the built plugin holds the runtime files and no test, test
+  double, acceptance, build or linked file;
 
 - the endpoint contract, validation without rescaling, placeholder rejection
   with a genuine 0.5 accepted, the request limits, a single-candidate
@@ -98,8 +116,8 @@ deno task backfire:eval -- known-answers --client claude
 deno task backfire:eval -- known-answers --client codex
 ```
 
-Expected: the runner stages `plugins/code` alone and runs each client outside
-the repository; 100% of cases are correct in each client, including every
+Expected: the runner stages the code plugin alone by building it into a
+temporary directory and runs each client outside the repository; 100% of cases are correct in each client, including every
 failure case failing with its expected error, and every answer meets the
 FR-003 contract. Neither client's saved configuration changes.
 Contract: [evaluation.md](contracts/evaluation.md).
@@ -152,7 +170,7 @@ automatically, and at least 90% accuracy per tool and per language.
   mutation cases, and the final scan finds no key value, planted string or
   synthetic identifier where it must not be.
 - Read `plugins/code/skills/backfire/references/verbose-broccoli.md` and the vendored
-  `SKILL.md`: they state what is sent to Hive, that the tools and the skill's
+  `SKILL.md`: they state what is sent to the selected provider, that the tools and the skill's
   advice are advisory, that a gate verdict does not prove that tests ran, that a
   screening pass does not authorize following instructions, and that
   credentials and private personal records are never sent.
