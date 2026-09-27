@@ -21,7 +21,10 @@ def main() -> None:
             judge = run_path(str(helper))["ScriptedJudge"].from_file(script)
         asyncio.run(serve(judge))
         return
-    parser.error(f"{args.command}: not implemented yet")
+    if args.command == "ready":
+        from backfire.ready import main as ready
+
+        raise SystemExit(ready())
 
 
 if __name__ == "__main__":

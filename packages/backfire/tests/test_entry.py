@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -28,18 +29,19 @@ def test_help_lists_subcommands(entry_point: list[str]) -> None:
 
 
 @pytest.mark.parametrize("entry_point", ENTRY_POINTS, ids=["console", "module"])
-@pytest.mark.parametrize("subcommand", ["ready"])
-def test_subcommands_are_not_implemented(
-    entry_point: list[str], subcommand: str
-) -> None:
+def test_ready_runs_configuration_check(entry_point: list[str], monkeypatch) -> None:
+    monkeypatch.delenv("BACKFIRE_TEST_PROVIDER_BASE_URL", raising=False)
     result = subprocess.run(
-        [*entry_point, subcommand],
+        [*entry_point, "ready"],
         cwd=PACKAGE_ROOT,
         capture_output=True,
         text=True,
         timeout=10,
     )
 
-    assert result.returncode != 0
-    assert f"{subcommand}: not implemented yet" in result.stderr
-    assert result.stdout == ""
+    assert result.returncode == 1
+    assert "not implemented yet" not in result.stderr
+    assert "mode-0600 credential" in result.stderr
+    report = json.loads(result.stdout)
+    assert report["requested"]["provider"] == "hive"
+    assert any(item["item"] == "configuration" for item in report["unconfirmed"])
