@@ -203,6 +203,10 @@ arm.
   Calls stay correct, but pseudonyms no longer match those of earlier calls.
 - Several sessions assign pseudonyms at the same time: no two entries get the
   same pseudonym, and no assignment is lost.
+- Both plugins are installed in one client: each has its own `backfire`
+  server with the same tool names. Agents must use the work plugin's server
+  for student records; the code plugin's documentation keeps telling them not
+  to send such records to its server.
 - The code build receives student data by mistake: it sends it as feature 005
   does. Only the work build pseudonymizes, and the code plugin's documentation
   keeps telling agents not to send private personal records.
