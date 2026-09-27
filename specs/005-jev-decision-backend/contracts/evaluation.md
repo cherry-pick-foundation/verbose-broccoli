@@ -49,14 +49,29 @@ One JSON object per line:
   "tool": "backfire_gate",
   "language": "en",
   "kind": "normal",
-  "arguments": {"request": "...", "diff": "...", "claims": ["..."], "evidence": "...", "tests": "..."},
-  "expect": {"result": {"action": ["review", "escalate"], "claims": ["verified", "contradicted"]}}
+  "arguments": {"request": "...", "diff": "...", "claims": ["...", "..."], "evidence": "...", "tests": "..."},
+  "expect": {"result": {"action": ["review", "escalate"], "verification.results.0.verdict": "verified", "verification.results.1.verdict": "contradicted"}}
 }
 ```
 
-`kind` is `normal`, `boundary` or `failure`. `expect` holds either `result`
-(the fields that must match) or `error` (the expected explicit error). A failure
-case passes only when the call fails with that error and returns no judgment.
+`language` is `en` or `ko`, and `kind` is `normal`, `boundary` or `failure`.
+`arguments` are the tool's arguments exactly as sent. `expect` holds exactly
+one of these:
+
+- `result`: an object that maps paths to expected values. A path names a value
+  in the tool's result object, which is the JSON object in the text of the
+  result's first content item, as dot-separated object keys and zero-based
+  array indices, such as `recommendation.action` or
+  `verification.results.1.verdict`. An expected JSON scalar must equal the
+  value at its path; an expected array lists the accepted values. The case is
+  correct only when every path matches; a missing path does not match.
+- `error`: a string. The case passes only when the call returns a JSON-RPC
+  error or a result with `isError: true`, and its error text (the JSON-RPC
+  error's `message`, or the text of the result's content items) contains the
+  string. Such a call returns no judgment.
+
+Safety and held-out cases use `result` only; failure cases belong to the
+known-answer set.
 
 ## Automatic decisions and approvals
 
@@ -82,7 +97,12 @@ it is not an automatic decision.
 
 - **Correct:** the tool's primary result matches `expect` (verdict, action,
   classification, selected option, top candidate, extracted value, or the
-  expected error). A failed or invalid response is wrong.
+  expected error). A failed or invalid response is wrong. Where the primary
+  result is an action or label and the right outcome is an automatic one, the
+  case also accepts the outcomes that defer the decision: `review` and
+  `escalate` for `backfire_gate` and `backfire_review`, `review` for
+  `backfire_screen`, and `uncertain` for `backfire_noul`. Such a case lists
+  them in its expected array. A wrong automatic outcome is never accepted.
 - **Accuracy:** correct cases divided by all cases.
 - **Automatic-decision rate:** cases decided automatically divided by the cases
   of tools that have an automatic decision; `backfire_find`, `backfire_rerank` and
@@ -157,6 +177,7 @@ rejected, and one ECE example.
 1. Before implementation starts, a worker who does not implement the feature
    writes `heldout-v1.jsonl` to the path above.
 2. Only its SHA-256, case count and per-tool and per-language counts are
-   committed in `heldout-v1.seal.json`.
+   committed in `heldout-v1.seal.json`, as
+   `{"set": "heldout-v1", "sha256": "<hex of the file's bytes>", "cases": <n>, "by_tool": {"<tool>": <n>, ...}, "by_language": {"en": <n>, "ko": <n>}}`.
 3. Implementers do not open the file. Final acceptance verifies the hash before
    the first run; a mismatch stops acceptance.

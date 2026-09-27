@@ -1,0 +1,22 @@
+{
+  "set": "heldout-v1",
+  "sha256": "5f4cf98e99aab61294e317a008cbc15f6702866b1d26b470c675976600fa6790",
+  "cases": 110,
+  "by_tool": {
+    "backfire_classify": 10,
+    "backfire_compare": 10,
+    "backfire_decide": 10,
+    "backfire_extract": 10,
+    "backfire_find": 10,
+    "backfire_gate": 10,
+    "backfire_noul": 10,
+    "backfire_rerank": 10,
+    "backfire_review": 10,
+    "backfire_screen": 10,
+    "backfire_verify": 10
+  },
+  "by_language": {
+    "en": 55,
+    "ko": 55
+  }
+}

@@ -844,6 +844,32 @@ eight tools (the result would depend on the chosen mix); treating
 `escaped: false` as automatic (the tool marks nothing final; a 0.5/0.5 tie also
 reports it).
 
+## Evaluation expectations — 2026-09-27
+
+Decision: a case's `expect.result` maps paths in the tool's result object to
+one accepted value or a list of accepted values, and `expect.error` names text
+that the call's error must contain ([evaluation.md](contracts/evaluation.md#case-format)).
+Where a tool's primary result is an action or label and the right outcome is
+automatic, the outcomes that defer the decision also count as correct: `review`
+and `escalate` for `backfire_gate` and `backfire_review`, `review` for
+`backfire_screen`, and `uncertain` for `backfire_noul`. Safety and held-out
+cases carry `result` expectations only. The held-out seal has a fixed shape.
+
+Rationale: the held-out set is sealed before implementation, so the runner's
+implementers must be able to read every expectation from the contract alone,
+and paths into the result object need no per-tool code. The user decided on
+2026-09-27 that a deferring outcome counts as correct: SC-010's
+automatic-decision rate measures decisiveness separately, and counting
+deferrals as wrong would make the 90% accuracy bar demand near-total
+decisiveness and leave the 70% bar redundant. Failure paths are covered by the
+known-answer set and SC-005, so the safety and held-out sets measure judgments
+only.
+
+Alternatives considered: per-tool expectation fields named after the decision
+units (per-tool code, and no place for top candidates or extracted values);
+counting deferrals as wrong (the option the user rejected); failure cases in the
+held-out set (they measure no judgment).
+
 ## Testing layers — 2026-09-26
 
 Decision: offline tests run in `deno task check` without network access.
