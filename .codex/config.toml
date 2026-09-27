@@ -31,3 +31,6 @@ enabled = false
 # Use the repository's Ponytail skills and hooks without a second plugin copy.
 [plugins."ponytail@ponytail"]
 enabled = false
+
+[shell_environment_policy.set]
+SPECKIT_PYTHON = "tools/spec-kit/.venv/bin/python"

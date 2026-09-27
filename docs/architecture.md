@@ -30,8 +30,8 @@ on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
 The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
-selected standalone Deno/Quarto executables and locked dependencies without
-writing by default. `workflow` supplies execution mode, graph queries,
+selected standalone Deno/Quarto executables, uv from `PATH`, the Spec Kit
+environment and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. Reuse those commands for later feature work.
 
@@ -208,8 +208,13 @@ use live in `plugins/code/skills` instead.
 - `agent-context` writes its current-plan pointer to the gitignored
   `.claude/rules/current-plan.md`, which Claude Code loads and Codex does not.
   The pointer differs per worktree, and the root `AGENTS.md` is maintained as
-  the user supplied it. Both after hooks are enabled and non-optional, and they
-  require Python 3 with PyYAML. `deno task doctor` does not check this host
-  dependency. Before use, run `python3 -c 'import yaml'`, or
-  `"$SPECKIT_PYTHON" -c 'import yaml'` when that override is set. The bundled
-  extension README has installation details.
+  the user supplied it. Both after hooks are enabled and non-optional. They run
+  Python with PyYAML from `SPECKIT_PYTHON`, which `.claude/settings.json` and
+  `.codex/config.toml` set to `tools/spec-kit/.venv/bin/python`.
+- `tools/spec-kit/` is a uv project whose `uv.lock` pins the Spec Kit CLI
+  1.0.12 (commit `e77daa9`), PyYAML and Python 3.14; `pyproject.toml` requires
+  uv 0.11.32. Orca's setup script runs `uv sync --locked --project
+  tools/spec-kit` in each worktree to create the gitignored `.venv`, and
+  `deno task doctor` fails when that environment is missing or differs from the
+  lock. Run Spec Kit from the repository root as
+  `uv run --project tools/spec-kit specify …`.

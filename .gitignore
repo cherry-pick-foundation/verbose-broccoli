@@ -15,6 +15,7 @@ node_modules/
 # Local Python and Rust build output
 __pycache__/
 *.pyc
+/tools/spec-kit/.venv/
 
 # Operating-system metadata
 .DS_Store
