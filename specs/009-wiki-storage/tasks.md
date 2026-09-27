@@ -174,7 +174,7 @@ time.
 **Independent Test**: `init` twice in a scratch home; inspect the layout and
 the instance's Git status (spec US5).
 
-- [ ] T014 [P] [US5] Write the schema template
+- [x] T014 [P] [US5] Write the schema template
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`: what `raw/` holds,
   the four kinds, the bag layout and fields, that raw is create-only and
   outside the instance's Git history, that conversation records are not raw,
@@ -197,7 +197,7 @@ the instance's Git status (spec US5).
 **Independent Test**: Report counts per location, `verify` over all of `raw/`,
 originals unchanged (spec US6).
 
-- [ ] T017 [US6] Write `plugins/work/skills/wiki-raw-import/SKILL.md`: survey
+- [x] T017 [US6] Write `plugins/work/skills/wiki-raw-import/SKILL.md`: survey
   a location read-only (sizes, counts, types; never open files under excluded
   or private folders), present it with its first judgment, record the user's
   decision, build and show the file list, write the selection under
@@ -279,11 +279,11 @@ decision on the task line (decision and date only). Findings come from
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T033 [P] Update `docs/architecture.md`: add `wiki-raw-import` to the
+- [x] T033 [P] Update `docs/architecture.md`: add `wiki-raw-import` to the
   `plugins/work/skills` row of the skill ownership table and a short
   paragraph on where the default Wiki instance lives and how raw provenance
   is recorded.
-- [ ] T037 [P] In `docs/examples/wiki/AGENTS.md`, remove the paragraph that
+- [x] T037 [P] In `docs/examples/wiki/AGENTS.md`, remove the paragraph that
   prepares JSON for `wiki apply --input <file>`, a command that does not
   exist, and align the example with the schema template from T014. Added on
   2026-09-28 at the develop session's request instead of a separate issue.
