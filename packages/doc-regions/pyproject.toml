@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "doc-regions"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+  "cogapp==3.6.0",
+  "markdown-it-py==4.2.0",
+]
+
+[project.scripts]
+doc-regions = "doc_regions.__main__:main"
+
+[dependency-groups]
+dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
+
+[tool.uv]
+required-version = ">=0.11.32"
+
+# Keep install metadata inside .venv, as backfire does.
+[tool.distutils.egg_info]
+egg_base = ".venv"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["doc_regions", "doc_regions.*"]
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider"]

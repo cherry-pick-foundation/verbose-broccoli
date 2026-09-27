@@ -57,8 +57,9 @@ automation under `scripts/`.
 (SC-002); Cog and lychee each took under a second in the probes.
 
 **Constraints**: The check never writes and never uses the network; backfire
-never runs in `verify` or the finish hook; `scripts/docs.ts`,
-`docs/reference/` and `deno task docs:check` are unchanged; `AGENTS.md` and
+never runs in `verify` or the finish hook; `scripts/docs.ts` and `deno task
+docs:check` are unchanged, and `docs/reference/` changes only through `deno
+task docs:generate` (FR-017); `AGENTS.md` and
 the constitution are never edited by this tooling; local code is limited to
 glue (the source-naming check, unit selection and request shaping).
 

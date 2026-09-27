@@ -60,7 +60,7 @@ runs in.
   install the binary, and confirm `lychee --version` prints `lychee 0.24.2`.
   - 2026-09-28: approved and installed; the hash matched and
     `lychee --version` prints `lychee 0.24.2`.
-- [ ] T003 Create `packages/doc-regions/pyproject.toml` (project
+- [x] T003 Create `packages/doc-regions/pyproject.toml` (project
   `doc-regions`, console script `doc-regions = "doc_regions.__main__:main"`,
   dependencies `cogapp==3.6.0` and `markdown-it-py==4.2.0`, dev group
   `pytest` at backfire's pinned version, `required-version = ">=0.11.32"`,
@@ -75,10 +75,14 @@ runs in.
   --no-sync` (the audit without `--offline`); add `doc-regions:check` to
   `check` and `test:doc-regions` to `test`; allow `doctor` to run `lychee`.
   Do not change `docs:generate`, `docs:check` or `scripts/docs.ts`.
-- [ ] T005 [P] Add `uv sync --locked --project packages/doc-regions` to
+  - 2026-09-28: tasks added, `doctor` may run `lychee`, and `deno task
+    docs:generate` refreshed `docs/reference/commands.md` (FR-017). The
+    `check` and `test` entries wait until T009 and T011 land, so every commit
+    keeps `deno task verify` passing.
+- [x] T005 [P] Add `uv sync --locked --project packages/doc-regions` to
   `orca.yaml`'s setup script next to the `tools/spec-kit` line; check with
   `deno fmt --check orca.yaml`.
-- [ ] T006 Create `scripts/doc_regions.toml` with `targets = ["README.md",
+- [x] T006 Create `scripts/doc_regions.toml` with `targets = ["README.md",
   "docs/architecture.md", "docs/backfire.md"]` plus any project-written plugin
   documents per the spec's Clarifications (none today), `report_only = ["AGENTS.md",
   ".specify/memory/constitution.md"]`, `generators = "doc_sources"` and

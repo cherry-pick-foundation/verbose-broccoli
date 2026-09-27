@@ -325,8 +325,11 @@ interface, and add a mechanical region to a scratch document by following them.
 - **FR-016**: `docs/architecture.md` MUST describe the region model, how to
   add a mechanical region, the target list, the check, the judgment step and
   what stays manual; the documentation MUST itself follow the region model.
-- **FR-017**: This feature MUST NOT change `scripts/docs.ts`,
-  `docs/reference/` or `deno task docs:check`.
+- **FR-017**: This feature MUST NOT change `scripts/docs.ts` or `deno task
+  docs:check`, and MUST NOT edit `docs/reference/` by hand. The tasks it adds
+  to `deno.json` reach `docs/reference/commands.md` only through `deno task
+  docs:generate`, which that file's generator requires for `docs:check` to
+  pass (SC-006).
 
 **Order (decision 7)**
 
