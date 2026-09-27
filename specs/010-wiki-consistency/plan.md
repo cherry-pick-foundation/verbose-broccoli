@@ -175,8 +175,10 @@ workers implement code in disjoint files through Orca orchestration
 3. **Main**: the skill, the schema template, the documentation, and the first
    real judgment step on a synthetic instance (SC-005).
 
-Model, reasoning effort and time budget for each worker come from backfire's
-judgments, chosen per worker when it is started.
+Every Codex worker, implementer or reviewer, starts on `gpt-6-luna` at `max`
+effort (`orca orchestration worker-start --agent codex --model gpt-6-luna
+--effort max`, confirmed in the receipt's `launch.effective`), as the user
+decided on 2026-09-28. Time budgets come from backfire's judgments.
 
 ## Review and Finish
 
