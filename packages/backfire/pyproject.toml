@@ -7,6 +7,7 @@ name = "backfire"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
+  "jsonschema==4.26.0",
   "mcp==2.2.0",
   "rfc8785==0.1.4",
   "system-one-adapter[openai]==0.2.1",
@@ -21,6 +22,10 @@ dev = ["pytest==9.1.1"]
 [tool.uv]
 required-version = ">=0.11.32"
 constraint-dependencies = ["typesafe-sdk==0.7.1"]
+
+# Keep install metadata inside the copy's .venv, leaving only .venv/ and __pycache__/ writes.
+[tool.distutils.egg_info]
+egg_base = ".venv"
 
 [tool.setuptools]
 include-package-data = true

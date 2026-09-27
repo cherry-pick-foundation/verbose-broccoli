@@ -28,7 +28,7 @@ def test_help_lists_subcommands(entry_point: list[str]) -> None:
 
 
 @pytest.mark.parametrize("entry_point", ENTRY_POINTS, ids=["console", "module"])
-@pytest.mark.parametrize("subcommand", ["serve-mcp", "ready"])
+@pytest.mark.parametrize("subcommand", ["ready"])
 def test_subcommands_are_not_implemented(
     entry_point: list[str], subcommand: str
 ) -> None:

@@ -689,6 +689,36 @@ fails, and weakens checking of the locally owned code); editing the copied
 source (an unrecorded change); `--no-check` for the tests (would hide errors in
 the locally owned code).
 
+## Gate 4, packaging, Python package — 2026-09-27
+
+Evidence (T072, uv 0.11.32): a plugin built with `deno task backfire:build`
+outside the repository and installed with `uv sync --frozen --no-dev` in its
+`backfire/`, with empty `UV_CACHE_DIR` and `UV_PYTHON_INSTALL_DIR` and
+`UV_MANAGED_PYTHON=1`, downloaded CPython 3.14.4 and installed the lock's 36
+runtime packages (`mcp` 2.2.0, `system-one-adapter` 0.2.1, `typesafe-sdk`
+0.7.1, `jsonschema` 4.26.0, `rfc8785` 0.1.4) without pytest; the copy imported
+`backfire` from its own `src/backfire/`. Offline, `test_load.py` builds two
+copies, installs each with `UV_OFFLINE=1`, starts the declared
+`uv --directory <copy>/backfire run --frozen --offline --no-sync backfire
+serve-mcp` under `env -i`, and sees the server `backfire` 0.1.0 with exactly
+the eleven tools; each copy's `.venv` imports `backfire` from its own copy
+before and after the other copy is removed.
+
+Decision: `pyproject.toml` sets `[tool.distutils.egg_info] egg_base = ".venv"`.
+Without it, installing a copy made setuptools write `src/backfire.egg-info/`
+(seven paths) beside the source, which the storage contract forbids; with it,
+an installed and served copy differs from the build output only in `.venv/`
+and `__pycache__/`.
+
+Rationale: the install must leave the copy as built, apart from its own
+environment ([configuration.md](contracts/configuration.md#never-written)),
+and two lines of setuptools configuration do that without changing any
+package version.
+
+Alternatives considered: allowing the metadata in the contract (a runtime
+write outside `.venv/` for every copy); another build backend such as
+`uv_build` (a larger change, and the project has two top-level packages).
+
 ## Local endpoint and Python environment — 2026-09-26
 
 Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the interpreter pin and the lock stay; the endpoint becomes an in-process judge without Starlette or Uvicorn, and each copy's environment is its own `.venv` instead of one under the XDG cache.
