@@ -64,9 +64,13 @@ one linked worktree and one spec line (SC-001).
   line: "Only the main agent writes to Linear. It creates one issue per
   feature or bug, without sub-issues, after searching for similar ones; other
   agents report out-of-scope bugs to it through Orca messages."
-- [ ] T004 [US1] SC-001: confirm CHE-5 to CHE-8 exist, each linked worktree
+- [x] T004 [US1] SC-001: confirm CHE-5 to CHE-8 exist, each linked worktree
   names its issue, and each of the four specs has exactly one Linear line
   (run after 010's spec is committed).
+  - 2026-09-28: CHE-5 to CHE-8 exist (In Progress); Orca links
+    feature-linear-usage, feature-doc-consistency, feature-wiki-storage and
+    feature-wiki-consistency to them; each of specs 007 to 010 has exactly
+    one `**Linear issue**` line.
 
 ---
 
@@ -111,6 +115,10 @@ mode prints the Linear instruction.
 - [ ] T007 [US4] Outside the repository, ask the user to set Team Settings >
   Issue statuses & automations > auto-archive to 1 month for team
   `cherry-pick-foundation` (R5), and record the answer here.
+  - 2026-09-28: not set. The user had never set the period and chose to
+    finish without it; it stays pending for the user in Linear's UI (Team
+    Settings > Issue statuses & automations). Until then Linear's own
+    default applies.
 - [x] T008 [P] [US5] Confirm no Linear plugin is enabled in Claude Code's or
   Codex's saved configuration and no Linear extension is in
   `.specify/extensions.yml`; record the result.
@@ -137,18 +145,35 @@ mode prints the Linear instruction.
 
 ## Phase 7: Polish and Integration
 
-- [ ] T010 Run the quickstart's repository checks and `deno task verify
+- [x] T010 Run the quickstart's repository checks and `deno task verify
   --task linear-usage --base 8ab332b`; rerun `deno task workflow` with the
   same task and base; repair until both pass.
-- [ ] T011 Merge review for `develop`, favoring speed: a fresh Codex reviewer
+  - 2026-09-28: quickstart repository checks pass (two `AGENTS.md` lines,
+    the resolved template ends with the Linear line, `deno task
+    test:workflow` 56 passed, no Linear extension or plugin); `deno task
+    verify` passed on the tree this note is committed in, with the CHE-14
+    workaround from T001.
+- [x] T011 Merge review for `develop`, favoring speed: a fresh Codex reviewer
   gets only the scope (this branch against `develop`) and the requirements
   (spec FR-001 to FR-014 and SC-003); as part of it, the reviewer does
   SC-003's walkthrough from the repository at the feature tip. Resolve
   actionable findings and rerun affected checks.
+  - 2026-09-28: fresh Codex reviewer `gpt-6-sol` at high effort
+    (backfire_classify rated the review medium, 0.55, with 0.33 on
+    difficult) reviewed 8ab332b..099331d. Findings: the rule for Linear
+    capabilities Orca lacks lived only in `docs/architecture.md` (fixed in
+    f97c924: the workflow instruction carries it); the contract's label
+    example contained shell pipes (fixed in c205b29); the auto-archive
+    setting is unconfirmed (T007, left pending by the user's choice). SC-003
+    walkthrough: three of four moments were found where agents read them;
+    the fourth is the fixed finding.
 - [ ] T012 Commit the record in this file, move CHE-5 to In Review, add the
   review-record commit, finish with `git flow feature finish linear-usage`
   from the `develop` worktree, then move CHE-5 to Done with one completion
   comment naming the merge commit and `specs/007-linear-usage/` (SC-002).
+  - 2026-09-28: record committed; CHE-5 moved to In Review only after the
+    review ran, not before it as FR-006 orders; finish next from the
+    `develop` worktree.
 
 ---
 
