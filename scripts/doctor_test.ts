@@ -4,6 +4,9 @@ import {probeVersion, runDoctor} from './doctor.ts';
 import {sha256} from './hash.ts';
 
 const executable = Deno.execPath();
+const realGit = new TextDecoder()
+  .decode((await new Deno.Command('which', {args: ['git']}).output()).stdout)
+  .trim();
 const script = fromFileUrl(new URL('./doctor.ts', import.meta.url));
 const config = fromFileUrl(new URL('../deno.json', import.meta.url));
 const lock = fromFileUrl(new URL('../deno.lock', import.meta.url));
@@ -25,11 +28,26 @@ async function fixture(root: string, name: string, code: string) {
   return path;
 }
 
+function shellQuote(value: string) {
+  return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+async function gitWrapper(root: string) {
+  const path = join(root, 'git');
+  await Deno.writeTextFile(
+    path,
+    `#!/bin/sh\nif [ "$1" = config ] && [ "$2" = --get ] && [ "$3" = core.hooksPath ]; then\nprintf '%s\\n' scripts/git-hooks\nexit 0\nfi\nexec ${shellQuote(realGit)} "$@"\n`,
+    {mode: 0o755},
+  );
+  return path;
+}
+
 async function cli(
   root: string,
   args: string[] = [],
   permissions = ['--allow-read', '--allow-run'],
 ) {
+  await gitWrapper(root);
   return await new Deno.Command(executable, {
     cwd: root,
     args: [
@@ -43,6 +61,7 @@ async function cli(
       script,
       ...args,
     ],
+    env: {PATH: `${root}:${Deno.env.get('PATH')}`},
     stdout: 'piped',
     stderr: 'piped',
   }).output();
@@ -60,6 +79,8 @@ Deno.test('doctor: root task permits relocated and symlinked runtimes', async ()
     const alias = join(root, 'alias runtime');
     await Deno.mkdir(installed);
     await Deno.mkdir(alias);
+    await gitWrapper(installed);
+    await gitWrapper(alias);
     const binary = join(installed, 'deno');
     await Deno.copyFile(executable, binary);
     await Deno.symlink(binary, join(alias, 'deno'));
@@ -141,10 +162,11 @@ Deno.test('doctor: missing, relative, non-executable and wrong-identity paths fa
 
 Deno.test('doctor: standalone aliases pass but .venv and Quarto runtime paths are refused', async () => {
   await temporary(async root => {
+    const git = await fakeGit(root, 'scripts/git-hooks');
     const alias = join(root, 'standalone');
     await Deno.symlink(executable, alias);
     assertEquals(
-      (await runDoctor({deno: alias})).deno.canonical,
+      (await runDoctor({deno: alias, git})).deno.canonical,
       await Deno.realPath(executable),
     );
     for (const directory of ['.venv', 'quarto']) {
@@ -155,6 +177,35 @@ Deno.test('doctor: standalone aliases pass but .venv and Quarto runtime paths ar
         () => runDoctor({deno: path}),
         Error,
         directory === '.venv' ? 'outside .venv' : 'outside Quarto',
+      );
+    }
+  });
+});
+
+async function fakeGit(root: string, value: string | undefined) {
+  const result =
+    value === undefined
+      ? 'Deno.exit(1);'
+      : `console.log(${JSON.stringify(value)});`;
+  return await fixture(
+    root,
+    'fake-git',
+    `if (Deno.args.join(' ') !== 'config --get core.hooksPath') Deno.exit(2); ${result}`,
+  );
+}
+
+Deno.test('doctor: git hooks path must match and is recorded', async () => {
+  await temporary(async root => {
+    const passingGit = await fakeGit(root, 'scripts/git-hooks');
+    const report = await runDoctor({git: passingGit});
+    assertEquals(report.gitHooksPath, 'scripts/git-hooks');
+
+    for (const value of [undefined, '.git/hooks']) {
+      const git = await fakeGit(root, value);
+      await assertRejects(
+        () => runDoctor({git}),
+        Error,
+        'Git hooks are not installed; run git config core.hooksPath scripts/git-hooks.',
       );
     }
   });
@@ -245,19 +296,27 @@ Deno.test('doctor: a missing or stale Spec Kit environment fails with sync guida
 Deno.test('doctor: report is private, create-only and refuses README paths and symlinks', async () => {
   await temporary(async root => {
     const report = join(root, 'report.json');
-    const result = await runDoctor({report});
+    const git = await fakeGit(root, 'scripts/git-hooks');
+    const result = await runDoctor({report, git});
     assertEquals(JSON.parse(await Deno.readTextFile(report)), result);
     assertEquals((await Deno.stat(report)).mode! & 0o777, 0o600);
-    await assertRejects(() => runDoctor({report}), Deno.errors.AlreadyExists);
+    await assertRejects(
+      () => runDoctor({report, git}),
+      Deno.errors.AlreadyExists,
+    );
     for (const path of [
       join(root, 'README.md'),
       join(root, 'README.md', 'report.json'),
     ])
-      await assertRejects(() => runDoctor({report: path}), Error, 'README');
+      await assertRejects(
+        () => runDoctor({report: path, git}),
+        Error,
+        'README',
+      );
     const alias = join(root, 'report-link.json');
     await Deno.symlink(join(root, 'README.md'), alias);
     await assertRejects(
-      () => runDoctor({report: alias}),
+      () => runDoctor({report: alias, git}),
       Deno.errors.AlreadyExists,
     );
     assertEquals(JSON.parse(await Deno.readTextFile(report)), result);

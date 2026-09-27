@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if [ -x "$HOME/.deno/bin/deno" ]; then
+  deno="$HOME/.deno/bin/deno"
+elif command -v deno >/dev/null 2>&1; then
+  deno=$(command -v deno)
+else
+  printf '%s\n' 'Commit refused: Deno 2.9.6 was not found.' >&2
+  exit 1
+fi
+
+exec "$deno" task --quiet commitlint --edit "$1"

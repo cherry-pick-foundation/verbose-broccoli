@@ -30,6 +30,7 @@ interface Options {
   quarto?: string;
   uv?: string;
   gitFlow?: string;
+  git?: string;
   report?: string;
 }
 
@@ -113,6 +114,24 @@ async function checkGitFlowConfig(gitFlow: string) {
   return {status: 'PASS' as const};
 }
 
+async function checkGitHooksPath(git: string) {
+  const result = await new Deno.Command(git, {
+    args: ['config', '--get', 'core.hooksPath'],
+    cwd: fromFileUrl(new URL('../', import.meta.url)),
+    signal: AbortSignal.timeout(5000),
+    stdout: 'piped',
+    stderr: 'null',
+  }).output();
+  const value = result.success
+    ? new TextDecoder().decode(result.stdout).replace(/\r?\n$/, '')
+    : undefined;
+  if (value !== 'scripts/git-hooks')
+    throw new Error(
+      'Git hooks are not installed; run git config core.hooksPath scripts/git-hooks.',
+    );
+  return value;
+}
+
 async function dependencies() {
   const path = fromFileUrl(new URL('../deno.lock', import.meta.url));
   const bytes = await Deno.readFile(path);
@@ -164,6 +183,7 @@ export async function runDoctor(options: Options = {}) {
     ]);
   const specKit = await checkSpecKitEnvironment(uv.canonical);
   const gitFlowConfig = await checkGitFlowConfig(gitFlow.canonical);
+  const gitHooksPath = await checkGitHooksPath(options.git ?? 'git');
   const report = {
     status: 'PASS' as const,
     runtime: {version: Deno.version, build: Deno.build},
@@ -171,6 +191,7 @@ export async function runDoctor(options: Options = {}) {
     quarto: {...quarto, version: quartoVersion},
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
+    gitHooksPath,
     specKit,
     lock,
   };

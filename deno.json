@@ -5,17 +5,19 @@
   "tasks": {
     "doctor": {
       "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, the Spec Kit environment and locked dependencies",
-      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow scripts/doctor.ts"
+      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",
     "test:git-flow": "deno test --frozen --cached-only --no-prompt --allow-read=.gitflow,scripts/git-flow-hooks/pre-flow-feature-finish --allow-write=/tmp --allow-run=git scripts/git_flow_test.ts",
+    "commitlint": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-sys --allow-run=git npm:@commitlint/cli@21.2.3 --config scripts/commitlint.config.mjs",
+    "test:commit-msg": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/commit_msg_test.ts",
     "workflow": "deno run --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/workflow.ts",
     "verify": "deno task workflow --verify",
     "test:cli-contract": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/cli_contract_test.ts",
     "test:workflow": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/workflow_test.ts scripts/workflow_plan_test.ts scripts/workflow_verify_test.ts scripts/workflow_graph_test.ts scripts/workflow_skills_test.ts",
     "lint": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings .",
-    "typecheck": "deno check --frozen scripts/validate_plugins.ts scripts/clean_architecture.ts scripts/workflow.ts scripts/docs.ts",
+    "typecheck": "deno check --frozen scripts/validate_plugins.ts scripts/clean_architecture.ts scripts/workflow.ts scripts/docs.ts scripts/constitution_version.ts",
     "plugins:validate": "deno run --frozen --cached-only --no-prompt --allow-read=plugins scripts/validate_plugins.ts",
     "clean-architecture": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-sys scripts/clean_architecture.ts",
     "clean-code": "deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-code/scripts/clean_code.ts",
@@ -42,6 +44,7 @@
       "dependencies": [
         "test:doctor",
         "test:git-flow",
+        "test:commit-msg",
         "test:plugin-skills",
         "test:clean-code",
         "test:clean-architecture",
@@ -77,6 +80,9 @@
     "@mdx-js/mdx": "npm:@mdx-js/mdx@3.1.1",
     "remark-gfm": "npm:remark-gfm@4.0.1",
     "@biomejs/biome": "npm:@biomejs/biome@2.5.14",
-    "typescript": "npm:typescript@6.0.3"
+    "typescript": "npm:typescript@6.0.3",
+    "@commitlint/cli": "npm:@commitlint/cli@21.2.3",
+    "@commitlint/config-conventional": "npm:@commitlint/config-conventional@21.2.3",
+    "conventional-changelog-conventionalcommits": "npm:conventional-changelog-conventionalcommits@10.4.0"
   }
 }
