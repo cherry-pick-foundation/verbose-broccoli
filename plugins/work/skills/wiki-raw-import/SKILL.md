@@ -27,7 +27,9 @@ uv run --locked --script scripts/raw_import.py verify
 
 Add `--wiki <name>` for an instance other than `default`. Exit 0 means every
 item succeeded, 1 means at least one item was refused or failed (or `verify`
-found an invalid revision), and 2 means nothing was written.
+found an invalid revision), and 2 means an error stopped the command. For an
+invalid argument, selection or configuration, a missing instance or a held
+lock, nothing was written.
 
 ## Procedure
 
@@ -63,7 +65,9 @@ found an invalid revision), and 2 means nothing was written.
    --selection <file>`. Keep the JSON Lines report outside every repository.
    Resolve or report each `refused` and `failed` item with its reason. A
    rerun of the same selection skips finished items and adds a revision only
-   for originals that changed.
+   for originals that changed. A file whose name contains the literal text
+   `%0A` or `%0D` always fails, because bagit decodes those sequences in
+   manifest names; nothing is published for it. Report it to the user.
 7. **Check.** Run `verify`. If it reports an invalid revision, stop and tell
    the user; do not edit or delete anything in `raw/`.
 8. **Log and commit.** Append one entry to the instance's `wiki/log.md`:

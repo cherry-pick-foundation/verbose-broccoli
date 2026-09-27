@@ -63,4 +63,4 @@ Rules:
 - Git versions this file and `wiki/`.
 
 Page conventions and the ingest, query and lint workflows come from a later
-change to this file. Until then, do not create Wiki pages.
+change to this file.

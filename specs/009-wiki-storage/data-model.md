@@ -58,6 +58,7 @@ Rules:
 - The bag is read-only after publication and is never edited or removed by
   the capability.
 - The latest revision of a source is the one whose revision name sorts last.
+  A new revision whose name would not sort after it is not admitted.
 - A source is found for an original path by reading
   `raw/*/*/*/bag-info.txt` and matching `Internal-Sender-Identifier`. Two
   sources with the same original path are an error that stops that item.

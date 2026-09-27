@@ -34,6 +34,6 @@ git -C "$HOME/.local/share/verbose-broccoli/wikis/default" status --ignored --sh
 ## Real import (implementation phase only)
 
 Follow `plugins/work/skills/wiki-raw-import/SKILL.md`. Nothing is copied
-before the user has decided on every location in tasks.md Phase 6 and approved
+before the user has decided on every location in tasks.md Phase 8 and approved
 each file list. Afterwards `verify` passes, originals are unchanged, and
 tasks.md records counts per location only.

@@ -46,7 +46,9 @@ are suppressed so stderr carries only this contract's messages.
    across kinds.
 2. Read the original's digest and modification time.
 3. Find the source by original path. If its latest revision has the same
-   digest, report `already_admitted`.
+   digest, report `already_admitted`. Name the new revision from the current
+   UTC time; if that name does not sort after the latest revision's name (the
+   clock moved back), fail the item.
 4. Copy into staging with its modification time, make the bag, and validate
    it. Read `bag-info.txt` back through bagit; if any recorded value differs
    from the value written (bagit drops line breaks and trims values), fail
