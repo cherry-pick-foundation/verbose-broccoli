@@ -246,6 +246,26 @@ needs three things 008's plan does not state:
   implementation, add these as backward-compatible parameters to those
   modules if 008 has not. This is a conflict to settle with feature 008's
   owner; the orchestrator is told in this feature's completion report.
+- **2026-09-28, settled with 008's orchestrator**: feature 008 adds all three
+  to `packages/doc-regions` as library parameters, so T012's fallback should
+  not be needed. Planned interface: `config.load(config_path, root)` accepts
+  globs in `targets` and `report_only`, resolved against `root` and returned
+  as sorted root-relative paths; every function takes `root: Path`, and
+  `generator_path` may lie outside it; `requests.verify_requests(groups,
+  max_claims, max_evidence_chars)` takes a list of `(units, evidence)`
+  groups, evidence being `{id, text}` items, and splits each group within
+  backfire's limits. 008's orchestrator confirmed that `verify_requests`
+  never drops or trims a unit or evidence item and raises `ValueError` when a
+  group's evidence alone cannot fit (more than 249 items); that ids and texts
+  pass through and each request carries its `units` in claim order; that
+  output follows input order; and that `units.split(document, text,
+  base_text=None)` marks a unit `added` only when all its lines are inserted
+  relative to `base_text`. This feature's `changed` scope needs units with
+  any changed line, so `requests.py` derives it from the unit line ranges and
+  a diff against the instance's `HEAD`; `added` still selects classify
+  requests. `classify_requests` returns at most 64 items per request and does
+  not trim text; backfire truncates past 2,000 characters. T002 rechecks all
+  of this on `develop`.
 
 ## R9. Personal data and credentials
 
@@ -278,4 +298,4 @@ needs three things 008's plan does not state:
   feature's command only, for candidates.
 - Vale and code maps, as in feature 008.
 - The example schema `docs/examples/wiki/AGENTS.md`: it describes a
-  `wiki apply` command that does not exist; replacing it is a follow-up.
+  `wiki apply` command that does not exist; feature 009's task T037 fixes it.

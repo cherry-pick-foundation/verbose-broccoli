@@ -492,8 +492,8 @@ run the offline check against a temporary instance from that copy.
   not part of this feature.
 - The example schema `docs/examples/wiki/AGENTS.md` describes a `wiki apply`
   command that does not exist; feature 008 left it to this feature. It is not
-  a target here, and whether to replace it with the real schema template is a
-  follow-up for the orchestrator.
+  a target here: feature 009's task T037 removes that paragraph and aligns the
+  example with its schema template.
 
 ## Out of Scope
 

@@ -356,3 +356,9 @@ T016 and T018.
   on the three gates above; the user answered the five Clarifications
   questions (all recommended options). Next: the orchestrator starts implementation after
   the gates hold.
+- 2026-09-28 (handoff): coordination moved from the feature-linear-usage
+  orchestrator to this worktree's own orchestrator; no worker was running and
+  no user question was open. Feature 008's orchestrator agreed to add R8's
+  three needs to `packages/doc-regions` (research.md R8); feature 011's
+  orchestrator will send its build interface when its plan is committed.
+  Next: wait for the three gates.
