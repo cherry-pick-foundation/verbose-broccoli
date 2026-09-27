@@ -471,6 +471,18 @@ rejects during argument validation); a separate stdio relay process (the first
 plan; only needed around a black box); reading the SDK's private tool registry
 (an unpinned internal).
 
+## Functional check — 2026-09-28
+
+Evidence (T042, a code plugin built and installed outside the repository):
+`backfire ready` passed with Hive, `deepseek-ai/deepseek-v4.1-flash` and
+thinking confirmed and a sample judgment of 1.0 in 1.6 s. In a direct MCP
+session started with the declared `uv` command, each of the eleven tools
+returned the expected result for its normal known-answer case, in 1.2-8.5 s.
+Codex CLI started the server from the declaration and listed the eleven
+tools, but no call reached it, and the Claude Code run exited before starting
+the server; both failures come from the check's command lines, which are
+open work after the merge by the user's decision.
+
 ## Acceptance scope — 2026-09-27
 
 Decision: acceptance checks function only (the user's decision of
