@@ -77,6 +77,11 @@ If the requirement cannot be met without substantial new local implementation, s
   covered implementation task.
 - Lessons that hold across features belong in this file or in
   `plugins/<name>/AGENTS.md`.
+- Treat Linear issues and comments as writing to an external service: never
+  put operational data such as student records, or secret values, in them.
+- Only the main agent writes to Linear. It creates one issue per feature or
+  bug, without sub-issues, after searching for similar ones; other agents
+  report out-of-scope bugs to it through Orca messages.
 
 ## English replies
 
