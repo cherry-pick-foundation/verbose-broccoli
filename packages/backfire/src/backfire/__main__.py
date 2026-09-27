@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 
 
 async def _unconfigured_judge(state, questions, *, deadline, record_file=None):
@@ -16,7 +17,14 @@ def main() -> None:
     if args.command == "serve-mcp":
         from backfire.server import serve
 
-        asyncio.run(serve(_unconfigured_judge))
+        judge = _unconfigured_judge
+        if (script := os.environ.get("BACKFIRE_TEST_JUDGE_SCRIPT")) is not None:
+            from pathlib import Path
+            from runpy import run_path
+
+            helper = Path(__file__).resolve().parents[2] / "tests" / "scripted_judge.py"
+            judge = run_path(str(helper))["ScriptedJudge"].from_file(script)
+        asyncio.run(serve(judge))
         return
     parser.error(f"{args.command}: not implemented yet")
 

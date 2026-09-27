@@ -199,6 +199,18 @@ the recorded differences. Adopting a later upstream revision is
 an explicit change that recaptures the fixtures, re-ports the changed logic,
 and repeats the known-answer set in both clients (FR-012).
 
+## Test-only scripted judge
+
+`BACKFIRE_TEST_JUDGE_SCRIPT=<path>`, set in the server's own environment,
+makes `serve-mcp` answer every judgment from the scripted judge in the
+component's `tests/scripted_judge.py` instead of the in-process judge; tool
+arguments and operator configuration cannot select it. The file at `<path>`
+holds the answers, judgment errors and stalls in call order, and a requests
+file to which each judgment's `state` and `questions` are appended before its
+answer; the helper's docstring gives the format. The helper is not shipped, so
+a built plugin cannot use the variable, and an unreadable helper or script
+fails the start instead of falling back.
+
 ## Client registration for acceptance
 
 Acceptance stages the code plugin alone by building it into a temporary
