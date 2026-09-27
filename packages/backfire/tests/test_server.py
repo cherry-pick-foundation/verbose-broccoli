@@ -13,7 +13,7 @@ from backfire.tools import (
 )
 from scripted_judge import ScriptedJudge
 
-MODULES = (verify, screen, noul, find, classify, rerank, compare, extract, review, gate, decide)
+MODULES = (verify, screen, noul, find, classify, decide, rerank, compare, extract, review, gate)
 
 
 @asynccontextmanager
@@ -130,9 +130,10 @@ def test_call_passes_arguments_judge_deadline_and_returned_error_flag(monkeypatc
 
     async def run():
         async with session(judge) as (client, _):
+            # Upstream sends isError only for errors.
             assert wire(await client.call_tool(verify.NAME, arguments)) == {
                 "content": [{"type": "text", "text": "unchanged tool text"}],
-                "isError": is_error,
+                **({"isError": True} if is_error else {}),
             }
     asyncio.run(run())
     assert len(calls) == 1

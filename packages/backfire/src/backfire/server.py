@@ -19,8 +19,9 @@ from backfire.tools import (
     classify, compare, decide, extract, find, gate, noul, rerank, review, screen, verify,
 )
 
+# The order of jev-mcp 0.9.0's tools/list.
 TOOLS = {tool.NAME: tool for tool in (
-    verify, screen, noul, find, classify, rerank, compare, extract, review, gate, decide,
+    verify, screen, noul, find, classify, decide, rerank, compare, extract, review, gate,
 )}
 
 
@@ -55,9 +56,10 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
             )
         except Exception as error:
             text, is_error = str(error), True
-        return types.CallToolResult(
-            content=[types.TextContent(type="text", text=text)], is_error=is_error,
-        )
+        # A dict goes on the wire as given; a CallToolResult would add isError false
+        # and resultType, which upstream's results do not have.
+        result = {"content": [{"type": "text", "text": text}]}
+        return {**result, "isError": True} if is_error else result
 
     async def call_tool(context, params):
         if boundary is None:
