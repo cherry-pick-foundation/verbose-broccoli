@@ -448,6 +448,23 @@ Deno.test('workflow: review instructions time independent review at merge', () =
   assert(
     lines.some(
       line =>
+        line.includes(
+          'Before the develop merge review, run `deno task doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `deno task doc-regions:audit`',
+        ) &&
+        line.includes(
+          'Send each printed request to the backfire tool it names',
+        ) &&
+        line.includes(
+          'Fix target document units marked contradicted or flagged for review',
+        ) &&
+        line.includes(
+          'Report AGENTS.md and constitution findings to the user without changing those files',
+        ),
+    ),
+  );
+  assert(
+    lines.some(
+      line =>
         line.includes('Before each commit') &&
         line.includes('the implementer or the orchestrator reviews the diff'),
     ),

@@ -134,14 +134,14 @@ regions and broken local links, without writing or network.
   --check-fail-msg` or `-r` and `-I <generator_path>`, and `lychee --offline
   --include-fragments --no-progress` on the targets only; exit codes and output per
   [contracts/commands.md](contracts/commands.md). T008 passes.
-- [ ] T010 [P] [US1] Write `scripts/doc_sources_test.py` for a
+- [x] T010 [P] [US1] Write `scripts/doc_sources_test.py` for a
   `skill_table(glob)` generator: fixture skill folders give the exact
   expected table, sorted by package then skill; a missing glob match raises.
   The tests fail before T011.
-- [ ] T011 [P] [US1] Implement `scripts/doc_sources.py` with `skill_table`,
+- [x] T011 [P] [US1] Implement `scripts/doc_sources.py` with `skill_table`,
   which lists `SKILL.md` folders under `plugins/*/skills/` as the ownership
   table's rows; no network, clock or environment use. T010 passes.
-- [ ] T012 [P] [US1] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`:
+- [x] T012 [P] [US1] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`:
   fail when `lychee --version` is not `lychee 0.24.2`, and when
   `packages/doc-regions/.venv` is missing or differs from its lock (reuse the
   existing `tools/spec-kit` check). Tests first.
@@ -191,12 +191,16 @@ unit; the workflow tool prints the step.
 - [ ] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
   and the `prepare` command (`git merge-base`, `git diff` through
   `subprocess`, splitting and sorting). T016 passes.
-- [ ] T018 [P] [US2] Extend the REVIEW text in `scripts/workflow.ts`
+- [x] T018 [P] [US2] Extend the REVIEW text in `scripts/workflow.ts`
   (`actions.REVIEW`) and `scripts/workflow_test.ts` (and help snapshots if
   they change): before the `develop` merge review, run `deno task
   doc-regions:prepare` and `deno task doc-regions:audit`, send the requests
   to backfire, fix target documents and report `AGENTS.md` and constitution
   findings to the user. Tests first.
+  - 2026-09-28: T010 to T012 and T018 done by Codex worker B (gpt-6-luna,
+    max effort, after a restart from high effort under the user's model
+    rule). A follow-up made the two uv environment checks in `doctor`
+    sequential, because concurrent checks reported either error at random.
 
 **Checkpoint**: The main agent can run the judgment step.
 

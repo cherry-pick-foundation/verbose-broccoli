@@ -17,12 +17,14 @@ import {sha256} from './hash.ts';
 const defaults = {
   deno: Deno.execPath(),
   quarto: '/usr/local/bin/quarto',
+  lychee: 'lychee',
 };
 const versions = {
   deno: '2.9.6',
   quarto: '1.10.18',
   uv: '0.11.32',
   'git-flow': '2.1.0',
+  lychee: '0.24.2',
 };
 type Tool = keyof typeof versions;
 interface Options {
@@ -77,8 +79,7 @@ export async function probeVersion(path: string, tool: Tool) {
   return version;
 }
 
-async function checkSpecKitEnvironment(uv: string) {
-  const project = 'tools/spec-kit';
+async function checkUvEnvironment(uv: string, project: string) {
   const result = await new Deno.Command(uv, {
     args: ['sync', '--locked', '--check', '--project', project],
     cwd: fromFileUrl(new URL('../', import.meta.url)),
@@ -88,7 +89,7 @@ async function checkSpecKitEnvironment(uv: string) {
   }).output();
   if (!result.success)
     throw new Error(
-      `Spec Kit environment is missing or out of sync with uv.lock; run uv sync --locked --project ${project}.`,
+      `${project} environment is missing or out of sync with uv.lock; run uv sync --locked --project ${project}.`,
     );
   return {
     project,
@@ -173,15 +174,27 @@ export async function runDoctor(options: Options = {}) {
   const gitFlow = options.gitFlow
     ? await executable(options.gitFlow, 'git-flow')
     : {selected: 'git-flow', canonical: 'git-flow'};
-  const [denoVersion, quartoVersion, uvVersion, gitFlowVersion, lock] =
-    await Promise.all([
-      probeVersion(deno.canonical, 'deno'),
-      probeVersion(quarto.canonical, 'quarto'),
-      probeVersion(uv.canonical, 'uv'),
-      probeVersion(gitFlow.canonical, 'git-flow'),
-      dependencies(),
-    ]);
-  const specKit = await checkSpecKitEnvironment(uv.canonical);
+  const lychee = {selected: defaults.lychee, canonical: defaults.lychee};
+  const [
+    denoVersion,
+    quartoVersion,
+    uvVersion,
+    gitFlowVersion,
+    lycheeVersion,
+    lock,
+  ] = await Promise.all([
+    probeVersion(deno.canonical, 'deno'),
+    probeVersion(quarto.canonical, 'quarto'),
+    probeVersion(uv.canonical, 'uv'),
+    probeVersion(gitFlow.canonical, 'git-flow'),
+    probeVersion(lychee.canonical, 'lychee'),
+    dependencies(),
+  ]);
+  const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
+  const docRegions = await checkUvEnvironment(
+    uv.canonical,
+    'packages/doc-regions',
+  );
   const gitFlowConfig = await checkGitFlowConfig(gitFlow.canonical);
   const gitHooksPath = await checkGitHooksPath(options.git ?? 'git');
   const report = {
@@ -191,8 +204,10 @@ export async function runDoctor(options: Options = {}) {
     quarto: {...quarto, version: quartoVersion},
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
+    lychee: {...lychee, version: lycheeVersion},
     gitHooksPath,
     specKit,
+    docRegions,
     lock,
   };
   if (options.report)
