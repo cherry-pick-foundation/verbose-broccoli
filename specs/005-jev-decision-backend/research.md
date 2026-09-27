@@ -722,6 +722,17 @@ Alternatives considered: allowing the metadata in the contract (a runtime
 write outside `.venv/` for every copy); another build backend such as
 `uv_build` (a larger change, and the project has two top-level packages).
 
+## Gate 5, capture — 2026-09-27
+
+Evidence (T029, Node 24.19.0, npm 12.1.0): `capture_upstream.py` fetched
+`jkudish/jev-mcp` at `a1fcc1e47fc696614f081e23a66ff48a890f22fd` into a
+temporary directory, built it with its own lockfile, and ran it with
+`JEV_PROVIDER=compatible` and `JEV_MCP_MAX_ATTEMPTS=1` against a loopback
+scripted System One endpoint. It recorded the complete `tools/list` and, for
+all 67 argument sets of `known-answers-v1.jsonl`, the 43 judgment requests in
+order with the scripted answers and upstream's result or error, in
+`scripts/backfire/fixtures/upstream-0.9.0/`. The fidelity comparison is T030.
+
 ## Local endpoint and Python environment — 2026-09-26
 
 Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the interpreter pin and the lock stay; the endpoint becomes an in-process judge without Starlette or Uvicorn, and each copy's environment is its own `.venv` instead of one under the XDG cache.

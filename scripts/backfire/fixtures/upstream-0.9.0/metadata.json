@@ -1,0 +1,39 @@
+{
+  "source_url": "https://codeload.github.com/jkudish/jev-mcp/tar.gz/a1fcc1e47fc696614f081e23a66ff48a890f22fd",
+  "revision": "a1fcc1e47fc696614f081e23a66ff48a890f22fd",
+  "source_sha256": {
+    "src/index.ts": "10ae5eee5fbe0de52a4e5e8240b550585a12bab953235d511d550b3decccaac7",
+    "src/lib.ts": "6b96ab62448b4154a7e4a25ff6ca064b43d5df3fa0e087f6b02fa25e767067d2",
+    "src/provider.ts": "29a993ed57c6137be2d633c666cb6ce7a9f9a313712f37b70e33a1d4fb44dc0c",
+    "package.json": "26b822f14fb0eeffada9833cfa0905d40bc364e88e7785df01f40eeec8856d01",
+    "package-lock.json": "548f6b698cea8cdad33df110cc196655c0c3ab65a5fa5ae52d0975dc355d036c"
+  },
+  "archive_sha256": "cbd67ca9e6762f3bd9e8ba0c498b02db369cc82037a6d6e64ffbf9bd145c5ab5",
+  "node": "v24.19.0",
+  "npm": "12.1.0",
+  "commands": [
+    "npm ci --ignore-scripts",
+    "npm run build",
+    "node dist/index.js"
+  ],
+  "environment": {
+    "JEV_PROVIDER": "compatible",
+    "JEV_MCP_MAX_ATTEMPTS": "1"
+  },
+  "initialize": {
+    "protocolVersion": "2025-11-25",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverInfo": {
+      "name": "jev-mcp",
+      "version": "0.9.0"
+    }
+  },
+  "known_answers_sha256": "d90db3924d2dc5c7f6646ea0c3db4f09f4083b6cd8950e8cbde25bf05a1439c4",
+  "case_count": 67,
+  "judgment_count": 43,
+  "answer_policy": "First Choice, Noul 0.875, middle Score; synthetic fidelity answers, not semantic expectations."
+}
