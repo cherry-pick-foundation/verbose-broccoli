@@ -464,3 +464,19 @@ Deno.test('workflow: review instructions time independent review at merge', () =
   assert(lines.some(line => line.includes('no extra user approval')));
   assert(!lines.some(line => line.includes('separate read-only diff review')));
 });
+
+Deno.test('workflow: every mode prints the Linear completion order', () => {
+  for (const mode of ['DIRECT', 'DELEGATE', 'PARALLEL', 'REVIEW'] as const) {
+    const lines = buildWorkModeInstructions(mode, false);
+    assert(
+      lines.some(
+        line =>
+          line.includes('main agent only') &&
+          line.includes('In Review') &&
+          line.indexOf('In Review') < line.indexOf('Done') &&
+          line.includes('merge commit') &&
+          line.includes('record location'),
+      ),
+    );
+  }
+});
