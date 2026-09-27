@@ -4,6 +4,7 @@ scripts:
 
     project_root="$(git rev-parse --show-toplevel)"
     cd "$project_root"
+    sh scripts/worktree-branch.sh
 
     if [ -x "$HOME/.deno/bin/deno" ]; then
       deno_bin="$HOME/.deno/bin/deno"
@@ -38,6 +39,7 @@ scripts:
     "$deno_bin" install --frozen --cached-only --no-prompt
     "$uv_bin" sync --locked --project tools/spec-kit
     git config gitflow.shared.trustHooks true
+    git config core.hooksPath scripts/git-hooks
     git flow config sync
     "$deno_bin" task doctor
 setupAgentStartupPolicy: wait-for-setup

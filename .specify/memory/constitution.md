@@ -1,20 +1,27 @@
 <!--
 Sync Impact Report
-- Version: 0.20.0 -> 0.21.0 (draft minor amendment of a workflow rule;
-  Governance sets draft minor increments for rule changes before 1.0).
-- Input: the user's 2026-09-27 decision to automate finishing features into
-  `develop` with git-flow-next, keeping its source unchanged and adapting it
-  only with its settings and a minimal local hook.
+- Version: 0.21.0 -> 0.22.0 (`feat` commit; under the amended Governance rule
+  the Conventional Commits type of the amending commit decides the bump).
+- Input: the user's 2026-09-27 decisions to hold the final independent review
+  at the merge into `develop` or `main`, to record the `develop` review in a
+  review-record commit that the feature finish requires, to add a review
+  before merge to the hand-finished release and hotfix procedure, and to derive
+  the constitution's version bump from the commit type.
 - Modified principles: none.
 - Modified sections: Development Workflow and Quality Gates, "Branch with git
-  flow": a feature is finished with `git flow feature finish` in the `develop`
-  worktree, whose pre-finish hook requires `develop` to be an ancestor of the
-  feature and the feature to pass `deno task verify`. Releases and hotfixes keep
-  the staged `--no-commit` procedure. Governance records the decision.
+  flow": the merge review and review-record commit before a feature finish,
+  the hook's new refusal, and the review before merge for releases and
+  hotfixes. Governance: the commit-type version rule replaces "principle
+  changes raise the draft minor version, wording corrections the patch
+  version", and the decisions are recorded.
 - Added sections: none. Removed sections: none.
-- Follow-up (outside this document): done in the same change. `.gitflow`, the
-  hook in `scripts/git-flow-hooks/`, its tests, the doctor check, Orca's setup
-  script and `docs/architecture.md`. Templates need no change.
+- Follow-up (outside this document): done in the same change. The
+  feature-finish hook and its tests, the commit-message hook and its checks,
+  Orca's setup script, the doctor check, the workflow tool's REVIEW guidance,
+  `AGENTS.md` and `docs/architecture.md`. Templates need no change. The
+  upstream `speckit-constitution` skill still classifies bumps by meaning
+  (major, minor, patch); agents use that meaning to choose the commit type,
+  and this document's rule decides the number.
 - Deferred placeholders: none.
 -->
 
@@ -286,16 +293,24 @@ The current project `verbose-broccoli` is the development and acceptance owner.
   which keeps the branch's commits together: a feature into `develop`; a
   release or hotfix into `main`, tagged `v<version>` there, then into
   `develop`. The merge commit's parents MUST be exactly the target, then the
-  source. Finish a feature with git-flow-next, `git flow feature finish
-  <name>`, run in the `develop` worktree: the committed `.gitflow` settings and
-  the `scripts/git-flow-hooks/pre-flow-feature-finish` hook refuse the finish
-  unless `develop` is an ancestor of the feature and the feature passes
-  `deno task verify`, so the merge commit's tree is the verified feature tree.
-  Finish a release or hotfix by hand: first recheck that the target and the
-  source still point at their verified commits, then stage the merge with
-  `git merge --no-ff --no-commit`. A staged tree that differs from the source's
-  verified tree, as when a release returns to a `develop` that has moved, MUST
-  be verified before the commit.
+  source. Before a feature is finished, a fresh reviewer from the other
+  provider (Claude Code or Codex), given only the scope and requirements,
+  reviews it, favoring speed; after its findings are resolved, a content-free
+  review-record commit on the feature tip names the reviewer in a
+  `Reviewed-by` trailer and the reviewed commit, its parent, in a
+  `Reviewed-commit` trailer. Finish a feature with git-flow-next, `git flow
+  feature finish <name>`, run in the `develop` worktree: the committed
+  `.gitflow` settings and the `scripts/git-flow-hooks/pre-flow-feature-finish`
+  hook refuse the finish unless `develop` is an ancestor of the feature, the
+  feature tip is such a review record, and the feature passes `deno task
+  verify`, so the merge commit's tree is the reviewed and verified feature
+  tree. Finish a release or hotfix by hand: first have a fresh reviewer from
+  the other provider, given only the scope and requirements, review the source
+  branch, favoring accuracy, and resolve its findings; then recheck that the
+  target and the source still point at their reviewed and verified commits,
+  and stage the merge with `git merge --no-ff --no-commit`. A staged tree that
+  differs from the source's verified tree, as when a release returns to a
+  `develop` that has moved, MUST be verified before the commit.
   Preserve source branch/commit evidence; no branch cleanup is implied.
   Fast-forward and squash merges are not alternate defaults. Base drift,
   conflicts or a failed check stop integration: abort any uncommitted merge,
@@ -310,9 +325,13 @@ The current project `verbose-broccoli` is the development and acceptance owner.
 
 ## Governance
 
-Record user-directed principle changes with their reason and impact. Increment
-draft minor versions for principle changes and patch versions for wording
-corrections. Compliance review follows the root AGENTS.md workflow,
+Record user-directed principle changes with their reason and impact. Each
+commit that changes this constitution raises its version exactly once, by that
+commit's Conventional Commits type: a breaking change (`!` or a `BREAKING
+CHANGE` footer) raises the first digit and needs the user's approval, `feat`
+the middle digit, and `docs` or `fix` the last digit; commits of other types
+do not change this document. The repository's commit-message hook enforces
+this rule. Compliance review follows the root AGENTS.md workflow,
 verification and review requirements. Product, plugin, document, and constitution versions remain
 independent. The latest user direction governs conflicts. The user's 2026-09-22
 plugin layout supersedes the earlier `apps/` and root `deno.jsonc` requirement,
@@ -332,8 +351,12 @@ implementations without adding a fourth plugin. The same day the user renamed
 the plugin IDs to `chat`, `code` and `work`, so client install IDs such as
 `code@<marketplace>` do not repeat the project name. Also that day the user
 adopted git-flow-next to finish features into `develop`, adapted only through
-its own settings and one local pre-finish hook, with its source unchanged. The
-user's exact AGENTS.md is maintained as supplied, not regenerated by setup
-tasks.
+its own settings and one local pre-finish hook, with its source unchanged. Also
+on 2026-09-27 the user moved the final independent review to the merge into
+`develop` or `main`, recorded for `develop` by a review-record commit that the
+feature finish requires and held for `main` as a step before the hand-finished
+merge, and made the amending commit's type decide the constitution's version
+bump. The user's exact AGENTS.md is maintained as supplied, not regenerated by
+setup tasks.
 
-**Version**: 0.21.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-27
+**Version**: 0.22.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-27

@@ -7,7 +7,7 @@ Start every ingest, query and lint operation by reading `wiki/index.md`; record
 its SHA-256 before preparing changes. Follow its links to the relevant pages.
 Keep source IDs, revision token types and locators exactly as supplied.
 
-- Admit reviewed originals under `raw/{web,files,notes,conversations,assets}/`.
+- Admit reviewed originals under `raw/{web,files,notes,assets}/`.
   Originals and admission descriptors are create-only. Changed evidence needs a
   new admission and revision; preserve old originals and their provenance.
 - Maintain ordinary Markdown pages under `wiki/sources/`, `wiki/entities/`,

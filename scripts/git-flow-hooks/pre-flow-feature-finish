@@ -39,5 +39,34 @@ EOF
 status=$(git -C "$feature_worktree" status --porcelain --untracked-files=all)
 [ -z "$status" ] || fail "the '$branch' worktree has uncommitted changes."
 
+review_tip=$(git rev-list --parents -n 1 "$branch")
+set -- $review_tip
+[ "$#" -eq 2 ] ||
+  fail "the '$branch' tip is not a single-parent review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+record=$1
+parent=$2
+
+record_tree=$(git rev-parse "$record^{tree}")
+parent_tree=$(git rev-parse "$parent^{tree}")
+[ "$record_tree" = "$parent_tree" ] ||
+  fail "the '$branch' tip tree differs from its parent, so it cannot be a review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+
+reviewed_by=$(git log -1 --format='%(trailers:key=Reviewed-by,valueonly)' "$record")
+reviewed_by_trailers=$(git log -1 --format='%(trailers:key=Reviewed-by)' "$record")
+reviewed_by_count=$(printf '%s\n' "$reviewed_by_trailers" | wc -l | tr -d '[:space:]')
+[ -n "$reviewed_by" ] && [ "$reviewed_by_count" -eq 1 ] ||
+  fail "the '$branch' tip must have exactly one non-empty Reviewed-by trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+
+reviewed_commit=$(git log -1 --format='%(trailers:key=Reviewed-commit,valueonly)' "$record")
+reviewed_commit_trailers=$(git log -1 --format='%(trailers:key=Reviewed-commit)' "$record")
+reviewed_commit_count=$(printf '%s\n' "$reviewed_commit_trailers" | wc -l | tr -d '[:space:]')
+[ -n "$reviewed_commit" ] && [ "$reviewed_commit_count" -eq 1 ] ||
+  fail "the '$branch' tip must have exactly one non-empty Reviewed-commit trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+
+reviewed_parent=$(git rev-parse --verify --quiet --end-of-options "${reviewed_commit}^{commit}") ||
+  fail "the '$branch' Reviewed-commit trailer does not resolve to its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+[ "$reviewed_parent" = "$parent" ] ||
+  fail "the '$branch' Reviewed-commit trailer does not name its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+
 (cd "$feature_worktree" && deno task --quiet verify) ||
   fail "verification failed in the '$branch' worktree."

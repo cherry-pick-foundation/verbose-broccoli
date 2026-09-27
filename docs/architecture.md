@@ -34,7 +34,10 @@ selected standalone Deno/Quarto executables, uv and git-flow from `PATH`, the
 Spec Kit environment, the git-flow configuration and locked dependencies
 without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
-loop. Reuse those commands for later feature work.
+loop. In REVIEW mode it asks the implementer or the orchestrator to review the
+diff before each commit and leaves the independent review to the merge into `develop` or
+`main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later
+feature work.
 
 The [command reference](reference/commands.md) lists every root task and the five
 selected help entrypoints. `deno task docs:generate` refreshes exactly the two
@@ -237,14 +240,78 @@ flow rule.
   `develop` by merge, not rebase. Release and hotfix types are left out, so
   `git flow release` and `git flow hotfix` refuse to run; the constitution has
   releases and hotfixes finished by hand.
+- Before the finish, a fresh reviewer from the other provider (Claude Code or
+  Codex), given only the scope and requirements, reviews the feature tip,
+  favoring speed. After its findings are resolved, a content-free commit
+  records the review:
+
+  ```sh
+  git commit --allow-empty -m 'chore(review): record develop merge review' \
+    -m "Reviewed-by: <reviewer, for example provider and model>
+  Reviewed-commit: $(git rev-parse HEAD)"
+  ```
+
+  Any later commit on the feature, including a merge of `develop`, needs a new
+  review and a new record.
 - Run `git flow feature finish <name>` in the `develop` worktree. The hook
   `scripts/git-flow-hooks/pre-flow-feature-finish` refuses the finish unless
   that worktree is on `develop` with no uncommitted changes, `develop` is an
-  ancestor of the feature, and the feature is checked out in a clean worktree
-  where `deno task verify` passes. The merge then has Git's default message,
-  its parents are `develop` and then the feature, and its tree is the verified
-  feature tree. `deno task test:git-flow` checks these cases with the real
-  binary.
-- Not automated: deciding that a feature is ready, updating a feature after
-  `develop` moves (merge `develop` into it, verify, then finish again),
-  resolving conflicts, releases, hotfixes and pushing.
+  ancestor of the feature, the feature is checked out in a clean worktree, its
+  tip is a review record, and `deno task verify` passes there. A review record
+  has one parent and the same tree as that parent, exactly one non-empty
+  `Reviewed-by` trailer, and exactly one `Reviewed-commit` trailer that
+  resolves to the parent. The merge then has Git's default message, its
+  parents are `develop` and then the review record, and its tree is the
+  reviewed and verified feature tree. `deno task test:git-flow` checks these
+  cases with the real binary.
+- Orca's setup script gives a new worktree's branch its git flow name, because
+  `orca worktree create` has no branch option and turns a `/` in `--name` into
+  `-`. `scripts/worktree-branch.sh` maps the worktree's folder name:
+  `release-<rest>` becomes `release/<rest>`, `hotfix-<rest>` becomes
+  `hotfix/<rest>`, and any other name becomes `feature/<name>` without a
+  leading `feature-`. It renames only a branch that has no upstream and no
+  commits of its own, never `develop` or `main`, and changes nothing on a
+  second run; folder names stay flat. Remove the script and its setup line
+  once `orca worktree create` offers a branch option. `deno task
+  test:worktree-branch` checks it.
+- Not automated: deciding that a feature is ready, running the merge review,
+  updating a feature after `develop` moves (merge `develop` into it, verify,
+  review, then finish again), resolving conflicts, releases, hotfixes, the
+  review before a release or hotfix merges into `main`, and pushing.
+
+### Commit messages — 2026-09-27
+
+Every commit in a set-up worktree passes the `commit-msg` hook
+`scripts/git-hooks/commit-msg`. It runs commitlint 21.2.3
+(<https://github.com/conventional-changelog/commitlint>, MIT) with
+`@commitlint/config-conventional` and the Conventional Commits parser preset
+from `conventional-changelog-conventionalcommits` 10.4.0, pinned in `deno.json`
+and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
+
+- Headers must follow Conventional Commits 1.0.0 as `config-conventional`
+  defines it. Any trailer is accepted, including `Spec-Kit-Task`,
+  `Reviewed-by`, `Reviewed-commit` and `Co-Authored-By`. commitlint's default
+  ignores skip Git's default merge messages, so git-flow finishes and
+  hand-finished merges pass.
+- One local rule, in `scripts/constitution_version.ts`, compares
+  `.specify/memory/constitution.md` in `HEAD` with the index being committed.
+  A commit that changes the file must raise its version exactly one step: a
+  breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
+  the middle digit, `docs` or `fix` the last digit. Other types and an
+  unchanged version are refused. A breaking change also needs the user's
+  approval before it is committed, which the hook cannot check. A `commit-msg`
+  hook is not told about `--amend`, so an amend is compared with the commit it
+  replaces.
+- The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
+  TypeScript configuration through jiti, which cannot resolve `npm:`
+  specifiers, and resolves the preset's package name with `require.resolve`,
+  which needs `node_modules`; so the configuration is plain JavaScript and
+  passes the preset's parser options directly.
+- Git finds the hook through the repository setting `core.hooksPath =
+  scripts/git-hooks`. The path is relative, so each worktree runs its own
+  checkout's hook, and a worktree whose checkout has no `scripts/git-hooks/`
+  runs none. Orca's setup script sets it, and `deno task doctor` fails when it
+  differs. The hook finds Deno at `~/.deno/bin/deno` or on `PATH` and refuses
+  the commit when neither exists.
+- `deno task test:commit-msg` checks the rule and real commits in temporary
+  repositories.
