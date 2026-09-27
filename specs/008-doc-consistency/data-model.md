@@ -72,7 +72,8 @@ truncates item text past 2,000 characters itself.
 For `backfire_verify`, `arguments.claims` are the units' texts and
 `arguments.evidence` is one `{id, text}` per changed file of the feature diff
 (`id` is the path). For `backfire_classify`, `arguments.items` are
-`{id, text}` for added units, and `arguments.classes` are
+`{id, text}` for added units of target documents (report-only documents never
+get mechanical regions), and `arguments.classes` are
 `mechanical_candidate` and `agent_region`. Each request stays within the
 limits given to `prepare`; every unit appears in exactly one request per tool.
 

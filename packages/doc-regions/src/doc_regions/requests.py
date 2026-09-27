@@ -91,7 +91,7 @@ def prepare(root, config_path, *, base, max_evidence_chars):
         } for index, chunk in enumerate(chunks, 1))
 
     requests = verify_requests([(units, evidence)]) if evidence else []
-    for document in documents:
+    for document in config['targets']:
         added = [unit for unit in units if unit['document'] == document and unit['added']]
         requests.extend(classify_requests(added, f'Find mechanical region candidates in {document}.'))
     return {'base': merge_base, 'units': units, 'requests': requests}

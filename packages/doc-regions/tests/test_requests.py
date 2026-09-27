@@ -121,6 +121,16 @@ def test_prepare_root_diff_schema_determinism_and_read_only(repository, unchange
     assert 'Working tree addition.' in ''.join(e['text'] for e in evidence)
 
 
+def test_prepare_classifies_only_target_units(repository, unchanged):
+    (repository / 'AGENTS.md').write_text('# Rules\n\nKeep the files.\n\nNew rule.\n')
+    with unchanged(repository):
+        result = prepare(repository, 'config.toml', base='develop', max_evidence_chars=1000)
+    added = [u for u in result['units'] if u['added']]
+    assert any(u['report_only'] for u in added)
+    classify = [r for r in result['requests'] if r['tool'] == 'backfire_classify']
+    assert [i for r in classify for i in r['units']] == [u['id'] for u in added if not u['report_only']]
+
+
 def test_prepare_new_file_and_empty_diff(repository, unchanged):
     (repository / 'new.md').write_text('# New\n\nNew body.\n')
     (repository / 'config.toml').write_text('targets = ["doc.md", "new.md"]\nreport_only = []\n'
