@@ -340,3 +340,57 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   the commit when neither exists.
 - `deno task test:commit-msg` checks the rule and real commits in temporary
   repositories.
+
+### Document consistency — 2026-09-28
+
+`README.md`, `docs/architecture.md` and `docs/backfire.md` follow one region
+model, from [feature 008](../specs/008-doc-consistency/spec.md). Every part of
+these target documents is either a mechanical region, written by a generator,
+or an agent region, written by agents. No part is human-written.
+
+- A mechanical region is a Cog block (cogapp 3.6.0, MIT) in HTML comments. Its
+  code is one call of a function in `scripts/doc_sources.py`, whose arguments
+  name the repository files or globs it reads. The marker syntax and its rules
+  are in the [regions contract](../specs/008-doc-consistency/contracts/regions.md).
+  Documents link to it instead of quoting a marker, because Cog would run a
+  quoted marker as a region.
+- Everything else is an agent region. Backfire judges it before each `develop`
+  merge review.
+- `scripts/doc_regions.toml` lists the targets, and `AGENTS.md` and the
+  constitution as report-only documents. `specs/`, vendored skills and the
+  generated `docs/reference/` are not listed. A plugin document becomes a
+  target when the project writes one.
+- To add a mechanical region, add a function to `scripts/doc_sources.py` and a
+  test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
+  and a missing source that raises. The function reads only its named sources
+  and uses no network, clock or environment. Then put the markers around the
+  text in a target and run `deno task doc-regions:update`.
+- `deno task check`, and so `deno task verify`, runs `deno task
+  doc-regions:check`. It fails when a region differs from its generator's
+  output, a marker is malformed or names a missing source, or a target links
+  to a missing local file or heading (lychee 0.24.2, offline). It writes
+  nothing and uses no network. `deno task doc-regions:update` regenerates
+  stale regions.
+- Before each `develop` merge review, the main agent runs the judgment step
+  that `deno task workflow` prints in REVIEW mode. `deno task
+  doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
+  agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
+  `backfire_verify` requests, with units as claims and the feature diff as
+  evidence, and `backfire_classify` requests for the units the feature added.
+  The agent sends them through its MCP client. It corrects target units judged
+  contradicted or flagged for review, or records why they stand, and decides
+  which suggested candidates become mechanical regions.
+- `deno task doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
+  on `AGENTS.md` and the constitution. It downloads the pinned archive once
+  into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
+  Findings for these two files, from the audit or from backfire, are only
+  reported to the user; the tooling never changes them.
+- The engine is the uv project `packages/doc-regions/`. Orca's setup script
+  syncs it, and `deno task doctor` checks its environment and lychee's version.
+  Feature 010 calls its modules as a library, with a Wiki instance as the root
+  and its own targets, generators and evidence.
+- lychee is a host tool at `~/.local/bin/lychee`, installed from the release's
+  x86_64 Linux archive after checking it against the release's checksum.
+- Not automated: sending the backfire requests and acting on the results,
+  reporting drift in `AGENTS.md` and the constitution to the user, choosing
+  which candidates become mechanical regions, and installing lychee.

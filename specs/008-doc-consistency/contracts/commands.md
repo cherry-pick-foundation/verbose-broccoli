@@ -44,7 +44,8 @@ or execution failure, with each problem on stderr.
   ([research.md](../research.md) R6). A `backfire_classify` request has at
   most 64 items. No evidence item is longer than `--max-evidence-chars`;
   longer file diffs are split into numbered items (`deno.json#2`). Every unit
-  is in exactly one request per tool.
+  is in exactly one request per tool, except that an empty feature diff gives
+  no `backfire_verify` request: with no change, nothing can be contradicted.
 - Each `arguments` object validates against the tool's input schema as
   published by backfire.
 
@@ -106,7 +107,8 @@ repository as root. No function uses the network, and only `update` writes.
   input order, splitting each group's claims within the limits above. It
   never drops, trims or truncates a unit or evidence item, and passes
   evidence ids and texts through unchanged; it raises `ValueError` naming the
-  limit when a group's evidence alone does not fit. `prepare` passes one
+  limit when a group's evidence alone does not fit, and for a group with no
+  evidence. `prepare` passes one
   group: all units, with the feature diff split into items of at most
   `--max-evidence-chars`.
 - `requests.classify_requests(units, purpose)` returns requests of at most 64

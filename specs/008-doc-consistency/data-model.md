@@ -50,13 +50,16 @@ no marker and no attributes beyond its line range.
 | `id` | `<document>:<first line>-<last line>` |
 | `document` | path |
 | `heading_path` | the enclosing headings' texts, outermost first |
-| `kind` | `heading`, `paragraph`, `list_item`, `table`, `code` or `html` |
+| `kind` | `heading`, `paragraph`, `list_item`, `blockquote`, `table`, `code` or `html` |
 | `first_line`, `last_line` | 1-based, inclusive, from markdown-it-py's `map` |
 | `text` | the unit's source lines |
 | `added` | true when every line of the unit is inserted relative to the base text (for `prepare`, the file at the merge base) |
 
 Units come only from agent regions. A unit is a top-level block, or an item of
-a top-level list.
+a top-level list. Thematic breaks and link reference definitions carry no
+claim and become no unit; units cover every other non-blank agent-region line
+exactly once. Long units are passed on unchanged; `backfire_classify`
+truncates item text past 2,000 characters itself.
 
 ## Judgment request
 

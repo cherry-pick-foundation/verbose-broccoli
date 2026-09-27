@@ -165,9 +165,10 @@ unit; the workflow tool prints the step.
 
 - [ ] T014 [US2] Write `packages/doc-regions/tests/test_units.py`: headings,
   paragraphs, items of a top-level list, a table, a fenced code block and an
-  HTML block become units with 1-based inclusive lines and their heading path;
-  mechanical-region lines never appear in a unit; units cover every
-  non-blank agent-region line exactly once; `split(document, text,
+  HTML block and a blockquote become units with 1-based inclusive lines and
+  their heading path; mechanical-region lines never appear in a unit; units
+  cover every non-blank agent-region line exactly once except thematic breaks
+  and link reference definitions; `split(document, text,
   base_text)` marks `added` by `difflib` (false for all with `None`, true for
   all with `""`). Fails before T015.
 - [ ] T015 [US2] Implement `packages/doc-regions/src/doc_regions/units.py`
@@ -237,7 +238,7 @@ changing them.
 **Independent Test**: Read the section; add a region to a scratch document by
 following it.
 
-- [ ] T021 [US4] Add a "Document consistency" section to
+- [x] T021 [US4] Add a "Document consistency" section to
   `docs/architecture.md`: the region model, the target list and its location,
   how to add a generator and a region, the check in `deno task check`, the
   judgment step before the `develop` merge review, the MemoryLint audit, and
@@ -245,7 +246,7 @@ following it.
   lychee). Mention that feature 010 reuses `packages/doc-regions`. Link to
   the marker syntax in [contracts/regions.md](contracts/regions.md) instead of
   quoting it: Cog would run a quoted marker as a region.
-- [ ] T022 [US4] Add lychee, cogapp, markdown-it-py and MemoryLint to
+- [x] T022 [US4] Add lychee, cogapp, markdown-it-py and MemoryLint to
   `licenses/THIRD_PARTY_NOTICES.md` with source, version and license.
 - [ ] T023 [US4] Run the judgment step on this feature's own changes: send
   `backfire_classify` the current units of `README.md`,
