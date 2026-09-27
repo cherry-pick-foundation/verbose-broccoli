@@ -90,6 +90,8 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
     assertEquals(report.deno.version, '2.9.6');
     assertEquals(report.quarto.version, '1.10.18');
     assertEquals(report.uv.version, '0.11.32');
+    assertEquals(report.gitFlow.version, '2.1.0');
+    assertEquals(report.gitFlow.config.status, 'PASS');
     assertEquals(report.specKit, {
       project: 'tools/spec-kit',
       python: 'tools/spec-kit/.venv/bin/python',
@@ -196,6 +198,32 @@ Deno.test('doctor: version probes require exact versions, successful exit and bo
     const started = performance.now();
     await assertRejects(() => probeVersion(slow, 'quarto'));
     assert(performance.now() - started < 15000);
+  });
+});
+
+Deno.test('doctor: git-flow version and shared configuration status are required', async () => {
+  await temporary(async root => {
+    const wrong = await fixture(
+      root,
+      'wrong-git-flow',
+      "if (Deno.args[0] === 'version') console.log('2.0.0 (git-flow-next)');",
+    );
+    await assertRejects(
+      () => runDoctor({gitFlow: wrong}),
+      Error,
+      'git-flow must report version 2.1.0',
+    );
+
+    const drifted = await fixture(
+      root,
+      'drifted-git-flow',
+      "if (Deno.args[0] === 'version') console.log('2.1.0 (git-flow-next)'); else Deno.exit(6);",
+    );
+    await assertRejects(
+      () => runDoctor({gitFlow: drifted}),
+      Error,
+      'git-flow shared configuration has drifted',
+    );
   });
 });
 

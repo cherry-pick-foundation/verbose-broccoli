@@ -4,31 +4,32 @@ Generated file. Do not edit; refresh with deno task docs:generate.
 
 Input owners: [deno.json](../../deno.json), [scripts/doctor.ts](../../scripts/doctor.ts), [scripts/workflow.ts](../../scripts/workflow.ts), [scripts/clean\_architecture.ts](../../scripts/clean_architecture.ts), [scripts/validate\_plugins.ts](../../scripts/validate_plugins.ts), [plugins/code/skills/clean-code/scripts/clean\_code.ts](../../plugins/code/skills/clean-code/scripts/clean_code.ts).
 
-| Task                    | Invocation                        | Declared description                                                                                                   |
-| ----------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| check                   | deno task check                   |                                                                                                                        |
-| clean-architecture      | deno task clean-architecture      |                                                                                                                        |
-| clean-code              | deno task clean-code              |                                                                                                                        |
-| clean-code:scope        | deno task clean-code:scope        |                                                                                                                        |
-| docs:check              | deno task docs:check              |                                                                                                                        |
-| docs:generate           | deno task docs:generate           |                                                                                                                        |
-| doctor                  | deno task doctor                  | Verify standalone Deno 2.9.6, independent Quarto 1.10.18, uv 0.11.32, the Spec Kit environment and locked dependencies |
-| format                  | deno task format                  |                                                                                                                        |
-| format:check            | deno task format:check            |                                                                                                                        |
-| lint                    | deno task lint                    |                                                                                                                        |
-| lint:fix                | deno task lint:fix                |                                                                                                                        |
-| plugins:validate        | deno task plugins:validate        |                                                                                                                        |
-| test                    | deno task test                    |                                                                                                                        |
-| test:clean-architecture | deno task test:clean-architecture |                                                                                                                        |
-| test:clean-code         | deno task test:clean-code         |                                                                                                                        |
-| test:cli-contract       | deno task test:cli-contract       |                                                                                                                        |
-| test:docs               | deno task test:docs               |                                                                                                                        |
-| test:doctor             | deno task test:doctor             |                                                                                                                        |
-| test:plugin-skills      | deno task test:plugin-skills      |                                                                                                                        |
-| test:workflow           | deno task test:workflow           |                                                                                                                        |
-| typecheck               | deno task typecheck               |                                                                                                                        |
-| verify                  | deno task verify                  |                                                                                                                        |
-| workflow                | deno task workflow                |                                                                                                                        |
+| Task                    | Invocation                        | Declared description                                                                                                                  |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| check                   | deno task check                   |                                                                                                                                       |
+| clean-architecture      | deno task clean-architecture      |                                                                                                                                       |
+| clean-code              | deno task clean-code              |                                                                                                                                       |
+| clean-code:scope        | deno task clean-code:scope        |                                                                                                                                       |
+| docs:check              | deno task docs:check              |                                                                                                                                       |
+| docs:generate           | deno task docs:generate           |                                                                                                                                       |
+| doctor                  | deno task doctor                  | Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, the Spec Kit environment and locked dependencies |
+| format                  | deno task format                  |                                                                                                                                       |
+| format:check            | deno task format:check            |                                                                                                                                       |
+| lint                    | deno task lint                    |                                                                                                                                       |
+| lint:fix                | deno task lint:fix                |                                                                                                                                       |
+| plugins:validate        | deno task plugins:validate        |                                                                                                                                       |
+| test                    | deno task test                    |                                                                                                                                       |
+| test:clean-architecture | deno task test:clean-architecture |                                                                                                                                       |
+| test:clean-code         | deno task test:clean-code         |                                                                                                                                       |
+| test:cli-contract       | deno task test:cli-contract       |                                                                                                                                       |
+| test:docs               | deno task test:docs               |                                                                                                                                       |
+| test:doctor             | deno task test:doctor             |                                                                                                                                       |
+| test:git-flow           | deno task test:git-flow           |                                                                                                                                       |
+| test:plugin-skills      | deno task test:plugin-skills      |                                                                                                                                       |
+| test:workflow           | deno task test:workflow           |                                                                                                                                       |
+| typecheck               | deno task typecheck               |                                                                                                                                       |
+| verify                  | deno task verify                  |                                                                                                                                       |
+| workflow                | deno task workflow                |                                                                                                                                       |
 
 ## clean-architecture
 

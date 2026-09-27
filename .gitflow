@@ -1,0 +1,24 @@
+[gitflow]
+	version = 1.0
+	initialized = true
+[gitflow "branch.main"]
+	type = base
+	tag = false
+[gitflow "branch.develop"]
+	type = base
+	parent = main
+	tag = false
+[gitflow "branch.feature"]
+	type = topic
+	parent = develop
+	prefix = feature/
+	tag = false
+	upstreamStrategy = merge
+	downstreamStrategy = merge
+[gitflow "feature.finish"]
+	no-ff = true
+	keep = true
+	fetch = false
+	push = false
+[gitflow "path"]
+	hooks = scripts/git-flow-hooks

@@ -23,10 +23,21 @@ scripts:
       exit 127
     fi
 
-    export PATH="$(dirname "$uv_bin"):$(dirname "$deno_bin"):$PATH"
+    if [ -x "$HOME/.local/bin/git-flow" ]; then
+      git_flow_bin="$HOME/.local/bin/git-flow"
+    elif command -v git-flow >/dev/null 2>&1; then
+      git_flow_bin="$(command -v git-flow)"
+    else
+      echo 'git-flow 2.1.0 was not found.' >&2
+      exit 127
+    fi
+
+    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$(dirname "$deno_bin"):$PATH"
 
     "$deno_bin" install --frozen --no-prompt
     "$deno_bin" install --frozen --cached-only --no-prompt
     "$uv_bin" sync --locked --project tools/spec-kit
+    git config gitflow.shared.trustHooks true
+    git flow config sync
     "$deno_bin" task doctor
 setupAgentStartupPolicy: wait-for-setup
