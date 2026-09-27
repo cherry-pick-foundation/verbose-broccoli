@@ -65,6 +65,9 @@ code tasks in the Worker Assignment section.
     phone numbers and emails by format); learning content such as scores and
     observations is sent as is. So FR-019 must keep personal records out of
     010's calls itself. 011's plan will fix the build interface.
+  - 2026-09-28: 011's plan is `87563f8`. Its build takes only packages under
+    `packages/backfire/src/` (research.md R7), it has no withhold policy, and
+    both plugins name their server `backfire` (R9).
 - [ ] T003 Apply the amendment the user chose (spec.md Clarifications): amend
   point 2 of principle VI in
   `.specify/memory/constitution.md` as [research.md](research.md) R2 says, in
@@ -254,11 +257,12 @@ the code plugin; the schema and the skill describe the procedure.
 
 **Independent Test**: The quickstart's "Build".
 
-- [ ] T025 [P] [US5] Add `packages/doc-regions` and
-  `packages/wiki-consistency` (without `.venv` and `node_modules`) to the
-  work plugin's list in feature 011's per-plugin build, side by side at the
-  built plugin's root, through the interface T002 recorded; add a test that
-  builds into a temporary folder,
+- [ ] T025 [P] [US5] In feature 011's plugin table in
+  `packages/backfire/src/backfire_tools/build.py`, add a second kind of
+  entry, a per-plugin list of `packages/<name>` projects copied beside
+  `backfire/` without `.venv` and `node_modules` (research.md R7), and list
+  `doc-regions` and `wiki-consistency` in the work row; 011's own build tests
+  keep passing. Add a test that builds into a temporary folder,
   installs offline from the locks and runs `check` on a synthetic instance
   with no code plugin present.
 - [ ] T026 [US5] Write `plugins/work/skills/wiki-consistency/SKILL.md`: when
@@ -325,7 +329,7 @@ the code plugin; the schema and the skill describe the procedure.
 | Codex A | T008 to T014 | `packages/wiki-consistency/src/wiki_consistency/{instance,sources,lint,__main__}.py`, their tests and helper; `packages/doc-regions/src/`, `packages/doc-regions/tests/` for T012 only |
 | Codex B | T015 to T018 | `src/wiki_consistency/{evidence,search}.py` and their tests |
 | Codex C | T019 to T024 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py` |
-| Codex D | T007, T025 | `scripts/doctor.ts`, `scripts/doctor_test.ts`, the work-plugin build files and their test |
+| Codex D | T007, T025 | `scripts/doctor.ts`, `scripts/doctor_test.ts`, `packages/backfire/src/backfire_tools/build.py` and its tests |
 | Main | T001 to T006, T026 to T032 | shared files, the skill, the schema template, `docs/`, `licenses/`, the constitution, prose, Git, the instance |
 
 Codex C starts after Codex A's T009 and Codex B's T016 and T018; `__main__.py`

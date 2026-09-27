@@ -222,6 +222,17 @@ Read from `packages/backfire/src/backfire/tools/` and `lib.py` on this branch.
   `doc-regions` and `wiki-consistency` to the work plugin's list, side by
   side at the built plugin's root. The build's interface is fixed only in
   feature 011's plan, so this plan assumes none; T002 records it.
+- **2026-09-28, 011's build as planned** (`87563f8` on
+  `feature/backfire-education`, its `contracts/build.md`): `deno task
+  backfire:build -- <plugin> <output>`; one table in
+  `packages/backfire/src/backfire_tools/build.py` lists, per plugin, the
+  packages under `packages/backfire/src/` copied into `<output>/backfire/`.
+  011 will not add copying of whole `packages/<name>` projects, since it has
+  no consumer for it. So this feature adds, in its own change after 011
+  merges, a second kind of entry to that table: a per-plugin list of
+  `packages/<name>` projects copied beside `backfire/`, without `.venv` and
+  `node_modules`, and lists `doc-regions` and `wiki-consistency` in the work
+  row (T025). The table stays the one place to extend, as the user decided.
 - **Host tools**: lychee 0.24.2 (feature 008 installs it) and Node 22 or
   later; the tool fails with a named missing tool when either is absent.
 - **Alternatives considered**: The glue as a skill script with PEP 723
@@ -264,8 +275,11 @@ needs three things 008's plan does not state:
   any changed line, so `requests.py` derives it from the unit line ranges and
   a diff against the instance's `HEAD`; `added` still selects classify
   requests. `classify_requests` returns at most 64 items per request and does
-  not trim text; backfire truncates past 2,000 characters. T002 rechecks all
-  of this on `develop`.
+  not trim text; backfire truncates past 2,000 characters. `verify_requests`
+  also raises for a group with no evidence, so `requests.py` builds no group
+  for an unverifiable unit or for a unit without candidates. Units have the
+  kinds of 008's contract, including `blockquote`; thematic breaks and link
+  reference definitions are no unit. T002 rechecks all of this on `develop`.
 
 ## R9. Personal data and credentials
 
@@ -286,6 +300,17 @@ needs three things 008's plan does not state:
   backfire gets a pseudonymization module and an education profile. Whether
   pseudonymization happens inside backfire or must be applied to requests
   before they are sent decides where FR-019 is enforced; T002 records it.
+- **2026-09-28, 011's answer**: 011 has no withhold rule and no data
+  classification. When the work build's shipped `config.toml` sets
+  `pseudonymize = true`, its judge replaces identifiers (roster full and
+  given names, guardian names, schools, phone numbers, emails) before the
+  provider call, and sends everything else as is (011
+  `contracts/pseudonymization.md`). So there is no policy for FR-019 to
+  read; what FR-019 and the `withheld` list become is a question for the
+  user. Both plugins' `mcp.json` declare the server as `backfire` with the
+  same eleven tool names; how Codex CLI and Claude Code tell two same-named
+  servers from two plugins apart is unverified, and 011's client check (its
+  T020) will report it. The judgment step must use the work plugin's server.
 - **Existing limits**: feature 009 keeps student records out of `raw/` by an
   excluded path (009 FR-012), and constitution III keeps operational records
   out of the Wiki, so evidence is the user's own teaching material and
