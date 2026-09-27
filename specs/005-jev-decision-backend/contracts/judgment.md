@@ -61,8 +61,11 @@ evidence the profile names, null without a provider response) and
 
 A failed judgment raises an error whose text, which the agent sees as the
 tool's error, is `<type>: <message>`. The message is fixed per type and names
-the cause and the corrective action; it never contains request content, the
-provider's or the adapter's error text, credentials or headers. No error
+the cause and the corrective action; only `backend_not_configured` adds, in
+parentheses, the path or profile name it concerns
+([configuration.md](configuration.md#operator-files-config)). It never contains
+request content, the provider's or the adapter's error text, credentials or
+headers. No error
 returns an answer or a default.
 
 | Type | Cause |
