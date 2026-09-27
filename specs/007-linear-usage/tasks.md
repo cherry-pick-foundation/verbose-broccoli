@@ -167,13 +167,20 @@ mode prints the Linear instruction.
     setting is unconfirmed (T007, left pending by the user's choice). SC-003
     walkthrough: three of four moments were found where agents read them;
     the fourth is the fixed finding.
-- [ ] T012 Commit the record in this file, move CHE-5 to In Review, add the
+- [x] T012 Commit the record in this file, move CHE-5 to In Review, add the
   review-record commit, finish with `git flow feature finish linear-usage`
   from the `develop` worktree, then move CHE-5 to Done with one completion
   comment naming the merge commit and `specs/007-linear-usage/` (SC-002).
   - 2026-09-28: record committed; CHE-5 moved to In Review only after the
     review ran, not before it as FR-006 orders; finish next from the
     `develop` worktree.
+  - 2026-09-28: finished into `develop` as af66e36 (parents fee62f3,
+    558db4c). The finish raced with the constitution cleanup's merge
+    fee62f3, which landed while the finish hook was verifying, so git-flow
+    merged onto it; the combined tree was then verified on its own (`deno
+    task check` passed on af66e36 in a scratch worktree). CHE-5 moved to
+    Done with one completion comment naming af66e36 and this directory. T007
+    stays pending with the user.
 
 ---
 
