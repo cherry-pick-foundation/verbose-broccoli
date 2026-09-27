@@ -442,3 +442,25 @@ Deno.test('workflow: delegation instructions use Orca workers', () => {
     assert(!lines.some(line => line.includes('Goose')));
   }
 });
+
+Deno.test('workflow: review instructions time independent review at merge', () => {
+  const lines = buildWorkModeInstructions('REVIEW', true);
+  assert(
+    lines.some(
+      line =>
+        line.includes('Before each commit') &&
+        line.includes('the implementer or the orchestrator reviews the diff'),
+    ),
+  );
+  assert(
+    lines.some(
+      line =>
+        line.includes('fresh reviewer from the other provider') &&
+        line.includes('develop (favoring speed)') &&
+        line.includes('main (favoring accuracy)') &&
+        line.includes('not for each change'),
+    ),
+  );
+  assert(lines.some(line => line.includes('no extra user approval')));
+  assert(!lines.some(line => line.includes('separate read-only diff review')));
+});

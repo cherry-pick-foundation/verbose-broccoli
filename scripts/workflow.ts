@@ -44,7 +44,7 @@ const actions = {
     'Use Orca orchestration to launch one supervised worker per listed task concurrently, within available agent slots.',
   ],
   REVIEW: [
-    'Main coordinates implementation and resolves the listed review reasons. Obtain a separate read-only diff review while main verifies the result; this does not require extra user approval.',
+    'Main coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from the other provider (Claude Code or Codex) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.',
   ],
 };
 
