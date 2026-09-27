@@ -30,7 +30,7 @@ the Worker Assignment section.
 
 **Purpose**: Shared configuration every worker's checks run through.
 
-- [ ] T001 Update `deno.json`: add imports `@commitlint/cli` →
+- [x] T001 Update `deno.json`: add imports `@commitlint/cli` →
   `npm:@commitlint/cli@21.2.3`, `@commitlint/config-conventional` →
   `npm:@commitlint/config-conventional@21.2.3` and
   `conventional-changelog-conventionalcommits` →
@@ -42,10 +42,10 @@ the Worker Assignment section.
   `test:worktree-branch` (runs `scripts/worktree_branch_test.ts`), both added to
   the `test` dependencies; allow the `doctor` task to run `git`; add
   `scripts/constitution_version.ts` to `typecheck`.
-- [ ] T002 Run `deno install` to pin the new packages in `deno.lock`, then
+- [x] T002 Run `deno install` to pin the new packages in `deno.lock`, then
   confirm `deno install --frozen --cached-only --no-prompt` and `deno task
   --quiet commitlint --help` succeed (depends on T001).
-- [ ] T003 [P] Update `orca.yaml`'s setup script: right after `cd
+- [x] T003 [P] Update `orca.yaml`'s setup script: right after `cd
   "$project_root"`, run `sh scripts/worktree-branch.sh`; next to `git config
   gitflow.shared.trustHooks true`, run `git config core.hooksPath
   scripts/git-hooks`. Check with `deno fmt --check orca.yaml`.
@@ -69,7 +69,7 @@ review-record commit whose parent is the reviewed commit.
 git-flow-next binary in temporary repositories
 ([contracts/review-record.md](contracts/review-record.md)).
 
-- [ ] T004 [US1] Extend `scripts/git_flow_test.ts`: give the fixture a helper
+- [x] T004 [US1] Extend `scripts/git_flow_test.ts`: give the fixture a helper
   that adds a valid review-record commit (`git commit --allow-empty` with one
   `Reviewed-by` and one `Reviewed-commit: <parent id>` trailer) and use it in
   the existing verification-failure and success tests, so each still reaches
@@ -83,7 +83,7 @@ git-flow-next binary in temporary repositories
   record. Also show that an abbreviated `Reviewed-commit` that resolves to the
   parent is accepted, and that lower-case trailer keys are accepted. The new
   tests fail before T005.
-- [ ] T005 [US1] Extend `scripts/git-flow-hooks/pre-flow-feature-finish`
+- [x] T005 [US1] Extend `scripts/git-flow-hooks/pre-flow-feature-finish`
   (POSIX `sh`, no new runtime) with checks 5 to 8 of
   [contracts/review-record.md](contracts/review-record.md), placed after the
   existing worktree checks and before `deno task --quiet verify`, each refusing
@@ -104,7 +104,7 @@ checks the installation.
 **Independent Test**: `deno task test:commit-msg` and `deno task test:doctor`
 ([contracts/commit-message.md](contracts/commit-message.md)).
 
-- [ ] T006 [P] [US2] Create `scripts/constitution_version.ts`: a pure function
+- [x] T006 [P] [US2] Create `scripts/constitution_version.ts`: a pure function
   that takes the parsed commit's type and whether it is breaking (any
   `BREAKING CHANGE` note) plus the constitution text before and after, and
   returns commitlint's `[valid, message]` per the rules table in
@@ -117,7 +117,7 @@ checks the installation.
   line missing or malformed, two version lines, a skipped step, a lowered
   version, `refactor` changing the version, `refactor!` raising the major, and
   a text change without a version change.
-- [ ] T007 [US2] Create `scripts/commitlint.config.mjs` (spreads
+- [x] T007 [US2] Create `scripts/commitlint.config.mjs` (spreads
   `@commitlint/config-conventional`, passes the
   `conventional-changelog-conventionalcommits` parser options as
   `parserPreset: {parserOpts}` per [research.md](research.md#r1-commit-message-linter),
@@ -126,7 +126,7 @@ checks the installation.
   `scripts/git-hooks/commit-msg` (finds Deno at `$HOME/.deno/bin/deno`, then on
   `PATH`, else refuses with `Commit refused: Deno 2.9.6 was not found.`; runs
   `deno task --quiet commitlint --edit "$1"`) (depends on T006).
-- [ ] T008 [US2] Add real-commit tests to `scripts/commit_msg_test.ts`: in
+- [x] T008 [US2] Add real-commit tests to `scripts/commit_msg_test.ts`: in
   temporary repositories that contain copies of `deno.json`, `deno.lock`,
   `scripts/commitlint.config.mjs`, `scripts/constitution_version.ts` and
   `scripts/git-hooks/commit-msg` and set `core.hooksPath` to
@@ -141,7 +141,7 @@ checks the installation.
   found. Keep Deno's cache reachable when the test changes `HOME` (set
   `DENO_DIR` explicitly). Measure one hook run and assert it takes under 2
   seconds (depends on T007).
-- [ ] T009 [P] [US2] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`:
+- [x] T009 [P] [US2] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`:
   the doctor runs `git config --get core.hooksPath` in the repository root,
   fails with `Git hooks are not installed; run git config core.hooksPath
   scripts/git-hooks.` unless the value is exactly `scripts/git-hooks`, and
@@ -161,23 +161,23 @@ repository.
 
 **Independent Test**: Read the three sources and run `deno task test:workflow`.
 
-- [ ] T010 [P] [US3] In `scripts/workflow.ts`, replace the REVIEW action text
+- [x] T010 [P] [US3] In `scripts/workflow.ts`, replace the REVIEW action text
   with guidance for decision 3: main coordinates implementation and resolves
-  the listed review reasons; before each commit the implementer re-reviews its
-  own diff; the independent review by a fresh reviewer from the other provider
+  the listed review reasons; before each commit the implementer or the
+  orchestrator reviews the diff (as clarified by the user); the independent review by a fresh reviewer from the other provider
   happens when the branch merges into `develop` (favoring speed) or `main`
   (favoring accuracy), not for each change; no extra user approval is needed.
   Add a test in `scripts/workflow_test.ts` that the REVIEW instructions mention
-  the self-review and the merge-time review and no longer ask for a separate
+  the pre-commit review and the merge-time review and no longer ask for a separate
   diff review of each change; update any snapshot that changes.
-- [ ] T011 [P] [US3] Add to `AGENTS.md` exactly the three rules from the brief:
-  under "Review", "Before each commit, the implementer re-reviews its own
-  diff." and "A review before merging into `develop` favors speed; one before
+- [x] T011 [P] [US3] Add to `AGENTS.md` exactly the three rules from the brief:
+  under "Review", "Before each commit, the implementer or the orchestrator
+  reviews the diff." (as clarified by the user) and "A review before merging into `develop` favors speed; one before
   merging into `main` favors accuracy."; under "Workflow and verification",
   "The main agent chooses each worker's and reviewer's model, reasoning effort
   and time budget from the code plugin's backfire judgments." Change nothing
   else.
-- [ ] T012 [US3] Amend `.specify/memory/constitution.md`: in Governance,
+- [x] T012 [US3] Amend `.specify/memory/constitution.md`: in Governance,
   replace "Increment draft minor versions for principle changes and patch
   versions for wording corrections." with decision 7 (the commit type of the
   commit that changes the constitution decides the bump, once per commit;
@@ -199,7 +199,7 @@ flow form.
 **Independent Test**: `deno task test:worktree-branch`
 ([contracts/worktree-branch.md](contracts/worktree-branch.md)).
 
-- [ ] T013 [US5] Create `scripts/worktree_branch_test.ts`: in temporary
+- [x] T013 [US5] Create `scripts/worktree_branch_test.ts`: in temporary
   repositories with `main` and `develop`, create worktrees the way Orca does
   (`git worktree add -b <name> <folder> <base>`) and run `sh
   scripts/worktree-branch.sh` inside them. Cover `release-1.0` →
@@ -212,7 +212,7 @@ flow form.
   second run changes no ref; folders, other branches and other worktrees never
   change (compare `for-each-ref` and `worktree list --porcelain`). The tests
   fail before T014.
-- [ ] T014 [US5] Create `scripts/worktree-branch.sh` (POSIX `sh`, Git only) per
+- [x] T014 [US5] Create `scripts/worktree-branch.sh` (POSIX `sh`, Git only) per
   [contracts/worktree-branch.md](contracts/worktree-branch.md), with a comment
   that it is temporary glue to remove once `orca worktree create` offers a
   branch option. `deno task test:worktree-branch` passes (depends on T013).
@@ -225,31 +225,38 @@ flow form.
 
 **Independent Test**: Read the sections; `deno task docs:check` passes.
 
-- [ ] T015 [US4] Update `docs/architecture.md`: in "Git flow — 2026-09-27",
+- [x] T015 [US4] Update `docs/architecture.md`: in "Git flow — 2026-09-27",
   the review-record requirement, the review record's format and what stays
   manual (the merge review itself; the release and hotfix review); a new
   section for the commit-message check (commitlint and its pinned versions,
   the constitution rule, `core.hooksPath`, Orca's setup, the doctor check, the
   amend limit); the branch naming in Orca's setup and when to remove it; and
   the review timing where the workflow is described.
-- [ ] T016 [US4] Run `deno task docs:generate` and confirm `deno task
+- [x] T022 [US4] Remove `conversations` from the Raw folders in
+  `docs/examples/wiki/AGENTS.md`, so it admits only
+  `raw/{web,files,notes,assets}/` like constitution principle VI (addendum H,
+  item 1).
+- [x] T016 [US4] Run `deno task docs:generate` and confirm `deno task
   docs:check` passes; commit `docs/reference/` (depends on T001, T015).
 
 ---
 
 ## Phase 8: Polish and Integration
 
-- [ ] T017 Set `git config core.hooksPath scripts/git-hooks` for the repository
+- [x] T017 Set `git config core.hooksPath scripts/git-hooks` for the repository
   (shared by all worktrees; worktrees without `scripts/git-hooks/` run no hook)
   and confirm `deno task doctor` passes and a bad header is refused here
   (depends on T007, T009).
-- [ ] T018 Run the quickstart checks and `deno task verify` on the combined
+- [x] T018 Run the quickstart checks and `deno task verify` on the combined
   result; rerun `deno task workflow` with the same task and base; repair until
   both pass. For SC-006, add a scratch worktree of this repository named
   `feature-setup-probe` with `git worktree add -b feature-setup-probe`, run
   `orca.yaml`'s setup script in it, confirm its branch became
   `feature/setup-probe`, `core.hooksPath` is `scripts/git-hooks` and `deno
   task doctor` passes there, then remove the worktree and its branch.
+  - 2026-09-27: verify passed (VERIFIED); the setup probe renamed
+    `feature-setup-probe` to `feature/setup-probe` with doctor PASS; the hook
+    took 0.13 s and refused a `docs` constitution bump to 0.22.0. Next: T019.
 - [ ] T019 Merge review for `develop`, favoring speed: a fresh Claude Code
   reviewer for the Codex-implemented code and a fresh Codex reviewer for the
   prose main wrote, each given only the scope and the requirements; resolve
@@ -257,9 +264,10 @@ flow form.
 - [ ] T020 Add the review-record commit at the feature tip and finish with `git
   flow feature finish governance-policies` from the `develop` worktree (FR-020);
   confirm the merge's parents and tree.
-- [ ] T021 Outside the repository, propose without applying: which installed
+- [ ] T021 Outside the repository, propose without applying which installed
   marketplace plugins connect apps Orca supports (Linear first) and could be
-  removed; and turning off Orca's `autoRenameBranchFromWork` setting.
+  removed. (The user turned off Orca's `autoRenameBranchFromWork` setting on
+  2026-09-27, so no proposal is needed for it.)
 
 ---
 

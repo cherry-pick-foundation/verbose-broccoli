@@ -21,6 +21,10 @@ be enforced and into short rules where they need judgment:
 - `deno task workflow` REVIEW guidance, three `AGENTS.md` rules, the
   constitution amendment and `docs/architecture.md` state the review timing,
   model choice and version rules (decisions 3, 5, 6, 7 and 8).
+- The example Wiki schema drops `raw/conversations/` to match constitution
+  principle VI (addendum item H.1). Copying the user's documents into Wiki
+  storage (H.2) is importing user data, which principle IV makes its own
+  feature.
 
 ## Technical Context
 
@@ -97,6 +101,7 @@ specs/006-governance-policies/
 AGENTS.md                                  # three rules (main)
 .specify/memory/constitution.md            # amendment (main)
 docs/architecture.md                       # procedures (main)
+docs/examples/wiki/AGENTS.md               # Raw folders (main)
 docs/reference/commands.md                 # regenerated (main)
 deno.json, deno.lock                       # imports and tasks (main)
 orca.yaml                                  # setup: branch name, hooksPath (main)
@@ -145,8 +150,8 @@ advisor's judgments (R6), chosen per worker when it is started.
 
 ## Review and Finish
 
-- Each implementer re-reviews its own diff before each commit; main reviews
-  Codex workers' changes before integrating them.
+- Before each commit, the implementer or the orchestrator reviews the diff;
+  main reviews Codex workers' changes before integrating them.
 - Merge review for `develop` (favoring speed), by fresh reviewers from the
   other provider who get only the scope and requirements: a Claude Code
   reviewer for the Codex-implemented code, and a Codex reviewer for the

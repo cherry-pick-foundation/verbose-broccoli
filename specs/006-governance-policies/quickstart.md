@@ -34,7 +34,8 @@ branch-naming tests cover every case in
 4. Timing: `time git commit --allow-empty -m 'test: time hook'` in a scratch
    clone takes under 2 seconds; drop the commit afterwards.
 5. REVIEW guidance: a change to `AGENTS.md` makes `deno task workflow` choose
-   REVIEW, and its instructions describe self-review before each commit and
+   REVIEW, and its instructions describe the review of the diff by the implementer or the orchestrator
+   before each commit and
    the independent review at merge time.
 
 ## Finish

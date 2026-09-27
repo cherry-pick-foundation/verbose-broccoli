@@ -46,6 +46,15 @@ worktree's branch mechanically (`release-<rest>` to `release/<rest>`,
 leading `feature-` removed). Folder names keep the flat convention. The glue is
 removed once Orca's command line offers a branch option.
 
+A second addendum the same day (item H) concerns raw documents and Wiki
+storage. Its repository part is in this feature: the example Wiki schema
+`docs/examples/wiki/AGENTS.md` admits `raw/conversations/`, but constitution
+principle VI excludes conversation records from Raw evidence. Its part outside
+the repository, copying the user's scattered documents into the principle VI
+layout with recorded provenance, is importing existing user data, which
+constitution principle IV makes a separately specified capability; it is
+specified as its own feature and is out of scope here.
+
 ## Clarifications
 
 ### Session 2026-09-27
@@ -57,6 +66,11 @@ removed once Orca's command line offers a branch option.
   what should the check do? → A: Refuse it. Every commit that changes the
   constitution bumps its version exactly once, so only `feat`, `docs`, `fix`
   or a breaking commit can change the constitution.
+- Later the same day the user asked that the review before each commit may be
+  done by the orchestrator as well as by the implementer. The first rule in
+  `AGENTS.md` and the workflow tool's REVIEW guidance say "the implementer or
+  the orchestrator reviews the diff" instead of the brief's "the implementer
+  re-reviews its own diff".
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -167,11 +181,11 @@ enforced; the remaining rules need judgment and must reach agents in words.
 **Acceptance Scenarios**:
 
 1. **Given** `AGENTS.md`, **When** an agent reads it, **Then** it finds exactly
-   three new rules: the implementer re-reviews its own diff before each commit;
-   a review before merging into `develop` favors speed and one before merging
-   into `main` favors accuracy; and the main agent chooses each worker's and
-   reviewer's model, reasoning effort and time budget from the code plugin's
-   backfire judgments. Nothing else in `AGENTS.md` changes.
+   three new rules: the implementer or the orchestrator reviews the diff
+   before each commit; a review before merging into `develop` favors speed and
+   one before merging into `main` favors accuracy; and the main agent chooses
+   each worker's and reviewer's model, reasoning effort and time budget from
+   the code plugin's backfire judgments. Nothing else in `AGENTS.md` changes.
 2. **Given** the constitution, **When** an agent reads Governance, **Then** the
    version rule is decision 7's commit-type rule, and the old rule ("principle
    changes raise the draft minor version, wording corrections the patch
@@ -183,7 +197,8 @@ enforced; the remaining rules need judgment and must reach agents in words.
    compared with the previous one, **Then** the bump matches the amendment
    commit's type under decision 7.
 5. **Given** `deno task workflow` selects REVIEW mode, **When** an agent reads
-   its instructions, **Then** they say the implementer re-reviews its own diff
+   its instructions, **Then** they say the implementer or the orchestrator
+   reviews the diff
    before committing and the independent review happens at the merge into
    `develop` or `main`; they no longer ask for a separate diff review of each
    change.
@@ -209,6 +224,10 @@ check.
    feature delivers, including what stays manual.
 2. **Given** the generated reference files, **When** the drift check runs,
    **Then** it passes with the new or changed commands listed.
+3. **Given** the example Wiki schema `docs/examples/wiki/AGENTS.md`, **When** a
+   reader compares its Raw folders with constitution principle VI, **Then**
+   both list `web/`, `files/`, `notes/` and `assets/`, and neither admits
+   conversation records.
 
 ---
 
@@ -340,7 +359,8 @@ checked out; then run it a second time.
 **Rules for agents (decisions 3, 5, 6, 7 and 8)**
 
 - **FR-013**: `AGENTS.md` MUST gain exactly the three rules the brief lists,
-  with the first two under "Review"; no other `AGENTS.md` text changes.
+  with the first two under "Review" and the first one worded as clarified
+  (implementer or orchestrator); no other `AGENTS.md` text changes.
 - **FR-014**: The constitution's Governance section MUST replace the old
   version rule with decision 7, including that a breaking bump needs the
   user's approval.
@@ -352,7 +372,7 @@ checked out; then run it a second time.
   according to the type of the commit that makes it, and its Sync Impact Report
   MUST record the change.
 - **FR-017**: `deno task workflow` in REVIEW mode MUST describe decision 3
-  (self-review of the diff before each commit; the independent review at merge
+  (the implementer or the orchestrator reviews the diff before each commit; the independent review at merge
   time) instead of a separate diff review per change, and the affected tests
   and snapshots MUST match.
 
@@ -363,6 +383,8 @@ checked out; then run it a second time.
   installation, and what stays manual.
 - **FR-019**: The generated files in `docs/reference/` MUST be regenerated and
   pass the drift check.
+- **FR-026**: `docs/examples/wiki/AGENTS.md` MUST admit Raw originals only
+  under `raw/{web,files,notes,assets}/`, matching constitution principle VI.
 
 **This feature's own merge**
 
@@ -443,6 +465,6 @@ checked out; then run it a second time.
   created from.
 - The worktree name is the name of the worktree's folder, which is how Orca
   names it.
-- Turning off Orca's `autoRenameBranchFromWork` setting, which can rename a
-  branch after an agent's first work and undo git flow names, is proposed to
-  the user and not applied without approval.
+- Orca's `autoRenameBranchFromWork` setting, which can rename a branch after
+  an agent's first work and undo git flow names, was turned off by the user on
+  2026-09-27.
