@@ -23,6 +23,10 @@ __pycache__/
 /generated/
 /.local/
 
+# Per-worktree pointer to the current Spec Kit plan, written by the
+# agent-context extension
+/.claude/rules/current-plan.md
+
 # Local copies of operator configuration; tracked examples contain no secrets
 .env
 .env.*

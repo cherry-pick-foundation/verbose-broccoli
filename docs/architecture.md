@@ -189,3 +189,27 @@ links and that `.agents/ponytail` resolves to the `code` package, copies skill
 resources into temporary packages without workspace links, then runs the
 upstream Ponytail checks. This checks resource packaging; client installation
 and native invocation still need their own acceptance.
+
+### Spec Kit extensions — 2026-09-27
+
+The project uses Spec Kit's bundled `agent-context`, `assess`, `bug` and `git`
+extensions, installed under `.specify/extensions/`. `specify extension add`
+writes their skills to `.agents/skills`; following the table above, the ten in
+use live in `plugins/code/skills` instead.
+
+- `assess` and `bug` run only when invoked. They keep their records in
+  `.specify/assessments/<slug>/` and `.specify/bugs/<slug>/`.
+- Every `git` hook is disabled in `.specify/extensions.yml`. Each worktree is
+  created on its own feature branch, and the `before_specify` hook would create
+  and switch to another branch inside it; the auto-commit hooks would bypass
+  the constitution's commit rules. Only `speckit-git-validate` is packaged; it
+  checks numeric or timestamp-prefixed branches against matching spec directory
+  prefixes, so it does not validate unnumbered `feature/<name>` branches.
+- `agent-context` writes its current-plan pointer to the gitignored
+  `.claude/rules/current-plan.md`, which Claude Code loads and Codex does not.
+  The pointer differs per worktree, and the root `AGENTS.md` is maintained as
+  the user supplied it. Both after hooks are enabled and non-optional, and they
+  require Python 3 with PyYAML. `deno task doctor` does not check this host
+  dependency. Before use, run `python3 -c 'import yaml'`, or
+  `"$SPECKIT_PYTHON" -c 'import yaml'` when that override is set. The bundled
+  extension README has installation details.
