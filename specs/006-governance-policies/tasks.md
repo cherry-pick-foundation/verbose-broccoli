@@ -257,10 +257,13 @@ flow form.
   - 2026-09-27: verify passed (VERIFIED); the setup probe renamed
     `feature-setup-probe` to `feature/setup-probe` with doctor PASS; the hook
     took 0.13 s and refused a `docs` constitution bump to 0.22.0. Next: T019.
-- [ ] T019 Merge review for `develop`, favoring speed: a fresh Claude Code
+- [x] T019 Merge review for `develop`, favoring speed: a fresh Claude Code
   reviewer for the Codex-implemented code and a fresh Codex reviewer for the
   prose main wrote, each given only the scope and the requirements; resolve
   actionable findings and rerun affected checks.
+  - 2026-09-27: code review (Claude `claude-sonnet-5`, high) found nothing;
+    prose review (Codex `gpt-6-luna`, high) found one should-fix, resolved in
+    `585c447`. Next: T020, finish from the `develop` worktree.
 - [ ] T020 Add the review-record commit at the feature tip and finish with `git
   flow feature finish governance-policies` from the `develop` worktree (FR-020);
   confirm the merge's parents and tree.
