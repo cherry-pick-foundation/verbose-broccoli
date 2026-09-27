@@ -346,9 +346,11 @@ arm.
   by the format rules.
 - Teacher names, grades, dates, scores and observations are not identifiers
   under this feature and are sent as is.
-- The mapping table holds identifier–pseudonym pairs, not student records.
-  The roster stays owned by EduOK and its export. Whether constitution
-  principle III needs clearer wording for this is CHE-11's question.
+- The mapping table holds keyed digests of identifiers and their pseudonyms,
+  not student records. The roster stays owned by EduOK and its export.
+  Constitution 1.0.0 (2026-09-28) removed principle III's sentences on a
+  second student register and relationship inference, which CHE-11 was to
+  clarify.
 - The education profile shares the development profile's provider, model and
   credential; only its selection is separate. Usage cost is not an acceptance
   criterion.

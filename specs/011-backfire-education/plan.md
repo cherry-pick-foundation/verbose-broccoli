@@ -71,18 +71,20 @@ two builds.
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-Checked against constitution **0.22.0** on 2026-09-28.
+Checked against constitution **0.22.0** on 2026-09-28, and re-checked
+against **1.0.0** the same day after `develop` was merged in. Version 1.0.0
+only deletes rules, among them principle VIII and principle III's sentences on
+a second student register and relationship inference.
 
 | Principle | Design alignment |
 | --- | --- |
 | I. Proven dependencies and storage | `phonenumbers` 9.0.40 is pinned in `pyproject.toml` and `uv.lock`, and its use was proved in a scratch environment on CPython 3.14.4 (research.md). Presidio was evaluated and not adopted. No relational storage. |
-| II. Working capabilities and data | Functional tests exercise the built work server end to end against a recording provider; the client check and the measurement run live. |
-| III. Sources and data ownership | The roster is read in place and never copied; EduOK and its export keep ownership. The mapping table holds keyed digests and pseudonyms, no names or contact details, so it is not a second student register. No relationships are inferred. Sending pseudonymized learning content to the selected provider is the user's decision (CHE-9). Whether principle III's wording needs clarifying is CHE-11. |
+| II. Working capabilities and data | Nothing planned is counted as implemented; the client check and the measurement stay open until they run. |
+| III. Sources and data ownership | No search normalization becomes an identity key; identifiers are normalized only to derive stable pseudonyms. The roster is read in place and never copied, and the mapping table holds keyed digests and pseudonyms, no names or contact details. Sending pseudonymized learning content to the selected provider is the user's decision (CHE-9). |
 | IV. Capabilities from current needs | Specified from the user's current needs. The roster format is not the legacy files' format, and no code depends on earlier projects. No user data is imported. |
 | V. Observable acceptance | Synthetic rosters and records only; positive, negative and boundary cases; failures at each fail-closed point; interrupted table writes; concurrent sessions; readback of the recorded provider requests. |
-| VI. Wiki layers and storage | Not Wiki content. Configuration, data and the operator's roster keep separate XDG roots and owners. |
+| VI. Wiki layers and storage | Not Wiki content. Configuration and durable data use the `verbose-broccoli` XDG roots; the operator's roster keeps its own location. No private user data enters the repository. |
 | VII. One owner and minimum implementation | Standard library and `phonenumbers` do the work; local code is glue and the domain rules (given names, pseudonym kinds). The table has a 1 MiB budget, all-or-nothing writes, and a lock. The education profile repeats the development profile's values, by the user's choice of a separate table (research.md). |
-| VIII. Rule validity | No technical exception is claimed. |
 | IX. Three plugin packages | New code lives in `packages/backfire/src/backfire_education/`. The work plugin gains an MCP declaration and a skill for a selected capability and works without the code plugin. Chat is unchanged. |
 | Product and data boundaries | No real student data in fixtures, tests, reports or Linear; credentials stay in the operator's files. |
 | Development workflow | git flow feature branch into `develop` with the merge review and review-record commit; `Spec-Kit-Task` trailers. Installing into saved client settings and billed runs need the user's approval. |
