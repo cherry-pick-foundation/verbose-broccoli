@@ -96,7 +96,7 @@ it is the spec's verdict record.
 | `call` | Sequence number of the call within the session |
 | `tool` | One of the eleven tool names, or `unknown` |
 | `input_digest` | Input digest |
-| `outcome` | `ok`, `tool_error` (`result.isError`), `protocol_error` (a JSON-RPC error, such as the SDK's argument validation), `cancelled` (the client cancelled it), `deadline_exceeded` (still open 118 s after its request) or `session_ended` (open when the session shut down) |
+| `outcome` | `ok`, `tool_error` (`result.isError`), `protocol_error` (a JSON-RPC error, such as malformed request parameters), `cancelled` (the client cancelled it), `deadline_exceeded` (still open 118 s after its request) or `session_ended` (open when the session shut down) |
 | `decisions` | The result's decision units, by position ([below](#decision-units)); null without a parsable result |
 | `result_digest` | Result digest, or null |
 | `model` | The `model` field of the result, or null |

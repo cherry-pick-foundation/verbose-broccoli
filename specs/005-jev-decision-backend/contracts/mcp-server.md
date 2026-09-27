@@ -154,8 +154,9 @@ The package's dependencies come only from `pyproject.toml` and `uv.lock`.
   the start time and a deadline 118 s later.
 - The server's response with the same id closes the call: the boundary writes
   the tool-call record ([data-model.md](../data-model.md#tool-call-record)),
-  then sends the response. `result.isError` gives `tool_error`; a JSON-RPC
-  `error`, including the SDK's argument validation, gives `protocol_error`;
+  then sends the response. `result.isError` gives `tool_error`, including
+  invalid arguments, which the server checks against the tool's published
+  input schema; a JSON-RPC `error` gives `protocol_error`;
   decisions come from `result.content[0].text` parsed as JSON.
 - A client `notifications/cancelled` for an open call records it as
   `cancelled` and closes it for good: a response that still arrives for it is

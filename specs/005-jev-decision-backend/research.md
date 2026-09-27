@@ -167,6 +167,14 @@ of the sections below that carry a note naming this one.
      exists.
   3. The tools make judgments through the in-process judge below instead of
      upstream's provider layer; `src/provider.ts` is not ported.
+  4. Invalid arguments keep upstream's tool error prefix, `MCP error -32602:
+     Input validation error: Invalid arguments for tool <name>: `, but the
+     details after it come from JSON Schema validation (the `jsonschema`
+     package, already a dependency of `mcp`) against the tool's published
+     input schema instead of from zod. The MCP Python SDK 2.2.0's low-level
+     server does not validate tool arguments, and the TypeScript SDK's zod
+     messages cannot be reproduced without reimplementing zod (checked
+     against a local build of 0.9.0 on 2026-09-27).
 - **Judgments.** The tools call `system-one-adapter` 0.2.1's asynchronous
   client in the same process, with the profile-driven provider subclass, the
   SDK's retry policy and answer validation without rescaling. The local HTTP

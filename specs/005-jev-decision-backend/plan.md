@@ -38,8 +38,8 @@ vendored with four narrow changes. Decisions and evidence are in
 
 **Language/Version**: Python 3.14.4 for the whole package (server, ported
 tools, judge, build, readiness, acceptance tooling and tests), pinned in
-`.python-version` (package floor 3.11, which `tomllib` needs); existing Deno 2.9.6 tasks for
-repository automation call uv. No Deno or Node in the package; Node 22 or later
+`.python-version` (package floor 3.11, which `tomllib` needs); existing Deno
+2.9.6 tasks for repository automation call uv. No Deno or Node in the package; Node 22 or later
 (host 24.19.0) and npm run only on demand, to capture the upstream fidelity
 fixtures from `jev-mcp`'s own lockfile (T029).
 

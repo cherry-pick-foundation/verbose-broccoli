@@ -84,8 +84,8 @@ of a scripted provider, and covers:
   port's recorded differences, including the four `backfire_extract` cases;
 - the MCP boundary: messages passed unchanged, a line over 10 MiB (unterminated,
   padded with whitespace, or carrying a large argument) ending the session, one tool-call record per call
-  including local-only `backfire_extract` results, tool errors and the SDK's
-  argument errors, and a completed response held back until after its
+  including local-only `backfire_extract` results, tool errors, invalid
+  arguments and JSON-RPC errors, and a completed response held back until after its
   cancellation, then dropped;
 - `backfire_verify` with 100,000 evidence items sharing one id reaches its
   judgment call within seconds;
