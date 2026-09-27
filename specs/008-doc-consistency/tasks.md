@@ -95,7 +95,7 @@ their suites.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T007 Create `packages/doc-regions/src/doc_regions/config.py` and
+- [x] T007 Create `packages/doc-regions/src/doc_regions/config.py` and
   `tests/test_config.py`: `load(config_path, root)` reads the TOML with
   `tomllib`, expands path and glob entries against `root` into sorted
   root-relative paths, resolves a relative `generator_path` against `root`,
@@ -116,7 +116,7 @@ regions and broken local links, without writing or network.
 **Independent Test**: `deno task test:doc-regions` and the quickstart's
 "Stale region by hand" ([contracts/regions.md](contracts/regions.md)).
 
-- [ ] T008 [US1] Write `packages/doc-regions/tests/test_regions.py` with
+- [x] T008 [US1] Write `packages/doc-regions/tests/test_regions.py` with
   scratch repositories built in temporary directories: a current region
   passes; a stale region fails with Cog's diff and the text `deno task
   doc-regions:update`; unbalanced and nested markers, a code shape other than
@@ -127,7 +127,7 @@ regions and broken local links, without writing or network.
   shape failure changes no file. Every check case compares a hash of all
   files before and after, and runs with `socket.socket` patched to raise.
   The tests fail before T009.
-- [ ] T009 [US1] Implement `packages/doc-regions/src/doc_regions/regions.py`
+- [x] T009 [US1] Implement `packages/doc-regions/src/doc_regions/regions.py`
   and the `check` and `update` commands in `__main__.py` per
   [contracts/regions.md](contracts/regions.md): marker scan, the `ast` shape
   rule, source existence, Cog's `Cog().main()` with `--check --diff
@@ -163,7 +163,7 @@ unit; the workflow tool prints the step.
 **Independent Test**: `deno task test:doc-regions` and the quickstart's
 "Judgment step" steps 1 to 3.
 
-- [ ] T014 [US2] Write `packages/doc-regions/tests/test_units.py`: headings,
+- [x] T014 [US2] Write `packages/doc-regions/tests/test_units.py`: headings,
   paragraphs, items of a top-level list, a table, a fenced code block and an
   HTML block and a blockquote become units with 1-based inclusive lines and
   their heading path; mechanical-region lines never appear in a unit; units
@@ -171,10 +171,10 @@ unit; the workflow tool prints the step.
   and link reference definitions; `split(document, text,
   base_text)` marks `added` by `difflib` (false for all with `None`, true for
   all with `""`). Fails before T015.
-- [ ] T015 [US2] Implement `packages/doc-regions/src/doc_regions/units.py`
+- [x] T015 [US2] Implement `packages/doc-regions/src/doc_regions/units.py`
   with markdown-it-py (`commonmark` preset, `table` enabled) per
   [data-model.md](data-model.md). T014 passes.
-- [ ] T016 [US2] Write `packages/doc-regions/tests/test_requests.py`: in a
+- [x] T016 [US2] Write `packages/doc-regions/tests/test_requests.py`: in a
   scratch repository with a `develop` branch and a feature commit, `prepare
   --base develop` prints units and requests per
   [contracts/commands.md](contracts/commands.md); every `arguments` object
@@ -188,7 +188,7 @@ unit; the workflow tool prints the step.
   byte-identical output; no file changes and no socket opens. Library cases:
   `verify_requests` with several `(units, evidence)` groups keeps input
   order and passes evidence through unchanged. Fails before T017.
-- [ ] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
+- [x] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
   and the `prepare` command (`git merge-base`, `git diff` through
   `subprocess`, splitting and sorting). T016 passes.
 - [x] T018 [P] [US2] Extend the REVIEW text in `scripts/workflow.ts`
@@ -214,7 +214,7 @@ changing them.
 **Independent Test**: `deno task test:doc-regions` and the quickstart's
 "Judgment step" step 4.
 
-- [ ] T019 [US3] Write `packages/doc-regions/tests/test_audit.py`: with a
+- [x] T019 [US3] Write `packages/doc-regions/tests/test_audit.py`: with a
   local copy of the pinned archive served from a temporary directory, the
   audit checks the SHA-256, extracts into a temporary cache directory, runs
   `scripts/audit_workspace.py <root> --format json`, and returns only findings
@@ -224,12 +224,18 @@ changing them.
   SIGTERM each leave no temporary directory, and a leftover from a killed run
   is removed by the next run; the repository's files are unchanged. Fails
   before T020.
-- [ ] T020 [US3] Implement `packages/doc-regions/src/doc_regions/audit.py`
+- [x] T020 [US3] Implement `packages/doc-regions/src/doc_regions/audit.py`
   and the `audit` command per [research.md](research.md) R7: download once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` (honoring
   `XDG_CACHE_HOME`) within the 1 MiB budget and cleanup rules of
   [contracts/commands.md](contracts/commands.md), check the hash, run with the
   environment's Python, and never run MemoryLint's `apply`. T019 passes.
+  - 2026-09-28: T007 to T009, T014 to T017, T019 and T020 done by Codex
+    worker A (gpt-6-luna, max effort, after a restart from gpt-6-astra under
+    the user's model rule; it checked the partial files the first attempt
+    left). 75 package tests pass; `prepare` on this branch gives 199 units in
+    11 requests, byte-identical across runs. The real MemoryLint run is part
+    of T023.
 
 **Checkpoint**: The judgment step covers the report-only documents.
 
