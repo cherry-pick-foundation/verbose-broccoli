@@ -21,7 +21,7 @@ while preserving the original IDs and order.
 
 ## Recorded differences
 
-These are the four differences recorded under “Tools” in Feature 005's
+These are the five differences recorded under “Tools” in Feature 005's
 research.md, “Python package — 2026-09-27”:
 
 1. `backfire_extract` uses Python `re` patterns, and its argument description
@@ -47,6 +47,10 @@ research.md, “Python package — 2026-09-27”:
    Invalid arguments for tool <name>: `; the details after it come from JSON
    Schema validation with `jsonschema` against the published input schema,
    not from zod.
+5. Caller-supplied ids and labels used as keys are ordinary strings. Upstream
+   counts in plain JavaScript objects, so ids such as `__proto__`,
+   `constructor` or `toString` corrupt `backfire_classify`'s summary counts
+   there; the port counts them like any other id.
 
 ## License
 

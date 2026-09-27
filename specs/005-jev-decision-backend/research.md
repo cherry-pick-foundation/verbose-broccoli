@@ -175,6 +175,22 @@ of the sections below that carry a note naming this one.
      server does not validate tool arguments, and the TypeScript SDK's zod
      messages cannot be reproduced without reimplementing zod (checked
      against a local build of 0.9.0 on 2026-09-27).
+  5. Where upstream uses a caller-supplied id or label as a key of a plain
+     JavaScript object, ids such as `__proto__`, `constructor` or `toString`
+     hit the object's prototype: `backfire_classify`'s summary drops a
+     `__proto__` class and reports other such counts as function text. The
+     port treats every key as an ordinary string. Emulating JavaScript's
+     prototype chain would add code whose only purpose is to reproduce a
+     defect.
+
+  Two upstream rules that the published JSON Schema does not express are
+  kept exactly: `backfire_noul` rejects blank propositions and
+  `backfire_gate` rejects evidence without non-empty text, each with
+  upstream's full input-validation text, checked by the tool after the
+  schema check. Results keep upstream's `provider` and `model` fields as
+  upstream fills them with its compatible provider: `compatible` and the
+  model the provider reported, or `none` and `jev-latest` when
+  `backfire_extract` makes no judgment.
 - **Judgments.** The tools call `system-one-adapter` 0.2.1's asynchronous
   client in the same process, with the profile-driven provider subclass, the
   SDK's retry policy and answer validation without rescaling. The local HTTP
