@@ -63,6 +63,14 @@ with the already approved Ajv dependency. Sources:
 - Reused: the files Spec Kit generated under `.specify/` and the ten
   `speckit-*` skills in `plugins/code/skills/`. Later local edits are recorded
   in Git history.
+- Extensions: the bundled `agent-context`, `assess`, `bug` and `git` extensions
+  from release 1.0.12
+  (<https://github.com/github/spec-kit/tree/e77daa9021d20db26b878f7dfa5640fe5a42d04e/extensions>)
+  are installed under `.specify/extensions/`, unchanged except the
+  `context_file` setting in `agent-context-config.yml`. The ten skills
+  generated from their commands, `speckit-agent-context-update`,
+  `speckit-assess-*`, `speckit-bug-*` and `speckit-git-validate`, are reused
+  unchanged in `plugins/code/skills/`.
 - Copyright GitHub, Inc. [MIT license](github-spec-kit.txt).
 
 ## github/awesome-copilot — git-commit
