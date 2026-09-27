@@ -10,6 +10,8 @@ import anyio
 from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
+from backfire.config import load_profile
+from backfire.failures import JudgmentError
 from backfire_tools.build import ROOT, build
 
 TOOL_NAMES = {
@@ -46,10 +48,12 @@ def assert_own_import(plugin: Path):
 
 
 async def served_session(plugin: Path, uv: str):
-    # The contract's exact uv command, with an empty process environment.
+    # Start without inherited settings, using only this test's config and state.
+    config, state = plugin.parent / "config", plugin.parent / "state"
     parameters = StdioServerParameters(
         command=shutil.which("env"),
-        args=["-i", uv, "--directory", str(plugin / "backfire"),
+        args=["-i", f"XDG_CONFIG_HOME={config}", f"XDG_STATE_HOME={state}",
+              uv, "--directory", str(plugin / "backfire"),
               "run", "--frozen", "--offline", "--no-sync", "backfire", "serve-mcp"],
         cwd=plugin.parent,
     )
@@ -67,9 +71,8 @@ async def served_session(plugin: Path, uv: str):
                 )
                 assert result.is_error
                 assert len(result.content) == 1
-                assert result.content[0].text == (
-                    "backend_not_configured: the judge is not implemented yet"
-                )
+                credential = config / "verbose-broccoli/backfire" / f"{load_profile()['name']}.env"
+                assert result.content[0].text == str(JudgmentError("backend_not_configured", str(credential)))
 
 
 def test_built_copies_install_offline_serve_and_remain_independent():

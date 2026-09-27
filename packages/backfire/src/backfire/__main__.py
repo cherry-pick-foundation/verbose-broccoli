@@ -3,11 +3,6 @@ import asyncio
 import os
 
 
-async def _unconfigured_judge(state, questions, *, deadline, record_file=None):
-    # T018 replaces this placeholder with the in-process judge.
-    raise RuntimeError("backend_not_configured: the judge is not implemented yet")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(prog="backfire")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -15,9 +10,9 @@ def main() -> None:
     subcommands.add_parser("ready", help="Check backend readiness")
     args = parser.parse_args()
     if args.command == "serve-mcp":
+        from backfire.judge import judge
         from backfire.server import serve
 
-        judge = _unconfigured_judge
         if (script := os.environ.get("BACKFIRE_TEST_JUDGE_SCRIPT")) is not None:
             from pathlib import Path
             from runpy import run_path

@@ -54,6 +54,7 @@ class RecordFile(AbstractContextManager):
     def __init__(self, directory: Path):
         self.directory = Path(directory)
         self.session = uuid4().hex
+        self.calls_in_flight: set[int] = set()
         self.path: Path | None = None
         self._file = None
         self._directory_lock = None

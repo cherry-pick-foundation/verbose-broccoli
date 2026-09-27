@@ -51,11 +51,12 @@ any provider call:
 }
 ```
 
-The judge also fills the call's judgment metadata, which the judgment record
-takes ([data-model.md](../data-model.md#judgment-record)): `attempts`,
-`latency_ms`, `thinking_evidence` (true when the response showed the thinking
-evidence the profile names, null without a provider response) and
-`reasoning_tokens` (or null). The metadata holds no other field and no text.
+The result also carries `metadata`, the call's judgment metadata, which the
+judgment record takes ([data-model.md](../data-model.md#judgment-record)) and
+the direct callers read: `attempts`, `latency_ms`, `thinking_evidence` (true
+when the response showed the thinking evidence the profile names, null without
+a provider response) and `reasoning_tokens` (or null). The metadata holds no
+other field and no text, and the tools never pass it on.
 
 ## Errors
 
