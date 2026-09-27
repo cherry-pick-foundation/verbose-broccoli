@@ -471,6 +471,28 @@ rejects during argument validation); a separate stdio relay process (the first
 plan; only needed around a black box); reading the SDK's private tool registry
 (an unpinned internal).
 
+## Gate 6, bounded blocking — 2026-09-27
+
+Decision: the server runs each call's JSON Schema argument check in a worker
+thread (`asyncio.to_thread`), with the same validator, the same error text of
+recorded difference 4, the one retry layer and the unchanged 118 s deadline.
+
+Evidence (T031, T032): with a 10 MiB `backfire_verify` call carrying 100,000
+evidence items that share one id, the worst lag of a 100 ms timer in the server
+was 0.83-1.19 s, over the 1 s bound. Measured in process on the same payload,
+the argument check took 962-1,001 ms, SDK parsing 121-132 ms, the boundary's
+input digest 228-263 ms, the tool's preparation 93-141 ms and the scripted
+judge 115-157 ms. With the check in a thread the worst lag was 168-229 ms in
+three runs, and the other ten tools stayed under the bound.
+
+Rationale: the argument check was the one step near the bound; each remaining
+step is a separate, much shorter slice of the event loop, so the deadline and
+cancellations fire on time.
+
+Alternatives considered: a process for the check (more code, and the arguments
+would be copied); precompiling the validator (does not remove the cost of
+checking 100,000 items).
+
 ## One retry layer and one deadline — 2026-09-26
 
 Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the retry layer stays the SDK's policy, but the endpoint's 80 s and the transport's 82 s layers are gone; the 118 s call deadline cancels the in-process judgment directly.

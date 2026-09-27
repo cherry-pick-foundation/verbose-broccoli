@@ -1,17 +1,21 @@
 import asyncio
 from contextlib import asynccontextmanager
 from importlib.metadata import version
+import threading
 
 import anyio
+import jsonschema
 import pytest
 from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 
+from backfire.records import read_records
 from backfire.server import create_server
 from backfire.tools import (
     classify, compare, decide, extract, find, gate, noul, rerank, review, screen, verify,
 )
 from scripted_judge import ScriptedJudge
+from test_boundary_core import session as boundary_session
 
 MODULES = (verify, screen, noul, find, classify, decide, rerank, compare, extract, review, gate)
 
@@ -157,3 +161,49 @@ def test_tool_exception_is_only_its_message_and_the_session_keeps_serving(monkey
                 }
             assert len((await client.list_tools()).tools) == 11
     asyncio.run(run())
+
+
+def test_argument_validation_yields_and_cancels_before_calling_the_tool(tmp_path, monkeypatch):
+    judge = ScriptedJudge([])
+    validate = jsonschema.validate
+
+    async def run():
+        loop = asyncio.get_running_loop()
+        loop_thread = threading.get_ident()
+        started, finished = asyncio.Event(), asyncio.Event()
+        release = threading.Event()
+
+        def blocked_validation(arguments, schema):
+            loop.call_soon_threadsafe(started.set)
+            try:
+                assert threading.get_ident() != loop_thread
+                assert release.wait(5)
+                validate(arguments, schema)
+            finally:
+                loop.call_soon_threadsafe(finished.set)
+
+        monkeypatch.setattr(jsonschema, "validate", blocked_validation)
+        async with boundary_session(tmp_path, judge) as (client, edge, records):
+            call = asyncio.create_task(client.call_tool(
+                verify.NAME, {"claims": ["claim"], "evidence": "document"},
+            ))
+            try:
+                await asyncio.wait_for(started.wait(), 1)
+                assert not finished.is_set()
+                assert len((await client.list_tools()).tools) == 11
+                call.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await call
+                assert len((await client.list_tools()).tools) == 11
+                await edge.join()
+                assert not edge.calls and not edge.work and not finished.is_set()
+                row, = read_records(records.path)
+                assert row["outcome"] == "cancelled"
+            finally:
+                release.set()
+                call.cancel()
+                await asyncio.gather(call, return_exceptions=True)
+                await asyncio.wait_for(finished.wait(), 1)
+
+    asyncio.run(run())
+    assert judge.requests == []

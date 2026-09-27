@@ -45,7 +45,7 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
                 raise ValueError(f"MCP error -32602: Tool {params.name} not found")
             arguments = params.arguments if params.arguments is not None else {}
             try:
-                jsonschema.validate(arguments, tool.INPUT_SCHEMA)
+                await asyncio.to_thread(jsonschema.validate, arguments, tool.INPUT_SCHEMA)
             except jsonschema.ValidationError as error:
                 raise ValueError(
                     "MCP error -32602: Input validation error: "
