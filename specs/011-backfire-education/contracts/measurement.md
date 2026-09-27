@@ -19,8 +19,12 @@ feature 005's known-answer format:
   the education set.
 - Every case is synthetic Korean education content: observations, lesson
   notes, progress claims, answers to compare, score reports. Every case names
-  at least one student of the synthetic roster; at least one case per tool
-  uses student names in option or candidate labels; at least three cases carry
+  at least one student of the synthetic roster. At least one case per tool
+  puts student names in the caller-supplied labels or IDs where the tool's
+  schema allows Korean text there (classes, evidence IDs, candidate IDs, and
+  aspect or context IDs); for tools whose labels are fixed or ASCII-only
+  (`backfire_decide` IDs, `backfire_extract`'s generated labels), the names go
+  in option descriptions or extracted values instead. At least three cases carry
   a synthetic phone number or email address and a school name; at least three
   write a student by given name alone with a particle.
 - `scripts/backfire/fixtures/education-roster-v1.csv` is the synthetic roster

@@ -129,7 +129,8 @@ with the already approved Ajv dependency. Sources:
   `packages/backfire/src/backfire/UPSTREAM.md`. No upstream source file is
   copied into the repository.
 - Reused: the agent skill `skills/jev`, vendored as
-  `plugins/code/skills/backfire/` with four recorded changes that its
+  `plugins/code/skills/backfire/` and again as
+  `plugins/work/skills/backfire/`, each with four recorded changes that its
   `upstream.json` lists.
 - Copyright (c) 2026 Joey Kudish.
   [MIT license](../plugins/code/skills/backfire/LICENSE).
@@ -142,3 +143,13 @@ with the already approved Ajv dependency. Sources:
   `uv.lock` and installed with it by `uv sync`. No source is copied into the
   repository.
 - Copyright (c) 2026 TypeSafe AI. MIT license.
+
+## daviddrysdale/python-phonenumbers — work build pseudonymization
+
+- Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
+  PyPI as `phonenumbers` 9.0.40, a Python port of Google's libphonenumber.
+- Used as a pinned Python dependency of `packages/backfire/`, in its optional
+  `education` extra, locked in its `uv.lock` and installed only for the work
+  build and the development environment. No source is copied into the
+  repository.
+- Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
