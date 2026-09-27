@@ -135,8 +135,9 @@ is the user's decision; they are expected to diverge.
 escaped values, longest first; detect phone numbers with `phonenumbers`
 9.0.40 (`PhoneNumberMatcher(text, "KR")` at its default `VALID` leniency);
 detect email addresses with one regular expression. Merge the spans, keep the
-leftmost and then longest of any overlapping spans, and replace them in one
-pass with Python string slicing. Presidio is not used.
+leftmost and then longest of any overlapping spans, extended over the spans
+that overlap it, and replace them in one pass with Python string slicing.
+Presidio is not used.
 
 **Rationale**: AGENTS.md prefers the standard library first. The probe on
 2026-09-28, in a scratch environment on CPython 3.14.4:

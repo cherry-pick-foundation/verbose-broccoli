@@ -69,8 +69,11 @@ For each string:
 
 1. Find all roster matches with one expression of the escaped values, longest
    first, and all phone and email matches.
-2. Sort the spans by start and then by length, longest first, and keep a span
-   only if it does not overlap one already kept.
+2. Sort the spans by start and then by length, longest first. Keep a span
+   when it starts at or after the end of the span kept before it; otherwise
+   extend that kept span to the end of the overlapping one, so that no part of
+   an overlapping identifier is sent. The extended span keeps its own
+   identifier.
 3. Replace each kept span with its identifier's pseudonym.
 
 The state is replaced in every string value and every object key, at any
