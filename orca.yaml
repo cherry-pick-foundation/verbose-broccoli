@@ -4,6 +4,7 @@ scripts:
 
     project_root="$(git rev-parse --show-toplevel)"
     cd "$project_root"
+    sh scripts/worktree-branch.sh
 
     if [ -x "$HOME/.deno/bin/deno" ]; then
       deno_bin="$HOME/.deno/bin/deno"
