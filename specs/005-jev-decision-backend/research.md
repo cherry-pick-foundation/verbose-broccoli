@@ -567,7 +567,43 @@ replacing the score with the plain sum (breaks `backfire_review` and `backfire_g
 allowed totals above one); rejecting every 0.5 (would discard genuine
 uncertainty).
 
+## Gate 3, request limits — 2026-09-27
+
+Decision: the option limit is 250 per Choice and the cell limit 672 per
+request, the largest synthetic known-answer sizes whose answers were correct
+in every run and finished within 60 s. The user decided on 2026-09-27 that
+these synthetic requests alone set the limits; batches of hard JevBench
+questions are quality guidance for the skill reference (T040), not a limit.
+
+Evidence (T036, DeepSeek V4.1 Flash on Hive with medium reasoning effort,
+called through the in-process judge as a direct caller): Choices of 150, 200
+and 250 options were correct in all three runs (5.2-10.6 s); the largest
+requests of `backfire_find`, `backfire_rerank` (250 cells), `backfire_noul`,
+`backfire_gate`, `backfire_compare`, `backfire_decide` and `backfire_extract`
+(32 fields, 672 cells, 17-26 s) were correct in all three runs. The largest
+`backfire_classify` and `backfire_verify` requests (8,000 cells) ended in
+`truncated_output` after 91-101 s, so the remaining runs were skipped. Hard
+JevBench questions asked one per request were all correct (16 of 16, 1.3-22.7
+s each); batches of 4 were correct in all three runs (26-35 s); batches of 8
+were correct twice and returned malformed output once (38-50 s). Two runs
+failed with `provider_error` within 0.4 s, an infrastructure failure that was
+replaced once for `backfire_compare`; the 16-question batch was skipped by the
+user's decision. In all, 57 judgments completed and one was cancelled in
+flight.
+
+Rationale: the limits must admit the requests the spec requires, such as the
+60-item, five-class classification (300 cells, SC-004), and a hard-question
+batch failure reflects question difficulty, not request size. Requests above
+the limits fail with `request_limit_exceeded` before any cost, and the upstream
+tools already tell agents to split large batches.
+
+Alternatives considered: a cell limit of 7 from the hard batches (rejects the
+required classification and most tools' normal requests); keeping 150 options
+and 300 cells (below measured capacity).
+
 ## Request size limits — 2026-09-26
+
+Superseded in part on 2026-09-27 by [Gate 3, request limits](#gate-3-request-limits--2026-09-27): the limits are 250 options and 672 cells.
 
 Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the in-process judge applies the limits, and requests must finish within the time left of the 118 s call deadline instead of the endpoint's 80 s budget.
 

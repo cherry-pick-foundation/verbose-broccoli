@@ -36,10 +36,9 @@ Question types:
 - **Score**: `instructions`; `criteria` is an ordered list of at least 2 level
   descriptions, lowest first; level indices start at 0. One cell per level.
 
-Request size limits: a Choice may have at most the option limit (150 until
-feasibility fixes it) and a request at most the cell limit (provisionally 300,
-the 60-item, five-class request that passed on 2026-09-26, until feasibility
-fixes it). A request over either fails with `request_limit_exceeded` before
+Request size limits: a Choice may have at most 250 options and a request at
+most 672 cells, as gate 3 measured on 2026-09-27
+([research.md](research.md#gate-3-request-limits--2026-09-27)). A request over either fails with `request_limit_exceeded` before
 any provider call. The adapter rejects unknown keys and malformed questions,
 also before any provider call.
 
@@ -191,7 +190,7 @@ tool reports one.
 | Call deadline | 118 s after a call's request arrives, the MCP boundary answers `deadline_exceeded` and cancels the call; the judge's attempts and retry waits use only the time left | Constant |
 | MCP message size | At most 10 MiB; a larger message ends the session | Constant |
 | Attempts | At most 4, including the first, in the judge | Constant |
-| Request limits | Options per Choice (150 until feasibility); cells per request (300 until feasibility) | Constant |
+| Request limits | 250 options per Choice; 672 cells per request (gate 3) | Constant |
 | Credential | The profile's `credential` variable in `$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env` (Hive: `HIVE_API_KEY` in `hive.env`), mode 0600, read by the judge only | Operator |
 
 ## Session

@@ -14,6 +14,7 @@ import pytest
 
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
+from backfire.validate import CELL_LIMIT, OPTION_LIMIT
 from backfire.judge import judge
 from backfire.provider import ProfileProvider, ProviderCall, provider_call
 from backfire.records import RecordFile, RecordWriteError, digest, read_records
@@ -119,8 +120,8 @@ def test_configuration_and_credential_are_read_for_every_judgment(configuration,
     ({}, "invalid_request"),
     ({"q": {"type": "unknown", "instructions": PRIVATE}}, "invalid_request"),
     ({"q": {"type": "choice", "criteria": {"only": PRIVATE}}}, "invalid_request"),
-    ({"q": {"type": "choice", "criteria": {str(i): PRIVATE for i in range(151)}}}, "request_limit_exceeded"),
-    ({str(i): QUESTIONS["q"] for i in range(301)}, "request_limit_exceeded"),
+    ({"q": {"type": "choice", "criteria": {str(i): PRIVATE for i in range(OPTION_LIMIT + 1)}}}, "request_limit_exceeded"),
+    ({str(i): QUESTIONS["q"] for i in range(CELL_LIMIT + 1)}, "request_limit_exceeded"),
 ])
 def test_bad_requests_fail_before_provider_and_are_recorded(monkeypatch, questions, expected):
     with FakeProvider([]) as fake, RecordFile(xdg_path("state") / "backfire/records") as records:

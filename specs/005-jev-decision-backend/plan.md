@@ -86,8 +86,8 @@ it with `uv run`, and one Python process serves each client session.
 the judge's attempts and retry waits use only the time left; at most four
 attempts including the first; the provider's rate limit (Hive: 5 requests per
 second per account by default); the profile's `max_tokens` request field
-(Hive: 32,768); Choice questions with at least 2 and at most 150 options and a
-request cell limit, both fixed by feasibility; MCP messages up to 10 MiB; no
+(Hive: 32,768); Choice questions with at least 2 and at most 250 options and at
+most 672 cells per request, both measured by gate 3; MCP messages up to 10 MiB; no
 probability rescaling; no downloads at runtime; the client needs `uv` 0.11.32
 or later on its `PATH`; no request content,
 credentials or caller-supplied identifiers in records or logs.

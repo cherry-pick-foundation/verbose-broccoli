@@ -9,9 +9,9 @@ from typesafe_sdk import Answer, Choice, ChoiceAnswer, Noul, Questions, Score, S
 from backfire.failures import JudgmentError
 from backfire.lib import PROBABILITY_SUM_TOLERANCE
 
-# Provisional measured limits; T036's request-size probe sets the final values.
-OPTION_LIMIT = 150
-CELL_LIMIT = 300
+# Gate 3 synthetic known-answer limits; hard-tier batches are quality guidance.
+OPTION_LIMIT = 250
+CELL_LIMIT = 672
 
 
 def validate_request(questions: Questions) -> dict[str, Noul | Choice | Score]:

@@ -108,12 +108,13 @@ def test_research_score_values_keep_adapter_mean_and_pass_tool_check(probabiliti
 
 
 @pytest.mark.parametrize("questions", [
-    {"q": question("choice", 150)},
+    {"q": question("choice", 250)},
     {f"item{index}": question("choice", 5) for index in range(60)},
-    {f"noul{index}": {"type": "noul"} for index in range(300)},
-    {f"score{index}": question("score") for index in range(100)},
-    {"choice": question("choice", 150), "score": question("score", 149), "noul": {"type": "noul"}},
-    {"score": question("score", 300)},
+    {f"item{index}": question("choice", 21) for index in range(32)},
+    {f"noul{index}": {"type": "noul"} for index in range(672)},
+    {f"score{index}": question("score") for index in range(224)},
+    {"choice": question("choice", 250), "score": question("score", 421), "noul": {"type": "noul"}},
+    {"score": question("score", 672)},
 ])
 def test_requests_at_limits_are_accepted_without_changing_inputs(questions, monkeypatch):
     monkeypatch.delenv("BACKFIRE_TEST_REQUEST_LIMITS", raising=False)
@@ -125,11 +126,11 @@ def test_requests_at_limits_are_accepted_without_changing_inputs(questions, monk
 
 
 @pytest.mark.parametrize("questions", [
-    {"q": question("choice", 151)},
-    {f"item{index}": question("choice", 5) for index in range(61)},
-    {f"noul{index}": {"type": "noul"} for index in range(301)},
-    {f"score{index}": question("score") for index in range(101)},
-    {"choice": question("choice", 150), "score": question("score", 150), "noul": {"type": "noul"}},
+    {"q": question("choice", 251)},
+    {**{f"item{index}": question("choice", 21) for index in range(32)}, "extra": {"type": "noul"}},
+    {f"noul{index}": {"type": "noul"} for index in range(673)},
+    {"score": question("score", 673)},
+    {"choice": question("choice", 250), "score": question("score", 422), "noul": {"type": "noul"}},
 ])
 def test_requests_over_limits_fail_before_provider_call(questions, monkeypatch):
     monkeypatch.delenv("BACKFIRE_TEST_REQUEST_LIMITS", raising=False)
@@ -165,10 +166,10 @@ def test_question_models_are_revalidated():
 
 
 def test_probe_override_replaces_both_limits_and_is_read_per_request(monkeypatch):
-    monkeypatch.setenv("BACKFIRE_TEST_REQUEST_LIMITS", "200,400")
-    validate_request({"a": question("choice", 200), "b": question("choice", 200)})
-    for questions in ({"a": question("choice", 201)},
-                      {"a": question("choice", 200), "b": question("choice", 200), "c": Noul()}):
+    monkeypatch.setenv("BACKFIRE_TEST_REQUEST_LIMITS", "400,800")
+    validate_request({"a": question("choice", 400), "b": question("choice", 400)})
+    for questions in ({"a": question("choice", 401)},
+                      {"a": question("choice", 400), "b": question("choice", 400), "c": Noul()}):
         with pytest.raises(JudgmentError, match="^request_limit_exceeded: "):
             validate_request(questions)
     monkeypatch.setenv("BACKFIRE_TEST_REQUEST_LIMITS", "2,3")
@@ -177,7 +178,7 @@ def test_probe_override_replaces_both_limits_and_is_read_per_request(monkeypatch
         validate_request({"a": question("choice", 3)})
     monkeypatch.delenv("BACKFIRE_TEST_REQUEST_LIMITS")
     with pytest.raises(JudgmentError, match="^request_limit_exceeded: "):
-        validate_request({"a": question("choice", 200)})
+        validate_request({"a": question("choice", 251)})
 
 
 @pytest.mark.parametrize("override", ["", "150", "150,300,400", "-1,300", "150,0", "private-value,300", "1.5,300"])
