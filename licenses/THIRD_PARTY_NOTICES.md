@@ -56,6 +56,18 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2023-present Biome Developers and Contributors. Used under the
   Apache License 2.0, the same license as this repository ([LICENSE](../LICENSE)).
 
+## danyuchn/iso-24495-skill — English plain-language techniques
+
+- Source:
+  <https://github.com/danyuchn/iso-24495-skill/blob/113656b0a6a6cbeb3b3c2bb7cf3bc29349cb05cf/references/english-techniques.md>
+- Revision: `113656b0a6a6cbeb3b3c2bb7cf3bc29349cb05cf`.
+- Reused: the English techniques in the root `AGENTS.md` section "English
+  replies".
+- Adaptations: condensed to six points; they are the English section under
+  "Language techniques" in the user's adapted `plain-language` skill.
+- Copyright (c) 2026 Dustin Yuchen Teng.
+  [MIT license](danyuchn-iso-24495-skill.txt).
+
 ## github/spec-kit — Spec Kit
 
 - Source: <https://github.com/github/spec-kit/tree/9118ed15a0ba65053469a94c560ea5d233f75884>
