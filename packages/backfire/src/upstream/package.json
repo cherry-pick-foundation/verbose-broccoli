@@ -1,0 +1,57 @@
+{
+  "name": "@jkudish/jev-mcp",
+  "version": "0.9.0",
+  "description": "MCP server exposing TypeSafe Jev as purpose-built judgment tools: verify claims, screen for injection, find, rerank, classify, decide, compare passages, extract fields, review patches, and gate completion claims, each with typed probabilities.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Joey Kudish",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jkudish/jev-mcp.git"
+  },
+  "bin": {
+    "jev-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/unit.test.mjs test/mock.test.mjs test/provider.test.mjs test/typesafe-abort-regression.test.mjs",
+    "test:e2e": "node --test test/e2e.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "typesafe",
+    "jev",
+    "system-one",
+    "ai",
+    "verification",
+    "guardrails",
+    "semantic-search"
+  ],
+  "dependencies": {
+    "@jkudish/jev-agent-tools": "^0.1.0",
+    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@typesafe-ai/sdk": "^0.6.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
