@@ -83,6 +83,17 @@ def test_phone_email_normalization_and_pseudonym_like_text(roster):
     assert masked.endswith("keep 학생10명.")
 
 
+def test_korean_phone_formats_and_non_phone_numbers(roster):
+    phones = ("010-1234-5678", "01012345678", "010 1234 5678", "+82 10-1234-5678", "02-123-4567")
+    masked, _, _ = pseudonymize(" | ".join(phones), {})
+    pseudonyms = masked.split(" | ")
+    assert len(set(pseudonyms[:4])) == 1
+    assert pseudonyms[4] != pseudonyms[0]
+
+    nonphones = "2026.09.28 | 20260928 | 91점 | 3-5번 | 1/2"
+    assert pseudonymize(nonphones, {})[0] == nonphones
+
+
 def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
     questions = {
         "가라온의 선택": Choice(criteria={"가라온": None, "나하늘": None}),
