@@ -116,6 +116,15 @@ other evaluation traffic shared the account. Observed: 200, 401, 400 and 429;
 405 stays documented-only and is covered offline by T049. The probe printed no
 key, request or response content, or provider error text.
 
+Rerun with the medium reasoning effort, 2026-09-27: after the move to one
+`config.toml` and `reasoning_effort = "medium"`, the reworked probe ran once with
+the shipped configuration. The settings request returned 200 in 2.3 s with a
+response `model` of exactly `deepseek-ai/deepseek-v4.1-flash`, non-empty
+`reasoning_content` and 77 reasoning tokens of 83 completion tokens, finishing
+with `stop`; the invalid key returned 401, the unknown model 400, and the burst
+of six five 200s and one 429. The medium setting is therefore accepted and
+carries the thinking evidence the profile names.
+
 ## Tool source: `jev-mcp` 0.9.0, copied — 2026-09-26
 
 Decision: the code plugin does not depend on the npm package
