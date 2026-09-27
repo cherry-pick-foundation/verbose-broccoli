@@ -30,8 +30,9 @@ on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
 The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
-selected standalone Deno/Quarto executables and locked dependencies without
-writing by default. `workflow` supplies execution mode, graph queries,
+selected standalone Deno/Quarto executables, uv and git-flow from `PATH`, the
+Spec Kit environment, the git-flow configuration and locked dependencies
+without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. Reuse those commands for later feature work.
 
@@ -208,8 +209,42 @@ use live in `plugins/code/skills` instead.
 - `agent-context` writes its current-plan pointer to the gitignored
   `.claude/rules/current-plan.md`, which Claude Code loads and Codex does not.
   The pointer differs per worktree, and the root `AGENTS.md` is maintained as
-  the user supplied it. Both after hooks are enabled and non-optional, and they
-  require Python 3 with PyYAML. `deno task doctor` does not check this host
-  dependency. Before use, run `python3 -c 'import yaml'`, or
-  `"$SPECKIT_PYTHON" -c 'import yaml'` when that override is set. The bundled
-  extension README has installation details.
+  the user supplied it. Both after hooks are enabled and non-optional. They run
+  Python with PyYAML from `SPECKIT_PYTHON`, which `.claude/settings.json` and
+  `.codex/config.toml` set to `tools/spec-kit/.venv/bin/python`.
+- `tools/spec-kit/` is a uv project whose `uv.lock` pins the Spec Kit CLI
+  1.0.12 (commit `e77daa9`), PyYAML and Python 3.14; `pyproject.toml` requires
+  uv 0.11.32. Orca's setup script runs `uv sync --locked --project
+  tools/spec-kit` in each worktree to create the gitignored `.venv`, and
+  `deno task doctor` fails when that environment is missing or differs from the
+  lock. Run Spec Kit from the repository root as
+  `uv run --project tools/spec-kit specify …`.
+
+### Git flow — 2026-09-27
+
+Features are finished into `develop` with git-flow-next 2.1.0
+(<https://github.com/gittower/git-flow-next>, BSD-2-Clause). Its source is
+unchanged; only its settings and one hook adapt it to the constitution's git
+flow rule.
+
+- git-flow-next is a host tool at `~/.local/bin/git-flow`, installed from the
+  release's linux-amd64 archive after checking it against the release's
+  checksum file. Orca's setup script requires it, trusts the committed hook
+  path and runs `git flow config sync`. `deno task doctor` checks its version
+  and that the local Git config matches `.gitflow`.
+- `.gitflow` configures only `main`, `develop` and `feature/`. Features merge
+  with `--no-ff`, keep their branch, never fetch or push, and are updated from
+  `develop` by merge, not rebase. Release and hotfix types are left out, so
+  `git flow release` and `git flow hotfix` refuse to run; the constitution has
+  releases and hotfixes finished by hand.
+- Run `git flow feature finish <name>` in the `develop` worktree. The hook
+  `scripts/git-flow-hooks/pre-flow-feature-finish` refuses the finish unless
+  that worktree is on `develop` with no uncommitted changes, `develop` is an
+  ancestor of the feature, and the feature is checked out in a clean worktree
+  where `deno task verify` passes. The merge then has Git's default message,
+  its parents are `develop` and then the feature, and its tree is the verified
+  feature tree. `deno task test:git-flow` checks these cases with the real
+  binary.
+- Not automated: deciding that a feature is ready, updating a feature after
+  `develop` moves (merge `develop` into it, verify, then finish again),
+  resolving conflicts, releases, hotfixes and pushing.

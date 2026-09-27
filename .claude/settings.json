@@ -1,0 +1,5 @@
+{
+  "env": {
+    "SPECKIT_PYTHON": "tools/spec-kit/.venv/bin/python"
+  }
+}

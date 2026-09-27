@@ -89,6 +89,14 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
     );
     assertEquals(report.deno.version, '2.9.6');
     assertEquals(report.quarto.version, '1.10.18');
+    assertEquals(report.uv.version, '0.11.32');
+    assertEquals(report.gitFlow.version, '2.1.0');
+    assertEquals(report.gitFlow.config.status, 'PASS');
+    assertEquals(report.specKit, {
+      project: 'tools/spec-kit',
+      python: 'tools/spec-kit/.venv/bin/python',
+      sync: 'PASS',
+    });
     assertEquals(report.runtime.version, Deno.version);
     assertEquals(report.runtime.build, Deno.build);
     assertEquals(report.lock.path, lock);
@@ -156,6 +164,12 @@ Deno.test('doctor: version probes require exact versions, successful exit and bo
   await temporary(async root => {
     const wrong = await fixture(root, 'wrong', "console.log('deno 2.9.5');");
     await assertRejects(() => probeVersion(wrong, 'deno'), Error, '2.9.6');
+    const wrongUv = await fixture(
+      root,
+      'wrong-uv',
+      "console.log('uv 0.11.31');",
+    );
+    await assertRejects(() => probeVersion(wrongUv, 'uv'), Error, '0.11.32');
     const failure = await fixture(
       root,
       'failure',
@@ -184,6 +198,47 @@ Deno.test('doctor: version probes require exact versions, successful exit and bo
     const started = performance.now();
     await assertRejects(() => probeVersion(slow, 'quarto'));
     assert(performance.now() - started < 15000);
+  });
+});
+
+Deno.test('doctor: git-flow version and shared configuration status are required', async () => {
+  await temporary(async root => {
+    const wrong = await fixture(
+      root,
+      'wrong-git-flow',
+      "if (Deno.args[0] === 'version') console.log('2.0.0 (git-flow-next)');",
+    );
+    await assertRejects(
+      () => runDoctor({gitFlow: wrong}),
+      Error,
+      'git-flow must report version 2.1.0',
+    );
+
+    const drifted = await fixture(
+      root,
+      'drifted-git-flow',
+      "if (Deno.args[0] === 'version') console.log('2.1.0 (git-flow-next)'); else Deno.exit(6);",
+    );
+    await assertRejects(
+      () => runDoctor({gitFlow: drifted}),
+      Error,
+      'git-flow shared configuration has drifted',
+    );
+  });
+});
+
+Deno.test('doctor: a missing or stale Spec Kit environment fails with sync guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(
+      root,
+      'uv',
+      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else Deno.exit(1);",
+    );
+    await assertRejects(
+      () => runDoctor({uv: stale}),
+      Error,
+      'run uv sync --locked --project tools/spec-kit',
+    );
   });
 });
 

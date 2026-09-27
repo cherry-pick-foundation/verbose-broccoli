@@ -4,11 +4,12 @@
   "exclude": ["tools/", "scripts/vendor/"],
   "tasks": {
     "doctor": {
-      "description": "Verify standalone Deno 2.9.6, independent Quarto 1.10.18 and locked dependencies",
-      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto scripts/doctor.ts"
+      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, the Spec Kit environment and locked dependencies",
+      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",
+    "test:git-flow": "deno test --frozen --cached-only --no-prompt --allow-read=.gitflow,scripts/git-flow-hooks/pre-flow-feature-finish --allow-write=/tmp --allow-run=git scripts/git_flow_test.ts",
     "workflow": "deno run --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/workflow.ts",
     "verify": "deno task workflow --verify",
     "test:cli-contract": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/cli_contract_test.ts",
@@ -40,6 +41,7 @@
     "test": {
       "dependencies": [
         "test:doctor",
+        "test:git-flow",
         "test:plugin-skills",
         "test:clean-code",
         "test:clean-architecture",

@@ -18,11 +18,18 @@ const defaults = {
   deno: Deno.execPath(),
   quarto: '/usr/local/bin/quarto',
 };
-const versions = {deno: '2.9.6', quarto: '1.10.18'};
-type Tool = keyof typeof defaults;
+const versions = {
+  deno: '2.9.6',
+  quarto: '1.10.18',
+  uv: '0.11.32',
+  'git-flow': '2.1.0',
+};
+type Tool = keyof typeof versions;
 interface Options {
   deno?: string;
   quarto?: string;
+  uv?: string;
+  gitFlow?: string;
   report?: string;
 }
 
@@ -50,7 +57,7 @@ async function executable(selected: string, tool: Tool) {
 
 export async function probeVersion(path: string, tool: Tool) {
   const result = await new Deno.Command(path, {
-    args: ['--version'],
+    args: [tool === 'git-flow' ? 'version' : '--version'],
     signal: AbortSignal.timeout(5000),
     stdout: 'piped',
     stderr: 'null',
@@ -58,10 +65,52 @@ export async function probeVersion(path: string, tool: Tool) {
   if (!result.success || result.stdout.length > 4096)
     throw new Error(`${tool} version probe failed`);
   const output = new TextDecoder().decode(result.stdout).trim();
-  const version = tool === 'deno' ? /^deno (\S+)/.exec(output)?.[1] : output;
+  const version =
+    tool === 'quarto'
+      ? output
+      : tool === 'git-flow'
+        ? /^(\S+) \(git-flow-next\)$/.exec(output)?.[1]
+        : new RegExp(`^${tool} (\\S+)`).exec(output)?.[1];
   if (version !== versions[tool])
     throw new Error(`${tool} must report version ${versions[tool]}`);
   return version;
+}
+
+async function checkSpecKitEnvironment(uv: string) {
+  const project = 'tools/spec-kit';
+  const result = await new Deno.Command(uv, {
+    args: ['sync', '--locked', '--check', '--project', project],
+    cwd: fromFileUrl(new URL('../', import.meta.url)),
+    signal: AbortSignal.timeout(30_000),
+    stdout: 'null',
+    stderr: 'null',
+  }).output();
+  if (!result.success)
+    throw new Error(
+      `Spec Kit environment is missing or out of sync with uv.lock; run uv sync --locked --project ${project}.`,
+    );
+  return {
+    project,
+    python: `${project}/.venv/bin/python`,
+    sync: 'PASS' as const,
+  };
+}
+
+async function checkGitFlowConfig(gitFlow: string) {
+  const result = await new Deno.Command(gitFlow, {
+    args: ['config', 'status'],
+    cwd: fromFileUrl(new URL('../', import.meta.url)),
+    signal: AbortSignal.timeout(5000),
+    stdout: 'null',
+    stderr: 'null',
+  }).output();
+  if (!result.success)
+    throw new Error(
+      result.code === 6
+        ? 'git-flow shared configuration has drifted; run git flow config sync.'
+        : `git-flow config status failed (exit ${result.code}).`,
+    );
+  return {status: 'PASS' as const};
 }
 
 async function dependencies() {
@@ -99,16 +148,30 @@ export async function runDoctor(options: Options = {}) {
   if (Deno.version.deno !== versions.deno)
     throw new Error(`Executing Deno must be ${versions.deno}`);
   const quarto = await executable(options.quarto ?? defaults.quarto, 'quarto');
-  const [denoVersion, quartoVersion, lock] = await Promise.all([
-    probeVersion(deno.canonical, 'deno'),
-    probeVersion(quarto.canonical, 'quarto'),
-    dependencies(),
-  ]);
+  const uv = options.uv
+    ? await executable(options.uv, 'uv')
+    : {selected: 'uv', canonical: 'uv'};
+  const gitFlow = options.gitFlow
+    ? await executable(options.gitFlow, 'git-flow')
+    : {selected: 'git-flow', canonical: 'git-flow'};
+  const [denoVersion, quartoVersion, uvVersion, gitFlowVersion, lock] =
+    await Promise.all([
+      probeVersion(deno.canonical, 'deno'),
+      probeVersion(quarto.canonical, 'quarto'),
+      probeVersion(uv.canonical, 'uv'),
+      probeVersion(gitFlow.canonical, 'git-flow'),
+      dependencies(),
+    ]);
+  const specKit = await checkSpecKitEnvironment(uv.canonical);
+  const gitFlowConfig = await checkGitFlowConfig(gitFlow.canonical);
   const report = {
     status: 'PASS' as const,
     runtime: {version: Deno.version, build: Deno.build},
     deno: {...deno, version: denoVersion},
     quarto: {...quarto, version: quartoVersion},
+    uv: {...uv, version: uvVersion},
+    gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
+    specKit,
     lock,
   };
   if (options.report)

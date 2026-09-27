@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+fail() {
+  printf '%s\n' "Feature finish refused: $1" >&2
+  exit 1
+}
+
+branch=${BRANCH:-${3-}}
+base=${BASE_BRANCH-}
+[ -n "$branch" ] || fail 'git-flow did not provide a feature branch.'
+[ -n "$base" ] || fail 'git-flow did not provide a base branch.'
+
+current=$(git symbolic-ref --quiet --short HEAD) ||
+  fail 'the current worktree is not on a branch.'
+[ "$current" = "$base" ] ||
+  fail "run the feature finish from the '$base' worktree, not '$current'."
+
+status=$(git status --porcelain --untracked-files=all)
+[ -z "$status" ] || fail "the '$base' worktree has uncommitted changes."
+
+git merge-base --is-ancestor "$base" "$branch" ||
+  fail "'$base' is not an ancestor of '$branch'; merge '$base' into '$branch', verify it, and finish again."
+
+feature_worktree=
+current_path=
+while IFS= read -r line; do
+  case "$line" in
+    'worktree '*) current_path=${line#worktree } ;;
+    "branch refs/heads/$branch") feature_worktree=$current_path ;;
+    '') current_path= ;;
+  esac
+done <<EOF
+$(git worktree list --porcelain)
+EOF
+[ -n "$feature_worktree" ] ||
+  fail "'$branch' is not checked out in a worktree, so it cannot be verified."
+
+status=$(git -C "$feature_worktree" status --porcelain --untracked-files=all)
+[ -z "$status" ] || fail "the '$branch' worktree has uncommitted changes."
+
+(cd "$feature_worktree" && deno task --quiet verify) ||
+  fail "verification failed in the '$branch' worktree."

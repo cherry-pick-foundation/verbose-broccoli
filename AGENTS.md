@@ -68,8 +68,26 @@ If the requirement cannot be met without substantial new local implementation, s
 - When a session ends or a task moves to another provider, the coordinator adds
   one or two lines under that task in `tasks.md`: what was done, what blocked,
   and what comes next. Main owns task-ledger updates.
-- Record decisions in `research.md`.
 - Commit with Conventional Commits and one `Spec-Kit-Task: Txxx` trailer per
   covered implementation task.
 - Lessons that hold across features belong in this file or in
   `plugins/<name>/AGENTS.md`.
+
+## English replies
+
+Follow these in every English reply to the user. They copy the English section
+under "Language techniques" in `~/.agents/skills/plain-language/references/REFERENCE.md`;
+change both together. `licenses/THIRD_PARTY_NOTICES.md` records their source.
+
+- Numbers are prompts for a second look, not caps: about 20 words per
+  sentence, about 5 sentences per paragraph, and a list from three parallel
+  items. A longer sentence is fine if it carries one idea.
+- Everyday words: "use" not "utilize", "help" not "facilitate", "about" not
+  "approximately". Verbs: "decide" not "make a determination", "apply" not
+  "submit an application", unless the noun is the term of art.
+- Empty openers to cut: "It is important to note that", "In today's
+  fast-paced world", "As previously mentioned".
+- Hedge stacks: "may potentially, in some cases" becomes "may".
+- Passive is fine when the actor is unknown or does not matter.
+- Expand or explain an abbreviation at first use, unless the reader already
+  knows it.
