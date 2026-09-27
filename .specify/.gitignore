@@ -8,4 +8,6 @@ feature.json
 # Per-machine extension config overrides.
 extensions/*/local-config.yml
 
-integrations/.cache/
+# Specify CLI caches, such as integrations/.cache/ and extensions/.cache/,
+# at any depth.
+.cache/
