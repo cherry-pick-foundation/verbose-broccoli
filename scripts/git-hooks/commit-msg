@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# Git does not tell a commit-msg hook about --amend, so read the arguments of
+# the git process that runs this hook, split on NUL bytes.
+if [ -r "/proc/$PPID/cmdline" ]; then
+  amend=$(od -An -v -tu1 "/proc/$PPID/cmdline" 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == 0) {if (arg == "--amend") amend = 1; else if (arg == "--no-amend") amend = 0; arg = ""} else arg = arg sprintf("%c", $i)} END {print amend + 0}')
+else
+  amend=0
+fi
+if [ "$amend" = 1 ]; then export CONSTITUTION_VERSION_AMEND=1; else unset CONSTITUTION_VERSION_AMEND; fi
+
 if [ -x "$HOME/.deno/bin/deno" ]; then
   deno="$HOME/.deno/bin/deno"
 elif command -v deno >/dev/null 2>&1; then
