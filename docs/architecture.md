@@ -135,6 +135,21 @@ internal layers only when a specified capability has an actual consumer. Selecte
 Wiki storage follows constitution principle VI; restructuring code does not move
 live data or other external operational or source roots.
 
+### Wiki storage
+
+The default Wiki instance lives at
+`$XDG_DATA_HOME/verbose-broccoli/wikis/default/` (by default under
+`~/.local/share`), outside the repository. It holds the schema `AGENTS.md`,
+`raw/{web,files,notes,assets}/` and `wiki/`, and its own Git repository
+versions the schema and `wiki/` but ignores `raw/`. The work plugin's
+`wiki-raw-import` skill creates the instance and copies documents the user
+confirms into `raw/`. Each copy is one read-only BagIt bag whose
+`bag-info.txt` records the source ID, the original path and modification time,
+and the admission time, and whose manifest holds the SHA-256 digest. The bags
+are the only record of sources and revisions. The user's exclusions live in
+`$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
+one-run lock live under the cache and state roots.
+
 ### Backfire server
 
 `plugins/code/mcp.json` declares the `backfire` stdio server and starts it with
@@ -194,7 +209,7 @@ duplicate source trees elsewhere in the repository.
 | Package | Owned skills |
 | --- | --- |
 | `plugins/code/skills` | `clean-code`, `git-commit`, `ponytail*`, `speckit-*`, `verification-before-completion` |
-| `plugins/work/skills` | `quarto-authoring`, `session-migrate` |
+| `plugins/work/skills` | `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
 
 `session-migrate` owns task handoff and resumption, including checks of current
 sources.

@@ -59,12 +59,14 @@
         "test:workflow",
         "test:cli-contract",
         "test:docs",
-        "test:backfire"
+        "test:backfire",
+        "test:wiki-raw-import"
       ]
     },
     "docs:generate": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-write=docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts generate",
     "docs:check": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts check",
-    "test:docs": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts"
+    "test:docs": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts",
+    "test:wiki-raw-import": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/wiki_raw_import_test.ts"
   },
   "fmt": { "singleQuote": true },
   "compilerOptions": {
