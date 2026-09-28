@@ -322,3 +322,29 @@ def test_roster_failures_report_once_on_wiki_line_one(tmp_path, failure):
     expected = str(config) if failure in {"missing-config", "relative-path"} else str(roster)
     assert expected in roster_problems[0]["message"]
     assert sum("page rule" in item["message"] for item in problems) == 1, problems
+
+
+def test_english_reports_each_line_with_cjk(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "\n\n\n한국어\n한국어")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 5, "english", "한국어")
+    assert_rule(problems, "wiki/overview.md", 6, "english", "한국어")
+
+
+@pytest.mark.parametrize("body", [
+    "At 14:30 (UTC+09:00).",
+    "At 14:30 UTC+09:00.",
+    "At 14:30 (UTC-05:00).",
+])
+def test_time_rule_allows_utc_offsets_with_minutes(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "time", "wiki/overview.md"), problems
