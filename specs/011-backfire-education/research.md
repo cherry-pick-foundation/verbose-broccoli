@@ -340,6 +340,12 @@ observation that names a roster student.
   feature 005's server returns tool results without it
   (`packages/backfire/src/backfire/server.py`), so the `mcp` 2.2.0 runner
   rejects every tool result for such clients. This affects the code build too.
+  The user had it fixed as a separate bug, CHE-16, which merged into `develop`
+  (`a7ce55f`). After `develop` was merged into this branch (`c7f276c`), the
+  same run with a fresh build and an empty data directory passed: the eleven
+  tools, and the call returned `developing` with probability 0.96; the record
+  shows the judgment and the tool call as `ok`, and the mapping table gained
+  the student's entry.
 
 How each client names two servers called `backfire` from two plugins: Claude
 Code's plugin documentation names a plugin's server `plugin:<plugin>:<server>`
