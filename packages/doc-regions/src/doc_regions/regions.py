@@ -191,7 +191,7 @@ def process(root, targets, generators, generator_path, updating=False, *,
                         path.write_bytes(merged)
         if not updating:
             result = run(root, ['lychee', '--offline', '--include-fragments', '--no-progress',
-                                '--config', os.devnull, '--format', 'json', '--', document])
+                                '--root-dir', '/', '--config', os.devnull, '--format', 'json', '--', document])
             if result.returncode:
                 try:
                     failures = [failure for entries in json.loads(result.stdout)['error_map'].values()
