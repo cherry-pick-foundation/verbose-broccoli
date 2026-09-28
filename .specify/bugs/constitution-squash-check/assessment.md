@@ -54,7 +54,9 @@ the review record and `deno task verify`
 step that reads commit history.
 
 A related case found during reproduction: commitlint's default ignores skip
-messages that start with `fixup!`, `squash!`, `amend!` or `Revert `. Piping
+messages that start with `fixup!`, `squash!`, `amend!` or `Revert `, among
+others (`@commitlint/is-ignored` 21.2.3, `lib/defaults.js`, also lists
+`Reapply`, version-only and automatic merge messages). Piping
 `fixup! docs: first wording` or `Revert "docs: first wording"` into
 `deno task commitlint` exits 0, while `Update stuff` exits 1. So a commit made
 with `git commit --fixup` or `git revert` that changes the constitution is not
@@ -68,7 +70,8 @@ checked at commit time either, and can reach `develop` unsquashed.
   only compare the index with `HEAD` or `HEAD^`, so it cannot check a commit
   that already exists.
 - `scripts/commitlint.config.mjs` — keeps commitlint's default ignores, which
-  skip `fixup!`, `squash!`, `amend!` and `Revert` messages before any rule runs.
+  skip `fixup!`, `squash!`, `amend!`, `Revert` and other messages before any
+  rule runs.
 - `scripts/git-flow-hooks/pre-flow-feature-finish` — the gate into `develop`,
   which does not look at the feature's commits.
 

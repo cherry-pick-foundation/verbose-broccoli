@@ -342,7 +342,8 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   `Reviewed-by`, `Reviewed-commit` and `Co-Authored-By`. commitlint's default
   ignores skip Git's default merge messages, so git-flow finishes and
   hand-finished merges pass. At commit time, commitlint's default ignores also
-  skip messages starting with `fixup!`, `squash!`, `amend!` or `Revert `.
+  skip other messages, such as those starting with `fixup!`, `squash!`,
+  `amend!`, `Revert ` or `Reapply `.
 - One local rule, in `scripts/constitution_version.ts`, compares
   `.specify/memory/constitution.md` in `HEAD` with the index being committed.
   A commit that changes the file must raise its version exactly one step: a

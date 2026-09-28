@@ -79,6 +79,11 @@ The first three and the `commit-msg` case fail without the fix; see
 
 - Merge commits are still not checked: a conflict resolution in a merge of
   `develop` into a feature that changes the constitution is not caught.
-- At commit time, commitlint still ignores `fixup!`, `squash!`, `amend!` and
-  `Revert` messages, so such a commit that changes the constitution is only
-  refused at finish.
+- At commit time, commitlint still ignores some messages, such as `fixup!`,
+  `squash!`, `amend!`, `Revert` and `Reapply` messages, so such a commit that
+  changes the constitution is only refused at finish.
+- Releases and hotfixes are finished by hand, so the new check does not run
+  for them: a double bump made on a release or hotfix branch reaches `develop`
+  unless the review before the merge into `main` catches it. The develop merge
+  review reported this; the check was scoped to the feature finish hook, as
+  CHE-17 and the user's constitution wording ask.
