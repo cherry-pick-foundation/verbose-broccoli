@@ -256,7 +256,7 @@ def test_capture_builds_temporary_pinned_source_and_writes_only_after_success(
     monkeypatch.setattr(
         capture.subprocess,
         "check_output",
-        lambda args, **kw: (
+        lambda args, **unused_kw: (
             "v24.19.0\n" if args[0].endswith("node") else "11.11.1\n"
         ),
     )
@@ -281,7 +281,11 @@ def test_capture_builds_temporary_pinned_source_and_writes_only_after_success(
         del args  # Unused.
         raise RuntimeError("Capture interrupted")
 
-    monkeypatch.setattr(capture.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        capture.subprocess,
+        "run",
+        lambda *unused_args, **unused_kwargs: None,
+    )
     monkeypatch.setattr(capture, "capture_cases", broken)
     with pytest.raises(RuntimeError, match="Capture interrupted"):
         capture.capture(cases, output)

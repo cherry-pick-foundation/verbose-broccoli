@@ -30,7 +30,8 @@ ERRORS = {
 }
 
 
-class MessageTooLarge(Exception):  # noqa: N818  # FR-007 preserves public name.
+# Renaming the public class would change its name.
+class MessageTooLarge(Exception):  # noqa: N818
     """The transport must end the session without parsing this line."""
 
 

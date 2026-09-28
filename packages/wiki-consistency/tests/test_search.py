@@ -361,7 +361,9 @@ def test_index_reports_successful_embedding_with_pending_chunks(
 
     monkeypatch.setattr(search, "_run_qmd", embed_with_warning)
     monkeypatch.setattr(
-        search, "semantic_ready", lambda wiki_id, cache_root: False
+        search,
+        "semantic_ready",
+        lambda unused_wiki_id, unused_cache_root: False,
     )
 
     result = search.index(instance, "wiki-a", cache, download=False)
@@ -451,7 +453,9 @@ def test_qmd_budget_refuses_before_running_commands(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(search, "QMD_BUDGET_BYTES", 16)
     monkeypatch.setattr(
-        search.subprocess, "run", lambda *args, **kwargs: calls.append(args)
+        search.subprocess,
+        "run",
+        lambda *args, **unused_kwargs: calls.append(args),
     )
 
     with pytest.raises(ValueError, match="qmd.*budget"):

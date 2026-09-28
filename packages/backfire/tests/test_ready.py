@@ -123,7 +123,7 @@ def test_installation_failure_prints_matching_sync_command(
     monkeypatch.setattr(
         ready.subprocess,
         "run",
-        lambda command, **kwargs: subprocess.CompletedProcess(
+        lambda command, **unused_kwargs: subprocess.CompletedProcess(
             command, 1, "", ""
         ),
     )

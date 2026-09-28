@@ -205,7 +205,8 @@ async def request(label, api_key, profile, model, fields, endpoint):
                 if status == 200:
                     await response.aread()
                     body = response.json()
-    except Exception:  # noqa: BLE001  # Keep request failures out of probe output.
+    # Keep request failures out of probe output.
+    except Exception:  # noqa: BLE001
         # Transport errors and invalid response bodies stay out of the output.
         pass
     return summarize(
@@ -308,6 +309,7 @@ async def main(args=None):
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except Exception:  # noqa: BLE001  # Keep startup failures out of probe output.
+    # Keep startup failures out of probe output.
+    except Exception:  # noqa: BLE001
         print("Probe could not start.", file=sys.stderr)
         sys.exit(1)

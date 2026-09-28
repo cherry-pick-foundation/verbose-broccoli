@@ -45,14 +45,14 @@ LOCAL_EXTRACT = {
 
 def install_stream_probe(path, hold_id):
     """Hold completed SDK replies until cancellation arrives."""
-    import anyio  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
-    from mcp.server.lowlevel import (  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
-        Server,
-    )
+    # Loaded only by subprocess hook, not pytest.
+    import anyio  # noqa: PLC0415
 
-    from backfire.boundary import (  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
-        Boundary,
-    )
+    # Loaded only by subprocess hook, not pytest.
+    from mcp.server.lowlevel import Server  # noqa: PLC0415
+
+    # Loaded only by subprocess hook, not pytest.
+    from backfire.boundary import Boundary  # noqa: PLC0415
 
     def capture(direction, item):
         message = item.message.model_dump(by_alias=True, exclude_unset=True)

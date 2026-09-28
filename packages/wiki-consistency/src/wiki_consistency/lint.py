@@ -154,7 +154,8 @@ def _page_findings(root, page_list, revision_map):
             if key not in validated:
                 try:
                     bagit.Bag(str(bag_path)).validate(fast=True)
-                except Exception as error:  # noqa: BLE001 -- report validation failures per bag.
+                # report validation failures per bag.
+                except Exception as error:  # noqa: BLE001
                     validated[key] = str(error)
                 else:
                     validated[key] = None

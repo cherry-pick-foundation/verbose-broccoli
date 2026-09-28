@@ -133,7 +133,9 @@ def test_wrong_hash_never_executes_and_cleans(
 ):
     url, _ = archive(tmp_path)
     monkeypatch.setattr(
-        subprocess, "run", lambda *a, **k: pytest.fail("must not execute")
+        subprocess,
+        "run",
+        lambda *unused_a, **unused_k: pytest.fail("must not execute"),
     )
     with unchanged(root), pytest.raises(ValueError, match="SHA-256"):
         audit(root, ["AGENTS.md"], url=url, sha256="0" * 64)

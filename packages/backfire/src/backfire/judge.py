@@ -127,7 +127,8 @@ async def judge(
         )
         if enabled:
             try:
-                from backfire_education.pseudonymize import (  # noqa: PLC0415, E501  # Education is optional in some builds.
+                # Education is optional in some builds.
+                from backfire_education.pseudonymize import (  # noqa: PLC0415
                     pseudonymize as replace,
                 )
             except ImportError:
@@ -178,7 +179,8 @@ async def judge(
         return result
     except asyncio.CancelledError:
         raise
-    except Exception as error:  # noqa: BLE001  # Map provider failures to fixed errors.
+    # Map provider failures to fixed errors.
+    except Exception as error:  # noqa: BLE001
         failure = (
             JudgmentError("provider_unavailable")
             if isinstance(error, TimeoutError)

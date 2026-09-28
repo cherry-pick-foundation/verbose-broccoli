@@ -120,7 +120,7 @@ def shape(code, module):
 
 
 def generator_names(root, generator_path, module):
-    """Return public functions exposed by a generator module."""
+    """Return names of public functions exposed by a generator module."""
     code = (
         "import importlib, inspect, json, sys; "
         "sys.path.insert(0, sys.argv[1]); "

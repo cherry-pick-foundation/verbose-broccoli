@@ -456,7 +456,7 @@ def test_update_changes_only_region_text_and_is_idempotent(
 
 def test_invalid_wiki_name_is_an_argument_error(tmp_path, monkeypatch, capsys):
     del capsys  # Unused.
-    instance, env = make_instance(tmp_path)
+    _, env = make_instance(tmp_path)
     with monkeypatch.context() as patcher:
         for name, value in env.items():
             patcher.setenv(name, value)

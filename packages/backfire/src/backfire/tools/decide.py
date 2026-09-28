@@ -156,8 +156,8 @@ async def call(arguments, judge, *, deadline, record_file):
             "established"
         ),
     }
-    for index, candidate in enumerate(candidate_keys):
-        for requirement_index, requirement in enumerate(requirements):
+    for index, _ in enumerate(candidate_keys):
+        for requirement_index, _ in enumerate(requirements):
             questions[f"check_{index}_{requirement_index}"] = {
                 "type": "choice",
                 "instructions": (
@@ -193,7 +193,7 @@ async def call(arguments, judge, *, deadline, record_file):
     )
     checks = []
     for index, candidate in enumerate(candidate_keys):
-        for requirement_index, requirement in enumerate(requirements):
+        for requirement_index, _ in enumerate(requirements):
             answer = validate_choice_answer(
                 answers.get(f"check_{index}_{requirement_index}"),
                 relation_criteria,

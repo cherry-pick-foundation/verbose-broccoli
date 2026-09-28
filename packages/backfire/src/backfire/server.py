@@ -91,7 +91,8 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
                 deadline=deadline,
                 record_file=record_file,
             )
-        except Exception as error:  # noqa: BLE001  # Keep tool failures in MCP responses.
+        # Keep tool failures in MCP responses.
+        except Exception as error:  # noqa: BLE001
             text, is_error = str(error), True
         # The SDK drops resultType for legacy versions; a dict avoids adding
         # isError: false to successful results.

@@ -192,7 +192,9 @@ def test_changed_page_request_can_use_unchanged_candidate_units(
             }
         ]
 
-    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
     monkeypatch.setattr(requests.search, "search", semantic_search)
 
     result = _prepare(instance, cache)
@@ -404,7 +406,9 @@ def test_page_candidates_keep_best_search_rank_before_sorting(
         if unit["page"] == "wiki/concepts/alpha.md"
         and unit["kind"] == "paragraph"
     )
-    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
 
     def stub_search(wiki_id, cache, queries, **kwargs):
         del wiki_id, cache, queries, kwargs  # Unused.
@@ -485,11 +489,13 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(
         }
         for index, path in enumerate([best, *paths])
     ]
-    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
     monkeypatch.setattr(
         requests.search,
         "search",
-        lambda wiki_id, cache, queries, **kwargs: hits,
+        lambda _wiki_id, _cache, _queries, **_kwargs: hits,
     )
 
     result = requests.prepare(
@@ -815,7 +821,9 @@ def test_collection_query_ids_keep_page_candidate_ranks_independent(
         and unit["kind"] == "paragraph"
     )
     captured = []
-    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
 
     def stub_search(wiki_id, cache, queries, **kwargs):
         del wiki_id, cache, kwargs  # Unused.
@@ -1015,7 +1023,7 @@ def test_evidence_query_limit_includes_chunks_in_qmd_wal(tmp_path, monkeypatch):
     monkeypatch.setattr(
         requests.search,
         "search",
-        lambda wiki_id, cache_root, queries, **kwargs: (
+        lambda _wiki_id, _cache_root, queries, **_kwargs: (
             captured.extend(queries) or []
         ),
     )
@@ -1245,7 +1253,9 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
                     )
         return hits
 
-    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
     monkeypatch.setattr(requests.search, "search", semantic_search)
 
     result = _prepare(instance, cache, scope="lint")
@@ -1326,7 +1336,9 @@ def test_prepare_batches_verify_and_classify_deterministically(
     evidence.convert(instance, instance.name, cache, revisions(instance))
     search.index(instance, instance.name, cache, download=False)
     monkeypatch.setattr(
-        requests.search, "search", lambda wiki_id, cache, queries, **kwargs: []
+        requests.search,
+        "search",
+        lambda _wiki_id, _cache, _queries, **_kwargs: [],
     )
     before = tree_hash(instance), tree_hash(cache)
 

@@ -326,7 +326,9 @@ def test_real_judge_validates_answers_without_a_record(
             },
         )
         monkeypatch.setattr(
-            module, "load_credential", lambda profile: "synthetic-test-key"
+            module,
+            "load_credential",
+            lambda unused_profile: "synthetic-test-key",
         )
         row = asyncio.run(probe.measure("choice-150", case, 1))
     assert row["invalid"] == int(invalid) and row["correct"] == int(not invalid)

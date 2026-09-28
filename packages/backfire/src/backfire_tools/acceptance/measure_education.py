@@ -115,7 +115,8 @@ async def measure(case, arm, run):
         error_type = error.error_type
     except TimeoutError:
         error_type = "deadline_exceeded"
-    except Exception as error:  # noqa: BLE001  # Isolate each measured run.
+    # Isolate each measured run.
+    except Exception as error:  # noqa: BLE001
         error_type = type(error).__name__
     return {
         "id": case["id"],
@@ -183,6 +184,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Education measurement interrupted.", file=sys.stderr)
         sys.exit(130)
-    except Exception:  # noqa: BLE001  # Sanitize the final exit message.
+    # Sanitize the final exit message.
+    except Exception:  # noqa: BLE001
         print("Education measurement could not finish.", file=sys.stderr)
         sys.exit(1)

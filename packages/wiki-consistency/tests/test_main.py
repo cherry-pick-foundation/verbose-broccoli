@@ -168,7 +168,7 @@ def test_index_command_keeps_keyword_index_when_embedding_fails(
     _setenv(monkeypatch, env)
     monkeypatch.setattr(
         "wiki_consistency.__main__.instance_path",
-        lambda wiki_id, environment: instance,
+        lambda unused_wiki_id, unused_environment: instance,
     )
     run_qmd = search._run_qmd
 

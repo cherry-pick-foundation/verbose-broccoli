@@ -163,7 +163,7 @@ def test_budget_leaves_previous_table_unchanged(data, monkeypatch):
 @pytest.mark.parametrize(
     "change",
     [
-        lambda d: [],
+        lambda unused_d: [],
         lambda d: {**d, "version": True},
         lambda d: {**d, "key": "private-invalid"},
         lambda d: {**d, "entries": []},

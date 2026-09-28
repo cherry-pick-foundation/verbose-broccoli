@@ -362,7 +362,7 @@ def test_two_processes_write_and_rotate_with_one_directory_budget(tmp_path):
         assert list(read_records(first_final))[-1]["index"] == 99
         assert list(read_records(second_final))[-1]["index"] == 99
         for process in (first, second):
-            output, error = process.communicate("stop\n", timeout=10)
+            _, error = process.communicate("stop\n", timeout=10)
             assert process.returncode == 0, error
     assert total_bytes(tmp_path) <= 4096
     for path in tmp_path.glob("*.jsonl"):
@@ -458,7 +458,7 @@ def test_start_failures_name_directory_and_exclusive_creation_preserves_file(
     monkeypatch.setattr(
         fcntl,
         "flock",
-        lambda *args: (_ for _ in ()).throw(PermissionError("private")),
+        lambda *unused_args: (_ for _ in ()).throw(PermissionError("private")),
     )
     with pytest.raises(RecordWriteError, match=str(tmp_path)) as caught:
         RecordFile(tmp_path)

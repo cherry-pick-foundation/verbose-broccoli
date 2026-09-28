@@ -97,7 +97,8 @@ def scripted_endpoint(respond=scripted_response):
                         "response": {"status": status, "body": response},
                     }
                 )
-            except Exception as error:  # noqa: BLE001  # Fail capture on handler errors.
+            # Fail capture on handler errors.
+            except Exception as error:  # noqa: BLE001
                 errors.append(error)
                 status, response = 500, {"error": "Scripted endpoint failed."}
             encoded = json.dumps(response, ensure_ascii=False).encode("utf-8")

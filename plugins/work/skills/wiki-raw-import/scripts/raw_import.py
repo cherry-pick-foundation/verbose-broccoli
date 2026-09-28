@@ -23,7 +23,8 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 logging.getLogger("bagit").disabled = True
 
-import bagit  # noqa: E402 -- warning filters must run first.
+# warning filters must run first.
+import bagit  # noqa: E402
 
 KINDS = ("web", "files", "notes", "assets")
 OUTCOMES = ("admitted", "already_admitted", "refused", "failed")
@@ -292,7 +293,8 @@ def admit_item(item, raw, run, excluded):
         result.update(
             outcome="admitted", source_id=source_id, revision=revision
         )
-    except Exception as error:  # noqa: BLE001 -- record failures per selected item.
+    # record failures per selected item.
+    except Exception as error:  # noqa: BLE001
         result["reason"] = str(error)
     finally:
         if staged.exists():
@@ -342,7 +344,8 @@ def verify(instance):
     for revision in revisions:
         try:
             bagit.Bag(str(revision)).validate()
-        except Exception as error:  # noqa: BLE001 -- collect failures per revision.
+        # collect failures per revision.
+        except Exception as error:  # noqa: BLE001
             invalid.append(
                 {
                     "revision": str(revision.relative_to(instance)),

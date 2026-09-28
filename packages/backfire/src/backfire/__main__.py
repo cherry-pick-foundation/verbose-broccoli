@@ -13,18 +13,18 @@ def main() -> None:
     subcommands.add_parser("ready", help="Check backend readiness")
     args = parser.parse_args()
     if args.command == "serve-mcp":
-        from backfire.judge import (  # noqa: PLC0415  # Lazy command import.
-            judge,
-        )
-        from backfire.server import (  # noqa: PLC0415  # Lazy command import.
-            serve,
-        )
+        # Lazy command import.
+        from backfire.judge import judge  # noqa: PLC0415
+
+        # Lazy command import.
+        from backfire.server import serve  # noqa: PLC0415
 
         if (script := os.environ.get("BACKFIRE_TEST_JUDGE_SCRIPT")) is not None:
-            from pathlib import Path  # noqa: PLC0415  # Lazy test-only import.
-            from runpy import (  # noqa: PLC0415  # Lazy test-only import.
-                run_path,
-            )
+            # Lazy test-only import.
+            from pathlib import Path  # noqa: PLC0415
+
+            # Lazy test-only import.
+            from runpy import run_path  # noqa: PLC0415
 
             helper = (
                 Path(__file__).resolve().parents[2]
@@ -35,9 +35,8 @@ def main() -> None:
         asyncio.run(serve(judge))
         return
     if args.command == "ready":
-        from backfire.ready import (  # noqa: PLC0415  # Lazy command import.
-            main as ready,
-        )
+        # Lazy command import.
+        from backfire.ready import main as ready  # noqa: PLC0415
 
         raise SystemExit(ready())
 

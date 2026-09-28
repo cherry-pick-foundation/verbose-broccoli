@@ -48,9 +48,8 @@ def main(argv=None):
         else:
             config = load(args.config, root)
             if args.command == "audit":
-                from doc_regions.audit import (  # noqa: PLC0415 -- load only for audit.
-                    audit,
-                )
+                # load only for audit.
+                from doc_regions.audit import audit  # noqa: PLC0415
 
                 result = audit(root, config["report_only"])
             else:

@@ -325,7 +325,8 @@ def main(argv=None):
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:  # noqa: BLE001  # Stop after probe failures.
+    # Stop after probe failures.
+    except Exception:  # noqa: BLE001
         print(
             "Request-limit probe failed; no further requests sent.",
             file=sys.stderr,

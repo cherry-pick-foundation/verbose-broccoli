@@ -31,6 +31,7 @@ class JsonConverter(PlainTextConverter):
         self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
     ) -> bool:
         """Return whether the stream contains JSON or JSONL."""
+        del file_stream, kwargs  # Unused.
         extension = (stream_info.extension or "").lower()
         mimetype = (stream_info.mimetype or "").split(";", 1)[0].strip().lower()
         return (
@@ -246,7 +247,8 @@ def convert(
                     except UnsupportedFormatException as error:
                         reason = "unsupported_format"
                         detail = _detail(error, payload)
-                    except Exception as error:  # noqa: BLE001 -- isolate failures per source revision.
+                    # isolate failures per source revision.
+                    except Exception as error:  # noqa: BLE001
                         reason = "conversion_failed"
                         detail = _detail(error, payload)
 

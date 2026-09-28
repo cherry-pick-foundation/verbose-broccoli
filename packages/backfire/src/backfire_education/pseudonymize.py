@@ -57,7 +57,8 @@ def find_spans(
     Raises:
         ImportError: If the optional phonenumbers package is unavailable.
     """
-    import phonenumbers  # noqa: PLC0415  # Optional dependency.
+    # Optional dependency.
+    import phonenumbers  # noqa: PLC0415
 
     candidates = []
     if roster_pattern is not None:
@@ -81,7 +82,7 @@ def find_spans(
             selected.append((start, stop, identifier))
             end = stop
         else:
-            kept_start, kept_stop, kept_identifier = selected[-1]
+            kept_start, _, kept_identifier = selected[-1]
             end = max(end, stop)
             selected[-1] = (kept_start, end, kept_identifier)
     return selected
@@ -124,7 +125,8 @@ def pseudonymize(
 ) -> tuple[Any, dict[str, Any], Callable[[dict], dict]]:
     """Return masked inputs and a call-local answer restoration function."""
     try:
-        import phonenumbers  # noqa: F401, PLC0415  # Availability check for the optional dependency.
+        # Availability check for the optional dependency.
+        import phonenumbers  # noqa: F401, PLC0415
     except ImportError:
         raise JudgmentError(
             "backend_not_configured", str(SHIPPED_CONFIG)
@@ -180,7 +182,7 @@ def pseudonymize(
     provider_questions = {}
     question_restore = {}
     answer_restore = {}
-    for key, question, question_class, document in question_items:
+    for key, _, question_class, document in question_items:
         provider_key = replace(key)
         if provider_key in provider_questions:
             raise JudgmentError("pseudonym_conflict")

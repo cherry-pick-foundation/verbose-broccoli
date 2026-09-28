@@ -74,7 +74,8 @@ def _versions() -> dict[str, str | None]:
         except importlib.metadata.PackageNotFoundError:
             versions[key] = None
     try:
-        from system_one_adapter._client import (  # noqa: PLC0415, E501  # Optional adapter probe.
+        # Optional adapter probe.
+        from system_one_adapter._client import (  # noqa: PLC0415
             _PROBABILITY_SYSTEM_PROMPT,
         )
 
@@ -565,7 +566,8 @@ def main() -> int:
             "sample",
             f"The known-answer judgment ended with {error.error_type}.",
         )
-    except Exception:  # noqa: BLE001  # Isolate the direct readiness probe.
+    # Isolate the direct readiness probe.
+    except Exception:  # noqa: BLE001
         _unconfirmed(
             report, "provider", "The direct judgment did not complete."
         )
@@ -606,7 +608,8 @@ def main() -> int:
 
     try:
         checks, tool_judgment = asyncio.run(_tool_path())
-    except Exception:  # noqa: BLE001  # Isolate the MCP readiness probe.
+    # Isolate the MCP readiness probe.
+    except Exception:  # noqa: BLE001
         checks, tool_judgment = (
             _skipped_tool_checks("MCP readiness session did not complete"),
             None,

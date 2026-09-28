@@ -322,7 +322,7 @@ def test_main_reads_toml_and_credentials_and_preserves_requests(
     assert received[0][0] == received[2][0] == "Bearer private-key-marker"
     assert received[1][0] == "Bearer not-a-valid-api-key-for-probe"
     assert received[2][1]["model"] == "verbose-broccoli/unknown-model-for-probe"
-    for index, (key, body) in enumerate(received):
+    for index, (_, body) in enumerate(received):
         assert body == {
             "max_tokens": 32768 if index < 3 else 1,
             "response_format": {"type": "json_object"},
