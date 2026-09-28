@@ -10,6 +10,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, Mapping
 
+# Prevent ONNX Runtime from writing telemetry files during import.
+os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
+
 from markitdown import MarkItDown, UnsupportedFormatException
 
 

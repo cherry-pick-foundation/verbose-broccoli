@@ -1,9 +1,12 @@
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
-from conftest import make_instance
+from conftest import make_instance, update_regions
 from test_prepare import _ready
 from wiki_consistency.__main__ import main
 
@@ -11,6 +14,45 @@ from wiki_consistency.__main__ import main
 def _setenv(monkeypatch, env):
     for name, value in env.items():
         monkeypatch.setenv(name, value)
+
+
+def _run_cli(instance, env, command):
+    child_env = os.environ.copy()
+    child_env.update(env)
+    child_env.pop("ORT_DISABLE_TELEMETRY", None)
+    return subprocess.run(
+        [sys.executable, "-m", "wiki_consistency", "--wiki", instance.name, command],
+        env=child_env,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def test_check_cli_does_not_write_cache_files(tmp_path):
+    instance, env = make_instance(tmp_path)
+    update_regions(instance)
+
+    result = _run_cli(instance, env, "check")
+    assert result.returncode == 0, result.stderr
+
+    cache = Path(env["XDG_CACHE_HOME"])
+    assert not [path for path in cache.rglob("*") if path.is_file()]
+
+
+def test_convert_cli_writes_only_wiki_evidence_to_cache(tmp_path):
+    instance, env = make_instance(tmp_path)
+
+    result = _run_cli(instance, env, "convert")
+    assert result.returncode == 0, result.stderr
+
+    cache = Path(env["XDG_CACHE_HOME"])
+    allowed = cache / "verbose-broccoli" / "wiki-evidence"
+    outside = [
+        path for path in cache.rglob("*")
+        if path.is_file() and not path.is_relative_to(allowed)
+    ]
+    assert not outside
 
 
 @pytest.mark.parametrize("args", [
