@@ -130,7 +130,31 @@ operation's scope." The draft in the `feature-constitution-cleanup` worktree
   `vsearch` with that model on synthetic Korean pages, records the download
   size and whether the held-back install scripts matter, and sets the model.
   Until then `vsearch` is optional: without the model, keyword candidates are
-  used and the output says so.
+  used and the output says so. (Proved below.)
+- **Proved (T004, 2026-09-28)**: in a scratch folder, `npm install
+  --save-exact --ignore-scripts @tobilu/qmd@2.8.3` took 18 s and 854 MB, and
+  with install scripts held back `qmd embed` and `qmd vsearch --json` worked
+  (node-llama-cpp's prebuilt binaries, Vulkan GPU). With `QMD_EMBED_MODEL`
+  set to the Qwen3 model above, the first `embed` downloaded 610 MB into
+  `qmd/models/` and embedded four synthetic pages in 26 s in total. Vector
+  search put the right page first for all four Korean, English and
+  cross-language queries (for example "adding fractions with different
+  denominators" found the Korean page on 분수의 덧셈). **Decision**: semantic
+  search is on, with that model.
+- **Measured cost of the CLI**: each `qmd vsearch` process loads the model,
+  so one query took 7 to 48 s. qmd's documented library API
+  (`createStore({dbPath})`, then `searchLex` and `searchVector`) loads it
+  once: six vector queries took 2.1 s in total, about 70 ms each after
+  loading. **Decision**: `index` keeps using the CLI (`collection add`,
+  `update`, `embed`); `prepare` runs all its searches in one Node process
+  through that API, a short script in the package that reads the queries as
+  JSON on standard input and prints the hits. Hits carry `filepath` and
+  `chunkPos` (a character offset in the file), which map to the unit
+  containing that offset.
+- **Side effect found**: the GPU driver wrote `mesa_shader_cache/` (2.4 MB)
+  under `XDG_CACHE_HOME`, beside `qmd/`. The commands set
+  `MESA_SHADER_CACHE_DIR` to `CACHE/qmd/mesa_shader_cache` so it stays within
+  the qmd budget.
 - **Changed from the brief**: qmd also indexes the converted evidence, which
   is Markdown in the cache, so evidence for a long source can be narrowed to
   the passages that match a claim (R6). Semantic search needs a one-time model

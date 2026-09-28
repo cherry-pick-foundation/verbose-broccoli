@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wiki-consistency"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+  "bagit==1.9.0",
+  "doc-regions",
+  "markitdown[docx,pdf,pptx]==0.1.8",
+  "PyYAML==6.0.3",
+]
+
+[project.scripts]
+wiki-consistency = "wiki_consistency.__main__:main"
+
+[dependency-groups]
+dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
+
+[tool.uv]
+required-version = ">=0.11.32"
+
+[tool.uv.sources]
+doc-regions = { path = "../doc-regions", editable = true }
+
+# Keep install metadata inside .venv, as backfire does.
+[tool.distutils.egg_info]
+egg_base = ".venv"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["wiki_consistency", "wiki_consistency.*"]
+
+[tool.setuptools.package-data]
+wiki_consistency = ["search.mjs"]
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider"]

@@ -73,7 +73,7 @@ code tasks in the Worker Assignment section.
     both plugins name their server `backfire` (R9).
   - 2026-09-28: rechecked on `develop` `1166a84`; differences in research.md
     R11, contracts updated.
-- [ ] T003 Apply the amendment the user chose (spec.md Clarifications): amend
+- [x] T003 Apply the amendment the user chose (spec.md Clarifications): amend
   point 2 of principle VI in
   `.specify/memory/constitution.md` as [research.md](research.md) R2 says, in
   its own `docs` commit (patch bump; the commit-msg hook checks it), with the
@@ -85,14 +85,18 @@ code tasks in the Worker Assignment section.
   `overview.md`, and the append-only `log.md`.", and it sets the version to
   1.0.0, so this `docs` amendment would make it 1.0.1. Merge `develop` into
   this branch before amending.
-- [ ] T004 Prove qmd's semantic search (constitution I; R4): in a scratch
+  - 2026-09-28: amended in `c80e051` (version 1.0.1).
+- [x] T004 Prove qmd's semantic search (constitution I; R4): in a scratch
   folder with the pinned `package-lock.json`, `npm ci --ignore-scripts`, run
   `qmd embed` and `qmd vsearch --json` on synthetic Korean and English pages
   with `QMD_EMBED_MODEL` set to the Qwen3 embedding model and the cache
   variables of R4; record the download size, time, whether the held-back
   install scripts matter, and the result in research.md R4; set the model in
   the contract, or record that semantic search stays off.
-- [ ] T005 Create `packages/wiki-consistency/`: `pyproject.toml` (console
+  - 2026-09-28: proved; semantic search is on with the Qwen3 model. The CLI
+    loads the model per query, so `prepare` searches through qmd's library
+    API in one Node process (research.md R4).
+- [x] T005 Create `packages/wiki-consistency/`: `pyproject.toml` (console
   script `wiki-consistency = "wiki_consistency.__main__:main"`, dependencies
   `doc-regions` as a path source `../doc-regions`,
   `markitdown[docx,pdf,pptx]==0.1.8`, `bagit==1.9.0`, PyYAML pinned, dev group
@@ -102,10 +106,15 @@ code tasks in the Worker Assignment section.
   `package-lock.json`; confirm `uv sync --locked --project
   packages/wiki-consistency` and `npm ci --ignore-scripts --prefix
   packages/wiki-consistency` work.
-- [ ] T006 Update `deno.json` (a `wiki-consistency:install` task running both
+  - 2026-09-28: `requires-python` is `>=3.14`: with `>=3.13` uv resolved
+    onnxruntime 1.20.1, which has no Python 3.14 wheel; 1.30.0 now.
+- [x] T006 Update `deno.json` (a `wiki-consistency:install` task running both
   installs, `test:wiki-consistency` added to `test`) and `orca.yaml`'s setup
   script (both installs, after the `doc-regions` line); ignore
   `packages/wiki-consistency/node_modules/` in `.gitignore`.
+  - 2026-09-28: `.gitignore` already ignores every `node_modules/`.
+    `test:wiki-consistency` joins the `test` list with T008's first tests,
+    since pytest fails when it collects none.
 - [ ] T007 [P] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`: fail
   when `packages/wiki-consistency/.venv` or `node_modules` is missing or
   differs from its lock, and when `node` is older than 22. Tests first.
@@ -195,9 +204,12 @@ split backfire requests.
   hits map to the unit containing the hit line; a deleted index is rebuilt;
   the 3 GiB budget refuses before `update` or `embed`; without the embedding
   model, semantic search is reported unavailable and keyword search still
-  works. Fails before T018.
-- [ ] T018 [P] [US2] Implement `src/wiki_consistency/search.py` and the
-  `index` command. T017 passes.
+  works; many queries run in one Node process through qmd's library API and
+  give the same hits as the CLI. Fails before T018.
+- [ ] T018 [P] [US2] Implement `src/wiki_consistency/search.py`, the Node
+  script `src/wiki_consistency/search.mjs` it runs for batched `searchLex`
+  and `searchVector` queries (research.md R4), and the `index` command.
+  T017 passes.
 - [ ] T019 [US2] Write `tests/test_prepare.py`: scope `changed` selects
   units differing from the instance's `HEAD` and every unit of pages with a
   stale citation, whose evidence includes the latest revision; evidence is
@@ -331,7 +343,7 @@ the code plugin; the schema and the skill describe the procedure.
 | Worker | Tasks | Writable files |
 | --- | --- | --- |
 | Codex A | T008 to T014 | `packages/wiki-consistency/src/wiki_consistency/{instance,sources,lint,__main__}.py`, their tests and helper; `packages/doc-regions/src/`, `packages/doc-regions/tests/` for T012 only |
-| Codex B | T015 to T018 | `src/wiki_consistency/{evidence,search}.py` and their tests |
+| Codex B | T015 to T018 | `src/wiki_consistency/{evidence,search}.py`, `src/wiki_consistency/search.mjs` and their tests |
 | Codex C | T019 to T023 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py` |
 | Codex D | T007, T025 | `scripts/doctor.ts`, `scripts/doctor_test.ts`, `packages/backfire/src/backfire_tools/build.py` and its tests |
 | Main | T001 to T006, T026 to T032 | shared files, the skill, the schema template, `docs/`, `licenses/`, the constitution, prose, Git, the instance |

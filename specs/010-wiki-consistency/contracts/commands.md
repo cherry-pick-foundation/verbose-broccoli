@@ -51,8 +51,9 @@ unreadable list with reasons.
 ## `index`
 
 Creates or updates the qmd collections `pages` and `evidence` for the
-instance and runs `qmd embed` when the embedding model is present or may be
-downloaded, within the 3 GiB budget. Output: counts, and whether semantic
+instance and runs `qmd embed` with the Qwen3 embedding model of
+[data-model.md](../data-model.md) when it is present or may be downloaded,
+within the 3 GiB budget. Output: counts, and whether semantic
 search is available.
 
 ## `prepare`

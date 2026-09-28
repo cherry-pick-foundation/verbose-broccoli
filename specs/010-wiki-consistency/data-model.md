@@ -67,7 +67,8 @@ start.
 | --- | --- |
 | index | `CACHE/qmd/<wiki-id>.sqlite` |
 | collections configuration | `CACHE/qmd/config/<wiki-id>.yml` (`pages` → `INSTANCE/wiki`, `evidence` → the converted evidence folder) |
-| models | `CACHE/qmd/models/` |
+| models | `CACHE/qmd/models/`; the embedding model is `QMD_EMBED_MODEL=hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf` (610 MB) |
+| GPU shader cache | `CACHE/qmd/mesa_shader_cache/` (`MESA_SHADER_CACHE_DIR`) |
 
 Budget 3 GiB for `CACHE/qmd/`, checked before `qmd update` and `qmd embed`.
 A failed or interrupted update deletes the index file; the next `index` run
