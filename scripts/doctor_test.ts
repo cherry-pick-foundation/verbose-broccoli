@@ -113,6 +113,7 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
     assertEquals(report.uv.version, '0.11.32');
     assertEquals(report.gitFlow.version, '2.1.0');
     assertEquals(report.lychee.version, '0.24.2');
+    assert(Number.parseInt(report.node.version, 10) >= 22);
     assertEquals(report.gitFlow.config.status, 'PASS');
     assertEquals(report.specKit, {
       project: 'tools/spec-kit',
@@ -123,6 +124,13 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
       project: 'packages/doc-regions',
       python: 'packages/doc-regions/.venv/bin/python',
       sync: 'PASS',
+    });
+    assertEquals(report.wikiConsistency, {
+      project: 'packages/wiki-consistency',
+      python: 'packages/wiki-consistency/.venv/bin/python',
+      sync: 'PASS',
+      nodeModules: 'packages/wiki-consistency/node_modules',
+      npm: 'PASS',
     });
     assertEquals(report.runtime.version, Deno.version);
     assertEquals(report.runtime.build, Deno.build);
@@ -321,6 +329,45 @@ Deno.test('doctor: a missing or stale doc-regions environment fails with sync gu
       Error,
       'run uv sync --locked --project packages/doc-regions',
     );
+  });
+});
+
+Deno.test('doctor: a missing or stale wiki-consistency Python environment fails with install guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(
+      root,
+      'uv',
+      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'packages/wiki-consistency') Deno.exit(1);",
+    );
+    await assertRejects(
+      () => runDoctor({uv: stale}),
+      Error,
+      'run deno task wiki-consistency:install',
+    );
+  });
+});
+
+Deno.test('doctor: a missing or stale wiki-consistency Node environment fails with install guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(root, 'npm', 'Deno.exit(1);');
+    const options = {npm: stale, git: await fakeGit(root, 'scripts/git-hooks')};
+    await assertRejects(
+      () => runDoctor(options),
+      Error,
+      'run deno task wiki-consistency:install',
+    );
+  });
+});
+
+Deno.test('doctor: Node must be installed and at least version 22', async () => {
+  await temporary(async root => {
+    const git = await fakeGit(root, 'scripts/git-hooks');
+    const missing = {node: join(root, 'missing-node'), git};
+    await assertRejects(() => runDoctor(missing), Error, 'not found');
+
+    const old = await fixture(root, 'old-node', "console.log('v20.19.0');");
+    const oldNode = {node: old, git};
+    await assertRejects(() => runDoctor(oldNode), Error, '22 or later');
   });
 });
 
