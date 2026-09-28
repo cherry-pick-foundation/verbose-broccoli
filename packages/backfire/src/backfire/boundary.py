@@ -72,7 +72,8 @@ class Call:
 def error_response(request_id, error_type):
     return SessionMessage(types.JSONRPCResponse(
         jsonrpc="2.0", id=request_id,
-        result={"content": [{"type": "text", "text": ERRORS[error_type]}], "isError": True},
+        result={"content": [{"type": "text", "text": ERRORS[error_type]}],
+                "isError": True, "resultType": "complete"},
     ))
 
 

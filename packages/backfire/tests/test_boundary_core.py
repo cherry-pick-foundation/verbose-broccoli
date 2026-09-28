@@ -85,7 +85,9 @@ def test_deadline_cancels_work_and_session_still_serves(tmp_path, monkeypatch):
             assert not edge.work
             row, = read_records(records.path)
             assert row["outcome"] == "deadline_exceeded" and row["decisions"] is None
-            assert row["result_digest"] == digest(result.model_dump(by_alias=True, exclude_unset=True))
+            wire_result = result.model_dump(by_alias=True, exclude_unset=True)
+            wire_result["resultType"] = "complete"
+            assert row["result_digest"] == digest(wire_result)
 
     asyncio.run(run())
 

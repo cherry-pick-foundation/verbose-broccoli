@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import sys
 
+from mcp_types.methods import serialize_server_result
 import pytest
 import rfc8785
 
@@ -20,6 +21,11 @@ ANSWER = {
     "usage": {"input_tokens": 1, "output_tokens": 2},
 }
 NOUL = {"name": "backfire_noul", "arguments": {"propositions": ["한글\nunchanged"]}}
+PROTOCOL_2026_META = {
+    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+    "io.modelcontextprotocol/clientInfo": {"name": "boundary-test", "version": "1"},
+    "io.modelcontextprotocol/clientCapabilities": {},
+}
 LOCAL_EXTRACT = {
     "name": "backfire_extract",
     "arguments": {"document": "no digits", "fields": [
@@ -79,7 +85,7 @@ def install_stream_probe(path, hold_id):
 
 
 @asynccontextmanager
-async def server(tmp_path, script=(), *, probe=False, hold_id=None):
+async def server(tmp_path, script=(), *, probe=False, hold_id=None, call_seconds=None):
     script_path = tmp_path / "script.json"
     script_path.write_text(json.dumps({"script": list(script), "requests_file": "requests.jsonl"}))
     environment = {
@@ -89,13 +95,16 @@ async def server(tmp_path, script=(), *, probe=False, hold_id=None):
         "XDG_CONFIG_HOME": str(tmp_path / "config"),
         "XDG_STATE_HOME": str(tmp_path / "state"),
     }
-    if probe:
-        (tmp_path / "sitecustomize.py").write_text(
-            "import sys\n"
-            "if sys.orig_argv[-2:] == ['backfire', 'serve-mcp']:\n"
-            "    from test_boundary import install_stream_probe\n"
-            f"    install_stream_probe({str(tmp_path / 'trace.jsonl')!r}, {hold_id!r})\n"
-        )
+    if probe or call_seconds is not None:
+        lines = ["import sys", "if sys.orig_argv[-2:] == ['backfire', 'serve-mcp']:"]
+        if probe:
+            lines.extend((
+                "    from test_boundary import install_stream_probe",
+                f"    install_stream_probe({str(tmp_path / 'trace.jsonl')!r}, {hold_id!r})",
+            ))
+        if call_seconds is not None:
+            lines.extend(("    from backfire import boundary", f"    boundary.CALL_SECONDS = {call_seconds!r}"))
+        (tmp_path / "sitecustomize.py").write_text("\n".join(lines) + "\n")
         environment["PYTHONPATH"] = os.pathsep.join((str(tmp_path), str(Path(__file__).parent)))
     process = await asyncio.create_subprocess_exec(
         sys.executable, "-m", "backfire", "serve-mcp", cwd=PACKAGE_ROOT, env=environment,
@@ -164,6 +173,33 @@ def assert_record(row, number, params, reply, outcome):
     assert row["duration_ms"] >= 0
 
 
+def test_protocol_2026_tool_result_is_complete(tmp_path):
+    async def run():
+        async with server(tmp_path, [ANSWER]) as process:
+            await send(process, {"id": "modern", "method": "tools/call", "params": {
+                **NOUL, "_meta": PROTOCOL_2026_META,
+            }})
+            reply = await receive(process)
+            assert "result" in reply and "error" not in reply, reply
+            assert reply["result"]["resultType"] == "complete"
+
+    asyncio.run(run())
+
+
+def test_protocol_2026_deadline_reply_validates(tmp_path):
+    async def run():
+        async with server(tmp_path, [{"stall": True}], call_seconds=0.05) as process:
+            await send(process, {"id": "deadline", "method": "tools/call", "params": {
+                **NOUL, "_meta": PROTOCOL_2026_META,
+            }})
+            reply = await receive(process)
+            assert reply["id"] == "deadline" and "result" in reply and "error" not in reply
+            assert reply["result"]["content"][0]["text"].startswith("deadline_exceeded:")
+            assert serialize_server_result("tools/call", "2026-07-28", reply["result"]) == reply["result"]
+
+    asyncio.run(run())
+
+
 def test_messages_pass_unchanged_and_every_call_is_recorded_before_reply(tmp_path):
     async def run():
         async with server(tmp_path, [ANSWER, {"error": "refused: synthetic failure"}], probe=True) as process:
@@ -183,6 +219,9 @@ def test_messages_pass_unchanged_and_every_call_is_recorded_before_reply(tmp_pat
                 reply = await receive(process)
                 received.append(reply)
                 assert reply["id"] == identifier
+                if "result" in reply:
+                    assert "resultType" not in reply["result"]
+                    assert reply["result"].get("isError") is not False
                 rows = records(tmp_path)
                 assert len(rows) == number
                 assert_record(rows[-1], number, params, reply, outcome)
@@ -317,6 +356,7 @@ def test_record_write_failure_withholds_result_and_session_recovers(tmp_path):
                     "content": [{"type": "text", "text":
                         "record_write_failed: Cannot write the tool-call record; check record directory permissions and available space."}],
                     "isError": True,
+                    "resultType": "complete",
                 }}
                 assert await asyncio.wait_for(process.stderr.readline(), 10) == b"record_write_failed\n"
             blocker.unlink()
