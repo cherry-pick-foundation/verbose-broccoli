@@ -12,6 +12,7 @@ from doc_regions.regions import check as check_regions
 from doc_regions.regions import scan, shape, update as update_regions
 
 from wiki_consistency.instance import declared_topics, mask_front_matter, pages, revisions
+from wiki_consistency.rules import check as check_page_rules
 
 
 GENERATORS = "wiki_consistency.sources"
@@ -217,6 +218,7 @@ def check(instance):
     revision_map = revisions(root)
     page_problems, stale = _page_findings(root, page_list, revision_map)
     problems.extend(page_problems)
+    problems.extend(check_page_rules(root))
     problems.extend(_log_prefix(root))
     problems.sort(key=lambda item: (item["document"], item["line"], item["message"]))
     markdown = MarkdownIt("commonmark")
