@@ -6,3 +6,5 @@ targets = ["README.md", "docs/architecture.md", "docs/backfire.md"]
 report_only = ["AGENTS.md", ".specify/memory/constitution.md"]
 generators = "doc_sources"
 generator_path = "scripts"
+# These files cannot make a document statement wrong on their own.
+evidence_exclude = ["**/*.lock", "specs/**", "**/tests/**", "scripts/*_test.*", "docs/reference/**"]

@@ -194,7 +194,7 @@ unit; the workflow tool prints the step.
 - [x] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
   and the `prepare` command (`git merge-base`, `git diff` through
   `subprocess`, splitting and sorting). T016 passes.
-- [ ] T027 [US2] Per the 2026-09-28 clarification: `config.load` accepts an
+- [x] T027 [US2] Per the 2026-09-28 clarification: `config.load` accepts an
   optional `evidence_exclude` list of glob strings (default empty), and
   `prepare` leaves out of the evidence the target and report-only documents
   and changed files matching those globs (matched with
@@ -202,6 +202,9 @@ unit; the workflow tool prints the step.
   `scripts/doc_regions.toml` with `**/*.lock`, `specs/**`, `**/tests/**`,
   `scripts/*_test.*` and `docs/reference/**`. Tests first in
   `tests/test_config.py` and `tests/test_requests.py`.
+  - 2026-09-28: done by Codex worker C (gpt-6-luna, max effort). On this
+    branch each `backfire_verify` request now carries 16 evidence items and
+    41,518 characters instead of 42 and 236,850, in 6 requests instead of 15.
 - [x] T018 [P] [US2] Extend the REVIEW text in `scripts/workflow.ts`
   (`actions.REVIEW`) and `scripts/workflow_test.ts` (and help snapshots if
   they change): before the `develop` merge review, run `deno task

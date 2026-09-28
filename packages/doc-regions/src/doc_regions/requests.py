@@ -1,7 +1,7 @@
 """Prepare lossless Backfire requests from Markdown units and Git evidence."""
 
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import subprocess
 
 from doc_regions.config import load
@@ -82,6 +82,11 @@ def prepare(root, config_path, *, base, max_evidence_chars):
     changed = git(root, 'diff', *diff_options, merge_base, '--name-only', '-z', '--').split('\0')
     evidence = []
     for document in sorted(path for path in changed if path):
+        if document in documents or any(
+            PurePosixPath(document).full_match(pattern)
+            for pattern in config['evidence_exclude']
+        ):
+            continue
         diff = git(root, 'diff', *diff_options, merge_base, '--', document)
         chunks = [diff[index:index + max_evidence_chars]
                   for index in range(0, len(diff), max_evidence_chars)]

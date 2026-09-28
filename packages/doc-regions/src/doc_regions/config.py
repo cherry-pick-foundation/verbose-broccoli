@@ -38,6 +38,14 @@ def load(config_path, root):
             for entry in entries for match in files(root, entry)
         })
 
+    evidence_exclude = config.get('evidence_exclude', [])
+    if not isinstance(evidence_exclude, list) or any(
+        not isinstance(entry, str) or not entry or Path(entry).is_absolute()
+        or '..' in Path(entry).parts for entry in evidence_exclude
+    ):
+        raise ValueError('evidence_exclude must be a list of root-relative glob strings')
+    config['evidence_exclude'] = evidence_exclude
+
     overlap = sorted(set(config['targets']) & set(config['report_only']))
     if overlap:
         raise ValueError(f"Paths in targets and report_only: {', '.join(overlap)}")

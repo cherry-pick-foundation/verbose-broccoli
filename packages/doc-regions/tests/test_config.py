@@ -22,7 +22,28 @@ def test_resolves_sorted_globs_against_root(tmp_path, unchanged):
         result = load('regions.toml', tmp_path)
     assert result == dict(targets=['wiki/sub/a.md', 'wiki/z.md'],
                           report_only=['AGENTS.md'], generators='sources',
-                          generator_path=tmp_path / 'scripts')
+                          generator_path=tmp_path / 'scripts', evidence_exclude=[])
+
+
+def test_accepts_evidence_exclude_globs(tmp_path):
+    (tmp_path / 'wiki').mkdir()
+    (tmp_path / 'wiki/doc.md').touch()
+    (tmp_path / 'AGENTS.md').touch()
+    patterns = ['**/*.lock', 'specs/**']
+    config = write_config(tmp_path, evidence_exclude=patterns)
+    assert load(config, tmp_path)['evidence_exclude'] == patterns
+
+
+@pytest.mark.parametrize('value', [
+    '**/*.lock', [1], ['/absolute/*.lock'], ['../outside/**'], [''],
+])
+def test_rejects_invalid_evidence_exclude(tmp_path, value):
+    (tmp_path / 'wiki').mkdir()
+    (tmp_path / 'wiki/doc.md').touch()
+    (tmp_path / 'AGENTS.md').touch()
+    config = write_config(tmp_path, evidence_exclude=value)
+    with pytest.raises(ValueError, match='evidence_exclude'):
+        load(config, tmp_path)
 
 
 def test_absolute_generator_path_outside_root(tmp_path):

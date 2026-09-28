@@ -86,14 +86,17 @@ def repository(tmp_path):
     git(tmp_path, 'config', 'user.email', 'test@example.invalid')
     (tmp_path / 'doc.md').write_text('# Title\n\nKept line\nold line.\n')
     (tmp_path / 'AGENTS.md').write_text('# Rules\n\nKeep the files.\n')
+    (tmp_path / 'source.txt').write_text('Source line.\n')
     (tmp_path / 'config.toml').write_text('targets = ["doc.md"]\nreport_only = ["AGENTS.md"]\n'
                                          'generators = "sources"\ngenerator_path = "scripts"\n')
     git(tmp_path, 'add', '.')
     git(tmp_path, 'commit', '-m', 'base')
     git(tmp_path, 'switch', '-c', 'feature')
     (tmp_path / 'doc.md').write_text('# Title\n\nKept line\nnew line.\n\nAdded paragraph.\n')
+    (tmp_path / 'source.txt').write_text('Source line.\nNew evidence.\n')
     git(tmp_path, 'add', '.')
     git(tmp_path, 'commit', '-m', 'feature')
+    (tmp_path / 'source.txt').write_text((tmp_path / 'source.txt').read_text() + 'Working tree addition.\n')
     (tmp_path / 'doc.md').write_text((tmp_path / 'doc.md').read_text() + '\nWorking tree addition.\n')
     return tmp_path
 
@@ -114,10 +117,9 @@ def test_prepare_root_diff_schema_determinism_and_read_only(repository, unchange
     assert [i for r in verify for i in r['units']] == [u['id'] for u in first['units']]
     assert [i for r in classify for i in r['units']] == [u['id'] for u in first['units'] if u['added']]
     evidence = verify[0]['arguments']['evidence']
-    assert evidence[0]['id'] == 'doc.md#1'
-    assert evidence[1]['id'] == 'doc.md#2'
+    assert evidence[0]['id'] == 'source.txt#1'
     assert all(len(e['text']) <= 80 for e in evidence)
-    assert ''.join(e['text'] for e in evidence) == git(repository, 'diff', first['base'], '--', 'doc.md')
+    assert ''.join(e['text'] for e in evidence) == git(repository, 'diff', first['base'], '--', 'source.txt')
     assert 'Working tree addition.' in ''.join(e['text'] for e in evidence)
 
 
@@ -129,6 +131,44 @@ def test_prepare_classifies_only_target_units(repository, unchanged):
     assert any(u['report_only'] for u in added)
     classify = [r for r in result['requests'] if r['tool'] == 'backfire_classify']
     assert [i for r in classify for i in r['units']] == [u['id'] for u in added if not u['report_only']]
+    verify = [r for r in result['requests'] if r['tool'] == 'backfire_verify']
+    assert [e['id'] for e in verify[0]['arguments']['evidence']] == ['source.txt']
+
+
+def test_prepare_excludes_judged_documents_and_empty_evidence_has_no_verify(repository, unchanged):
+    (repository / 'doc.md').write_text((repository / 'doc.md').read_text() + '\nTarget change.\n')
+    (repository / 'AGENTS.md').write_text((repository / 'AGENTS.md').read_text() + '\nReport change.\n')
+    (repository / 'source.txt').write_text(git(repository, 'show', 'HEAD:source.txt'))
+    with unchanged(repository):
+        result = prepare(repository, 'config.toml', base='HEAD', max_evidence_chars=20000)
+    assert not any(request['tool'] == 'backfire_verify' for request in result['requests'])
+
+
+def test_prepare_excludes_configured_evidence_globs(repository, unchanged):
+    paths = [
+        'pkg/nested/deps.lock', 'specs/008/decision.md', 'pkg/nested/tests/test_doc.py',
+        'scripts/audit_test.py', 'docs/reference/generated.md', 'src/kept.py',
+    ]
+    for name in paths:
+        path = repository / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('before\n')
+    git(repository, 'add', '.')
+    git(repository, 'commit', '-m', 'add evidence path fixtures')
+    for name in paths:
+        (repository / name).write_text('after\n')
+
+    config = repository.parent / f'{repository.name}-regions.toml'
+    config.write_text(
+        'targets = ["doc.md"]\nreport_only = ["AGENTS.md"]\n'
+        'generators = "sources"\ngenerator_path = "scripts"\n'
+        'evidence_exclude = ["**/*.lock", "specs/**", "**/tests/**", '
+        '"scripts/*_test.*", "docs/reference/**"]\n'
+    )
+    with unchanged(repository):
+        result = prepare(repository, config, base='HEAD', max_evidence_chars=20000)
+    verify = [request for request in result['requests'] if request['tool'] == 'backfire_verify']
+    assert [e['id'] for e in verify[0]['arguments']['evidence']] == ['src/kept.py']
 
 
 def test_prepare_new_file_and_empty_diff(repository, unchanged):
@@ -148,7 +188,7 @@ def test_prepare_new_file_and_empty_diff(repository, unchanged):
 
 
 def test_prepare_rejects_more_than_249_evidence_items(repository, unchanged):
-    (repository / 'doc.md').write_text('# Title\n\n' + 'x' * 500 + '\n')
+    (repository / 'source.txt').write_text('x' * 500 + '\n')
     with unchanged(repository), pytest.raises(ValueError, match='249'):
         prepare(repository, 'config.toml', base='develop', max_evidence_chars=1)
 
