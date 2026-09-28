@@ -50,7 +50,8 @@ Expected: all pass, and `git status --short` is empty afterwards.
 
 ## Build (User Story 5)
 
-Build the work plugin into a scratch folder outside the repository, run
-`uv sync --frozen --no-dev` and `npm ci --ignore-scripts` in its copied
-`wiki-consistency/` folder, and run `check` from there against the synthetic
-instance without the code plugin present.
+Build the work plugin into a scratch folder outside the repository, run the
+install commands of its `wiki-consistency` skill (`uv sync --frozen
+--no-dev` in the copied `doc-regions/` folder first, then in
+`wiki-consistency/`, then `npm ci --ignore-scripts` there), and run `check`
+from there against the synthetic instance without the code plugin present.

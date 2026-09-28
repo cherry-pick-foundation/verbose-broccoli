@@ -314,11 +314,29 @@ the code plugin; the schema and the skill describe the procedure.
   on the combined result; rerun `deno task workflow` with the same task and
   base; repair until they pass. Check SC-002 on a synthetic instance of 500
   pages.
-- [ ] T031 SC-005: on a synthetic instance with one paragraph contradicting
+  - 2026-09-28, at `600df9d`: SC-002 holds; `check` on a synthetic instance
+    of 502 pages took 5.4 s in each of three runs. The quickstart's offline
+    check, judgment steps 4 and 5 and build passed on scratch instances made
+    with feature 009's `init` and `admit`; its build step now names the
+    `doc-regions` install the skill already runs first. Found: importing
+    markitdown makes onnxruntime write a device ID under the XDG cache root,
+    so even `check` wrote a file; a Codex worker is fixing it. Still to do:
+    rerun after CHE-19's `vaults/` layout merges.
+- [x] T031 SC-005: on a synthetic instance with one paragraph contradicting
   its source and one pair of contradicting pages, run `prepare` and send the
   requests three times; both must come back `contradicted` or `review` every
   time, and `backfire_compare` must confirm the pair. Record the results in
   this file.
+  - 2026-09-28, at `600df9d`: synthetic instance with semantic search on
+    (the Qwen3 model downloaded into a scratch cache; keyword search alone
+    finds no other page for a whole paragraph). `prepare --scope changed`
+    paired the two contradicting paragraphs in `pages` requests. Sent
+    through `packages/backfire` (DeepSeek V4.1 Flash on Hive) in three runs:
+    every returned judgment of the paragraph against its source and of each
+    page against the other was `contradicted` with action `auto` (0.98 to
+    1.0), and `backfire_compare` gave `contradicts` (0.98 to 1.0) each time.
+    Hive returned `provider_error` on 5 of 25 calls, retried; in one run
+    only one side of the pair came back, `contradicted`.
 - [ ] T032 Run feature 008's judgment step on this feature's repository
   changes, then the merge review for `develop`, favoring speed: fresh
   reviewers from the other provider for the Codex code and for main's prose,
