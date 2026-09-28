@@ -1,4 +1,23 @@
+import {existsSync, readFileSync} from 'node:fs';
+import fastGlob from 'fast-glob';
 import {createStore, extractSnippet} from '@tobilu/qmd';
+import {
+  getRealPath,
+  hashContent,
+  isPathInsideDir,
+  normalizePathSeparators,
+  resolve,
+  splitGlobMask,
+} from '../../node_modules/@tobilu/qmd/dist/store.js';
+
+const excludedDirs = [
+  'node_modules',
+  '.git',
+  '.cache',
+  'vendor',
+  'dist',
+  'build',
+];
 
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
@@ -6,9 +25,40 @@ for await (const chunk of process.stdin) input += chunk;
 const {
   operation = 'search',
   queries = [],
-  documents = {},
-} = JSON.parse(input || '{"queries":[],"documents":{}}');
+  roots = {},
+} = JSON.parse(input || '{"queries":[],"roots":{}}');
 const store = await createStore({dbPath: process.argv[2]});
+
+async function currentDocuments(root) {
+  if (typeof root !== 'string' || !existsSync(root)) return [];
+  const allFiles = await fastGlob(splitGlobMask('**/*.md'), {
+    cwd: root,
+    onlyFiles: true,
+    followSymbolicLinks: false,
+    dot: false,
+    ignore: excludedDirs.map(directory => `**/${directory}/**`),
+  });
+  const files = allFiles.filter(
+    file => !file.split('/').some(part => part.startsWith('.')),
+  );
+  const documents = [];
+  for (const relativeFile of files) {
+    const filepath = getRealPath(resolve(root, relativeFile));
+    if (!isPathInsideDir(root, filepath)) continue;
+    let content;
+    try {
+      content = readFileSync(filepath, 'utf-8');
+    } catch {
+      continue;
+    }
+    if (!content.trim()) continue;
+    documents.push({
+      path: normalizePathSeparators(relativeFile),
+      hash: await hashContent(content),
+    });
+  }
+  return documents;
+}
 
 async function semanticReady() {
   return (
@@ -20,7 +70,17 @@ async function semanticReady() {
 try {
   if (operation === 'semantic') {
     process.stdout.write(JSON.stringify({semantic: await semanticReady()}));
+  } else if (operation === 'counts') {
+    const counts = {};
+    for (const name of ['pages', 'evidence']) {
+      counts[name] = (await currentDocuments(roots[name])).length;
+    }
+    process.stdout.write(JSON.stringify(counts));
   } else {
+    const documents = {};
+    for (const name of ['pages', 'evidence']) {
+      documents[name] = await currentDocuments(roots[name]);
+    }
     const collections = await store.listCollections();
     let error = null;
     for (const name of ['pages', 'evidence']) {

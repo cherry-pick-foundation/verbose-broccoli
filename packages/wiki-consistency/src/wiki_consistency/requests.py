@@ -331,6 +331,7 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
         search._markdown_count(
             cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
         ),
+        search._collection_chunk_count(wiki_id, cache, "evidence"),
     )
     for job in passage_jobs:
         for unit in job["units"]:
@@ -371,7 +372,9 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
             })
 
     try:
-        hits = search.search(wiki_id, cache, queries)
+        hits = search.search(
+            wiki_id, cache, queries, expected_pages_root=Path(instance) / "wiki"
+        )
     except LookupError as error:
         raise ValueError(f"prepare requires index: {error}") from error
     hits_by_query = {}

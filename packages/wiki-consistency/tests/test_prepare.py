@@ -1,5 +1,7 @@
 import ast
 import json
+import shutil
+import sqlite3
 from pathlib import Path
 
 import jsonschema
@@ -111,7 +113,7 @@ def test_changed_page_request_can_use_unchanged_candidate_units(tmp_path, monkey
     alpha_unit = next(unit for unit in requests._collect(instance, "changed")[2]
                       if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
 
-    def semantic_search(wiki_id, cache, queries):
+    def semantic_search(wiki_id, cache, queries, **kwargs):
         page_query = next(query for query in queries if query["collection"] == "pages")
         return [{
             "query": page_query["id"], "collection": "pages", "path": "concepts/beta.md",
@@ -175,7 +177,7 @@ def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(t
     search.index(instance, instance.name, cache, download=False)
     captured = []
 
-    def capture_queries(wiki_id, cache, queries):
+    def capture_queries(wiki_id, cache, queries, **kwargs):
         captured.extend(queries)
         return []
 
@@ -203,7 +205,7 @@ def test_prepare_with_cached_model_and_pending_embeddings_skips_semantic_queries
     (model_dir / "pending.gguf").touch()
     captured = []
 
-    def capture_queries(wiki_id, cache, queries):
+    def capture_queries(wiki_id, cache, queries, **kwargs):
         captured.extend(queries)
         return []
 
@@ -255,7 +257,7 @@ def test_page_candidates_keep_best_search_rank_before_sorting(tmp_path, monkeypa
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
-    def stub_search(wiki_id, cache, queries):
+    def stub_search(wiki_id, cache, queries, **kwargs):
         return [
             {"query": f"pages:{target['id']}", "collection": "pages", "path": "concepts/alpha.md",
              "line": target["first_line"], "score": 0.0, "mode": "lex"},
@@ -293,7 +295,7 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(tmp_path, monk
         for index, path in enumerate([best, *paths])
     ]
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
-    monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries: hits)
+    monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries, **kwargs: hits)
 
     result = requests.prepare(instance, instance.name, cache, scope="lint",
                               max_evidence_chars=40000, candidates=3)
@@ -320,7 +322,7 @@ def test_passage_selection_uses_best_ranked_fitting_passage(tmp_path, monkeypatc
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
 
-    def stub_search(wiki_id, cache, queries):
+    def stub_search(wiki_id, cache, queries, **kwargs):
         return [
             {"query": f"evidence:{target['id']}", "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
              "line": 1, "score": 100.0, "mode": "lex"},
@@ -475,7 +477,7 @@ def test_collection_query_ids_keep_page_candidate_ranks_independent(tmp_path, mo
     captured = []
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
-    def stub_search(wiki_id, cache, queries):
+    def stub_search(wiki_id, cache, queries, **kwargs):
         captured.extend(queries)
         evidence_id = f"evidence:{target['id']}"
         page_id = f"pages:{target['id']}"
@@ -527,7 +529,7 @@ def test_evidence_queries_cover_the_full_collection_limit(tmp_path, monkeypatch)
     document_count = sum(path.is_file() for path in evidence_root.rglob("*.md"))
     captured = []
 
-    def stub_search(wiki_id, cache, queries):
+    def stub_search(wiki_id, cache, queries, **kwargs):
         captured.extend(queries)
         return [
             {"query": query["id"], "collection": "evidence", "path": f"{SOURCE_ID}/{REVISIONS[-1]}.md",
@@ -542,6 +544,36 @@ def test_evidence_queries_cover_the_full_collection_limit(tmp_path, monkeypatch)
     evidence_queries = [query for query in captured if query["collection"] == "evidence"]
     assert evidence_queries
     assert all(query["limit"] >= document_count for query in evidence_queries)
+
+
+def test_evidence_query_limit_covers_qmd_embedding_chunks(tmp_path, monkeypatch):
+    instance, cache, _ = _ready(tmp_path)
+    index_path = cache / "qmd" / f"{instance.name}.sqlite"
+    with sqlite3.connect(index_path) as database:
+        content_hash = database.execute(
+            "SELECT hash FROM documents WHERE collection = 'evidence' AND active = 1 LIMIT 1"
+        ).fetchone()[0]
+        database.executemany(
+            "INSERT INTO content_vectors "
+            "(hash, seq, pos, model, embed_fingerprint, total_chunks, embedded_at) "
+            "VALUES (?, ?, 0, 'synthetic', 'synthetic', 50, 'synthetic')",
+            [(content_hash, sequence) for sequence in range(50)],
+        )
+    database.close()
+    captured = []
+
+    def capture_search(wiki_id, cache_root, queries, **kwargs):
+        captured.extend(queries)
+        return []
+
+    monkeypatch.setattr(requests.search, "search", capture_search)
+
+    requests.prepare(instance, instance.name, cache, scope="changed",
+                     max_evidence_chars=1, candidates=3)
+
+    evidence_queries = [query for query in captured if query["collection"] == "evidence"]
+    assert evidence_queries
+    assert all(query["limit"] >= 50 for query in evidence_queries)
 
 
 def test_evidence_search_is_limited_to_cited_files(tmp_path, monkeypatch):
@@ -564,9 +596,9 @@ def test_evidence_search_is_limited_to_cited_files(tmp_path, monkeypatch):
     captured = []
     real_search = search.search
 
-    def capture_search(wiki_id, cache, queries):
+    def capture_search(wiki_id, cache, queries, **kwargs):
         captured.extend(queries)
-        return real_search(wiki_id, cache, queries)
+        return real_search(wiki_id, cache, queries, **kwargs)
 
     monkeypatch.setattr(requests.search, "search", capture_search)
 
@@ -656,7 +688,7 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(tmp_path, m
         "# Solo\n\nA unique nebula observation.\n", encoding="utf-8")
     search.index(instance, instance.name, cache, download=False)
 
-    def semantic_search(wiki_id, cache, queries):
+    def semantic_search(wiki_id, cache, queries, **kwargs):
         hits = []
         for query in queries:
             if not query["id"].startswith("crossref:"):
@@ -714,7 +746,7 @@ def test_prepare_batches_verify_and_classify_with_deterministic_read_only_output
     assert update_regions(instance) == []
     evidence.convert(instance, instance.name, cache, revisions(instance))
     search.index(instance, instance.name, cache, download=False)
-    monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries: [])
+    monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries, **kwargs: [])
     before = tree_hash(instance), tree_hash(cache)
 
     first = _prepare(instance, cache)
@@ -744,5 +776,29 @@ def test_prepare_names_missing_convert_and_index_steps(tmp_path):
         _prepare(instance, cache)
 
     evidence.convert(instance, instance.name, cache, revisions(instance))
+    with pytest.raises(ValueError, match="index"):
+        _prepare(instance, cache)
+
+
+def test_prepare_refuses_missing_index_when_model_is_cached(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    model_name = "synthetic-pending.gguf"
+    model_dir = cache / "qmd" / "models"
+    model_dir.mkdir(parents=True)
+    (model_dir / model_name).touch()
+    monkeypatch.setattr(search, "EMBED_MODEL", f"hf:synthetic/{model_name}")
+
+    with pytest.raises(ValueError, match="prepare requires index"):
+        _prepare(instance, cache)
+
+
+def test_prepare_refuses_index_from_another_pages_root(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    old_instance = tmp_path / "old-instance"
+    shutil.copytree(instance / "wiki", old_instance / "wiki")
+    search.index(old_instance, instance.name, cache, download=False)
+
     with pytest.raises(ValueError, match="index"):
         _prepare(instance, cache)

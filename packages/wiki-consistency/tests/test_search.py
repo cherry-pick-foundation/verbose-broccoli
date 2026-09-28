@@ -91,6 +91,48 @@ def test_search_refuses_a_missing_index(tmp_path):
         search.search("wiki-a", tmp_path / "cache", [])
 
 
+@pytest.mark.parametrize(
+    ("content", "expected_pages"),
+    [("\ufeff", 1), ("\x1c", 2)],
+    ids=["byte-order-mark", "unit-separator"],
+)
+def test_index_and_search_match_qmd_trim_rules(tmp_path, content, expected_pages):
+    instance, cache = _wiki(tmp_path)
+    (instance / "wiki" / "concepts" / "trim.md").write_text(content, encoding="utf-8")
+
+    result = search.index(instance, "wiki-a", cache, download=False)
+
+    search.search("wiki-a", cache, [])
+    assert result["pages"] == expected_pages
+
+
+def test_index_and_search_skip_symlinked_pages(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    target = tmp_path / "outside.md"
+    target.write_text("Synthetic outside page.\n", encoding="utf-8")
+    (instance / "wiki" / "concepts" / "linked.md").symlink_to(target)
+
+    result = search.index(instance, "wiki-a", cache, download=False)
+
+    search.search("wiki-a", cache, [])
+    assert result["pages"] == 1
+
+
+def test_search_rejects_allowed_paths_for_pages_queries(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+
+    with pytest.raises(ValueError, match="allowed_paths.*evidence"):
+        search.search(
+            "wiki-a",
+            cache,
+            [{
+                "id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5,
+                "allowed_paths": ["concepts/quad.md"],
+            }],
+        )
+
+
 @pytest.mark.parametrize("change", ["modified", "added", "deleted"])
 def test_search_refuses_stale_document_paths_and_content_hashes(tmp_path, change):
     instance, cache = _wiki(tmp_path)
@@ -154,6 +196,32 @@ def test_index_uses_index_health_after_failed_embedding(tmp_path, monkeypatch):
 
     assert result["semantic"] is True
     assert result["semantic_error"] == "synthetic embedding failure"
+
+
+def test_index_reports_successful_embedding_with_pending_chunks(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    model_name = "synthetic-model.gguf"
+    model_dir = cache / "qmd" / "models"
+    model_dir.mkdir(parents=True)
+    (model_dir / model_name).touch()
+    monkeypatch.setattr(search, "EMBED_MODEL", f"hf:synthetic/{model_name}")
+    run_qmd = search._run_qmd
+
+    def embed_with_warning(wiki_id, cache_root, args, *, budget_action):
+        if list(args) == ["embed"]:
+            return subprocess.CompletedProcess(
+                ["qmd", "embed"], 0, stdout="⚠ 1 chunks still failed after retries\n", stderr=""
+            )
+        return run_qmd(wiki_id, cache_root, args, budget_action=budget_action)
+
+    monkeypatch.setattr(search, "_run_qmd", embed_with_warning)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache_root: False)
+
+    result = search.index(instance, "wiki-a", cache, download=False)
+
+    assert result["semantic"] is False
+    assert isinstance(result["semantic_error"], str) and result["semantic_error"]
+    assert "\n" not in result["semantic_error"]
 
 
 def test_index_and_search_match_qmd_document_scan_rules(tmp_path):

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import hashlib
+from contextlib import closing
 import json
 import os
+import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -17,7 +18,6 @@ from wiki_consistency.evidence import _clean_on_signals, _component, _tree_size
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
-_QMD_EXCLUDED_DIRS = {"node_modules", ".git", ".cache", "vendor", "dist", "build"}
 
 
 def _paths(wiki_id: str, cache: Path) -> tuple[Path, Path, Path]:
@@ -135,6 +135,25 @@ def _markdown_count(root: Path) -> int:
     return sum(path.is_file() for path in root.rglob("*.md")) if root.is_dir() else 0
 
 
+def _collection_chunk_count(wiki_id: str, cache: Path, collection: str) -> int:
+    _, index_path, _ = _paths(wiki_id, cache)
+    if not index_path.is_file():
+        return 0
+    try:
+        with closing(sqlite3.connect(
+            f"{index_path.resolve().as_uri()}?mode=ro&immutable=1", uri=True
+        )) as database:
+            return int(database.execute(
+                "SELECT COUNT(DISTINCT vectors.hash || '_' || vectors.seq) "
+                "FROM content_vectors AS vectors "
+                "JOIN documents ON documents.hash = vectors.hash AND documents.active = 1 "
+                "WHERE documents.collection = ?",
+                (collection,),
+            ).fetchone()[0])
+    except sqlite3.Error:
+        return 0
+
+
 def index(
     instance: Path,
     wiki_id: str,
@@ -168,8 +187,9 @@ def index(
         raise
 
     model_cached = _model_is_cached(cache)
+    embedding_attempted = model_cached or download
     semantic_error = None
-    if model_cached or download:
+    if embedding_attempted:
         try:
             with _clean_on_signals():
                 _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
@@ -177,10 +197,23 @@ def index(
             detail = error.stderr or error.stdout or str(error)
             semantic_error = " ".join(str(detail).split()) or str(error)
     semantic = semantic_ready(wiki_id, cache)
+    if embedding_attempted and not semantic and semantic_error is None:
+        semantic_error = "qmd embed completed but semantic search is still not ready"
+    counts = _run_search_mjs(
+        wiki_id,
+        cache,
+        {
+            "operation": "counts",
+            "roots": {
+                "pages": str(wiki_root.resolve()),
+                "evidence": str(evidence_root.resolve()),
+            },
+        },
+    )
 
     return {
-        "pages": len(_current_documents(wiki_root)),
-        "evidence": len(_current_documents(evidence_root)),
+        "pages": counts["pages"],
+        "evidence": counts["evidence"],
         "semantic": semantic,
         "semantic_error": semantic_error,
     }
@@ -194,27 +227,6 @@ def _relative_path(filepath: str, collection: str, root: Path) -> str:
     if path.is_absolute():
         return path.resolve().relative_to(root.resolve()).as_posix()
     return path.as_posix()
-
-
-def _current_documents(root: Path) -> list[dict[str, str]]:
-    if not root.is_dir():
-        return []
-    # Match qmd 2.8.3 store.js:1256-1272,1307-1310: hidden and excluded
-    # paths are skipped, as are files whose decoded contents are whitespace.
-    documents = []
-    for path in sorted(root.rglob("*.md")):
-        relative = path.relative_to(root)
-        if not path.is_file() or any(
-            part.startswith(".") or part in _QMD_EXCLUDED_DIRS for part in relative.parts
-        ):
-            continue
-        content = path.read_bytes().decode("utf-8", errors="replace")
-        if content.strip():
-            documents.append({
-                "path": relative.as_posix(),
-                "hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
-            })
-    return documents
 
 
 def _run_search_mjs(wiki_id: str, cache: Path, payload: Mapping[str, object]) -> dict[str, object]:
@@ -250,6 +262,8 @@ def search(
     wiki_id: str,
     cache: Path,
     queries: Sequence[Mapping[str, object]],
+    *,
+    expected_pages_root: Path | None = None,
 ) -> list[dict[str, object]]:
     """Search all queries in one qmd library process and map hits to lines."""
     wiki_id = _component(wiki_id)
@@ -263,11 +277,13 @@ def search(
         if not isinstance(query.get("text"), str) or not query["text"].strip():
             raise ValueError("search query text must be non-empty")
         allowed_paths = query.get("allowed_paths")
-        if allowed_paths is not None and (
-            not isinstance(allowed_paths, list)
-            or any(not isinstance(path, str) for path in allowed_paths)
-        ):
-            raise ValueError("evidence allowed paths must be a list of strings")
+        if allowed_paths is not None:
+            if query.get("collection") != "evidence":
+                raise ValueError("allowed_paths is only valid for evidence searches")
+            if not isinstance(allowed_paths, list) or any(
+                not isinstance(path, str) for path in allowed_paths
+            ):
+                raise ValueError("evidence allowed paths must be a list of strings")
 
     configured = _collections(config_path)
     try:
@@ -279,6 +295,14 @@ def search(
         raise LookupError(
             f"qmd collection config is missing; run wiki-consistency index for {wiki_id}"
         ) from error
+    if (
+        expected_pages_root is not None
+        and roots["pages"].resolve() != Path(expected_pages_root).resolve()
+    ):
+        raise LookupError(
+            f"qmd pages collection uses a different Wiki root; "
+            f"run wiki-consistency index for {wiki_id}"
+        )
     expected_evidence_root = (
         cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
     ).resolve()
@@ -288,14 +312,13 @@ def search(
             f"run wiki-consistency index for {wiki_id}"
         )
 
-    expected_documents = {
-        name: _current_documents(root)
-        for name, root in roots.items()
-    }
     result = _run_search_mjs(
         wiki_id,
         cache,
-        {"queries": queries, "documents": expected_documents},
+        {
+            "queries": queries,
+            "roots": {name: str(root.resolve()) for name, root in roots.items()},
+        },
     )
     raw_hits = result["hits"]
     hits: list[dict[str, object]] = []
