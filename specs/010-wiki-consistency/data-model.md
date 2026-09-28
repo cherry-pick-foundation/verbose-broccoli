@@ -98,6 +98,24 @@ Candidates are not stored; `prepare` computes them from the index.
 Every in-scope unit ends in exactly one of: `requested` (in one evidence
 request) or `unverifiable` (all cited sources unreadable).
 
+## Module interfaces
+
+The workers share these Python interfaces in `src/wiki_consistency/`; paths
+in results are POSIX strings relative to `INSTANCE` unless named otherwise.
+
+| Module | Function | Contract |
+| --- | --- | --- |
+| `instance` | `roots(env)` | `{"data": Path, "cache": Path}`: `DATA` and `CACHE`, with feature 009's XDG rules (unset, empty or relative means the default under `HOME`) |
+| `instance` | `instance_path(wiki_id, env)` | `DATA/wikis/<wiki-id>/`; `ValueError` for feature 009's invalid names |
+| `instance` | `pages(instance)` | pages sorted by path: `{"path", "title", "summary", "sources": [{"id", "revision"}], "special": bool, "problems": [...]}`; front matter read with PyYAML |
+| `instance` | `mask_front_matter(text)` | the text with each front-matter line replaced by an empty line, so line numbers stay |
+| `instance` | `revisions(instance)` | `{source_id: [{"kind", "id", "revision", "path"}]}`, each list sorted by revision name; the last is the latest |
+| `evidence` | `convert(instance, wiki_id, cache, revisions)` | converts the given revisions (items of `revisions(instance)`); returns `{"converted", "present", "unreadable": [{"id", "revision", "reason", "detail"}]}` |
+| `evidence` | `read(cache, wiki_id, source_id, revision)` | `{"text": str}` or `{"unreadable": reason}`; `LookupError` when `convert` has not run for it |
+| `search` | `index(instance, wiki_id, cache, *, download)` | builds or updates the `pages` and `evidence` collections; returns counts and `"semantic": bool` |
+| `search` | `search(wiki_id, cache, queries)` | one Node process for all queries; each query `{"id", "text", "collection", "limit"}`; each hit `{"query", "collection", "path", "line", "score", "mode": "lex" or "vec"}`, `path` relative to the collection's folder; `LookupError` when the index is missing |
+| `requests` | `prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates)` | the `prepare` output object of [contracts/commands.md](contracts/commands.md) |
+
 ## Drift finding (additions)
 
 | origin | Meaning |

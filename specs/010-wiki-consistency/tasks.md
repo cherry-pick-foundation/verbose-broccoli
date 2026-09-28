@@ -334,7 +334,7 @@ the code plugin; the schema and the skill describe the procedure.
 - US2: T015 → T016 and T017 → T018 are parallel after T005; T019 → T020 need
   T009, T016 and T018.
 - US3: T021 → T022 need T020. US4: T023 needs T020.
-- US5: T025 after T006; T026 and T027 can be written while workers work;
+- US5: T025 after T014; T026 and T027 can be written while workers work;
   T028 needs T014 and T027; T029 needs T026.
 - T030 needs all implementation; T031 and T032 follow T030.
 
@@ -344,20 +344,24 @@ the code plugin; the schema and the skill describe the procedure.
 | --- | --- | --- |
 | Codex A | T008 to T014 | `packages/wiki-consistency/src/wiki_consistency/{instance,sources,lint,__main__}.py`, their tests and helper; `packages/doc-regions/src/`, `packages/doc-regions/tests/` for T012 only |
 | Codex B | T015 to T018 | `src/wiki_consistency/{evidence,search}.py`, `src/wiki_consistency/search.mjs` and their tests |
-| Codex C | T019 to T023 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py` |
+| Codex C | T019 to T023 | `src/wiki_consistency/requests.py`, `tests/test_prepare.py`, `tests/test_boundary.py`, `tests/fixtures/`; the `convert`, `index` and `prepare` entries in `__main__.py` |
 | Codex D | T007, T025 | `scripts/doctor.ts`, `scripts/doctor_test.ts`, `packages/backfire/src/backfire_tools/build.py` and its tests |
 | Main | T001 to T006, T026 to T032 | shared files, the skill, the schema template, `docs/`, `licenses/`, the constitution, prose, Git, the instance |
 
-Codex C starts after Codex A's T009 and Codex B's T016 and T018; `__main__.py`
-belongs to Codex A, who adds the `convert`, `index` and `prepare` entries
-when B and C hand over their functions.
+Wave 1 runs Codex A, Codex B and Codex D's T007 in parallel. Wave 2 starts
+after A and B finish: Codex C, who also adds the `convert`, `index` and
+`prepare` entries to `__main__.py` (A creates it with `check` and `update`),
+and Codex D's T025, whose test runs A's `check`. The workers share the module
+interfaces in [data-model.md](data-model.md); Codex B keeps its fixtures in
+its own test files, since Codex A owns `tests/conftest.py` and the instance
+helper.
 
 ## Parallel Example
 
 ```text
-After T005: Codex A takes T008 to T014; Codex B takes T015 to T018; Codex D
-takes T007 and T025; main writes T026 and T027. Codex C starts after T009,
-T016 and T018.
+After T006: Codex A takes T008 to T014; Codex B takes T015 to T018; Codex D
+takes T007; main writes T026 and T027. After A and B finish: Codex C takes
+T019 to T023; Codex D takes T025.
 ```
 
 ## Implementation Strategy
