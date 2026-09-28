@@ -105,6 +105,26 @@ def test_lychee_offline_links(workspace, text, broken, unchanged):
         assert 'missing' in str(problems) or 'no-heading' in str(problems)
 
 
+@pytest.mark.parametrize('target, broken', [
+    ('existing file.txt', False),
+    ('existing doc.md#existing-heading', False),
+    ('missing file.txt', True),
+    ('existing doc.md#missing-heading', True),
+    ('/missing-root-relative.md', True),
+])
+def test_lychee_absolute_local_links(workspace, target, broken, unchanged):
+    root = workspace[0]
+    outside = root.parent / 'linked files'
+    outside.mkdir()
+    (outside / 'existing file.txt').write_text('exists\n')
+    (outside / 'existing doc.md').write_text('# Existing heading\n')
+    target = target if target.startswith('/') else outside / target
+    (root / 'doc.md').write_text(f'[text](<{target}>)\n')
+    with unchanged(root.parent):
+        problems = check(*workspace)
+    assert bool(problems) == broken
+
+
 def test_update_changes_only_output_and_is_idempotent(workspace):
     root = workspace[0]
     original = (root / 'doc.md').read_bytes()

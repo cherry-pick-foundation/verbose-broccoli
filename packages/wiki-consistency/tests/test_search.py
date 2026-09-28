@@ -24,9 +24,15 @@ def _wiki(tmp_path):
         "An ellipse has a major axis and a minor axis.\n"
     )
     cache = tmp_path / "cache"
-    evidence = cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / "source"
-    evidence.mkdir(parents=True)
-    (evidence / "r1.md").write_text("Evidence discusses quadratic equations and ellipses.\n")
+    evidence_root = (
+        cache
+        / "wiki-evidence"
+        / "wiki-a"
+        / f"markitdown-{evidence.CONVERTER_VERSION}"
+        / "source"
+    )
+    evidence_root.mkdir(parents=True)
+    (evidence_root / "r1.md").write_text("Evidence discusses quadratic equations and ellipses.\n")
     return instance, cache
 
 
@@ -76,7 +82,12 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     collections = yaml.safe_load(config.read_text())["collections"]
     assert collections["pages"]["path"] == str((instance / "wiki").resolve())
     assert collections["evidence"]["path"] == str(
-        (cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8").resolve()
+        (
+            cache
+            / "wiki-evidence"
+            / "wiki-a"
+            / f"markitdown-{evidence.CONVERTER_VERSION}"
+        ).resolve()
     )
     for command, env in calls:
         assert {key: env[key] for key in _qmd_environment(cache)} == _qmd_environment(cache)
