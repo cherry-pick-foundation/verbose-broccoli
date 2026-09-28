@@ -27,13 +27,13 @@ repository or into Orca or Linear messages.
 
 ## Phase 1: Documents (US1)
 
-- [ ] T001 [US1] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
+- [x] T001 [US1] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   add the rule to the Wiki section (FR-001, FR-002).
-- [ ] T002 [P] [US1] In `plugins/work/skills/wiki-consistency/SKILL.md`,
+- [x] T002 [P] [US1] In `plugins/work/skills/wiki-consistency/SKILL.md`,
   state the rule in one sentence (FR-003).
-- [ ] T003 [P] [US1] In `docs/architecture.md`'s Wiki consistency section,
+- [x] T003 [P] [US1] In `docs/architecture.md`'s Wiki consistency section,
   state the rule in one sentence (FR-003).
-- [ ] T004 [P] [US1] In `docs/examples/wiki/AGENTS.md`, add the rule as one
+- [x] T004 [P] [US1] In `docs/examples/wiki/AGENTS.md`, add the rule as one
   bullet (FR-003).
 
 ## Phase 2: Verification and review
