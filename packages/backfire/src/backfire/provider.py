@@ -81,9 +81,9 @@ class ProfileProvider(AsyncOpenAIProvider):
         try:
             response = raw.http_response.json()
         except ValueError:
-            raise JudgmentError("malformed_output") from None
+            raise JudgmentError("provider_error") from None
         if not isinstance(response, dict):
-            raise JudgmentError("malformed_output")
+            raise JudgmentError("provider_error")
         model = response.get("model")
         if isinstance(model, str) and model.strip():
             call.model = model
@@ -115,6 +115,11 @@ class ProfileProvider(AsyncOpenAIProvider):
         evidence = ((isinstance(reasoning, str) and bool(reasoning.strip()))
                     or (type(tokens) is int and tokens > 0))
         call.metadata["thinking_evidence"] = evidence
+        if self.api == "responses":
+            if not isinstance(output, list):
+                raise JudgmentError("provider_error")
+        elif not isinstance(choices, list) or not choices:
+            raise JudgmentError("provider_error")
         if (self.api != "responses" and not isinstance(message, dict)) or call.usage is None:
             raise JudgmentError("malformed_output")
         if refusal:
