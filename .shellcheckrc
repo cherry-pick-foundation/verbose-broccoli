@@ -1,0 +1,5 @@
+# Enforce Google Shell Style Guide rules.
+enable=avoid-nullary-conditions
+enable=quote-safe-variables
+enable=require-double-brackets
+enable=require-variable-braces

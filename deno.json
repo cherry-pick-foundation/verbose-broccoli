@@ -4,7 +4,7 @@
   "exclude": ["tools/", "scripts/vendor/"],
   "tasks": {
     "doctor": {
-      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies",
       "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
@@ -18,6 +18,7 @@
     "test:cli-contract": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/cli_contract_test.ts",
     "test:workflow": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/workflow_test.ts scripts/workflow_plan_test.ts scripts/workflow_verify_test.ts scripts/workflow_graph_test.ts scripts/workflow_skills_test.ts",
     "lint": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings .",
+    "lint:shell": "git ls-files -z --cached --others --exclude-standard -- '*.sh' scripts/git-hooks scripts/git-flow-hooks ':(exclude).specify/**' | xargs -0 uv run --project tools/shellcheck --frozen --offline --no-sync shellcheck",
     "typecheck": "deno check --frozen scripts/validate_plugins.ts scripts/clean_architecture.ts scripts/workflow.ts scripts/docs.ts scripts/constitution_version.ts",
     "plugins:validate": "deno run --frozen --cached-only --no-prompt --allow-read=plugins scripts/validate_plugins.ts",
     "clean-architecture": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-sys scripts/clean_architecture.ts",
@@ -54,6 +55,7 @@
         "doctor",
         "format:check",
         "lint",
+        "lint:shell",
         "typecheck",
         "plugins:validate",
         "clean-code",

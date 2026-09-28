@@ -120,6 +120,11 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
       python: 'tools/spec-kit/.venv/bin/python',
       sync: 'PASS',
     });
+    assertEquals(report.shellCheck, {
+      project: 'tools/shellcheck',
+      python: 'tools/shellcheck/.venv/bin/python',
+      sync: 'PASS',
+    });
     assertEquals(report.docRegions, {
       project: 'packages/doc-regions',
       python: 'packages/doc-regions/.venv/bin/python',
@@ -313,6 +318,21 @@ Deno.test('doctor: a missing or stale Spec Kit environment fails with sync guida
       () => runDoctor({uv: stale}),
       Error,
       'run uv sync --locked --project tools/spec-kit',
+    );
+  });
+});
+
+Deno.test('doctor: a missing or stale ShellCheck environment fails with sync guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(
+      root,
+      'uv',
+      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'tools/shellcheck') Deno.exit(1);",
+    );
+    await assertRejects(
+      () => runDoctor({uv: stale}),
+      Error,
+      'run uv sync --locked --project tools/shellcheck',
     );
   });
 });

@@ -8,73 +8,74 @@ fail() {
 
 branch=${BRANCH:-${3-}}
 base=${BASE_BRANCH-}
-[ -n "$branch" ] || fail 'git-flow did not provide a feature branch.'
-[ -n "$base" ] || fail 'git-flow did not provide a base branch.'
+[ -n "${branch}" ] || fail 'git-flow did not provide a feature branch.'
+[ -n "${base}" ] || fail 'git-flow did not provide a base branch.'
 
 current=$(git symbolic-ref --quiet --short HEAD) ||
   fail 'the current worktree is not on a branch.'
-[ "$current" = "$base" ] ||
-  fail "run the feature finish from the '$base' worktree, not '$current'."
+[ "${current}" = "${base}" ] ||
+  fail "run the feature finish from the '${base}' worktree, not '${current}'."
 
 status=$(git status --porcelain --untracked-files=all)
-[ -z "$status" ] || fail "the '$base' worktree has uncommitted changes."
+[ -z "${status}" ] || fail "the '${base}' worktree has uncommitted changes."
 
-git merge-base --is-ancestor "$base" "$branch" ||
-  fail "'$base' is not an ancestor of '$branch'; merge '$base' into '$branch', verify it, and finish again."
+git merge-base --is-ancestor "${base}" "${branch}" ||
+  fail "'${base}' is not an ancestor of '${branch}'; merge '${base}' into '${branch}', verify it, and finish again."
 
 feature_worktree=
 current_path=
 while IFS= read -r line; do
-  case "$line" in
+  case "${line}" in
     'worktree '*) current_path=${line#worktree } ;;
-    "branch refs/heads/$branch") feature_worktree=$current_path ;;
+    "branch refs/heads/${branch}") feature_worktree=${current_path} ;;
     '') current_path= ;;
   esac
 done <<EOF
 $(git worktree list --porcelain)
 EOF
-[ -n "$feature_worktree" ] ||
-  fail "'$branch' is not checked out in a worktree, so it cannot be verified."
+[ -n "${feature_worktree}" ] ||
+  fail "'${branch}' is not checked out in a worktree, so it cannot be verified."
 
-status=$(git -C "$feature_worktree" status --porcelain --untracked-files=all)
-[ -z "$status" ] || fail "the '$branch' worktree has uncommitted changes."
+status=$(git -C "${feature_worktree}" status --porcelain --untracked-files=all)
+[ -z "${status}" ] || fail "the '${branch}' worktree has uncommitted changes."
 
-review_tip=$(git rev-list --parents -n 1 "$branch")
-set -- $review_tip
+review_tip=$(git rev-list --parents -n 1 "${branch}")
+# shellcheck disable=SC2086 # Split the commit and parent hashes to count the tip's parents.
+set -- ${review_tip}
 [ "$#" -eq 2 ] ||
-  fail "the '$branch' tip is not a single-parent review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+  fail "the '${branch}' tip is not a single-parent review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 record=$1
 parent=$2
 
-record_tree=$(git rev-parse "$record^{tree}")
-parent_tree=$(git rev-parse "$parent^{tree}")
-[ "$record_tree" = "$parent_tree" ] ||
-  fail "the '$branch' tip tree differs from its parent, so it cannot be a review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+record_tree=$(git rev-parse "${record}^{tree}")
+parent_tree=$(git rev-parse "${parent}^{tree}")
+[ "${record_tree}" = "${parent_tree}" ] ||
+  fail "the '${branch}' tip tree differs from its parent, so it cannot be a review-record commit; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 
-reviewed_by=$(git log -1 --format='%(trailers:key=Reviewed-by,valueonly)' "$record")
-reviewed_by_trailers=$(git log -1 --format='%(trailers:key=Reviewed-by)' "$record")
-reviewed_by_count=$(printf '%s\n' "$reviewed_by_trailers" | wc -l | tr -d '[:space:]')
-[ -n "$reviewed_by" ] && [ "$reviewed_by_count" -eq 1 ] ||
-  fail "the '$branch' tip must have exactly one non-empty Reviewed-by trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+reviewed_by=$(git log -1 --format='%(trailers:key=Reviewed-by,valueonly)' "${record}")
+reviewed_by_trailers=$(git log -1 --format='%(trailers:key=Reviewed-by)' "${record}")
+reviewed_by_count=$(printf '%s\n' "${reviewed_by_trailers}" | wc -l | tr -d '[:space:]')
+[ -n "${reviewed_by}" ] && [ "${reviewed_by_count}" -eq 1 ] ||
+  fail "the '${branch}' tip must have exactly one non-empty Reviewed-by trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 
-reviewed_commit=$(git log -1 --format='%(trailers:key=Reviewed-commit,valueonly)' "$record")
-reviewed_commit_trailers=$(git log -1 --format='%(trailers:key=Reviewed-commit)' "$record")
-reviewed_commit_count=$(printf '%s\n' "$reviewed_commit_trailers" | wc -l | tr -d '[:space:]')
-[ -n "$reviewed_commit" ] && [ "$reviewed_commit_count" -eq 1 ] ||
-  fail "the '$branch' tip must have exactly one non-empty Reviewed-commit trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+reviewed_commit=$(git log -1 --format='%(trailers:key=Reviewed-commit,valueonly)' "${record}")
+reviewed_commit_trailers=$(git log -1 --format='%(trailers:key=Reviewed-commit)' "${record}")
+reviewed_commit_count=$(printf '%s\n' "${reviewed_commit_trailers}" | wc -l | tr -d '[:space:]')
+[ -n "${reviewed_commit}" ] && [ "${reviewed_commit_count}" -eq 1 ] ||
+  fail "the '${branch}' tip must have exactly one non-empty Reviewed-commit trailer; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 
 reviewed_parent=$(git rev-parse --verify --quiet --end-of-options "${reviewed_commit}^{commit}") ||
-  fail "the '$branch' Reviewed-commit trailer does not resolve to its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
-[ "$reviewed_parent" = "$parent" ] ||
-  fail "the '$branch' Reviewed-commit trailer does not name its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+  fail "the '${branch}' Reviewed-commit trailer does not resolve to its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
+[ "${reviewed_parent}" = "${parent}" ] ||
+  fail "the '${branch}' Reviewed-commit trailer does not name its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 
-commits=$(git rev-list --no-merges --full-history "$base..$branch" -- .specify/memory/constitution.md) ||
-  fail "could not list constitution-changing commits on branch '$branch'; check the feature history and retry the finish."
-for commit in $commits; do
-  if ! git log -1 --format=%B "$commit" | CONSTITUTION_VERSION_COMMIT=$commit deno task --quiet commitlint; then
-    fail "commit '$commit' on branch '$branch' failed the constitution version check; rewrite that commit so it raises the version once for its type, then review and record again."
+commits=$(git rev-list --no-merges --full-history "${base}..${branch}" -- .specify/memory/constitution.md) ||
+  fail "could not list constitution-changing commits on branch '${branch}'; check the feature history and retry the finish."
+for commit in ${commits}; do
+  if ! git log -1 --format=%B "${commit}" | CONSTITUTION_VERSION_COMMIT=${commit} deno task --quiet commitlint; then
+    fail "commit '${commit}' on branch '${branch}' failed the constitution version check; rewrite that commit so it raises the version once for its type, then review and record again."
   fi
 done
 
-(cd "$feature_worktree" && deno task --quiet verify) ||
-  fail "verification failed in the '$branch' worktree."
+(cd "${feature_worktree}" && deno task --quiet verify) ||
+  fail "verification failed in the '${branch}' worktree."

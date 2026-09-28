@@ -275,6 +275,7 @@ export async function runDoctor(options: Options = {}) {
     dependencies(),
   ]);
   const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
+  const shellCheck = await checkUvEnvironment(uv.canonical, 'tools/shellcheck');
   const docRegions = await checkUvEnvironment(
     uv.canonical,
     'packages/doc-regions',
@@ -300,6 +301,7 @@ export async function runDoctor(options: Options = {}) {
     node: {...node, version: nodeVersion},
     gitHooksPath,
     specKit,
+    shellCheck,
     docRegions,
     wikiConsistency,
     lock,
