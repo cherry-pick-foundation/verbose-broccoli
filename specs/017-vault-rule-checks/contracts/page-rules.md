@@ -81,7 +81,10 @@ starts with `HANGUL`, `CJK UNIFIED IDEOGRAPH`, `CJK COMPATIBILITY IDEOGRAPH`,
 ### Allowed quote
 
 Quotation marks are the pairs `"…"`, `“…”`, `‘…’`, `「…」` and `『…』` (the
-ASCII apostrophe is not one, because it also marks possessives). On one
+ASCII apostrophe is not one, because it also marks possessives). On each
+line, marks pair from left to right: an opening mark pairs with the next
+closing mark of its pair, and the search for the next opening mark starts
+after that closing mark, so a closing mark never opens a quote. On one
 line, an allowed quote is either of:
 
 - an original in quotation marks, then optional spaces, then a translation
@@ -105,8 +108,9 @@ match.
 ### Date forms
 
 Dates are not checked inside link destinations (`[text](destination)`),
-autolinks (`<...>`) or bare URLs (`http://` or `https://` up to the next
-space). Elsewhere, each of these fails:
+CommonMark autolinks (`<scheme:...>` or `<name@domain>`, without spaces) or
+bare URLs (`http://` or `https://` up to the next space). Other text in
+angle brackets, such as an HTML comment, is checked. Elsewhere, each of these fails:
 
 | Form | Examples |
 | --- | --- |
@@ -135,10 +139,11 @@ by `-`, `–`, `—` or `to` with optional spaces, passes when a zone follows
 its second time; its first time needs none. Accepted zones:
 
 - `Z`, directly after the time;
-- a numeric offset `+HH:MM`, `+HHMM`, `-HH:MM` or `-HHMM`, directly after
-  the time or after spaces. A `-` offset directly after the time counts
-  only when the time follows a `T` (an ISO 8601 date-time such as
-  `2026-09-29T14:30:00-05:00`); elsewhere `14:00-15:30` is a range;
+- a numeric offset with hours `00` to `14` and minutes `00` to `59`:
+  `+HH:MM` or `+HHMM` directly after the time or after spaces, and `-HH:MM`
+  or `-HHMM` only directly after a time that follows a `T` (an ISO 8601
+  date-time such as `2026-09-29T14:30:00-05:00`). Elsewhere a `-` before a
+  time joins a range, so `14:00-15:30` and `14:00 -15:30` are ranges;
 - `UTC`, alone or followed by `+` or `-`, an hour of one or two digits and
   optional `:MM`, as in `UTC+9` or `UTC+09:00`, after optional spaces and
   optionally wrapped in parentheses, as in `(UTC+9)`.

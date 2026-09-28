@@ -314,9 +314,10 @@ documents that describe the check.
   YYYY-MM-DD: year, month and day separated by `.`, `/` or `-` in another
   order or without zero padding; a month name or abbreviation next to a day
   number; or a Korean date with 년, 월 or 일. It MUST also fail on a
-  YYYY-MM-DD date that is not a calendar date. A month without a day, such
-  as "September 2026", is not a date and passes. Link destinations are not
-  checked for dates.
+  YYYY-MM-DD date that is not a calendar date. An English month without a
+  day, such as "September 2026", is not a date and passes; a Korean year
+  and month, such as "2026년 9월", fails. Link destinations are not checked
+  for dates.
 - **FR-013**: The check MUST fail on a time of day, written as `HH:MM` with
   optional seconds or with `AM` or `PM` (`a.m.`, `p.m.`), that is not
   followed by a time zone. A time range such as `14:00–15:30` counts as
