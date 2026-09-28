@@ -329,9 +329,19 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
   the middle digit, `docs` or `fix` the last digit. Other types and an
   unchanged version are refused. A breaking change also needs the user's
-  approval before it is committed, which the hook cannot check. A `commit-msg`
-  hook is not told about `--amend`, so an amend is compared with the commit it
-  replaces.
+  approval before it is committed, which the hook cannot check.
+- An amend is compared with `HEAD^`, the parent of the commit it replaces, so
+  it keeps the version that commit set. Git does not tell a `commit-msg` hook
+  about `--amend`, so the hook reads the arguments of the `git` process that
+  runs it from `/proc/$PPID/cmdline`. When one is `--amend` or an abbreviation
+  git accepts (`--am`, `--ame`, `--amen`) and no later `--no-amend` form
+  cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
+  otherwise it clears any inherited value. Where those arguments cannot be
+  read, an amend is compared with the commit it replaces, as before this rule
+  handled amends, so it can be refused or accepted wrongly. The hook does not
+  know which options take a value, so a value such as the message in
+  `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
+  and a value `--no-amend` hides a real amend.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,

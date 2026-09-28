@@ -106,18 +106,21 @@ export async function constitutionVersionRule(
   parsed: ParsedCommit,
 ): Promise<VersionResult> {
   try {
-    const head = await git(['rev-parse', '--verify', '--quiet', 'HEAD']);
+    const headRef = Deno.env.get('CONSTITUTION_VERSION_AMEND')
+      ? 'HEAD^'
+      : 'HEAD';
+    const head = await git(['rev-parse', '--verify', '--quiet', headRef]);
     if (head.code === 1) {
       return [true, 'Constitution version check does not apply.'];
     }
-    if (!head.success) return gitFailure('check HEAD', head.code);
+    if (!head.success) return gitFailure(`check ${headRef}`, head.code);
 
     const [headPath, indexPath] = await Promise.all([
-      git(['ls-tree', '-r', '--name-only', 'HEAD', '--', constitutionPath]),
+      git(['ls-tree', '-r', '--name-only', headRef, '--', constitutionPath]),
       git(['ls-files', '--error-unmatch', '--', constitutionPath]),
     ]);
     if (!headPath.success)
-      return gitFailure('check the constitution in HEAD', headPath.code);
+      return gitFailure(`check the constitution in ${headRef}`, headPath.code);
     if (headPath.stdout.length === 0 || indexPath.code === 1) {
       return [true, 'Constitution version check does not apply.'];
     }
@@ -125,11 +128,11 @@ export async function constitutionVersionRule(
       return gitFailure('check the constitution in the index', indexPath.code);
 
     const [before, after] = await Promise.all([
-      git(['show', `HEAD:${constitutionPath}`]),
+      git(['show', `${headRef}:${constitutionPath}`]),
       git(['show', `:${constitutionPath}`]),
     ]);
     if (!before.success)
-      return gitFailure('read the constitution from HEAD', before.code);
+      return gitFailure(`read the constitution from ${headRef}`, before.code);
     if (!after.success)
       return gitFailure('read the constitution from the index', after.code);
 

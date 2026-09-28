@@ -234,6 +234,172 @@ async function commit(
   return await runGit(repo, ['commit', ...args, '-m', message], extraEnv);
 }
 
+Deno.test('commit-msg hook: amendments use the parent constitution version', async () => {
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const replaced = output(await runGit(repo, ['rev-parse', 'HEAD'])).trim();
+
+    await writeConstitution(repo, constitution('1.0.0', 'Follow-up text.'));
+    const amend = await runGit(repo, ['commit', '--amend', '--no-edit']);
+    assert(amend.success, output(amend));
+    assert(
+      output(await runGit(repo, ['rev-parse', 'HEAD'])).trim() !== replaced,
+    );
+    const committed = output(
+      await runGit(repo, ['show', 'HEAD:.specify/memory/constitution.md']),
+    );
+    assertMatch(committed, /Follow-up text/);
+    assertMatch(committed, /\*\*Version\*\*: 1\.0\.0/);
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+
+    await writeConstitution(repo, constitution('1.0.0', 'Follow-up text.'));
+    const amend = await runGit(repo, ['commit', '--amen', '--no-edit']);
+    assert(amend.success, output(amend));
+    assertMatch(
+      output(
+        await runGit(repo, ['show', 'HEAD:.specify/memory/constitution.md']),
+      ),
+      /Follow-up text/,
+    );
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('2.0.0', 'Bumped again.'));
+    const amend = await runGit(repo, [
+      'commit',
+      '--am',
+      '-m',
+      'docs!: break again',
+    ]);
+    assert(!amend.success);
+    assertMatch(output(amend), /requires 1\.0\.0; found 2\.0\.0/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('2.0.0', 'New commit.'));
+    const commitResult = await runGit(repo, [
+      'commit',
+      '--am',
+      '--no-am',
+      '-m',
+      'docs!: break again',
+    ]);
+    assert(commitResult.success, output(commitResult));
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD^'])), before);
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    await writeConstitution(repo, constitution('1.0.0', 'Reworded change.'));
+    const amend = await runGit(repo, [
+      'commit',
+      '--amend',
+      '-m',
+      'docs!: break',
+    ]);
+    assert(amend.success, output(amend));
+    assertMatch(
+      output(
+        await runGit(repo, ['show', 'HEAD:.specify/memory/constitution.md']),
+      ),
+      /\*\*Version\*\*: 1\.0\.0/,
+    );
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+    await writeConstitution(repo, constitution('2.0.0', 'Bumped again.'));
+    const amend = await runGit(repo, [
+      'commit',
+      '--amend',
+      '-m',
+      'docs!: break again',
+    ]);
+    assert(!amend.success);
+    assertMatch(output(amend), /requires 1\.0\.0; found 2\.0\.0/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+  });
+
+  await withRepo(async repo => {
+    await Deno.writeTextFile(join(repo.root, 'docs.txt'), 'first\n');
+    const add = await runGit(repo, ['add', 'docs.txt']);
+    assert(add.success, output(add));
+    const first = await commit(repo, 'docs: update docs');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('0.22.0', 'New text.'));
+    const refused = await runGit(repo, [
+      'commit',
+      '--amend',
+      '-m',
+      'docs: update docs',
+    ]);
+    assert(!refused.success);
+    assertMatch(output(refused), /requires 0\.22\.1; found 0\.22\.0/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+
+    await writeConstitution(repo, constitution('0.22.1', 'New text.'));
+    const accepted = await runGit(repo, [
+      'commit',
+      '--amend',
+      '-m',
+      'docs: update docs',
+    ]);
+    assert(accepted.success, output(accepted));
+    assertMatch(
+      output(
+        await runGit(repo, ['show', 'HEAD:.specify/memory/constitution.md']),
+      ),
+      /\*\*Version\*\*: 0\.22\.1/,
+    );
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('1.0.0', 'Follow-up change.'));
+    const refused = await commit(repo, 'docs!: follow up', [], {
+      CONSTITUTION_VERSION_AMEND: '1',
+    });
+    assert(!refused.success);
+    assertMatch(output(refused), /requires 2\.0\.0; found 1\.0\.0/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+
+    await writeConstitution(repo, constitution('2.0.0', 'Follow-up change.'));
+    const accepted = await commit(repo, 'docs!: follow up', [], {
+      CONSTITUTION_VERSION_AMEND: '1',
+    });
+    assert(accepted.success, output(accepted));
+  });
+});
+
 Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {
   await withRepo(async repo => {
     await Deno.writeTextFile(join(repo.root, 'invalid.txt'), 'change\n');
