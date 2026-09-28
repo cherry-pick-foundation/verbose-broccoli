@@ -63,6 +63,38 @@ record why they stand.
 and `docs/backfire.md`, with `AGENTS.md` and the constitution report-only; the
 brief asks for the judgment on every changed document.
 
+**Result** (at commit `948011b`): no unit needed a correction.
+
+- Prepare's requests covered 220 units, with the diffs of the script, the
+  skill and its schema template as evidence. No unit was contradicted. Eight
+  were flagged for review: constitution 58-59, 61-67, 91-93 and 154-156,
+  `AGENTS.md` 70-74, and `docs/architecture.md` 10-25, 155-160 and 162-170.
+  Six of them were judged supported and two unsupported. They stand, because
+  their source is the user's decisions in this spec, and prepare excludes
+  `specs/` from evidence. The three units the feature added to
+  `docs/architecture.md` (the vault introduction, the vault table and the
+  rules paragraph) were classified as agent regions; none becomes a
+  mechanical region, because no repository file lists the vaults.
+- The extra request covered the 18 changed units of the skill, the schema
+  template and feature 009's records, with the script diff and this spec's
+  Input and Clarifications as evidence. One unit was contradicted: feature
+  009's contract line "`--wiki <name>` selects `vaults/<name>/` and defaults
+  to `default`". It stands as feature 009's history, which keeps only the
+  folder rename (spec Clarifications); this feature's
+  [contract](contracts/raw-import-cli.md) states the new default. The five
+  units flagged for review (skill 31-36 and 96-99, schema template 53-55,
+  feature 009's data model 106-109 and spec 196-200, and tasks 166-170) were
+  supported or say only what feature 009 built.
+- `deno task doc-regions:audit` reported 19 MemoryLint warnings, all of the
+  `boundary` kind on the constitution (list items it would move to
+  `AGENTS.md`). They are reported to the user, not acted on.
+
+**Cost**: 5 requests, 10 provider judgments (5 successful; the others were
+retried). Input tokens 160,074; output tokens 45,141. The records went to a
+separate state folder for this step, so the counts contain no other session's
+calls.
+Together with R1: 37 requests, 51 judgments, 289,981 input tokens.
+
 ## R3. Tests
 
 **Decision**: Keep feature 009's black-box tests and change only their paths

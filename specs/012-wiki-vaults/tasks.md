@@ -33,44 +33,53 @@ messages; tests use only synthetic fixtures.
 
 ## Phase 1: Script and tests (US1, US2, US3)
 
-- [ ] T001 [US1] [US2] In `SCRIPT`, build the data path as
+- [x] T001 [US1] [US2] In `SCRIPT`, build the data path as
   `DATA/vaults/<name>` and the lock path as `STATE/vaults/<name>/raw-import.lock`,
   and default `--wiki` to `work`
   ([contract](contracts/raw-import-cli.md)).
-- [ ] T002 [US1] [US2] [US3] In `TEST`, move every path from `wikis/` to
+- [x] T002 [US1] [US2] [US3] In `TEST`, move every path from `wikis/` to
   `vaults/` and the default instance from `default` to `work`; add a case in
   which `init`, `admit` and `verify` without `--wiki` use
   `DATA/vaults/work/` and `STATE/vaults/work/` and nothing named `wikis`
   appears, and a case that admits a synthetic exported conversation with
   `--wiki chat` and verifies it (research R3).
+  - 2026-09-28: A Codex worker (`gpt-6-luna`, `max`; Orca dispatch
+    `ctx_8e99c3bb93bd`) made T001 and T002; both new cases failed before the
+    script change and passed after it. Main replaced the new case's check for
+    the old folder name with an assertion that the data and state roots hold
+    only `vaults`. Next: the merge review.
 
 ## Phase 2: Policies and documents (US1, US2, US3)
 
-- [ ] T003 [P] [US2] [US3] Amend `.specify/memory/constitution.md`:
+- [x] T003 [P] [US2] [US3] Amend `.specify/memory/constitution.md`:
   principle VI names `vaults/` and the four vaults and limits the
   conversation-records rule to the vaults other than `chat`; IX says the chat
   package's persistent state is its vault; Governance records the 2026-09-28
   decisions; version 2.0.0 in one `feat(constitution)!` commit (FR-005 to
   FR-007).
-- [ ] T004 [P] [US2] In `AGENTS.md` Records, say that the code vault holds
+- [x] T004 [P] [US2] In `AGENTS.md` Records, say that the code vault holds
   coding knowledge for any project and is not this repository's development
   memory (FR-008).
-- [ ] T005 [P] [US2] In `docs/architecture.md`, describe the four vaults,
+- [x] T005 [P] [US2] In `docs/architecture.md`, describe the four vaults,
   their owners, the default rule, shared vault storage and the chat package's
   state (FR-009).
-- [ ] T006 [P] [US1] [US2] [US3] In the `wiki-raw-import` skill's `SKILL.md`
+- [x] T006 [P] [US1] [US2] [US3] In the `wiki-raw-import` skill's `SKILL.md`
   and `assets/AGENTS.md`, name `vaults/`, the default `work`, and allow
   exported conversations only in the chat vault (FR-010).
-- [ ] T007 [P] [US1] In `specs/009-wiki-storage/`, rename the storage folder
+- [x] T007 [P] [US1] In `specs/009-wiki-storage/`, rename the storage folder
   in the units research R1 lists; leave the single-instance statements
   (FR-011).
 
 ## Phase 3: Verification and review
 
-- [ ] T008 Run `deno task test:wiki-raw-import`, `deno task verify` and
+- [x] T008 Run `deno task test:wiki-raw-import`, `deno task verify` and
   `git grep -n wikis`; no storage folder mention may remain.
-- [ ] T009 Run the document judgment step of research R2; correct or record
+  - 2026-09-28: 43 tests passed, `deno task verify` passed at `948011b`, and
+    `git grep -n wikis` found nothing.
+- [x] T009 Run the document judgment step of research R2; correct or record
   each contradicted or flagged unit; report the requests and input tokens.
+  - 2026-09-28: No correction was needed; the results, the reasons the
+    flagged units stand, and the token use are in research R2.
 - [ ] T010 Merge `develop`, verify, move CHE-19 to In Review, run the merge
   review (a fresh Claude Code reviewer for T001 and T002, a fresh Codex
   reviewer for the documents), resolve findings, commit the review record and
