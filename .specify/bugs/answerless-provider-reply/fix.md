@@ -71,7 +71,7 @@ provider's billed tokens stay visible there.
   `PATH`, because the `mise` shim has no default version in this shell.
 - Manual checks: the coordinator reviewed the worker's diff before the commit
   and sent one correction (Orca message `msg_384131ddd24a` in Run
-  `run_8ce224f294c2`). The first worker's session lost its sign-in before
+  `run_8ce224f294c2`; `orca orchestration inbox --full` shows it). The first worker's session lost its sign-in before
   applying it (dispatch `ctx_293981968eba`); a fresh worker applied it
   (dispatch `ctx_087bc6abfde6`).
 

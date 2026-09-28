@@ -54,7 +54,9 @@ Local replay, without provider calls:
    can only be observed with billed calls.
 
 Billed calls, approved by the user through the develop session on
-2026-09-29 (Orca question `msg_061c414959ca` in Run `run_8b222073b123`),
+2026-09-28 at 16:21 UTC (Orca reply `msg_85042e227034` to question
+`msg_ba4310755727` in Run `run_8b222073b123`; `orca orchestration inbox
+--full` shows both),
 raw replies kept outside the repository:
 
 4. The three captured bodies sent directly to the Hive endpoint: all three
@@ -77,8 +79,9 @@ raw replies kept outside the repository:
 
 In total 15 calls completed: 3 direct and 12 through the judge. 11 passed,
 3 got a 500 status, and 1 got the padded 500 body. A fifth round was stopped
-as soon as it started; it left no capture, so whether its requests reached
-the provider is not recorded.
+as soon as it started. It left no capture and no other durable record; only
+the coordinator's session saw it, so whether its requests reached the
+provider is unknown.
 
 ## Suspected Code Paths
 
@@ -116,8 +119,9 @@ error body.
 
 ## Proposed Remediation
 
-**Preferred** (the user chose this rule on 2026-09-29, Orca question
-`msg_27956dd8849e` in Run `run_8b222073b123`): a 2xx reply that
+**Preferred** (the user chose this rule on 2026-09-28 at 16:30 UTC, Orca
+reply `msg_645483aa274c` to question `msg_9835910a0f6e` in Run
+`run_8b222073b123`): a 2xx reply that
 carries no answer at all is `provider_error`. That covers a body that is not
 JSON, a body that is not a JSON object, and an object whose answer container
 is missing, null or empty: `choices` for Chat Completions, `output` for the
@@ -170,4 +174,5 @@ table in `contracts/judgment.md`, the `provider_error` row in
 
 ## Open Questions
 
-- None. The user chose the classification rule (option A) on 2026-09-29.
+- None. The user chose the classification rule (option A) on 2026-09-28;
+  see Proposed Remediation.
