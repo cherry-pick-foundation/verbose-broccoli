@@ -68,7 +68,8 @@ Line numbers are at `a0d0d83`.
 
 The user allowed as many billed calls as needed. The assessment made 15
 complete calls (3 sent directly, 12 through backfire's judge), and a fifth
-round of 3 was stopped after its requests were sent. The judgment step made 5
+round of 3 was stopped as soon as it started; it left no capture, so whether
+its requests reached the provider is not recorded. The judgment step made 5
 calls. The provider reported 571,292 input tokens for the 11 assessment calls
 that answered and 156,042 for the 3 judgment calls that answered; failed calls
 report no usage. Raw replies stayed in the session's temporary folder.

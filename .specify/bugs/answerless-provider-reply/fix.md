@@ -69,7 +69,11 @@ provider's billed tokens stay visible there.
   files, on `0eb9b8b` → workflow `VERIFIED`, exit code 0; the backfire suite
   reported `1351 passed, 3 deselected`. `node` 24.19.0 from `mise` was first on
   `PATH`, because the `mise` shim has no default version in this shell.
-- Manual checks: the coordinator reviewed the diff before the commit.
+- Manual checks: the coordinator reviewed the worker's diff before the commit
+  and sent one correction (Orca message `msg_384131ddd24a` in Run
+  `run_8ce224f294c2`). The first worker's session lost its sign-in before
+  applying it (dispatch `ctx_293981968eba`); a fresh worker applied it
+  (dispatch `ctx_087bc6abfde6`).
 
 ## Deviations from Assessment
 
@@ -77,7 +81,8 @@ provider's billed tokens stay visible there.
   Responses reply with status `incomplete` (for example at
   `max_output_tokens`) has an empty `output`, and the adapter reports it as
   `truncated_output`. The first implementation turned that case into
-  `provider_error`, which the review caught. So for the Responses API only a
+  `provider_error`, which the coordinator's pre-commit review caught (the
+  correction above). So for the Responses API only a
   missing, null or non-list `output` is `provider_error`; the contract says
   so.
 - The assessment placed the new check with the body checks. It runs later,

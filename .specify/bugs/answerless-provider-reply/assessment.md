@@ -42,8 +42,9 @@ Local replay, without provider calls:
    scripts/doc_regions.toml --base 136866a --max-evidence-chars 20000` there.
    All three requests' input digests (`digest({"tool", "arguments"})` from
    `records.py`) match the records: `3108ade945dc`, `95ca6ccb27ab`,
-   `686fbfc2359c`. `packages/backfire/src` has not changed between `0d5cf3e`
-   and develop `2262815`, so the replay runs the code that failed.
+   `686fbfc2359c`. `packages/backfire/src/backfire/`, the runtime package, has
+   not changed between `0d5cf3e` and develop `2262815` (only the build tool in
+   `backfire_tools/` has), so the replay runs the code that failed.
 2. Run each request through `backfire.tools.verify.call` against the test
    provider in `tests/fake_provider.py`
    (`BACKFIRE_TEST_PROVIDER_BASE_URL`) to capture the exact HTTP bodies.
@@ -53,7 +54,8 @@ Local replay, without provider calls:
    can only be observed with billed calls.
 
 Billed calls, approved by the user through the develop session on
-2026-09-29, raw replies kept outside the repository:
+2026-09-29 (Orca question `msg_061c414959ca` in Run `run_8b222073b123`),
+raw replies kept outside the repository:
 
 4. The three captured bodies sent directly to the Hive endpoint: all three
    returned HTTP 200 with complete answers in 57-71 s.
@@ -75,7 +77,8 @@ Billed calls, approved by the user through the develop session on
 
 In total 15 calls completed: 3 direct and 12 through the judge. 11 passed,
 3 got a 500 status, and 1 got the padded 500 body. A fifth round was stopped
-after its requests were sent.
+as soon as it started; it left no capture, so whether its requests reached
+the provider is not recorded.
 
 ## Suspected Code Paths
 
@@ -113,7 +116,8 @@ error body.
 
 ## Proposed Remediation
 
-**Preferred** (the user chose this rule on 2026-09-29): a 2xx reply that
+**Preferred** (the user chose this rule on 2026-09-29, Orca question
+`msg_27956dd8849e` in Run `run_8b222073b123`): a 2xx reply that
 carries no answer at all is `provider_error`. That covers a body that is not
 JSON, a body that is not a JSON object, and an object whose answer container
 is missing, null or empty: `choices` for Chat Completions, `output` for the
