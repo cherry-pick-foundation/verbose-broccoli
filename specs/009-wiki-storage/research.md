@@ -94,7 +94,7 @@ folder sizes, file counts and file types; it opened no file and did not enter
   into `raw/<kind>/<source-id>/<revision>/`. The bag's files and subfolders
   are made read-only before the rename and the revision folder right after
   it. A run holds an exclusive `flock` on
-  `$XDG_STATE_HOME/verbose-broccoli/wikis/default/raw-import.lock` and removes
+  `$XDG_STATE_HOME/verbose-broccoli/vaults/default/raw-import.lock` and removes
   stale staging folders when it starts.
 - **Rationale**:
   - `rename` within one file system is atomic, so `raw/` never shows a partial

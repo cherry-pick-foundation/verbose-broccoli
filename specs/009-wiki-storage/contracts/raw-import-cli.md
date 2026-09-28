@@ -21,7 +21,7 @@ root at a temporary folder. Names in this contract refer to
 | `admit --selection <file>` | Validate the selection, then admit each item in order. |
 | `verify` | Validate every revision under `raw/`; write nothing. |
 
-`--wiki <name>` selects `wikis/<name>/` and defaults to `default`. An empty
+`--wiki <name>` selects `vaults/<name>/` and defaults to `default`. An empty
 name, `.`, `..`, or a name containing `/` or NUL is invalid.
 
 ## Exit status and output

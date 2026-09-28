@@ -28,7 +28,7 @@ uv run --locked --script "$script" admit --selection "$HOME/selection.jsonl"   #
 printf 'changed\n' >> "$HOME/doc.txt"
 uv run --locked --script "$script" admit --selection "$HOME/selection.jsonl"   # admitted, second revision
 uv run --locked --script "$script" verify                                       # 2 valid revisions
-git -C "$HOME/.local/share/verbose-broccoli/wikis/default" status --ignored --short  # raw/ ignored
+git -C "$HOME/.local/share/verbose-broccoli/vaults/default" status --ignored --short  # raw/ ignored
 ```
 
 ## Real import (implementation phase only)

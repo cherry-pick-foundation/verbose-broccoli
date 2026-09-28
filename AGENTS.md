@@ -69,7 +69,9 @@ If the requirement cannot be met without substantial new local implementation, s
 
 - Development memory is the Spec Kit records in `specs/`,
   `.specify/assessments/` and `.specify/bugs/` plus code and Git. Do not keep a
-  separate memory system or development wiki.
+  separate memory system or development wiki. The code plugin's `code` vault
+  holds coding knowledge for work in any project (libraries, patterns,
+  decisions); it is not this repository's development memory.
 - When a session ends or a task moves to another provider, the coordinator adds
   one or two lines under that task in `tasks.md`: what was done, what blocked,
   and what comes next. Main owns task-ledger updates.
