@@ -59,6 +59,15 @@ repository or into Orca or Linear messages.
     `ec50c25` and found one minor issue: feature 010's page contract lacks
     the rule. That contract records what feature 010 built, so FR-003 and
     SC-001 now leave earlier features' Spec Kit records out.
+  - 2026-09-29: The user then added the school domain ID rule, the source
+    precedence rule and three page rules (spec Clarifications), and
+    `develop` with CHE-20's merge was merged in at `2452123`. There
+    `deno task verify` passed, and the document judgment step found no
+    contradicted or flagged unit; the changed `docs/architecture.md`
+    unit (183-186) was verified and classified as an agent region. Two
+    requests failed at the provider and succeeded on retry; 6 judgments
+    used 146,370 input and 34,841 output tokens. The audit's 19
+    constitution warnings are unchanged.
 
 ## Phase 3: After the finish (US2)
 
