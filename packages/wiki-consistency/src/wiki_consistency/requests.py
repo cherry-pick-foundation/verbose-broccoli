@@ -16,6 +16,8 @@ from wiki_consistency.instance import mask_front_matter
 from wiki_consistency.instance import pages
 from wiki_consistency.instance import revisions
 from wiki_consistency.lint import _link_targets
+from wiki_consistency.search import _collection_chunk_count
+from wiki_consistency.search import _markdown_count
 
 SPECIAL_NO_UNITS = {"wiki/index.md", "wiki/log.md"}
 REQUEST_ORDER = {"evidence": 0, "pages": 1, "crossref": 2, "classify": 3}
@@ -426,17 +428,13 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
 
     queries = []
     try:
-        # Same-package helper.
-        evidence_chunks = search._collection_chunk_count(  # noqa: SLF001
-            wiki_id, cache, "evidence"
-        )
+        evidence_chunks = _collection_chunk_count(wiki_id, cache, "evidence")
     except LookupError as error:
         raise ValueError(f"prepare requires index: {error}") from error
     evidence_limit = max(
         20,
         candidates * 4,
-        # Same-package helper.
-        search._markdown_count(  # noqa: SLF001
+        _markdown_count(
             cache
             / "wiki-evidence"
             / wiki_id

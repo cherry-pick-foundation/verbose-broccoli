@@ -495,7 +495,9 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(
     monkeypatch.setattr(
         requests.search,
         "search",
-        lambda _wiki_id, _cache, _queries, **_kwargs: hits,
+        lambda unused_wiki_id, unused_cache, unused_queries, **unused_kwargs: (
+            hits
+        ),
     )
 
     result = requests.prepare(
@@ -1023,7 +1025,7 @@ def test_evidence_query_limit_includes_chunks_in_qmd_wal(tmp_path, monkeypatch):
     monkeypatch.setattr(
         requests.search,
         "search",
-        lambda _wiki_id, _cache_root, queries, **_kwargs: (
+        lambda unused_wiki_id, unused_cache_root, queries, **unused_kwargs: (
             captured.extend(queries) or []
         ),
     )
@@ -1338,7 +1340,9 @@ def test_prepare_batches_verify_and_classify_deterministically(
     monkeypatch.setattr(
         requests.search,
         "search",
-        lambda _wiki_id, _cache, _queries, **_kwargs: [],
+        lambda unused_wiki_id, unused_cache, unused_queries, **unused_kwargs: (
+            []
+        ),
     )
     before = tree_hash(instance), tree_hash(cache)
 
