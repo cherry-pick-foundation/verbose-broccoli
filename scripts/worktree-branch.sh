@@ -13,7 +13,7 @@ if ! branch=$(git symbolic-ref --quiet --short HEAD); then
   exit 0
 fi
 
-case $branch in
+case ${branch} in
   main|develop|feature/*|release/*|hotfix/*) exit 0 ;;
 esac
 
@@ -23,40 +23,40 @@ fi
 
 has_other_branch=false
 for ref in $(git for-each-ref --contains HEAD --format='%(refname)' refs/heads refs/remotes); do
-  if [ "$ref" != "refs/heads/$branch" ]; then
+  if [ "${ref}" != "refs/heads/${branch}" ]; then
     has_other_branch=true
     break
   fi
 done
-if [ "$has_other_branch" = false ]; then
+if [ "${has_other_branch}" = false ]; then
   exit 0
 fi
 
-case $name in
+case ${name} in
   release-*)
     suffix=${name#release-}
-    [ -n "$suffix" ] || fail 'release name must include a suffix'
-    target=release/$suffix
+    [ -n "${suffix}" ] || fail 'release name must include a suffix'
+    target=release/${suffix}
     ;;
   hotfix-*)
     suffix=${name#hotfix-}
-    [ -n "$suffix" ] || fail 'hotfix name must include a suffix'
-    target=hotfix/$suffix
+    [ -n "${suffix}" ] || fail 'hotfix name must include a suffix'
+    target=hotfix/${suffix}
     ;;
   feature-*)
     suffix=${name#feature-}
-    [ -n "$suffix" ] || fail 'feature name must include a suffix'
-    target=feature/$suffix
+    [ -n "${suffix}" ] || fail 'feature name must include a suffix'
+    target=feature/${suffix}
     ;;
-  *) target=feature/$name ;;
+  *) target=feature/${name} ;;
 esac
 
-if ! git check-ref-format --branch "$target" >/dev/null 2>&1; then
-  fail "invalid target branch name: $target"
+if ! git check-ref-format --branch "${target}" >/dev/null 2>&1; then
+  fail "invalid target branch name: ${target}"
 fi
-if git show-ref --verify --quiet "refs/heads/$target"; then
-  fail "target branch already exists: $target"
+if git show-ref --verify --quiet "refs/heads/${target}"; then
+  fail "target branch already exists: ${target}"
 fi
-if ! git branch -m "$target" >/dev/null 2>&1; then
-  fail "could not rename branch to: $target"
+if ! git branch -m "${target}" >/dev/null 2>&1; then
+  fail "could not rename branch to: ${target}"
 fi

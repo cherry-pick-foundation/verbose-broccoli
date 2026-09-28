@@ -38,6 +38,7 @@ scripts:
     "$deno_bin" install --frozen --no-prompt
     "$deno_bin" install --frozen --cached-only --no-prompt
     "$uv_bin" sync --locked --project tools/spec-kit
+    "$uv_bin" sync --locked --project tools/shellcheck
     "$uv_bin" sync --locked --project packages/doc-regions
     "$uv_bin" sync --locked --project packages/wiki-consistency
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
