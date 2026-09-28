@@ -187,8 +187,10 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   in a lint, and `backfire_classify` requests for new units. qmd only finds
   candidates; backfire judges.
 - The agent sends the requests to the work plugin's backfire server, whose
-  judge replaces personal identifiers before the provider call, and confirms
-  a contradiction between two pages with `backfire_compare`.
+  judge replaces the roster's student, guardian and school names, phone
+  numbers and email addresses before the provider call and sends all other
+  text as it is, and confirms a contradiction between two pages with
+  `backfire_compare`.
 - `deno task wiki-consistency:install` installs both environments, Orca's
   setup script runs the same installs, and `deno task doctor` checks them and
   Node 22. `deno task test:wiki-consistency` runs the package's tests.

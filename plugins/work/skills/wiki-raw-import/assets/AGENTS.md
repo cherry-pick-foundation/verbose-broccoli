@@ -56,7 +56,8 @@ Rules:
 ## Wiki
 
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
-  synthesis. Both start empty.
+  synthesis. Both start empty; `index.md` gets its region lines (below)
+  before the first `update`.
 - `wiki/log.md` is append-only. Each raw import adds one entry that starts
   with `## [YYYY-MM-DD] raw-import | <location>` and lists the counts
   admitted, already admitted, refused and failed.
@@ -87,7 +88,7 @@ sources:
 The special pages:
 
 - `index.md` is one mechanical region and nothing else. Before the first
-  update its whole content is these two lines:
+  `update`, replace its whole content with these two lines:
 
   ```markdown
   <!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->

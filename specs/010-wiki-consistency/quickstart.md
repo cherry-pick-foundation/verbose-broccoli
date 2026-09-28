@@ -24,8 +24,10 @@ Expected: all pass, and `git status --short` is empty afterwards.
 ## Offline check (User Story 1)
 
 1. Create a synthetic instance with feature 009's `init`, admit two synthetic
-   files, write two pages citing them ([contracts/pages.md](contracts/pages.md)),
-   run `WC update`, `WC check`, and commit the instance.
+   files, replace the empty `wiki/index.md` with its two region lines and
+   write two pages citing the files
+   ([contracts/pages.md](contracts/pages.md)), run `WC update`, `WC check`,
+   and commit the instance.
 2. Admit a changed copy of one file (a new revision). `WC check` fails on the
    stale `source_provenance` region and names `update`; no file changed.
 3. `WC update`; a second `WC update` changes nothing; `WC check` passes and

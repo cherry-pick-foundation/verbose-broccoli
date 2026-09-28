@@ -42,8 +42,9 @@ The first line gives `doc-regions`, which the tool uses as a library, the
 | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |
 | `prepare --scope changed\|lint` | Prints ready-to-send backfire requests | none | nothing |
 
-Every command prints one JSON object. Exit 0 means success, 1 a failed check
-or an execution failure (details on stderr), and 2 invalid arguments.
+On success a command prints one JSON object and exits 0. A failed check or an
+execution failure exits 1 and invalid arguments exit 2; both print their
+details on stderr only.
 `check` needs Git and lychee; `index` and `prepare` need Node 22 or later.
 
 ## After an operation that changed the Wiki
@@ -53,8 +54,10 @@ or an execution failure (details on stderr), and 2 invalid arguments.
 2. Run `convert`, `index` and `prepare --scope changed`. Read `calls` first:
    it counts the requests per backfire tool.
 3. Send each request's `arguments` to the backfire tool it names, on the
-   **work plugin's** backfire server, whose judge replaces personal
-   identifiers before the provider sees them. In Claude Code its tools are
+   **work plugin's** backfire server. Before the provider sees them, its judge
+   replaces the student, guardian and school names in the operator's roster,
+   phone numbers and email addresses; every other identifier and all other
+   text are sent as they are. In Claude Code its tools are
    named `mcp__plugin_work_backfire__<tool>`. Never use the code plugin's
    server for Wiki text.
 4. For a `pages` request whose result is `contradicted`, call
@@ -62,7 +65,8 @@ or an execution failure (details on stderr), and 2 invalid arguments.
    contradiction between pages to the user.
 5. Fix `evidence` units that come back `contradicted` or `review`, or tell the
    user why they stand. Report the units listed as `unverifiable`: all their
-   cited sources were unreadable (for example HWP or scanned PDF files).
+   cited sources were unreadable (for example HWP or scanned PDF files), or
+   no passage of a long source matched them within `--max-evidence-chars`.
 6. Treat `crossref` and `classify` results as suggestions. Accept or reject
    each one; none is final.
 7. Run `check` again, append one entry to `wiki/log.md` in the form
