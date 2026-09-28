@@ -272,12 +272,31 @@ following it.
   quoting it: Cog would run a quoted marker as a region.
 - [x] T022 [US4] Add lychee, cogapp, markdown-it-py and MemoryLint to
   `licenses/THIRD_PARTY_NOTICES.md` with source, version and license.
-- [ ] T023 [US4] Run the judgment step on this feature's own changes: send
+- [x] T023 [US4] Run the judgment step on this feature's own changes: send
   `backfire_classify` the current units of `README.md`,
   `docs/architecture.md` and `docs/backfire.md` and convert the candidates the main agent confirms
   into regions with tested generators (R9); send `backfire_verify` and fix
   what it flags; report `AGENTS.md` and constitution findings to the user
   (depends on T013, T017, T020).
+  - 2026-09-28, at `629d933` against `develop` `969979d`: 197 units; six
+    `backfire_verify` requests (16 evidence items, 41,518 characters each)
+    and one `backfire_classify` request used about 287,000 input tokens.
+    Nothing was `contradicted`; 13 target units and one report-only unit
+    were flagged `review`.
+    - Fixed: `docs/architecture.md:24-40` (flagged at low confidence) listed
+      what `deno task check` and `doctor` run and missed the region check,
+      lychee and the doc-regions environment.
+    - Stand: `docs/architecture.md:10-22`, `250-257`, `265-269`, `275-287`
+      and `342-347` and `docs/backfire.md:13-16` and `97-100` describe
+      things this feature does not change; `395-398`, `406-407`, `412-416`,
+      `437-440` and `443-445` are this feature's own section, flagged only
+      for low confidence in `verified`.
+    - Classify: all 12 added units are `agent_region` (one `review`, at
+      0.8); no new mechanical region.
+    - Reported to the user, unchanged: `AGENTS.md:58-61` (`verified`,
+      `review`), and MemoryLint 1.5.1's 20 `boundary` warnings for the
+      constitution, which suggest moving lines of its Sync Impact Report and
+      some rules into `AGENTS.md`; none for `AGENTS.md`.
 
 ---
 
