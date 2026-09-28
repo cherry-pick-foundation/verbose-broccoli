@@ -289,7 +289,7 @@ of the temporary directory.
 
 ### Offline suites
 
-On 2026-09-28 at `0c1416d`, the coordinator ran quickstart steps 1 to 4 and the
+On 2026-09-28 at `802b84b`, the coordinator ran quickstart steps 1 to 4 and the
 checks of T022:
 
 - `deno task backfire:install`, then `deno task test:backfire`: 1,337 passed,
@@ -309,13 +309,13 @@ checks of T022:
 A probe of the pseudonymizer replaced Korean mobile numbers written as
 `010-1234-5678`, `01012345678`, `010 1234 5678` and `+82 10-1234-5678` with one
 pseudonym and a Seoul landline with another, and left dates such as
-`2026.09.28` and `20260928`, scores and ranges unchanged; `0c1416d` added these
+`2026.09.28` and `20260928`, scores and ranges unchanged; `802b84b` added these
 cases to the unit tests.
 
 ### Client check
 
 On 2026-09-28, with the user's go-ahead, the coordinator built the work plugin
-at `92d5d67` into a scratch directory outside the repository, installed it
+at `b449bf5` into a scratch directory outside the repository, installed it
 with `--extra education`, and registered it for one run in each client as
 feature 005's client registration does. The temporary `education.toml` named
 `scripts/backfire/fixtures/education-roster-v1.csv`, `education.env` was a link
@@ -370,12 +370,14 @@ synthetic examples. The rescan finds only the compound surname in the
 given-name rule (`roster.py`, its test, the pseudonymization contract and this
 file), which equals one student's given name by coincidence and names no one.
 `develop` and `main` hold none of the values; the Linear issue CHE-9 holds
-none either.
+none either. With the user's approval, the feature branch's own commits since
+`develop`, never pushed, were rewritten with the same replacements, and a
+search of every rewritten commit finds none of the values.
 
 ### Education measurement
 
 On 2026-09-28, with the user's go-ahead, the coordinator ran
-`measure_education --runs 3` at `92d5d67` against DeepSeek V4.1 Flash on Hive:
+`measure_education --runs 3` at `b449bf5` against DeepSeek V4.1 Flash on Hive:
 24 synthetic cases, 3 runs, 2 arms, 144 outcomes. The runner removed its
 temporary directory.
 
