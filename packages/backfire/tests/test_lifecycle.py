@@ -151,17 +151,63 @@ def observed_pattern():
             yield ready, {"PYTHONPATH": str(directory), "LIFECYCLE_PATTERN_READY": address}
 
 
+def pidfd_syscall(number, *arguments):
+    if os.uname().machine != "x86_64":
+        raise RuntimeError("The pidfd syscall fallback is verified only on x86_64.")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    result = libc.syscall(number, *arguments)
+    if result == -1:
+        error = ctypes.get_errno()
+        raise OSError(error, os.strerror(error))
+    return result
+
+
 @contextmanager
 def pattern_process(ready):
     pid, (remaining, interval), handler = json.loads(ready.recv(256))
     assert 0 < remaining <= 1 and interval == 0 and handler == signal.SIG_DFL
-    descriptor = os.pidfd_open(pid)
+    descriptor = os.pidfd_open(pid) if hasattr(os, "pidfd_open") else pidfd_syscall(434, pid, 0)  # pidfd_open
     try:
         yield pid, descriptor
     finally:
         if not select.select([descriptor], [], [], 0)[0]:
-            signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+            if hasattr(signal, "pidfd_send_signal"):
+                signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+            else:
+                pidfd_syscall(424, descriptor, signal.SIGKILL, None, 0)  # pidfd_send_signal
         os.close(descriptor)
+
+
+def test_pattern_process_without_pidfd_wrappers(monkeypatch):
+    if os.uname().machine != "x86_64":
+        pytest.skip("The pidfd syscall fallback is verified only on x86_64.")
+    monkeypatch.delattr(os, "pidfd_open", raising=False)
+    monkeypatch.delattr(signal, "pidfd_send_signal", raising=False)
+    ready, writer = socket.socketpair(type=socket.SOCK_DGRAM)
+    with ready, writer, subprocess.Popen([sys.executable, "-c", "import signal; signal.pause()"]) as child:
+        descriptor = None
+        try:
+            writer.send(json.dumps([child.pid, [1, 0], signal.SIG_DFL]).encode())
+            with pattern_process(ready) as (pid, opened):
+                assert pid == child.pid
+                descriptor = os.dup(opened)
+                assert not select.select([descriptor], [], [], 0)[0]
+            assert select.select([descriptor], [], [], 5)[0]
+            assert child.wait(timeout=5) == -signal.SIGKILL
+        finally:
+            child.kill()
+            child.wait(timeout=5)
+            if descriptor is not None:
+                os.close(descriptor)
+        writer.send(json.dumps([-1, [1, 0], signal.SIG_DFL]).encode())
+        with pytest.raises(OSError) as error, pattern_process(ready):
+            pytest.fail("An invalid PID was accepted.")
+        assert error.value.errno == errno.EINVAL
+        monkeypatch.setattr(os, "uname", lambda: os.uname_result(("Linux", "", "", "", "aarch64")))
+        writer.send(json.dumps([-1, [1, 0], signal.SIG_DFL]).encode())
+        with pytest.raises(RuntimeError, match="only on x86_64"), pattern_process(ready):
+            pytest.fail("An unverified syscall architecture was accepted.")
 
 
 @pytest.mark.parametrize("ending", ["eof", "kill"])

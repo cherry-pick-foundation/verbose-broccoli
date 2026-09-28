@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/jkudish/jev-mcp",
+  "tag": "v0.9.0",
+  "revision": "a1fcc1e47fc696614f081e23a66ff48a890f22fd",
+  "path": "skills/jev",
+  "skill_sha256": "53a2478ec24e2dfce94d3c427fe0b2895f553816d2918336e694658f0e725c27",
+  "local_modifications": [
+    "Removed the unpinned mcpServers frontmatter block.",
+    "Replaced the first data-handling bullet with the local Backfire provider profile, pseudonymization and privacy guidance of the work plugin.",
+    "Added a See also link to references/verbose-broccoli.md.",
+    "Renamed the skill to backfire and every tool name from jev_* to backfire_*."
+  ]
+}

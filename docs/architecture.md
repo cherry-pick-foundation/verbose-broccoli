@@ -13,9 +13,11 @@ the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
-The `work` package contains the `quarto-authoring` and
-`session-migrate` skills and an MCP declaration without servers; its business
-capabilities have no implementation until new features specify them.
+The `work` package contains the `quarto-authoring`, `session-migrate`,
+`wiki-raw-import` and `backfire` skills and an MCP declaration for its own
+`backfire` server, which
+pseudonymizes student identifiers; its other business capabilities have no
+implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
 has no skills, Deno configuration, MCP declaration, scripts or persistent state.
 No release has occurred, and actual client installation
@@ -24,15 +26,16 @@ remains open.
 Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins
 schemas. `deno task check` runs the runtime doctor, formatting, lint, type
 checks, plugin schema validation, Clean Code, architecture checks, the test
-suites and the reference drift check. Biome formats and lints code and JSON with
+suites, the reference drift check and the document region check (see
+[Document consistency](#document-consistency--2026-09-28)). Biome formats and lints code and JSON with
 one root `biome.json`, which keeps the Google TypeScript style settings, turns
 on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
 The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
-selected standalone Deno/Quarto executables, uv and git-flow from `PATH`, the
-Spec Kit environment, the git-flow configuration and locked dependencies
-without writing by default. `workflow` supplies execution mode, graph queries,
+selected standalone Deno/Quarto executables, uv, git-flow and lychee from
+`PATH`, the Spec Kit and doc-regions environments, the git-flow configuration
+and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. In REVIEW mode it asks the implementer or the orchestrator to review the
 diff before each commit and leaves the independent review to the merge into `develop` or
@@ -135,21 +138,44 @@ internal layers only when a specified capability has an actual consumer. Selecte
 Wiki storage follows constitution principle VI; restructuring code does not move
 live data or other external operational or source roots.
 
+### Wiki storage
+
+The default Wiki instance lives at
+`$XDG_DATA_HOME/verbose-broccoli/wikis/default/` (by default under
+`~/.local/share`), outside the repository. It holds the schema `AGENTS.md`,
+`raw/{web,files,notes,assets}/` and `wiki/`, and its own Git repository
+versions the schema and `wiki/` but ignores `raw/`. The work plugin's
+`wiki-raw-import` skill creates the instance and copies documents the user
+confirms into `raw/`. Each copy is one read-only BagIt bag whose
+`bag-info.txt` records the source ID, the original path and modification time,
+and the admission time, and whose manifest holds the SHA-256 digest. The bags
+are the only record of sources and revisions. The user's exclusions live in
+`$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
+one-run lock live under the cache and state roots.
+
 ### Backfire server
 
-`plugins/code/mcp.json` declares the `backfire` stdio server and starts it with
-`uv --directory ${PLUGIN_ROOT}/backfire run --frozen --offline --no-sync
-backfire serve-mcp`. Its Python runtime package lives in
-`packages/backfire/src/backfire/`, outside the root Deno workspace.
-`deno task backfire:build -- <output>` copies the code plugin and runtime
-package into a complete plugin at an output path outside `plugins/` and
-`packages/`. The development and release programs in
+`plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
+stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
+--frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
+package lives in `packages/backfire/src/backfire/`, outside the root Deno
+workspace. The work plugin's additions, the pseudonymization module and the
+education profile, live in `packages/backfire/src/backfire_education/`.
+`deno task backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
+the packages that plugin needs into a complete plugin at an output path outside
+`plugins/` and `packages/`; one table in `backfire_tools/build.py` lists them
+per plugin. The development and release programs in
 `packages/backfire/src/backfire_tools/` are not shipped; they include the build,
-probes, and upstream capture.
+probes, upstream capture and the education measurement.
 
-`packages/backfire/src/backfire/config.toml` contains the shipped provider
-profiles and selects Hive by default. An operator can select or replace
-profiles in the optional
+Each build's `backfire/src/backfire/config.toml` is its shipped provider
+profile: the development profile `hive` from
+`packages/backfire/src/backfire/config.toml` for code, and the education
+profile from `packages/backfire/src/backfire_education/config.toml` for work.
+The work build's file also sets `pseudonymize = true`, which makes the shared
+judge replace roster names, schools and contact details with stable
+pseudonyms before a server or readiness judgment leaves the process. An
+operator can select or replace profiles in the optional
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
 Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
 recorded differences are in
@@ -189,12 +215,17 @@ global skill migration remain separate.
 ### Skill source ownership — 2026-09-14
 
 Maintain each skill only in its owning package, without discovery links or
-duplicate source trees elsewhere in the repository.
+duplicate source trees elsewhere in the repository. The one exception is the
+`backfire` skill: the code and work plugins each carry a vendored copy of the
+same upstream skill, because a plugin may not link to another plugin's files,
+and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 
+<!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/code/skills` | `clean-code`, `git-commit`, `ponytail*`, `speckit-*`, `verification-before-completion` |
-| `plugins/work/skills` | `quarto-authoring`, `session-migrate` |
+| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
+<!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
 sources.
@@ -228,6 +259,11 @@ use live in `plugins/code/skills` instead.
 
 - `assess` and `bug` run only when invoked. They keep their records in
   `.specify/assessments/<slug>/` and `.specify/bugs/<slug>/`.
+- One local preset, `linear-issue` in `.specify/presets/`, adds an `append`
+  layer to the spec template for the feature's Linear issue line (see
+  [Linear](#linear--2026-09-27)). Spec Kit's `specify preset add --dev`
+  installed it and wrote `.specify/presets/.registry`; `specify preset resolve
+  spec-template` shows the layers.
 - Every `git` hook is disabled in `.specify/extensions.yml`. Each worktree is
   created on its own feature branch, and the `before_specify` hook would create
   and switch to another branch inside it; the auto-commit hooks would bypass
@@ -324,9 +360,19 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
   the middle digit, `docs` or `fix` the last digit. Other types and an
   unchanged version are refused. A breaking change also needs the user's
-  approval before it is committed, which the hook cannot check. A `commit-msg`
-  hook is not told about `--amend`, so an amend is compared with the commit it
-  replaces.
+  approval before it is committed, which the hook cannot check.
+- An amend is compared with `HEAD^`, the parent of the commit it replaces, so
+  it keeps the version that commit set. Git does not tell a `commit-msg` hook
+  about `--amend`, so the hook reads the arguments of the `git` process that
+  runs it from `/proc/$PPID/cmdline`. When one is `--amend` or an abbreviation
+  git accepts (`--am`, `--ame`, `--amen`) and no later `--no-amend` form
+  cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
+  otherwise it clears any inherited value. Where those arguments cannot be
+  read, an amend is compared with the commit it replaces, as before this rule
+  handled amends, so it can be refused or accepted wrongly. The hook does not
+  know which options take a value, so a value such as the message in
+  `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
+  and a value `--no-amend` hides a real amend.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,
@@ -340,3 +386,99 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   the commit when neither exists.
 - `deno task test:commit-msg` checks the rule and real commits in temporary
   repositories.
+
+### Linear — 2026-09-27
+
+The project tracks its work in Linear's free plan, in the workspace
+`verbose-broccoli` with one team, `cherry-pick-foundation` (key `CHE`), and
+reaches it only through Orca: the `orca linear` commands and Orca's
+`orca-linear` skill. No Claude Code or Codex Linear plugin and no Spec Kit
+Linear extension is used. The design and its reasons are in
+[specs/007-linear-usage/](../specs/007-linear-usage/).
+
+- An issue is a to-do entry for one feature or bug; `tasks.md` stays the
+  detailed task record. There are no sub-issues. Each issue has one type label
+  (Feature, Bug or Improvement) and a plugin label (`code`, `work`, `chat`) for
+  each plugin the work concerns; repository-wide tooling has none.
+- Only the main agent writes to Linear, after searching for similar issues,
+  including archived ones (`orca linear list-issues --team CHE --query <words>
+  --include-archived`). Workers report out-of-scope bugs to it through Orca
+  messages. Linear is an external service, so issues and comments never hold
+  operational data or secret values. Both rules are in the root `AGENTS.md`.
+- A feature's worktree is linked to its issue when it is created (`orca
+  worktree create … --linear-issue CHE-<n>`, or `orca worktree set` later),
+  and its spec names the ID in one header line, `**Linear issue**: CHE-<n>`.
+  The Spec Kit preset `linear-issue` in `.specify/presets/` appends that line,
+  with instructions, to the spec template. Commits and branch names carry no
+  issue ID; a bug's `assessment.md` keeps the issue URL.
+- Merging into `develop` completes the issue. The main agent commits the
+  record on the feature branch, moves the issue to In Review, runs the merge
+  review and finish described under [Git flow](#git-flow--2026-09-27), then
+  moves the issue to Done with one completion comment giving the merge commit
+  and the record location instead of a PR link. `deno task workflow` prints
+  this order in every mode. The commands are in
+  [the life-cycle contract](../specs/007-linear-usage/contracts/linear-lifecycle.md).
+- Issues are archived, never deleted. The free plan counts only non-archived
+  issues toward its limit of 250, and Linear archives closed issues one month
+  after they close (Team Settings > Issue statuses & automations); archived
+  issues stay readable with `--include-archived`. Nothing monitors the count:
+  a failed creation at the limit is the signal, and the main agent reports it
+  to the user.
+- Orca cannot archive or delete issues or create labels, projects, documents,
+  cycles or milestones. Label, project and team-setting changes happen in
+  Linear's UI, and no other Linear integration is added; the same `deno task
+  workflow` instruction says so.
+
+### Document consistency — 2026-09-28
+
+`README.md`, `docs/architecture.md` and `docs/backfire.md` follow one region
+model, from [feature 008](../specs/008-doc-consistency/spec.md). Every part of
+these target documents is either a mechanical region, written by a generator,
+or an agent region, written by agents. No part is human-written.
+
+- A mechanical region is a Cog block (cogapp 3.6.0, MIT) in HTML comments. Its
+  code is one call of a function in `scripts/doc_sources.py`, whose arguments
+  name the repository files or globs it reads. The marker syntax and its rules
+  are in the [regions contract](../specs/008-doc-consistency/contracts/regions.md).
+  Documents link to it instead of quoting a marker, because Cog would run a
+  quoted marker as a region.
+- Everything else is an agent region. Backfire judges it before each `develop`
+  merge review.
+- `scripts/doc_regions.toml` lists the targets, and `AGENTS.md` and the
+  constitution as report-only documents. `specs/`, vendored skills and the
+  generated `docs/reference/` are not listed. A plugin document becomes a
+  target when the project writes one.
+- To add a mechanical region, add a function to `scripts/doc_sources.py` and a
+  test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
+  and a missing source that raises. The function reads only its named sources
+  and uses no network, clock or environment. Then put the markers around the
+  text in a target and run `deno task doc-regions:update`.
+- `deno task check`, and so `deno task verify`, runs `deno task
+  doc-regions:check`. It fails when a region differs from its generator's
+  output, a marker is malformed or names a missing source, or a target links
+  to a missing local file or heading (lychee 0.24.2, offline). It writes
+  nothing and uses no network. `deno task doc-regions:update` regenerates
+  stale regions.
+- Before each `develop` merge review, the main agent runs the judgment step
+  that `deno task workflow` prints in REVIEW mode. `deno task
+  doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
+  agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
+  `backfire_verify` requests, with units as claims and the feature diff as
+  evidence, and `backfire_classify` requests for the units the feature added.
+  The agent sends them through its MCP client. It corrects target units judged
+  contradicted or flagged for review, or records why they stand, and decides
+  which suggested candidates become mechanical regions.
+- `deno task doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
+  on `AGENTS.md` and the constitution. It downloads the pinned archive once
+  into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
+  Findings for these two files, from the audit or from backfire, are only
+  reported to the user; the tooling never changes them.
+- The engine is the uv project `packages/doc-regions/`. Orca's setup script
+  syncs it, and `deno task doctor` checks its environment and lychee's version.
+  Feature 010 calls its modules as a library, with a Wiki instance as the root
+  and its own targets, generators and evidence.
+- lychee is a host tool at `~/.local/bin/lychee`, installed from the release's
+  x86_64 Linux archive after checking it against the release's checksum.
+- Not automated: sending the backfire requests and acting on the results,
+  reporting drift in `AGENTS.md` and the constitution to the user, choosing
+  which candidates become mechanical regions, and installing lychee.

@@ -448,6 +448,23 @@ Deno.test('workflow: review instructions time independent review at merge', () =
   assert(
     lines.some(
       line =>
+        line.includes(
+          'Before the develop merge review, run `deno task doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `deno task doc-regions:audit`',
+        ) &&
+        line.includes(
+          'Send each printed request to the backfire tool it names',
+        ) &&
+        line.includes(
+          'Fix target document units marked contradicted or flagged for review',
+        ) &&
+        line.includes(
+          'Report AGENTS.md and constitution findings to the user without changing those files',
+        ),
+    ),
+  );
+  assert(
+    lines.some(
+      line =>
         line.includes('Before each commit') &&
         line.includes('the implementer or the orchestrator reviews the diff'),
     ),
@@ -463,4 +480,22 @@ Deno.test('workflow: review instructions time independent review at merge', () =
   );
   assert(lines.some(line => line.includes('no extra user approval')));
   assert(!lines.some(line => line.includes('separate read-only diff review')));
+});
+
+Deno.test('workflow: every mode prints the Linear completion order', () => {
+  for (const mode of ['DIRECT', 'DELEGATE', 'PARALLEL', 'REVIEW'] as const) {
+    const lines = buildWorkModeInstructions(mode, false);
+    assert(
+      lines.some(
+        line =>
+          line.includes('main agent only') &&
+          line.includes('In Review') &&
+          line.indexOf('In Review') < line.indexOf('Done') &&
+          line.includes('merge commit') &&
+          line.includes('record location') &&
+          line.includes("Linear's UI") &&
+          line.includes('add no other Linear integration'),
+      ),
+    );
+  }
 });
