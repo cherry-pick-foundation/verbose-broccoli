@@ -24,7 +24,8 @@ backfire's code from `packages/backfire/` on this branch.
   - `page_catalog("wiki/**/*.md")`: the `index.md` catalog, one line per page
     (relative link, title, summary), sorted by path; `index.md`,
     `overview.md` and `log.md` are left out.
-  - `source_provenance("raw/<kind>/<source-id>/*/bag-info.txt")`: in a source
+  - `source_provenance("raw/<kind>/<source-id>/*/bag-info.txt",
+    "raw/<kind>/<source-id>/*/manifest-sha256.txt")`: in a source
     page, the source ID, kind, original file name, and each revision's
     admission time, modification time, size and digest, read from the bags.
   Further regions come from `backfire_classify` suggestions, as in 008 R9.
@@ -187,7 +188,7 @@ Read from `packages/backfire/src/backfire/tools/` and `lib.py` on this branch.
   cited revisions' files); page requests (units as claims, up to
   `--candidates` candidate units of other pages as evidence); find requests
   in lint scope; classify requests for added units. It splits requests to
-  stay within the cell limit and `--max-claims`, and prints the number of
+  stay within the cell limit, and prints the number of
   calls per tool. The agent sends them through its MCP client and confirms
   `contradicted` page results with `backfire_compare`, as in 008 R6.
 - **Evidence selection is deterministic**: qmd's keyword search gives the
@@ -324,3 +325,60 @@ needs three things 008's plan does not state:
 - Vale and code maps, as in feature 008.
 - The example schema `docs/examples/wiki/AGENTS.md`: it describes a
   `wiki apply` command that does not exist; feature 009's task T037 fixes it.
+
+## R11. Recheck on `develop` (T002, 2026-09-28)
+
+After features 009, 008 and 011 merged (`develop` at `1166a84`), the
+interfaces this plan assumed were read again. Differences and their effect:
+
+- **Feature 009** (`specs/009-wiki-storage/`, the schema template in
+  `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`): the bag layout,
+  the `bag-info.txt` fields and the revision names
+  (`YYYYMMDDTHHMMSSffffffZ`) are as assumed. The SHA-256 digest is in
+  `manifest-sha256.txt`, not `bag-info.txt`, so `source_provenance` names
+  both files as sources; the original file name comes from the manifest's
+  `data/<name>` path. `log.md` entries start with
+  `## [YYYY-MM-DD] <operation> | <detail>` (009 writes `raw-import |
+  <location>`), so this feature's entries use the same form. `init` runs
+  `git init` without a commit, which the `log.md` prefix check already
+  allows. `--wiki` names and XDG roots follow 009's rules: an empty name,
+  `.`, `..` or a name with `/` or NUL is invalid, and an unset, empty or
+  relative XDG value means the default under `HOME`. The template's last
+  line, "Page conventions and the ingest, query and lint workflows come from
+  a later change to this file", is what T027 replaces.
+- **Feature 008** (`packages/doc-regions`): `config.files(root, glob)`
+  expands a root-relative glob, and `regions.check` and `regions.update`
+  take `root`, an explicit target list, the generator module name and a
+  generator path, so this feature needs no TOML file; the generator module
+  is `wiki_consistency.sources` and the generator path is the package's
+  `src/` folder. `regions.check` also runs lychee offline on each target,
+  so the link check comes from it. Three differences:
+  1. `requests.verify_requests(groups)` has no `max_claims` or
+     `max_evidence_chars`; it splits claims by the 672-cell limit only. This
+     feature drops `--max-claims`, as 008 did, and keeps
+     `--max-evidence-chars` for its own evidence selection.
+  2. `regions.cog` hard-codes the failure message "Run deno task
+     doc-regions:update", but the Wiki check must name `wiki-consistency
+     update`. T012 adds a backward-compatible keyword for that message,
+     default unchanged.
+  3. `units.split` parses YAML front matter as a thematic break and a
+     setext heading, which would make the metadata a unit. This feature
+     replaces the front-matter lines with empty lines, keeping line numbers,
+     before splitting the current and the base text.
+- **Backfire** (R6): the limits are as recorded; `backfire_verify` has no
+  text limit of its own, so `--max-evidence-chars` bounds the provider's
+  context; `backfire_compare` truncates each passage at 20,000 characters
+  rather than refusing it.
+- **Feature 011**: the build table is `PLUGINS` in
+  `packages/backfire/src/backfire_tools/build.py`, mapping a plugin to its
+  packages under `packages/backfire/src/` and its profile; it copies
+  `plugins/<plugin>/` and then `backfire/` into the output within a 16 MiB
+  budget, so T025's projects must stay small and leave out `.venv`,
+  `node_modules` and `__pycache__`. `plugins/work/mcp.json` declares
+  `backfire` at `${PLUGIN_ROOT}/backfire`. Claude Code's plugin
+  documentation names the work plugin's tools
+  `mcp__plugin_work_backfire__<tool>` (documented, not observed); how Codex
+  separates two same-named servers is unverified (011 research, "Results").
+  [docs/backfire.md](../../docs/backfire.md) now describes the work build's
+  pseudonymization, so R9's "Current conflict" is resolved.
+

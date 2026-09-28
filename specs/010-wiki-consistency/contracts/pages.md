@@ -32,9 +32,11 @@ sources:
 - `overview.md`: agent-written synthesis; it links to the pages it
   summarizes, and those pages are its evidence.
 - `log.md`: one entry per operation, appended at the end; earlier entries are
-  never changed. An entry has a level-2 heading with the UTC date and the
-  operation (`ingest`, `import`, `lint` or another named operation) and a
-  short body with counts of changed pages and findings, never raw contents.
+  never changed. An entry starts with `## [YYYY-MM-DD] <operation> |
+  <detail>`, as feature 009's `raw-import` entries do: the UTC date, the
+  operation (`raw-import`, `ingest`, `lint` or another named operation) and
+  a short detail, then a body with counts of changed pages and findings,
+  never raw contents.
 
 ## Mechanical regions
 

@@ -45,7 +45,7 @@ INSTANCE/
 | Generator | Sources | Output |
 | --- | --- | --- |
 | `page_catalog` | `wiki/**/*.md` | one line per page, sorted by path: `- [<title>](<relative path>) — <summary>` |
-| `source_provenance` | `raw/<kind>/<source-id>/*/bag-info.txt` | source ID, kind, original file name, and per revision: name, `Source-Modified`, `Payload-Oxum` size, SHA-256 from the manifest |
+| `source_provenance` | `raw/<kind>/<source-id>/*/bag-info.txt` and `raw/<kind>/<source-id>/*/manifest-sha256.txt` | source ID, kind, original file name (from the manifest's `data/<name>`), and per revision: name, `Source-Modified`, `Payload-Oxum` size, SHA-256 from the manifest |
 
 Sources are relative to `INSTANCE`. Generators read only those files.
 

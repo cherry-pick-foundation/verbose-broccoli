@@ -47,11 +47,14 @@ code tasks in the Worker Assignment section.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-- [ ] T001 Confirm the three gates (`git merge-base --is-ancestor <branch>
+- [x] T001 Confirm the three gates (`git merge-base --is-ancestor <branch>
   develop` for `feature/wiki-storage`, `feature/backfire-education` and
   `feature/doc-consistency`), merge `develop` into `feature/wiki-consistency`,
   and run `deno task backfire:install` and `deno task verify`.
-- [ ] T002 Recheck the interfaces this plan assumes and record every
+  - 2026-09-28: all three merged by `develop` `1166a84`, merged here at
+    `1dfc5f7`; `deno task verify` passed after one rerun of the CHE-18
+    first-install flake in `test:wiki-raw-import`.
+- [x] T002 Recheck the interfaces this plan assumes and record every
   difference in [research.md](research.md), then update the contracts before
   workers start: feature 009's bag fields, revision names, `log.md`
   convention and schema template (R1, R2); `packages/doc-regions`' modules
@@ -68,6 +71,8 @@ code tasks in the Worker Assignment section.
   - 2026-09-28: 011's plan is `87563f8`. Its build takes only packages under
     `packages/backfire/src/` (research.md R7), it has no withhold policy, and
     both plugins name their server `backfire` (R9).
+  - 2026-09-28: rechecked on `develop` `1166a84`; differences in research.md
+    R11, contracts updated.
 - [ ] T003 Apply the amendment the user chose (spec.md Clarifications): amend
   point 2 of principle VI in
   `.specify/memory/constitution.md` as [research.md](research.md) R2 says, in
@@ -140,10 +145,12 @@ without writing or network.
   T011.
 - [ ] T011 [US1] Implement `src/wiki_consistency/sources.py` per
   [data-model.md](data-model.md). T010 passes.
-- [ ] T012 [US1] If T002 found that `packages/doc-regions` lacks glob
-  targets, an instance root or caller-supplied evidence (research.md R8), add
-  them as backward-compatible parameters with tests in
-  `packages/doc-regions/tests/`; feature 008's own tests keep passing.
+- [ ] T012 [US1] Add to `packages/doc-regions/src/doc_regions/regions.py` a
+  backward-compatible keyword for the command that the stale-region failure
+  message names (research.md R11; default "deno task doc-regions:update"),
+  passed from `check` through `process` to `cog`, with a test in
+  `packages/doc-regions/tests/`; feature 008's own tests keep passing. The
+  three needs of R8 are already in 008's package.
 - [ ] T013 [US1] Write `tests/test_lint.py` and `tests/test_check.py`: every
   failure case in [contracts/commands.md](contracts/commands.md) "`check`"
   fails naming page and line; a passing instance passes; orphans and stale
@@ -199,7 +206,7 @@ split backfire requests.
   `overview.md` get the pages it links to as evidence; units whose
   sources are all unreadable are listed as `unverifiable` and in no request;
   mechanical-region text and `log.md` never appear; requests stay within the
-  672-cell limit, `--max-claims` and the 64-item classify limit; every
+  672-cell limit and the 64-item classify limit; every
   in-scope unit is in exactly one evidence request or listed; `calls` counts
   the requests; every `arguments` object validates against backfire's input
   schemas (imported from `packages/backfire` or copied as fixtures in T002);

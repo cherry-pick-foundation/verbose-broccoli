@@ -12,7 +12,7 @@ selects `$XDG_DATA_HOME/verbose-broccoli/wikis/<wiki-id>/`.
 | `update` | none | mechanical-region text in `wiki/` only |
 | `convert [--scope changed\|lint]` | none | `CACHE/wiki-evidence/` only |
 | `index` | model download on first `embed` only | `CACHE/qmd/` only |
-| `prepare --scope changed\|lint [--max-claims <n>] [--max-evidence-chars <n>] [--candidates <n>]` | none | none |
+| `prepare --scope changed\|lint [--max-evidence-chars <n>] [--candidates <n>]` | none | none |
 
 Exit codes and output follow the repository's command rules: 0 with one JSON
 object on stdout; 2 for invalid arguments; 1 for a failed check or execution
