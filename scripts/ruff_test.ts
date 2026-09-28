@@ -109,11 +109,16 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     const isolatedConfig = join(temp, 'ruff.toml');
     const vendor = join(temp, '.specify');
     const vendorFile = join(vendor, 'synthetic.py');
+    const repositoryFile = join(temp, 'synthetic.py');
     await Deno.copyFile(config, isolatedConfig);
     await Deno.mkdir(vendor);
     await Deno.writeTextFile(
       vendorFile,
       'def vendor_api():\n    return None\n',
+    );
+    await Deno.writeTextFile(
+      repositoryFile,
+      'def repository_api():\n    return None\n',
     );
     const shownFiles = await ruff(
       ['check', '--show-files', '--no-cache', '--config', isolatedConfig, '.'],
@@ -121,6 +126,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     );
     assert(shownFiles.success, output(shownFiles));
     assert(!output(shownFiles).includes(vendorFile));
+    assert(output(shownFiles).includes(repositoryFile), output(shownFiles));
   } finally {
     await Deno.remove(temp, {recursive: true});
   }

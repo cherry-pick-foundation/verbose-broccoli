@@ -2,7 +2,7 @@ line-length = 80
 indent-width = 4
 preview = false
 # FR-004 keeps vendored upstream Spec Kit extensions in their upstream form.
-exclude = [".specify/"]
+extend-exclude = [".specify/"]
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
@@ -16,6 +16,8 @@ exclude = ["plugins/code/skills/clean-code/references/*.md"]
 [per-file-target-version]
 # scripts/doc_sources.py runs in the doc-regions Python 3.13 environment.
 "scripts/doc_sources.py" = "py313"
+# Its test runs in the same doc-regions Python 3.13 environment.
+"scripts/doc_sources_test.py" = "py313"
 # The script header declares Python 3.14; Ruff does not infer PEP 723 metadata.
 "plugins/work/skills/wiki-raw-import/scripts/raw_import.py" = "py314"
 
