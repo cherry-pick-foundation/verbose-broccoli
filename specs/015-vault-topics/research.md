@@ -80,17 +80,19 @@
   with the develop worktree's tool; append a `## [YYYY-MM-DD] schema | Page
   topics` entry to `wiki/log.md`, as the vaults' earlier schema commits did;
   commit once. The `work` vault is left to the develop session.
-- **Rationale**: The three vaults' schema copies still lack feature 013's
-  wording (checked on 2026-09-29), so copying the whole template would apply
-  another feature's rules without its go-ahead.
+- **Rationale**: After CHE-25's merge (`df912f4`) the develop session
+  applied the template to these three vaults, and on 2026-09-29 each copy
+  was byte-identical to the template. Adding only the topics part keeps any
+  rule that another feature merges later out of this feature's vault
+  commits; while the copies match, the result equals the merged template.
 
 ## R7. Conflicts with parallel work
 
-- CHE-25 (`feature/english-vaults`) adds bullets to the template's `## Wiki`
-  section and edits the first paragraph of the consistency skill and one
-  bullet of `docs/architecture.md`. This feature edits the template's front
-  matter and `## Pages` section, the skill's command table and the
-  architecture document's metadata and check bullets. Whoever merges
-  `develop` later keeps both sides.
+- CHE-25 (`feature/english-vaults`, merged as `df912f4` and merged into
+  this branch before implementation) added bullets to the template's
+  `## Wiki` section and edited the first paragraph of the consistency skill
+  and one bullet of `docs/architecture.md`. This feature edits the
+  template's front matter and `## Pages` section, the skill's command table
+  and the architecture document's metadata and check bullets.
 - CHE-26 will add rule checks to `lint.check`; this feature keeps its check
   additions in one helper so that a later merge stays small.

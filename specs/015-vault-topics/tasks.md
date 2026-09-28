@@ -47,10 +47,11 @@ into Orca or Linear messages; tests use synthetic vaults only.
   for each case above and for an undeclared page topic, passing for a
   declared topic without pages and for an empty vault, and `update`
   refusing on each case with every file unchanged; in
-  `TESTS/test_sources.py`, the grouped index of the data model's example, a
-  page under two topics, sorted topics and pages, identical output from two
-  runs, an empty region for a vault without pages, and a stale index after
-  a page's topics change.
+  `TESTS/test_sources.py`, the grouped index of the data model's example,
+  a vault with three topics where one page carries two of them and is listed
+  under exactly those (SC-001), sorted topics and pages, identical output
+  from two runs, an empty region for a vault without pages, and a stale
+  index after a page's topics change.
 - [ ] T002 [US2] In `SRC/instance.py`, validate `topics` in `_metadata` next
   to `title`, `summary` and `sources` and return it; add
   `declared_topics(root)`, which reads the list from `AGENTS.md`'s front

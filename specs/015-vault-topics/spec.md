@@ -39,10 +39,11 @@ adopt the change; the `work` vault is left to the develop session.
   vaults hold no pages yet, only the special pages. The `work` vault holds
   pages; CHE-21 works in it, and the develop session applies this change
   there.
-- Other work touches the same files: CHE-25 (feature 014) adds rules to the
-  template's Wiki section, and CHE-26 will add rule checks to the same offline
-  check. Whichever feature finishes later merges `develop` and keeps both
-  changes.
+- Other work touches the same files: CHE-25 (feature 014, merged into
+  `develop` as `df912f4`) added rules to the template's Wiki section and
+  applied them to the `default`, `chat` and `code` vaults, and CHE-26 will
+  add rule checks to the same offline check. Whichever feature finishes
+  later merges `develop` and keeps both changes.
 
 ## Clarifications
 
@@ -246,9 +247,9 @@ each vault's schema, its latest commit and the check's result.
   on); a topic is independent of the folder a page is in.
 - The judgment step (`convert`, `index`, `prepare`) and backfire need no
   change; topics only affect the index and the offline check.
-- The `default`, `chat` and `code` vaults' schema copies lag behind the
-  template in rules from earlier features; adopting topics adds only the
-  topics part and leaves those rules to their own features.
+- Adopting topics in the `default`, `chat` and `code` vaults adds only the
+  topics part of the template, so rules that other features add to the
+  template stay with those features.
 - The older example schema `docs/examples/wiki/AGENTS.md` is not the
   template; this feature does not change it.
 
