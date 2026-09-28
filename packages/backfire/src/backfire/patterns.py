@@ -8,14 +8,14 @@ import signal
 import sys
 from typing import NotRequired, TypedDict
 
-from backfire.lib import (
-    MAX_EXTRACT_CANDIDATE_CHARS,
-    MAX_EXTRACT_CANDIDATES,
-    REGEX_TIMEOUT_MS,
-)
+from backfire.lib import MAX_EXTRACT_CANDIDATE_CHARS
+from backfire.lib import MAX_EXTRACT_CANDIDATES
+from backfire.lib import REGEX_TIMEOUT_MS
 
 
 class PatternResult(TypedDict):
+    """Regex child result for one field."""
+
     candidates: list[str]
     truncated: bool
     tooLong: int
@@ -80,7 +80,7 @@ def _match(document: str, pattern: str, flags: str) -> PatternResult:
 async def run_regex(
     document: str, pattern: str, flags: str = ""
 ) -> PatternResult:
-    """Return upstream's worker shape; timeout and cancellation reap the child."""
+    """Return worker results and reap the process on timeout or cancellation."""
     process = await asyncio.create_subprocess_exec(
         sys.executable,
         "-m",

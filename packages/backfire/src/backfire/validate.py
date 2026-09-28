@@ -1,4 +1,4 @@
-"""Request limits and distribution checks around the pinned adapter's schemas."""
+"""Validate request limits and answer distributions for the pinned adapter."""
 
 from collections.abc import Mapping
 import os
@@ -6,15 +6,13 @@ import os
 from system_one_adapter._schema import (
     convert_question_collection_to_validated_api_question_models,
 )
-from typesafe_sdk import (
-    Answer,
-    Choice,
-    ChoiceAnswer,
-    Noul,
-    Questions,
-    Score,
-    ScoreAnswer,
-)
+from typesafe_sdk import Answer
+from typesafe_sdk import Choice
+from typesafe_sdk import ChoiceAnswer
+from typesafe_sdk import Noul
+from typesafe_sdk import Questions
+from typesafe_sdk import Score
+from typesafe_sdk import ScoreAnswer
 
 from backfire.failures import JudgmentError
 from backfire.lib import PROBABILITY_SUM_TOLERANCE

@@ -12,14 +12,20 @@ import subprocess
 import sys
 import tempfile
 
-import backfire
 from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 
-from backfire.config import load_credential, load_profile, xdg_path
+import backfire
+from backfire.config import load_credential
+from backfire.config import load_profile
+from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.judge import judge
-from backfire.records import RecordFile, RecordWriteError, digest, read_records
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.records import digest
+from backfire.records import read_records
 
 _ROOT = Path(__file__).resolve().parents[2]
 _PORT = re.compile(r"release 0\.9\.0,\s+revision\s+`([0-9a-f]{40})`")
@@ -68,7 +74,9 @@ def _versions() -> dict[str, str | None]:
         except importlib.metadata.PackageNotFoundError:
             versions[key] = None
     try:
-        from system_one_adapter._client import _PROBABILITY_SYSTEM_PROMPT
+        from system_one_adapter._client import (  # noqa: PLC0415, E501  # Optional adapter probe.
+            _PROBABILITY_SYSTEM_PROMPT,
+        )
 
         versions["prompt_sha256"] = hashlib.sha256(
             _PROBABILITY_SYSTEM_PROMPT.encode()
@@ -86,7 +94,11 @@ def _versions() -> dict[str, str | None]:
     versions["python"] = platform.python_version()
     try:
         output = subprocess.run(
-            ["uv", "--version"], capture_output=True, text=True, timeout=5
+            ["uv", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
         )
         match = re.match(r"uv (\S+)", output.stdout)
         versions["uv"] = match[1] if output.returncode == 0 and match else None
@@ -105,12 +117,18 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
     except OSError:
         return "This component's .python-version is missing or unreadable."
     if platform.python_version() != expected_python:
-        return f"Python {expected_python} is required; found {platform.python_version()}."
+        return (
+            f"Python {expected_python} is required; found "
+            f"{platform.python_version()}."
+        )
     if (
         Path(backfire.__file__).resolve().parent
         != (_ROOT / "src" / "backfire").resolve()
     ):
-        return "backfire does not import from this component's src/backfire directory."
+        return (
+            "backfire does not import from this component's src/backfire "
+            "directory."
+        )
     required = (
         "jev_mcp_port",
         "mcp",
@@ -123,7 +141,10 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
         "prompt_sha256",
     )
     if any(versions[key] is None for key in required):
-        return "A required package version, uv version, or port revision is unavailable."
+        return (
+            "A required package version, uv version, or port revision is "
+            "unavailable."
+        )
 
     education_extra = (
         ["--extra", "education"]
@@ -148,6 +169,7 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
                 capture_output=True,
                 text=True,
                 timeout=20,
+                check=False,
             )
         except (OSError, subprocess.TimeoutExpired):
             continue
@@ -163,7 +185,8 @@ async def _direct_judgment():
         {
             "ready": {
                 "type": "noul",
-                "instructions": "Judge the truth of the proposition: 2 + 2 = 4.",
+                "instructions": "Judge the truth of the proposition: 2 + 2 = "
+                "4.",
                 "criteria": {
                     "true": "The proposition is true.",
                     "false": "The proposition is false.",
@@ -229,18 +252,25 @@ def _apply_judgment_error(
         _unconfirmed(
             report,
             "provider",
-            "The request ended without evidence that the selected endpoint answered.",
+            "The request ended without evidence that the selected endpoint "
+            "answered.",
         )
     if error.error_type == "model_not_confirmed":
         reason = "The response did not name a model."
     else:
-        reason = f"No model was confirmed because the judgment ended with {error.error_type}."
+        reason = (
+            "No model was confirmed because the judgment ended with "
+            f"{error.error_type}."
+        )
     _unconfirmed(report, "model", reason)
     if profile["thinking"]["requested"] == "on":
         reason = (
             "The response did not show the configured thinking evidence."
             if error.error_type == "thinking_not_confirmed"
-            else f"Thinking was not confirmed because the judgment ended with {error.error_type}."
+            else (
+                "Thinking was not confirmed because the judgment ended with "
+                f"{error.error_type}."
+            )
         )
         _unconfirmed(report, "thinking", reason)
 
@@ -413,6 +443,7 @@ def _skipped_tool_checks(reason: str) -> list[dict]:
 
 
 def main() -> int:
+    """Run installation, configuration, and provider readiness checks."""
     report = {
         "requested": {},
         "confirmed": {},
@@ -439,7 +470,8 @@ def main() -> int:
             else ""
         )
         print(
-            f"Readiness failed: run `uv sync --frozen --no-dev{education_extra}` in this component, then retry.",
+            f"Readiness failed: run `uv sync --frozen --no-dev"
+            f"{education_extra}` in this component, then retry.",
             file=sys.stderr,
         )
         return 1
@@ -463,20 +495,26 @@ def main() -> int:
                 _unconfirmed(
                     report,
                     item,
-                    "No request was sent because the credential could not be validated.",
+                    "No request was sent because the credential could not "
+                    "be "
+                    "validated.",
                 )
             if profile["thinking"]["requested"] == "on":
                 _unconfirmed(
                     report,
                     "thinking",
-                    "No request was sent because the credential could not be validated.",
+                    "No request was sent because the credential could not "
+                    "be "
+                    "validated.",
                 )
         report["tool_checks"] = _skipped_tool_checks(
             "not run: configuration check failed"
         )
         print(json.dumps(report, ensure_ascii=False))
         print(
-            "Readiness failed: correct the selected profile and its mode-0600 credential, then retry.",
+            "Readiness failed: correct the selected profile and its "
+            "mode-0600 credential, then "
+            "retry.",
             file=sys.stderr,
         )
         return 1
@@ -488,26 +526,32 @@ def main() -> int:
         _unconfirmed(
             report,
             "records",
-            "The record directory could not be created, locked, and opened for writing.",
+            "The record directory could not be created, locked, and opened "
+            "for "
+            "writing.",
         )
         for item in ("provider", "model"):
             _unconfirmed(
                 report,
                 item,
-                "No request was sent because the record directory check failed.",
+                "No request was sent because the record directory check "
+                "failed.",
             )
         if profile["thinking"]["requested"] == "on":
             _unconfirmed(
                 report,
                 "thinking",
-                "No request was sent because the record directory check failed.",
+                "No request was sent because the record directory check "
+                "failed.",
             )
         report["tool_checks"] = _skipped_tool_checks(
             "not run: record directory check failed"
         )
         print(json.dumps(report, ensure_ascii=False))
         print(
-            "Readiness failed: check record-directory permissions and available space, then retry.",
+            "Readiness failed: check record-directory permissions and "
+            "available space, then "
+            "retry.",
             file=sys.stderr,
         )
         return 1
@@ -521,7 +565,7 @@ def main() -> int:
             "sample",
             f"The known-answer judgment ended with {error.error_type}.",
         )
-    except Exception:
+    except Exception:  # noqa: BLE001  # Isolate the direct readiness probe.
         _unconfirmed(
             report, "provider", "The direct judgment did not complete."
         )
@@ -556,12 +600,13 @@ def main() -> int:
             _unconfirmed(
                 report,
                 "sample",
-                "The known true proposition did not receive the likely verdict.",
+                "The known true proposition did not receive the likely "
+                "verdict.",
             )
 
     try:
         checks, tool_judgment = asyncio.run(_tool_path())
-    except Exception:
+    except Exception:  # noqa: BLE001  # Isolate the MCP readiness probe.
         checks, tool_judgment = (
             _skipped_tool_checks("MCP readiness session did not complete"),
             None,
@@ -582,7 +627,9 @@ def main() -> int:
     print(
         "Readiness passed."
         if passed
-        else "Readiness failed: see unconfirmed items and tool checks in the JSON report.",
+        else "Readiness failed: see unconfirmed items and tool checks in the "
+        "JSON "
+        "report.",
         file=sys.stderr,
     )
     return 0 if passed else 1

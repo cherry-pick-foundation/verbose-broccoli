@@ -1,7 +1,9 @@
 """Content-free session records with process locks and a bounded JSONL store."""
 
-from contextlib import AbstractContextManager, contextmanager
-from datetime import datetime, timezone
+from contextlib import AbstractContextManager
+from contextlib import contextmanager
+from datetime import datetime
+from datetime import timezone
 import fcntl
 import hashlib
 import json
@@ -196,7 +198,7 @@ class RecordFile(AbstractContextManager):
         result: dict | None = None,
         metadata: dict | None = None,
     ) -> None:
-        """Project question/answer data by position; the judge validates answers.
+        """Project answers by position; the judge validates them.
 
         calls_in_flight is the snapshot from when the judgment began, and
         outcome is ok, cancelled, or a fixed judgment error type. Invalid

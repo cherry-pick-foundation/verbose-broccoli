@@ -1,12 +1,12 @@
 """Build a plugin with its selected Backfire packages and profile."""
 
 import os
+from pathlib import Path
 import shutil
 import signal
 import stat
 import sys
 import tempfile
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 MAX_BYTES = 16 * 1024 * 1024
@@ -21,6 +21,7 @@ PLUGINS = {
 
 
 def refuse_existing(output: Path) -> None:
+    """Raise when the requested output path already exists."""
     try:
         output.lstat()
     except FileNotFoundError:
@@ -29,6 +30,7 @@ def refuse_existing(output: Path) -> None:
 
 
 def build(output: str | Path, *, plugin: str = "code") -> Path:
+    """Build the selected plugin and runtime packages in the output path."""
     if plugin not in PLUGINS:
         raise ValueError(
             f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}"
@@ -59,6 +61,7 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
     partial = None
 
     def interrupt(signum, frame):
+        del signum, frame  # Unused.
         nonlocal interrupted
         interrupted = True
 
@@ -163,6 +166,7 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
 
 
 def main() -> int:
+    """Parse build arguments and return the command's exit status."""
     args = sys.argv[1:]
     if args[:1] == ["--"]:
         args = args[1:]

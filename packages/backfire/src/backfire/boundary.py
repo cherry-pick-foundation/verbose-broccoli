@@ -1,4 +1,4 @@
-"""Session records, cancellation and deadlines around the SDK's parsed streams."""
+"""Track MCP calls and record their outcomes."""
 
 import asyncio
 from dataclasses import dataclass
@@ -12,22 +12,30 @@ from mcp import types
 from mcp.shared.message import SessionMessage
 
 from backfire.decisions import decision_units
-from backfire.records import RecordFile, RecordWriteError, digest
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.records import digest
 
 MAX_LINE_BYTES = 10 * 1024 * 1024
 CALL_SECONDS = 118
 ERRORS = {
-    "deadline_exceeded": "deadline_exceeded: The tool call exceeded its deadline; split the request or try again.",
-    "record_write_failed": "record_write_failed: Cannot write the tool-call record; check record directory permissions and available space.",
+    "deadline_exceeded": (
+        "deadline_exceeded: The tool call exceeded its deadline; "
+        "split the request or try again."
+    ),
+    "record_write_failed": (
+        "record_write_failed: Cannot write the tool-call record; check "
+        "record directory permissions and available space."
+    ),
 }
 
 
-class MessageTooLarge(Exception):
+class MessageTooLarge(Exception):  # noqa: N818  # FR-007 preserves public name.
     """The transport must end the session without parsing this line."""
 
 
 class BoundedLineReader:
-    """Read bytes without a blocking reader thread; the SDK still parses JSON."""
+    """Read bounded lines without blocking a thread; the SDK parses JSON."""
 
     def __init__(self, fd: int):
         self.fd = fd
@@ -47,7 +55,8 @@ class BoundedLineReader:
                 line = self.buffer[: end + 1]
                 del self.buffer[: end + 1]
                 return line.decode("utf-8", errors="replace")
-            # Regular files and /dev/null are readable but cannot register with epoll.
+            # Regular files and /dev/null are readable but cannot register
+            # with epoll.
             if not select.select([self.fd], [], [], 0)[0]:
                 await anyio.wait_readable(self.fd)
             chunk = os.read(
@@ -63,6 +72,8 @@ class BoundedLineReader:
 
 @dataclass
 class Call:
+    """Track timing and record data for one in-flight tool call."""
+
     request_id: str | int
     number: int
     tool: str
@@ -74,6 +85,7 @@ class Call:
 
 
 def error_response(request_id, error_type):
+    """Build an SDK response with the configured fixed error text."""
     return SessionMessage(
         types.JSONRPCResponse(
             jsonrpc="2.0",
@@ -88,6 +100,8 @@ def error_response(request_id, error_type):
 
 
 class Boundary:
+    """Track in-flight MCP calls and coordinate cancellation and records."""
+
     def __init__(self, records: RecordFile, tool_names):
         self.records = records
         self.tool_names = tool_names
@@ -99,6 +113,7 @@ class Boundary:
         self.sequence = 0
 
     def receive(self, item):
+        """Record an incoming call or mark it cancelled."""
         if not isinstance(item, SessionMessage):
             return
         message = item.message
@@ -181,6 +196,7 @@ class Boundary:
         return True
 
     def response(self, item):
+        """Record call completion and filter responses that arrived too late."""
         message = item.message
         if isinstance(message, (types.JSONRPCResponse, types.JSONRPCError)):
             if (call := self.calls.get(message.id)) is not None:
@@ -216,6 +232,7 @@ class Boundary:
                 self.stop()
 
     async def call(self, request_id, invoke):
+        """Invoke one tool call and await it unless the boundary settles it."""
         call = self.calls.get(request_id)
         if call is None or self.stopped.is_set():
             return types.CallToolResult(content=[], is_error=True)
@@ -228,17 +245,20 @@ class Boundary:
                 task.exception()
 
         call.task.add_done_callback(finished)
-        # SDK cancellation must not repeatedly interrupt a pattern child's cleanup.
+        # SDK cancellation must not repeatedly interrupt a pattern child's
+        # cleanup.
         try:
             return await asyncio.shield(call.task)
         except asyncio.CancelledError:
             if self.calls.get(request_id) is call:
                 raise
-            # The boundary already settled it. Do not abort the SDK's task group;
+            # The boundary already settled it. Do not abort the SDK's task
+            # group;
             # response() drops the handler's now-late return value.
             return types.CallToolResult(content=[], is_error=True)
 
     def stop(self):
+        """Settle calls and cancel outstanding timers."""
         self.stopped.set()
         for call in list(self.calls.values()):
             self._close(call, "session_ended")
@@ -247,12 +267,14 @@ class Boundary:
                 timer.cancel()
 
     async def join(self):
+        """Wait for worker and timer tasks to finish."""
         with anyio.CancelScope(shield=True):
             await asyncio.gather(
                 *self.work, *self.timers, return_exceptions=True
             )
 
     async def run(self, server, read_stream, write_stream):
+        """Wrap an MCP server's streams with call-boundary tracking."""
         self.output = write_stream
         incoming, server_read = anyio.create_memory_object_stream(0)
         server_write, outgoing = anyio.create_memory_object_stream(0)

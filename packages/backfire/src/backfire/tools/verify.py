@@ -1,23 +1,25 @@
 """Port of jev-mcp 0.9.0 verify; see ../UPSTREAM.md."""
 
-from backfire.lib import (
-    RELATION_TO_VERDICT,
-    ensure_unique_ids,
-    normalize_evidence,
-    verify_action,
-)
+from backfire.lib import RELATION_TO_VERDICT
+from backfire.lib import ensure_unique_ids
+from backfire.lib import normalize_evidence
+from backfire.lib import verify_action
 from backfire.tools import text
-from backfire.tools.answers import PROVIDER, validate_choice_answer
+from backfire.tools.answers import PROVIDER
+from backfire.tools.answers import validate_choice_answer
 
 NAME = "backfire_verify"
 
 TITLE = "Verify claims against evidence"
 
 DESCRIPTION = (
-    "Check each claim against provided evidence text with TypeSafe Jev. Returns per claim: verdict "
-    "(verified | contradicted | unsupported), full probability distribution, confidence, and whether "
+    "Check each claim against provided evidence text with TypeSafe Jev. "
+    "Returns per claim: verdict "
+    "(verified | contradicted | unsupported), full probability "
+    "distribution, confidence, and whether "
     "the verdict stands on its own (auto) or needs human review. Pattern: "
-    "docs.typesafe.ai/cookbooks/citation_check. Pass reports, PR descriptions, or agent briefs as "
+    "docs.typesafe.ai/cookbooks/citation_check. Pass reports, PR "
+    "descriptions, or agent briefs as "
     "claims and their cited sources, diffs, or documents as evidence."
 )
 
@@ -29,8 +31,10 @@ INPUT_SCHEMA = {
             "minItems": 1,
             "type": "array",
             "items": {"type": "string"},
-            "description": "Claims to verify, e.g. individual factual statements "
-            "from a report.",
+            "description": (
+                "Claims to verify, e.g. individual factual statements from a "
+                "report."
+            ),
         },
         "evidence": {
             "anyOf": [
@@ -101,6 +105,7 @@ EXECUTION = {"taskSupport": "forbidden"}
 
 
 async def call(arguments, judge, *, deadline, record_file):
+    """Check each claim against the supplied evidence."""
     auto_accept = arguments.get("auto_accept", 0.8)
     evidence = normalize_evidence(arguments["evidence"])
     claims = ensure_unique_ids(
@@ -110,25 +115,46 @@ async def call(arguments, judge, *, deadline, record_file):
     for claim in claims:
         questions[f"relation_{claim['id']}"] = {
             "type": "choice",
-            "instructions": f"How does the evidence relate to claim `{claim['id']}` ({claim['text']})?",
+            "instructions": (
+                f"How does the evidence relate to claim `{claim['id']}` "
+                f"({claim['text']})?"
+            ),
             "criteria": {
-                "supports": "The evidence states the claim or directly implies that it is true",
-                "contradicts": "The evidence states the opposite of the claim or implies that it is false",
-                "says_nothing": "The evidence does not address what the claim asserts, either way",
+                "supports": (
+                    "The evidence states the claim or directly implies that it "
+                    "is "
+                    "true"
+                ),
+                "contradicts": (
+                    "The evidence states the opposite of the claim or implies "
+                    "that it is "
+                    "false"
+                ),
+                "says_nothing": (
+                    "The evidence does not address what the claim asserts, "
+                    "either "
+                    "way"
+                ),
             },
         }
         if len(evidence) > 1:
             criteria = {item["id"]: None for item in evidence}
             criteria["none"] = (
-                "No single evidence item contains the content the claim depends on"
+                "No single evidence item contains the content the claim "
+                "depends "
+                "on"
             )
             questions[f"source_{claim['id']}"] = {
                 "type": "choice",
-                "instructions": f"Which evidence item does claim `{claim['id']}` ({claim['text']}) rest on?",
+                "instructions": (
+                    f"Which evidence item does claim `{claim['id']}` "
+                    f"({claim['text']}) rest on?"
+                ),
                 "criteria": criteria,
             }
     state = {
-        "purpose": "Verify each claim in claims against the evidence in evidence.",
+        "purpose": "Verify each claim in claims against the evidence in "
+        "evidence.",
         "claims": claims,
         "evidence": evidence,
     }

@@ -40,6 +40,7 @@ QUALITY_FAILURES = {
 
 
 def load_hard(path):
+    """Load hard-tier cases after verifying the pinned checksum."""
     data = path.read_bytes()
     if hashlib.sha256(data).hexdigest() != HARD_SHA256:
         raise ValueError("Public hard-tier checksum mismatch.")
@@ -47,6 +48,7 @@ def load_hard(path):
 
 
 def synthetic_cases():
+    """Build the synthetic cases for the request-size boundaries."""
     # Research's maximum-cell classification uses all 64 items and 125 classes.
     shapes = {
         **{f"choice-{size}": [("choice", size)] for size in (150, 200, 250)},
@@ -82,7 +84,8 @@ def synthetic_cases():
                 )
             elif kind == "score":
                 question.update(
-                    instructions="How many moons does the synthetic planet have?",
+                    instructions="How many moons does the synthetic planet "
+                    "have?",
                     criteria=["No moons", "One moon", "Two moons"],
                 )
                 target = "2"
@@ -93,7 +96,8 @@ def synthetic_cases():
                 target = "yes" if index % 2 else "no"
             questions[key], expected[key] = question, target
         cases[name] = {
-            "state": "The Sun is a star. The synthetic planet has exactly two moons.",
+            "state": "The Sun is a star. The synthetic planet has exactly two "
+            "moons.",
             "questions": questions,
             "expected": expected,
         }
@@ -101,7 +105,9 @@ def synthetic_cases():
 
 
 def hard_cases(rows):
-    # Fixed before any answers: nested samples permit shared single-call baselines.
+    """Build deterministic batches and single-item hard-tier cases."""
+    # Fixed before any answers: nested samples permit shared single-call
+    # baselines.
     selected = random.Random(36).sample(rows, 16)
     questions, expected, states = {}, {}, {}
     for row in selected:
@@ -127,6 +133,7 @@ def hard_cases(rows):
 
 
 def request_size(questions):
+    """Count questions, maximum choice options, and request cells."""
     options = [
         len(q["criteria"]) for q in questions.values() if q["type"] == "choice"
     ]
@@ -142,6 +149,7 @@ def request_size(questions):
 
 
 def score_answers(answers, expected):
+    """Count correct, wrong, and invalid answers against expected values."""
     counts = {"correct": 0, "wrong": 0, "invalid": 0}
     wrong_ids = []
     for key, target in expected.items():
@@ -167,6 +175,7 @@ def score_answers(answers, expected):
 
 
 async def measure(name, case, run):
+    """Measure one case run and return its counts, timing, and metadata."""
     size = request_size(case["questions"])
     previous = os.environ.get("BACKFIRE_TEST_REQUEST_LIMITS")
     os.environ["BACKFIRE_TEST_REQUEST_LIMITS"] = (
@@ -213,6 +222,7 @@ async def measure(name, case, run):
 
 
 async def run_cases(cases, *, first_run=1):
+    """Run cases sequentially and stop after an unacceptable failure."""
     for name, case in cases.items():
         last_run = 1 if name.startswith("single-") else 3
         for run in range(first_run, last_run + 1):
@@ -223,7 +233,8 @@ async def run_cases(cases, *, first_run=1):
                 and row["error"] not in QUALITY_FAILURES
             ) or row.get("metadata", {}).get("attempts", 0) > 1:
                 print(
-                    "Probe stopped; ask the coordinator before more billed requests.",
+                    "Probe stopped; ask the coordinator before more billed "
+                    "requests.",
                     file=sys.stderr,
                 )
                 return 1
@@ -235,7 +246,11 @@ async def run_cases(cases, *, first_run=1):
                                 "case": name,
                                 "run": skipped,
                                 **request_size(case["questions"]),
-                                "skipped": "Earlier run failed correctness, answer validation, or the 60-second bound.",
+                                "skipped": (
+                                    "Earlier run failed correctness, answer "
+                                    "validation, or the 60-second "
+                                    "bound."
+                                ),
                                 "correct": None,
                                 "wrong": None,
                                 "invalid": None,
@@ -249,6 +264,7 @@ async def run_cases(cases, *, first_run=1):
 
 
 def main(argv=None):
+    """Load selected cases and run the request-limit probe."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--hard-tier",
@@ -309,7 +325,7 @@ def main(argv=None):
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception:
+    except Exception:  # noqa: BLE001  # Stop after probe failures.
         print(
             "Request-limit probe failed; no further requests sent.",
             file=sys.stderr,

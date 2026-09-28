@@ -32,6 +32,7 @@ def _value_at_path(value, path):
 
 
 def select_profile(value, provider_override=None):
+    """Validate and return the selected provider profile."""
     config = _object(value)
     if config.keys() - {"provider", "providers"} or (
         "provider" in config and not _matches(r"[a-z0-9-]+", config["provider"])
@@ -125,6 +126,7 @@ def select_profile(value, provider_override=None):
 
 
 def summarize(label, status, body, elapsed_ms, thinking):
+    """Build a redacted summary of provider response fields."""
     response = _object(body)
     choices = response.get("choices")
     choice = _object(
@@ -158,10 +160,12 @@ def summarize(label, status, body, elapsed_ms, thinking):
 
 
 def burst_size(rate_limit=None):
+    """Return the request count needed to exceed a configured rate limit."""
     return None if rate_limit is None else math.floor(rate_limit) + 1
 
 
 def burst_not_applicable():
+    """Describe a burst check with no configured rate limit."""
     return {
         "label": "burst",
         "status": None,
@@ -170,6 +174,7 @@ def burst_not_applicable():
 
 
 async def request(label, api_key, profile, model, fields, endpoint):
+    """Send one probe request and report response metadata only."""
     started = time.perf_counter()
     status = None
     body = None
@@ -200,8 +205,8 @@ async def request(label, api_key, profile, model, fields, endpoint):
                 if status == 200:
                     await response.aread()
                     body = response.json()
-    except Exception:
-        # Transport errors and invalid response bodies must not reach the output.
+    except Exception:  # noqa: BLE001  # Keep request failures out of probe output.
+        # Transport errors and invalid response bodies stay out of the output.
         pass
     return summarize(
         label,
@@ -213,6 +218,7 @@ async def request(label, api_key, profile, model, fields, endpoint):
 
 
 async def main(args=None):
+    """Read the selected profile and run provider probes."""
     source = Path(__file__).resolve().parents[2] / "backfire" / "config.toml"
     provider_override = None
     arguments = iter(sys.argv[1:] if args is None else args)
@@ -227,7 +233,7 @@ async def main(args=None):
         profile = select_profile(tomllib.load(file), provider_override)
     home = os.environ.get("HOME")
     config_home = os.environ.get(
-        "XDG_CONFIG_HOME", f"{home}/.config" if home else None
+        "XDG_CONFIG_HOME", f"{home}/.config" if home else ""
     )
     if not config_home:
         raise ValueError
@@ -302,6 +308,6 @@ async def main(args=None):
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except Exception:
+    except Exception:  # noqa: BLE001  # Keep startup failures out of probe output.
         print("Probe could not start.", file=sys.stderr)
         sys.exit(1)

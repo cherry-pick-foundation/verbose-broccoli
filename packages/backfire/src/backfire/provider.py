@@ -2,21 +2,19 @@
 
 import asyncio
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 
-from system_one_adapter.providers.base import (
-    record_request,
-    render_messages,
-    translating,
-)
-from system_one_adapter.providers.openai import (
-    AsyncOpenAIProvider,
-    _response_format,
-    _responses_request_kwargs,
-    _responses_result,
-    _result,
-)
-from typesafe_sdk import TypeSafeAPIError, TypeSafeError
+from system_one_adapter.providers.base import record_request
+from system_one_adapter.providers.base import render_messages
+from system_one_adapter.providers.base import translating
+from system_one_adapter.providers.openai import AsyncOpenAIProvider
+from system_one_adapter.providers.openai import _response_format
+from system_one_adapter.providers.openai import _responses_request_kwargs
+from system_one_adapter.providers.openai import _responses_result
+from system_one_adapter.providers.openai import _result
+from typesafe_sdk import TypeSafeAPIError
+from typesafe_sdk import TypeSafeError
 
 from backfire.failures import JudgmentError
 
@@ -63,6 +61,7 @@ class ProfileProvider(AsyncOpenAIProvider):
         self.profile = profile
 
     async def request(self, messages, *, schema, structured):
+        """Send one request and validate its provider response metadata."""
         call = provider_call.get()
         remaining = call.deadline - asyncio.get_running_loop().time()
         if remaining <= 0:

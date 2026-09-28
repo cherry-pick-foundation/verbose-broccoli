@@ -1,30 +1,31 @@
 """Port of jev-mcp 0.9.0 find; see ../UPSTREAM.md."""
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP
+from decimal import Decimal
 
-from backfire.lib import (
-    MAX_CANDIDATE_CHARS,
-    ensure_unique_ids,
-    exists_verdict,
-    rank_candidates,
-    truncate,
-)
+from backfire.lib import MAX_CANDIDATE_CHARS
+from backfire.lib import ensure_unique_ids
+from backfire.lib import exists_verdict
+from backfire.lib import rank_candidates
+from backfire.lib import truncate
 from backfire.tools import text
-from backfire.tools.answers import (
-    PROVIDER,
-    validate_choice_answer,
-    validate_noul_answer,
-)
+from backfire.tools.answers import PROVIDER
+from backfire.tools.answers import validate_choice_answer
+from backfire.tools.answers import validate_noul_answer
 
 NAME = "backfire_find"
 
 TITLE = "Semantic search over candidates"
 
 DESCRIPTION = (
-    "Rank candidates against a plain-language query with TypeSafe Jev — no embeddings needed. One "
-    "Choice scores every candidate id by how well it answers the query, plus a Noul checks whether "
-    "any candidate addresses the query at all (so a confident 'top hit' cannot masquerade as an "
-    "answer). Pattern: docs.typesafe.ai/cookbooks/semantic_find. Use for 'which file/note/line covers "
+    "Rank candidates against a plain-language query with TypeSafe Jev "
+    "\u2014 no embeddings needed. One "
+    "Choice scores every candidate id by how well it answers the query, "
+    "plus a Noul checks whether "
+    "any candidate addresses the query at all (so a confident 'top hit' "
+    "cannot masquerade as an "
+    "answer). Pattern: docs.typesafe.ai/cookbooks/semantic_find. Use for "
+    "'which file/note/line covers "
     "X' across up to 250 candidates."
 )
 
@@ -78,6 +79,7 @@ EXECUTION = {"taskSupport": "forbidden"}
 
 
 async def call(arguments, judge, *, deadline, record_file):
+    """Rank candidates and assess whether any addresses the query."""
     query = arguments["query"]
     candidates = ensure_unique_ids(
         [
@@ -92,14 +94,17 @@ async def call(arguments, judge, *, deadline, record_file):
     questions = {
         "best": {
             "type": "choice",
-            "instructions": f'Which candidate contains the best answer to: "{query}"?',
+            (
+                "instructions"
+            ): f'Which candidate contains the best answer to: "{query}"?',
             "criteria": {item["id"]: None for item in candidates},
         },
         "exists": {
             "type": "noul",
             "instructions": f'Does any candidate address or answer: "{query}"?',
             "criteria": {
-                "true": "At least one candidate states or directly implies the answer",
+                "true": "At least one candidate states or directly implies the "
+                "answer",
                 "false": "No candidate addresses this",
             },
         },
@@ -128,7 +133,10 @@ async def call(arguments, judge, *, deadline, record_file):
                 "exists": exists,
                 "exists_verdict": None,
                 "top": [],
-                "reason": "missing or malformed best or exists answer; cannot rank safely",
+                "reason": (
+                    "missing or malformed best or exists answer; cannot rank "
+                    "safely"
+                ),
                 "usage": result["usage"],
             }
         ), False

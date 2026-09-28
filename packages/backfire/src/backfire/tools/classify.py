@@ -1,25 +1,31 @@
 """Port of jev-mcp 0.9.0 classify; see ../UPSTREAM.md."""
 
-from backfire.lib import (
-    MAX_ITEM_CHARS,
-    classification_decision,
-    margin_of,
-    truncate,
-)
+from backfire.lib import MAX_ITEM_CHARS
+from backfire.lib import classification_decision
+from backfire.lib import margin_of
+from backfire.lib import truncate
 from backfire.tools import text
-from backfire.tools.answers import PROVIDER, validate_choice_answer
+from backfire.tools.answers import PROVIDER
+from backfire.tools.answers import validate_choice_answer
 
 NAME = "backfire_classify"
 
 TITLE = "Classify items against a shared label set"
 
 DESCRIPTION = (
-    "Assign each item to one class from a shared catalog with TypeSafe Jev, in one batched request: "
-    "the class catalog is sent once and every item becomes an independent Choice question. Returns "
-    "per item: the chosen class, the full distribution, confidence, winner-to-runner-up margin, and "
-    "an auto-versus-review decision. Auto requires both a high top probability (default 0.85) and a "
-    "clear margin (default 0.50); everything else is flagged for review. Include a manual_review "
-    "class in the catalog if you want an explicit escape hatch; the tool never invents one."
+    "Assign each item to one class from a shared catalog with TypeSafe "
+    "Jev, in one batched request: "
+    "the class catalog is sent once and every item becomes an independent "
+    "Choice question. Returns "
+    "per item: the chosen class, the full distribution, confidence, "
+    "winner-to-runner-up margin, and "
+    "an auto-versus-review decision. Auto requires both a high top "
+    "probability (default 0.85) and a "
+    "clear margin (default 0.50); everything else is flagged for review. "
+    "Include a manual_review "
+    "class in the catalog if you want an explicit escape hatch; the tool "
+    "never invents "
+    "one."
 )
 
 INPUT_SCHEMA = {
@@ -39,8 +45,11 @@ INPUT_SCHEMA = {
                 "required": ["text"],
                 "additionalProperties": False,
             },
-            "description": "Items to classify. Text is truncated at 2000 characters; "
-            "send bounded excerpts, not whole documents.",
+            "description": (
+                "Items to classify. Text is truncated at 2000 characters; send "
+                "bounded excerpts, not whole "
+                "documents."
+            ),
         },
         "classes": {
             "minItems": 2,
@@ -55,10 +64,12 @@ INPUT_SCHEMA = {
                 "required": ["description"],
                 "additionalProperties": False,
             },
-            "description": "Shared class catalog. Strong descriptions carry the "
-            "decision: a precise definition, what belongs, what "
-            "does not, precedence over overlapping classes, and a "
-            "short example.",
+            "description": (
+                "Shared class catalog. Strong descriptions carry the decision: "
+                "a precise definition, what belongs, what does not, precedence "
+                "over overlapping classes, and a short "
+                "example."
+            ),
         },
         "purpose": {
             "description": "What this classification is for; shared across all "
@@ -99,6 +110,7 @@ EXECUTION = {"taskSupport": "forbidden"}
 
 
 async def call(arguments, judge, *, deadline, record_file):
+    """Classify items against shared classes in one judgment request."""
     auto_accept = arguments.get("auto_accept", 0.85)
     minimum_margin = arguments.get("minimum_margin", 0.5)
     items, classes = [], []
@@ -122,7 +134,8 @@ async def call(arguments, judge, *, deadline, record_file):
             )
     if len(items) * len(classes) > 8000:
         raise ValueError(
-            f"Batch too large: {len(items)} items x {len(classes)} classes exceeds the 8,000 item-class budget. Split the batch."
+            f"Batch too large: {len(items)} items x {len(classes)} classes "
+            "exceeds the 8,000 item-class budget. Split the batch."
         )
     state = {
         "purpose": arguments.get(

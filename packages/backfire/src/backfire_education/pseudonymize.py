@@ -48,9 +48,9 @@ def pseudonymize(
     state: Any,
     questions: Mapping[str, Any],
 ) -> tuple[Any, dict[str, Any], Callable[[dict], dict]]:
-    """Return masked JSON inputs and a call-local answer restoration function."""
+    """Return masked inputs and a call-local answer restoration function."""
     try:
-        import phonenumbers
+        import phonenumbers  # noqa: PLC0415  # Optional dependency.
     except ImportError:
         raise JudgmentError(
             "backend_not_configured", str(SHIPPED_CONFIG)

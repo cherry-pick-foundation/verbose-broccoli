@@ -22,7 +22,8 @@ from urllib.request import urlopen
 
 import anyio
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import MCPError
 
 from backfire_tools.acceptance.scripted_endpoint import scripted_endpoint
@@ -33,10 +34,12 @@ FIXTURES = Path(__file__).resolve().parents[5] / "scripts/backfire/fixtures"
 
 
 def sha256(path):
+    """Return the SHA-256 digest of a file."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def fetch_source(directory):
+    """Fetch and extract the pinned upstream source into directory."""
     archive = directory / "source.tar.gz"
     with (
         urlopen(SOURCE_URL, timeout=60) as response,
@@ -49,10 +52,12 @@ def fetch_source(directory):
 
 
 def wire(value):
+    """Serialize an MCP model with aliases and only set fields."""
     return value.model_dump(by_alias=True, exclude_unset=True)
 
 
 async def capture_cases(source, node, cases):
+    """Capture tool definitions, judgments, and results from upstream."""
     with scripted_endpoint() as (url, exchanges), anyio.fail_after(120):
         parameters = StdioServerParameters(
             command=node,
@@ -87,7 +92,8 @@ async def capture_cases(source, node, cases):
                         )
                     }
                 except MCPError as error:
-                    # Transport failures must not become accepted tool-error fixtures.
+                    # Transport failures must not become accepted
+                    # tool-error fixtures.
                     if error.error.code not in (-32600, -32601, -32602, -32603):
                         raise
                     result = {"error": wire(error.error)}
@@ -104,6 +110,7 @@ async def capture_cases(source, node, cases):
 
 
 def capture(cases_path, output):
+    """Capture the pinned upstream responses for the supplied cases."""
     cases = [
         json.loads(line)
         for line in cases_path.read_text(encoding="utf-8").splitlines()
@@ -132,7 +139,8 @@ def capture(cases_path, output):
                 "package-lock.json",
             )
         }
-        # A fresh HOME keeps npm away from the operator's credential/config files.
+        # A fresh HOME keeps npm away from the operator's credential/config
+        # files.
         env = {"PATH": os.environ["PATH"], "HOME": temporary}
         for arguments in (["ci", "--ignore-scripts"], ["run", "build"]):
             subprocess.run(
@@ -165,7 +173,11 @@ def capture(cases_path, output):
             "known_answers_sha256": sha256(cases_path),
             "case_count": len(captured),
             "judgment_count": sum(len(case["judgments"]) for case in captured),
-            "answer_policy": "First Choice, Noul 0.875, middle Score; synthetic fidelity answers, not semantic expectations.",
+            "answer_policy": (
+                "First Choice, Noul 0.875, middle Score; synthetic fidelity "
+                "answers, not semantic "
+                "expectations."
+            ),
         }
     output.mkdir(parents=True, exist_ok=True)
     for name, value in (
@@ -187,6 +199,7 @@ def capture(cases_path, output):
 
 
 def main():
+    """Parse command-line arguments and capture the fixtures."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--cases", type=Path, default=FIXTURES / "known-answers-v1.jsonl"
@@ -197,7 +210,8 @@ def main():
     arguments = parser.parse_args()
     metadata = capture(arguments.cases, arguments.output)
     print(
-        f"Captured {metadata['case_count']} cases and {metadata['judgment_count']} judgments in {arguments.output}"
+        f"Captured {metadata['case_count']} cases and "
+        f"{metadata['judgment_count']} judgments in {arguments.output}"
     )
 
 

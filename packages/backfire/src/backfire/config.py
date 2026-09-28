@@ -139,7 +139,7 @@ def load_pseudonymize() -> bool:
 
 
 def load_profile() -> dict:
-    """Select data from two files; operator tables replace shipped tables whole."""
+    """Load the selected profile from shipped and operator configuration."""
     operator_path = xdg_path("config") / "backfire" / "config.toml"
     shipped = _read_config(SHIPPED_CONFIG, shipped=True)
     operator = _read_config(operator_path, optional=True)
@@ -176,7 +176,8 @@ def load_profile() -> dict:
 
 def _validate_profile(profile: dict, detail: str) -> None:
     try:
-        # TOML dates and non-finite numbers cannot be sent as JSON request fields.
+        # TOML dates and non-finite numbers cannot be sent as JSON
+        # request fields.
         json.dumps(profile, allow_nan=False)
         error = next(_PROFILE.iter_errors(profile), None)
         if error is not None:
@@ -193,7 +194,9 @@ def _validate_profile(profile: dict, detail: str) -> None:
         endpoint = urlsplit(profile["base_url"])
         if not endpoint.hostname:
             raise ValueError
-        endpoint.port  # Validate a supplied port before handing the URL to the client.
+        # Accessing port validates a supplied value before the URL goes to
+        # the client.
+        _ = endpoint.port
     except (TypeError, ValueError):
         raise JudgmentError("backend_not_configured", detail) from None
     if profile["api"] == "anthropic":
@@ -204,10 +207,11 @@ def _validate_profile(profile: dict, detail: str) -> None:
 
 
 def load_credential(profile: dict) -> str:
-    """Read only the selected assignment, without sourcing it or changing env."""
+    """Read the selected credential without sourcing its file."""
     path = xdg_path("config") / "backfire" / f"{profile['name']}.env"
     try:
-        # Inspect the opened file, not a path that could be replaced before reading.
+        # Inspect the opened file, not a path that could be replaced before
+        # reading.
         descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
         with os.fdopen(descriptor, encoding="utf-8") as file:
             info = os.fstat(file.fileno())

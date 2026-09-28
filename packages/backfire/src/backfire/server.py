@@ -11,23 +11,24 @@ from mcp import types
 from mcp.server.lowlevel import Server
 from mcp.server.stdio import stdio_server
 
-from backfire.boundary import Boundary, BoundedLineReader, MessageTooLarge
+from backfire.boundary import Boundary
+from backfire.boundary import BoundedLineReader
+from backfire.boundary import MessageTooLarge
 from backfire.config import xdg_path
 from backfire.judge import Judge
-from backfire.records import RecordFile, RecordWriteError
-from backfire.tools import (
-    classify,
-    compare,
-    decide,
-    extract,
-    find,
-    gate,
-    noul,
-    rerank,
-    review,
-    screen,
-    verify,
-)
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.tools import classify
+from backfire.tools import compare
+from backfire.tools import decide
+from backfire.tools import extract
+from backfire.tools import find
+from backfire.tools import gate
+from backfire.tools import noul
+from backfire.tools import rerank
+from backfire.tools import review
+from backfire.tools import screen
+from backfire.tools import verify
 
 # The order of jev-mcp 0.9.0's tools/list.
 TOOLS = {
@@ -49,7 +50,11 @@ TOOLS = {
 
 
 def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
+    """Build the MCP server and optionally attach call-boundary records."""
+
     async def list_tools(context, params):
+        del context, params  # Unused.
+
         return types.ListToolsResult(
             tools=[
                 types.Tool(
@@ -86,7 +91,7 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
                 deadline=deadline,
                 record_file=record_file,
             )
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001  # Keep tool failures in MCP responses.
             text, is_error = str(error), True
         # The SDK drops resultType for legacy versions; a dict avoids adding
         # isError: false to successful results.
@@ -115,6 +120,7 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
 
 
 async def serve(judge: Judge) -> None:
+    """Serve MCP over stdio with session records and signal handling."""
     try:
         records = RecordFile(xdg_path("state") / "backfire" / "records")
     except RecordWriteError as error:

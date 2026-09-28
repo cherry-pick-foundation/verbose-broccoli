@@ -6,12 +6,14 @@ Each exchange retains the exact state and questions and the scripted response.
 """
 
 from contextlib import contextmanager
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer
 import json
 from threading import Thread
 
 
 def scripted_response(request):
+    """Build a synthetic response for each supported question type."""
     answers = {}
     for identifier, question in request["questions"].items():
         kind = question["type"]
@@ -21,7 +23,8 @@ def scripted_response(request):
             keys = list(question["criteria"])
             if len(keys) < 2:
                 return 400, {
-                    "error": "invalid_request: Choice requires at least two options."
+                    "error": "invalid_request: Choice requires at least two "
+                    "options."
                 }
             answer = {
                 "type": kind,
@@ -67,6 +70,7 @@ def scripted_endpoint(respond=scripted_response):
             pass
 
         def do_POST(self):
+            """Record one scripted request or preserve its handler error."""
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if (
@@ -93,7 +97,7 @@ def scripted_endpoint(respond=scripted_response):
                         "response": {"status": status, "body": response},
                     }
                 )
-            except Exception as error:
+            except Exception as error:  # noqa: BLE001  # Fail capture on handler errors.
                 errors.append(error)
                 status, response = 500, {"error": "Scripted endpoint failed."}
             encoded = json.dumps(response, ensure_ascii=False).encode("utf-8")

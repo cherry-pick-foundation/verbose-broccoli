@@ -15,6 +15,7 @@ _COMPOUND = {"남궁", "황보", "제갈", "선우", "서문", "독고", "사공
 
 
 def given_name(name: str) -> str | None:
+    """Return the detected given name for a Korean name."""
     if not re.fullmatch(r"[가-힣]{3,}", name):
         return None
     return name[2:] if len(name) >= 4 and name[:2] in _COMPOUND else name[1:]

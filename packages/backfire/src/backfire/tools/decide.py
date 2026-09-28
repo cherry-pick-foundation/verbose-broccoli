@@ -1,22 +1,32 @@
 """Port of jev-mcp 0.9.0 decide; see ../UPSTREAM.md."""
 
-from backfire.lib import DECIDE_ESCAPE_HATCHES, contradicts_recommendation
+from backfire.lib import DECIDE_ESCAPE_HATCHES
+from backfire.lib import contradicts_recommendation
 from backfire.tools import text
-from backfire.tools.answers import PROVIDER, validate_choice_answer
+from backfire.tools.answers import PROVIDER
+from backfire.tools.answers import validate_choice_answer
 
 NAME = "backfire_decide"
 
 TITLE = "Decide between bounded alternatives"
 
 DESCRIPTION = (
-    "One unresolved, bounded decision where semantic judgment over supplied evidence could change "
-    "your plan: implementation alternatives, product tradeoffs with known preferences, workflow "
-    "selection. Supply 2-6 candidates, evidence, and explicit priorities. Jev returns a Choice "
-    "distribution over the candidates plus escape hatches (ask_user / investigate / none), and a "
-    "per-candidate per-requirement supported / contradicted / unknown judgment for each optional "
-    "requirement, all in one request. One call per unchanged decision; do not repeat a call to obtain "
-    "a more pleasing answer. Use source inspection, tests, the user, or a reasoning model for "
-    "open-ended research, routine choices, correctness proofs, or predicting user consent. High "
+    "One unresolved, bounded decision where semantic judgment over "
+    "supplied evidence could change "
+    "your plan: implementation alternatives, product tradeoffs with known "
+    "preferences, workflow "
+    "selection. Supply 2-6 candidates, evidence, and explicit priorities. "
+    "Jev returns a Choice "
+    "distribution over the candidates plus escape hatches (ask_user / "
+    "investigate / none), and a "
+    "per-candidate per-requirement supported / contradicted / unknown "
+    "judgment for each optional "
+    "requirement, all in one request. One call per unchanged decision; do "
+    "not repeat a call to obtain "
+    "a more pleasing answer. Use source inspection, tests, the user, or a "
+    "reasoning model for "
+    "open-ended research, routine choices, correctness proofs, or "
+    "predicting user consent. High "
     "probability is not proof."
 )
 
@@ -91,6 +101,7 @@ EXECUTION = {"taskSupport": "forbidden"}
 
 
 async def call(arguments, judge, *, deadline, record_file):
+    """Choose among candidates and check each requested requirement."""
     include_hatches = arguments.get("escape_hatches", True)
     requirements = arguments.get("requirements", [])
     candidates = arguments["candidates"]
@@ -101,7 +112,8 @@ async def call(arguments, judge, *, deadline, record_file):
             raise ValueError(f"Duplicate candidate id: {identifier}")
         if include_hatches and identifier in DECIDE_ESCAPE_HATCHES:
             raise ValueError(
-                f'Candidate id "{identifier}" collides with an escape hatch; rename it or set escape_hatches: false.'
+                f'Candidate id "{identifier}" collides with an escape '
+                "hatch; rename it or set escape_hatches: false."
             )
         seen.add(identifier)
     candidate_keys = [
@@ -118,7 +130,8 @@ async def call(arguments, judge, *, deadline, record_file):
         "recommendation": {
             "type": "choice",
             "instructions": (
-                "Which candidate best fits the decision, evidence, and priorities? "
+                "Which candidate best fits the decision, evidence, and "
+                "priorities? "
                 + (
                     "Select a candidate or an escape hatch. "
                     if include_hatches
@@ -130,15 +143,30 @@ async def call(arguments, judge, *, deadline, record_file):
         },
     }
     relation_criteria = {
-        "supported": "The evidence and mechanism support this specific requirement",
-        "contradicted": "The evidence or mechanism contradicts this specific requirement, not merely another requirement",
-        "unknown": "Relevant evidence is missing; neither satisfaction nor violation is established",
+        "supported": "The evidence and mechanism support this specific "
+        "requirement",
+        "contradicted": (
+            "The evidence or mechanism contradicts this specific requirement, "
+            "not merely another "
+            "requirement"
+        ),
+        "unknown": (
+            "Relevant evidence is missing; neither satisfaction nor violation "
+            "is "
+            "established"
+        ),
     }
     for index, candidate in enumerate(candidate_keys):
         for requirement_index, requirement in enumerate(requirements):
             questions[f"check_{index}_{requirement_index}"] = {
                 "type": "choice",
-                "instructions": f"How does the mechanism in candidates[{index}] relate to requirements[{requirement_index}], using the evidence? Judge only this property, not the candidate overall desirability. Missing evidence is not contradiction.",
+                "instructions": (
+                    f"How does the mechanism in candidates[{index}] relate "
+                    f"to requirements[{requirement_index}], using the "
+                    "evidence? Judge only this property, not the candidate "
+                    "overall desirability. Missing evidence is not "
+                    "contradiction."
+                ),
                 "criteria": relation_criteria,
             }
     state = {
@@ -212,7 +240,10 @@ async def call(arguments, judge, *, deadline, record_file):
             "requirements_checked": len(requirements),
             "checks": checks,
             "warnings": [
-                f"Requirement{'s' if len(contradicted) > 1 else ''} {', '.join(str(index + 1) for index in contradicted)} contradicted by the recommended candidate; inspect before acting"
+                f"Requirement{'s' if len(contradicted) > 1 else ''} "
+                f"{', '.join(str(index + 1) for index in contradicted)} "
+                "contradicted by the recommended candidate; inspect before "
+                "acting"
             ]
             if contradicted
             else [],

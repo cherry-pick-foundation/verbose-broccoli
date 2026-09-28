@@ -1,4 +1,4 @@
-"""Project parsed tool results onto the data model's fixed decision vocabulary."""
+"""Project parsed results onto the fixed decision vocabulary."""
 
 _FIELDS = {
     "backfire_gate": {
@@ -60,7 +60,7 @@ def decision_units(
 
     The caller parses the tool's JSON text. Unknown tools, non-object results
     and malformed unit containers have no parsable decisions and return None.
-    Missing decision fields become other; an absent optional status stays absent.
+    Missing fields become other; absent optional status stays absent.
     """
     fields = _FIELDS.get(tool)
     if fields is None or not isinstance(result, dict):

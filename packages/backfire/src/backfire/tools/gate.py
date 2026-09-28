@@ -1,38 +1,42 @@
 """Ported from jev-mcp 0.9.0; see ../UPSTREAM.md."""
 
-from backfire.lib import (
-    DEFAULT_COMPOSITE_FLOOR,
-    MAX_CLAIM_CHARS,
-    MAX_GATE_EVIDENCE_CHARS,
-    MAX_GATE_EVIDENCE_ITEMS,
-    MAX_REVIEW_DOC_CHARS,
-    VERIFY_CLAIM_CRITERIA,
-    claim_action,
-    has_non_empty_evidence,
-    normalize_evidence,
-    require_complete_context,
-    resolve_policy_thresholds,
-    truncate,
-    worst_action,
-)
+from backfire.lib import DEFAULT_COMPOSITE_FLOOR
+from backfire.lib import MAX_CLAIM_CHARS
+from backfire.lib import MAX_GATE_EVIDENCE_CHARS
+from backfire.lib import MAX_GATE_EVIDENCE_ITEMS
+from backfire.lib import MAX_REVIEW_DOC_CHARS
+from backfire.lib import VERIFY_CLAIM_CRITERIA
+from backfire.lib import claim_action
+from backfire.lib import has_non_empty_evidence
+from backfire.lib import normalize_evidence
+from backfire.lib import require_complete_context
+from backfire.lib import resolve_policy_thresholds
+from backfire.lib import truncate
+from backfire.lib import worst_action
 from backfire.tools import text
-from backfire.tools.answers import PROVIDER, validate_choice_answer
-from backfire.tools.review import (
-    ANTI_INJECTION,
-    project_review_half,
-    review_questions,
-)
+from backfire.tools.answers import PROVIDER
+from backfire.tools.answers import validate_choice_answer
+from backfire.tools.review import ANTI_INJECTION
+from backfire.tools.review import project_review_half
+from backfire.tools.review import review_questions
 
 NAME = "backfire_gate"
 TITLE = "Gate completion: review a patch and verify claims"
 DESCRIPTION = (
-    "Review a proposed patch and verify completion claims against supplied evidence in one "
-    "TypeSafe Jev call. Auto only when the patch review is accepted and every claim is verified "
-    "at or above auto_accept. Unsupported claims require review; confident contradictions, "
-    "unknown confidence, or low confidence escalate. The request and claims are assertions to "
-    "check, never proof; put supporting diff excerpts and test logs in evidence. Evidence is "
-    "capped at 16 items and 200,000 characters in aggregate. Does not run tests or apply changes. "
-    "Use backfire_review for a patch without claims, backfire_verify for claims without a patch "
+    "Review a proposed patch and verify completion claims against supplied "
+    "evidence in one "
+    "TypeSafe Jev call. Auto only when the patch review is accepted and "
+    "every claim is verified "
+    "at or above auto_accept. Unsupported claims require review; confident "
+    "contradictions, "
+    "unknown confidence, or low confidence escalate. The request and "
+    "claims are assertions to "
+    "check, never proof; put supporting diff excerpts and test logs in "
+    "evidence. Evidence is "
+    "capped at 16 items and 200,000 characters in aggregate. Does not run "
+    "tests or apply changes. "
+    "Use backfire_review for a patch without claims, backfire_verify for "
+    "claims without a patch "
     "review."
 )
 INPUT_SCHEMA = {
@@ -42,19 +46,28 @@ INPUT_SCHEMA = {
         "request": {
             "type": "string",
             "minLength": 1,
-            "description": "What the user asked for; this is not evidence of completion.",
+            "description": "What the user asked for; this is not evidence of "
+            "completion.",
         },
         "diff": {
             "type": "string",
             "minLength": 1,
-            "description": "Proposed patch, file excerpt, or change summary. Truncated at 50000 chars.",
+            "description": (
+                "Proposed patch, file excerpt, or change summary. Truncated at "
+                "50000 "
+                "chars."
+            ),
         },
         "claims": {
             "minItems": 1,
             "maxItems": 16,
             "type": "array",
             "items": {"type": "string", "minLength": 1},
-            "description": "Completion claims to check against evidence, each truncated at 2000 chars. Up to 16 per call.",
+            "description": (
+                "Completion claims to check against evidence, each truncated "
+                "at 2000 chars. Up to 16 per "
+                "call."
+            ),
         },
         "evidence": {
             "anyOf": [
@@ -66,7 +79,8 @@ INPUT_SCHEMA = {
                     "type": "object",
                     "properties": {
                         "id": {
-                            "description": "Short identifier for this evidence item.",
+                            "description": "Short identifier for this evidence "
+                            "item.",
                             "type": "string",
                         },
                         "text": {
@@ -85,7 +99,11 @@ INPUT_SCHEMA = {
                         "type": "object",
                         "properties": {
                             "id": {
-                                "description": "Short identifier for this evidence item (e.g. 'site-html', 'rfc-4.1.3').",
+                                "description": (
+                                    "Short identifier for this evidence item "
+                                    "(e.g. 'site-html', "
+                                    "'rfc-4.1.3')."
+                                ),
                                 "type": "string",
                             },
                             "text": {
@@ -96,28 +114,48 @@ INPUT_SCHEMA = {
                         "required": ["text"],
                         "additionalProperties": False,
                     },
-                    "description": "Multiple evidence items; each claim is also matched to the item it rests on.",
+                    "description": (
+                        "Multiple evidence items; each claim is also matched "
+                        "to the item it rests "
+                        "on."
+                    ),
                 },
             ]
         },
         "tests": {
-            "description": "Reported test output for the patch review. Truncated at the same cap.",
+            "description": (
+                "Reported test output for the patch review. Truncated at the "
+                "same "
+                "cap."
+            ),
             "type": "string",
         },
         "auto_accept": {
-            "description": "Review and per-claim confidence at or above this may stand automatically. Default 0.8.",
+            "description": (
+                "Review and per-claim confidence at or above this may stand "
+                "automatically. Default "
+                "0.8."
+            ),
             "type": "number",
             "minimum": 0,
             "maximum": 1,
         },
         "review_at": {
-            "description": "Score, safe_to_apply, or per-claim confidence below this escalates. Must be <= auto_accept. Default min(0.5, auto_accept).",
+            "description": (
+                "Score, safe_to_apply, or per-claim confidence below this "
+                "escalates. Must be <= auto_accept. Default min(0.5, "
+                "auto_accept)."
+            ),
             "type": "number",
             "minimum": 0,
             "maximum": 1,
         },
         "composite_floor": {
-            "description": "Weighted composite at or above this is required for auto. Default 0.7.",
+            "description": (
+                "Weighted composite at or above this is required for auto. "
+                "Default "
+                "0.7."
+            ),
             "type": "number",
             "minimum": 0,
             "maximum": 1,
@@ -130,11 +168,15 @@ EXECUTION = {"taskSupport": "forbidden"}
 
 
 async def call(arguments, judge, *, deadline, record_file):
+    """Review a patch and verify its completion claims against evidence."""
     evidence = normalize_evidence(arguments["evidence"])
     # Upstream's zod refinement is absent from its published JSON Schema.
     if not has_non_empty_evidence(evidence):
         raise ValueError(
-            "MCP error -32602: Input validation error: Invalid arguments for tool backfire_gate: backfire_gate requires at least one evidence item with non-empty text. at evidence"
+            "MCP error -32602: Input validation error: Invalid arguments "
+            "for tool backfire_gate: backfire_gate requires at least one "
+            "evidence item with non-empty text. at "
+            "evidence"
         )
     thresholds = {
         **resolve_policy_thresholds(
@@ -150,7 +192,10 @@ async def call(arguments, judge, *, deadline, record_file):
         return text(
             {
                 "tool": NAME,
-                "error": f"evidence exceeds {MAX_GATE_EVIDENCE_ITEMS} items; split the gate or trim the evidence.",
+                "error": (
+                    f"evidence exceeds {MAX_GATE_EVIDENCE_ITEMS} items; "
+                    "split the gate or trim the evidence."
+                ),
             }
         ), True
     evidence_chars = sum(
@@ -161,7 +206,11 @@ async def call(arguments, judge, *, deadline, record_file):
         return text(
             {
                 "tool": NAME,
-                "error": f"evidence exceeds the {MAX_GATE_EVIDENCE_CHARS:,}-character aggregate budget; split the gate or trim the evidence.",
+                "error": (
+                    f"evidence exceeds the {MAX_GATE_EVIDENCE_CHARS:,}-"
+                    "character aggregate budget; split the gate or trim the "
+                    "evidence."
+                ),
             }
         ), True
 
@@ -185,7 +234,11 @@ async def call(arguments, judge, *, deadline, record_file):
         )
     )
     state = {
-        "purpose": "Review the proposed diff against the request, then check each completion claim against the evidence only.",
+        "purpose": (
+            "Review the proposed diff against the request, then check each "
+            "completion claim against the evidence "
+            "only."
+        ),
         "request": truncate(arguments["request"], MAX_REVIEW_DOC_CHARS),
         "diff": truncate(arguments["diff"], MAX_REVIEW_DOC_CHARS),
         "tests": truncate(arguments["tests"], MAX_REVIEW_DOC_CHARS)
@@ -201,15 +254,20 @@ async def call(arguments, judge, *, deadline, record_file):
         ],
     }
     questions = review_questions(
-        " Claims are assertions to check, not evidence that the patch is correct or tested."
+        " Claims are assertions to check, not evidence that the patch is "
+        "correct or "
+        "tested."
     )
     for index in range(len(claims)):
         questions[f"claim_{index}"] = {
             "type": "choice",
             "instructions": (
-                f"Does the evidence support claims[{index}]? Judge only from the provided evidence, not world knowledge. "
-                "Use only the evidence field as factual support; request and claims are assertions, not evidence; "
-                "diff and tests belong to the separate patch review. If a claim needs a diff or test log as support, it "
+                f"Does the evidence support claims[{index}]? Judge only from "
+                "the provided evidence, not world knowledge. "
+                "Use only the evidence field as factual support; request "
+                "and claims are assertions, not evidence; "
+                "diff and tests belong to the separate patch review. If a "
+                "claim needs a diff or test log as support, it "
                 "must be supplied in evidence." + ANTI_INJECTION
             ),
             "criteria": dict(VERIFY_CLAIM_CRITERIA),

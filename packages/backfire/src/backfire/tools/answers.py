@@ -2,7 +2,8 @@
 
 import math
 
-from backfire.lib import PROBABILITY_SUM_TOLERANCE, SCORE_MEAN_TOLERANCE
+from backfire.lib import PROBABILITY_SUM_TOLERANCE
+from backfire.lib import SCORE_MEAN_TOLERANCE
 
 PROVIDER = "compatible"
 NO_JUDGMENT_PROVIDER = "none"
@@ -42,6 +43,7 @@ def _distribution(probabilities, expected_keys):
 
 
 def validate_choice_answer(answer, expected_keys):
+    """Validate a choice and return its normalized answer fields."""
     if not isinstance(answer, dict) or not isinstance(
         answer.get("choice"), str
     ):
@@ -62,6 +64,7 @@ def validate_choice_answer(answer, expected_keys):
 
 
 def validate_score_answer(answer):
+    """Validate a score and return its normalized answer fields."""
     if not isinstance(answer, dict):
         return None
     score = answer.get("score")
@@ -89,5 +92,6 @@ def validate_score_answer(answer):
 
 
 def validate_noul_answer(answer):
+    """Return a valid Noul probability, or None."""
     value = answer.get("noul") if isinstance(answer, dict) else None
     return value if _probability(value) else None

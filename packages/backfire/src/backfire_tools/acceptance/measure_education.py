@@ -19,7 +19,8 @@ import tomllib
 
 import jsonschema
 
-from backfire.config import SHIPPED_CONFIG, xdg_path
+from backfire.config import SHIPPED_CONFIG
+from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.judge import judge
 from backfire.server import TOOLS
@@ -30,6 +31,7 @@ DEADLINE_SECONDS = 118
 
 
 def load_cases():
+    """Load and validate the synthetic education cases."""
     cases = [
         json.loads(line)
         for line in (FIXTURES / "education-v1.jsonl")
@@ -42,12 +44,14 @@ def load_cases():
 
 
 def value_at_path(value, path):
+    """Return the value selected by a dotted path."""
     for key in path.split("."):
         value = value[int(key)] if isinstance(value, list) else value[key]
     return value
 
 
 def matches(result, expected):
+    """Return whether the expected paths match a result."""
     try:
         return all(
             value_at_path(result, path) == value
@@ -59,6 +63,7 @@ def matches(result, expected):
 
 @contextmanager
 def temporary_environment():
+    """Use a temporary Backfire config while preserving the credential link."""
     provider = tomllib.loads(SHIPPED_CONFIG.read_text(encoding="utf-8"))[
         "provider"
     ]
@@ -91,6 +96,7 @@ def temporary_environment():
 
 
 async def measure(case, arm, run):
+    """Run one education case and report correctness and error type."""
     correct, error_type = False, None
     deadline = asyncio.get_running_loop().time() + DEADLINE_SECONDS
     try:
@@ -109,7 +115,7 @@ async def measure(case, arm, run):
         error_type = error.error_type
     except TimeoutError:
         error_type = "deadline_exceeded"
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001  # Isolate each measured run.
         error_type = type(error).__name__
     return {
         "id": case["id"],
@@ -122,6 +128,7 @@ async def measure(case, arm, run):
 
 
 async def run_cases(cases, runs):
+    """Run both arms for each case and print per-run and summary JSON."""
     accuracy, differing = {}, set()
     for run in range(1, runs + 1):
         for case in cases:
@@ -154,6 +161,7 @@ async def run_cases(cases, runs):
 
 
 def main(argv=None):
+    """Validate arguments and run the synthetic education measurement."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runs", type=int, default=3)
     arguments = parser.parse_args(argv)
@@ -175,6 +183,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("Education measurement interrupted.", file=sys.stderr)
         sys.exit(130)
-    except Exception:
+    except Exception:  # noqa: BLE001  # Sanitize the final exit message.
         print("Education measurement could not finish.", file=sys.stderr)
         sys.exit(1)
