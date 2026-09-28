@@ -50,8 +50,9 @@ Rules:
   the verbose-broccoli work plugin. A damaged revision is reported to the
   user; repairing it is the user's decision.
 - `raw/` is outside this instance's Git history (see `.gitignore`).
-- Conversation records and exported chats are raw evidence only in the
-  `chat` vault. In every other vault they stay in the user's workspace.
+- Exported conversations are raw evidence only in the `chat` and `work`
+  vaults; in every other vault they stay in the user's workspace. Other
+  conversation records are never raw evidence.
 
 ## Wiki
 
