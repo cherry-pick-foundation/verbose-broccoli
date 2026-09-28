@@ -58,6 +58,15 @@ def test_stale_has_cog_diff_line_and_update_command(workspace, unchanged):
     assert 'deno task doc-regions:update' in problems[0]['message']
 
 
+def test_stale_names_caller_supplied_update_command(workspace, unchanged):
+    root = workspace[0]
+    (root / 'source.txt').write_text('new\n')
+    with unchanged(root.parent):
+        problems = check(*workspace, fix_command='wiki-consistency update')
+    assert problems
+    assert 'Run wiki-consistency update' in problems[0]['message']
+
+
 @pytest.mark.parametrize('text, message', [
     (region().replace('<!-- [[[end]]] -->\n', ''), 'unclosed'),
     ('<!-- [[[end]]] -->\n', 'end'),
