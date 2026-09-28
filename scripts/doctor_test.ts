@@ -112,10 +112,16 @@ Deno.test('doctor: installed identities, versions and root lock work outside the
     assertEquals(report.quarto.version, '1.10.18');
     assertEquals(report.uv.version, '0.11.32');
     assertEquals(report.gitFlow.version, '2.1.0');
+    assertEquals(report.lychee.version, '0.24.2');
     assertEquals(report.gitFlow.config.status, 'PASS');
     assertEquals(report.specKit, {
       project: 'tools/spec-kit',
       python: 'tools/spec-kit/.venv/bin/python',
+      sync: 'PASS',
+    });
+    assertEquals(report.docRegions, {
+      project: 'packages/doc-regions',
+      python: 'packages/doc-regions/.venv/bin/python',
       sync: 'PASS',
     });
     assertEquals(report.runtime.version, Deno.version);
@@ -213,6 +219,16 @@ Deno.test('doctor: git hooks path must match and is recorded', async () => {
 
 Deno.test('doctor: version probes require exact versions, successful exit and bounded duration', async () => {
   await temporary(async root => {
+    const wrongLychee = await fixture(
+      root,
+      'wrong-lychee',
+      "console.log('lychee 0.24.1');",
+    );
+    await assertRejects(
+      () => probeVersion(wrongLychee, 'lychee'),
+      Error,
+      'lychee must report version 0.24.2',
+    );
     const wrong = await fixture(root, 'wrong', "console.log('deno 2.9.5');");
     await assertRejects(() => probeVersion(wrong, 'deno'), Error, '2.9.6');
     const wrongUv = await fixture(
@@ -289,6 +305,21 @@ Deno.test('doctor: a missing or stale Spec Kit environment fails with sync guida
       () => runDoctor({uv: stale}),
       Error,
       'run uv sync --locked --project tools/spec-kit',
+    );
+  });
+});
+
+Deno.test('doctor: a missing or stale doc-regions environment fails with sync guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(
+      root,
+      'uv',
+      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'packages/doc-regions') Deno.exit(1);",
+    );
+    await assertRejects(
+      () => runDoctor({uv: stale}),
+      Error,
+      'run uv sync --locked --project packages/doc-regions',
     );
   });
 });
