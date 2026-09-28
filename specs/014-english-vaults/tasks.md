@@ -54,6 +54,10 @@ repository or into Orca or Linear messages.
   review with a fresh Codex reviewer, resolve findings, commit the review
   record and run `git flow feature finish english-vaults` in the `develop`
   worktree (SC-001).
+  - 2026-09-29: A fresh Codex reviewer (`gpt-6-luna`, max effort) reviewed
+    `ec50c25` and found one minor issue: feature 010's page contract lacks
+    the rule. That contract records what feature 010 built, so FR-003 and
+    SC-001 now leave earlier features' Spec Kit records out.
 
 ## Phase 3: After the finish (US2)
 

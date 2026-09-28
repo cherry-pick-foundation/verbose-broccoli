@@ -82,6 +82,8 @@ template, its Git log has one new commit, and the offline `check` passes.
 - **FR-003**: Every other document that describes how vault pages are written
   MUST state the rule briefly: the `wiki-consistency` skill,
   `docs/architecture.md` and the example schema `docs/examples/wiki/AGENTS.md`.
+  Earlier features' Spec Kit records, such as feature 010's page contract,
+  record what those features built and stay as they are.
 - **FR-004**: After the feature is finished into `develop`, the `default`,
   `chat` and `code` vaults MUST get the template's new wording, one vault
   commit each, with the offline `check` passing.
@@ -94,8 +96,8 @@ template, its Git log has one new commit, and the offline `check` passes.
 ### Measurable Outcomes
 
 - **SC-001**: The four documents of FR-001 to FR-003 state the rule, and the
-  merge review finds no other document that describes page writing without
-  it.
+  merge review finds no other document outside earlier features' Spec Kit
+  records that describes page writing without it.
 - **SC-002**: Three vault commits exist, each vault's `AGENTS.md` is
   identical to the template, and `check` exits 0 in each vault.
 - **SC-003**: `deno task verify` passes on the feature branch.
