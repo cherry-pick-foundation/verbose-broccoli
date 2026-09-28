@@ -1,21 +1,23 @@
 <!--
 Sync Impact Report
-- Version: 1.0.0 -> 1.0.1. Two `docs` commits on parallel feature branches
-  each raised 1.0.0 to 1.0.1, and merge commits do not change the version.
-- Inputs: Linear CHE-17 (the user approved the wording on 2026-09-28):
-  `git rebase -i` fixup and squash skip the commit-message hook, so the
-  feature finish hook now checks each non-merge feature commit that changes
-  this constitution. The user's 2026-09-28 choice, for feature 010 (Wiki
-  consistency), that each Wiki instance's `index.md` is one mechanical region
-  generated from page metadata.
-- Modified principles: VI, point 2: `index.md` is regenerated from page
-  metadata instead of maintained by the LLM.
-- Modified sections: Development Workflow and Quality Gates (what the feature
-  finish hook refuses) and Governance (how the version rule is enforced, the
-  decision records and the version).
+- Version: 1.0.1 -> 2.0.0 (breaking `feat` commit; the user approved it on
+  2026-09-28). Feature 010's parallel `docs` amendment, which raised 1.0.0 to
+  1.0.1 on its branch, merged in without a further change, since merge commits
+  do not change the version.
+- Inputs: Linear CHE-19, feature 012 (`specs/012-wiki-vaults/`): the Wiki
+  storage folder `wikis/` becomes `vaults/`, with four vaults. Linear CHE-8,
+  feature 010 (Wiki consistency): the user's 2026-09-28 choice that each
+  vault's `index.md` is one mechanical region generated from page metadata.
+- Modified principles: VI (the vault folder and the four vaults; the chat
+  vault admits exported conversations; point 2: `index.md` is regenerated from
+  page metadata instead of maintained by the LLM) and IX (the chat package's
+  persistent state is its vault).
+- Modified sections: Governance (the 2026-09-28 decisions and the version).
 - Added sections: none. Removed sections: none.
-- Follow-up (outside this document): feature 010 adds the page metadata, the
-  `index.md` generator and the Wiki schema template's text for them.
+- Follow-up (outside this document): after the merge into `develop`, the live
+  instance moves from `wikis/default/` to `vaults/work/` (feature 012's
+  research R4); feature 010 adds the page metadata, the `index.md` generator
+  and the Wiki schema template's text for them.
 - Deferred placeholders: none.
 -->
 
@@ -59,15 +61,16 @@ compatibility. Record every unperformed check accurately.
 
 ### VI. Wiki Layers and Storage Ownership
 
-For the user-selected Wiki layout, each instance under the application's data
-root MUST contain three distinct layers:
+For the user-selected Wiki layout, each Wiki instance, called a vault, MUST
+contain three distinct layers:
 
 1. **Raw** is immutable original evidence under `raw/`, organized as `web/`,
    `files/`, `notes/`, and `assets/`. LLM maintenance MUST NOT edit or delete
    admitted raw bytes. Changed evidence creates a new source revision while
    earlier revisions remain resolvable and recoverable. Conversation records and
-   exported chats are not Raw evidence; they stay outside the Wiki instance in
-   the user's workspace.
+   exported chats are not Raw evidence; they stay outside the vault in the
+   user's workspace. The `chat` vault is the exception: exported conversations
+   are its Raw evidence.
 2. **Wiki** is durable maintained Markdown knowledge under `wiki/`. The LLM
    maintains pages, cross-references, `overview.md`, and the append-only
    `log.md`; `index.md` is regenerated from page metadata. Source summaries
@@ -82,8 +85,10 @@ root MUST contain three distinct layers:
 Use the `verbose-broccoli` namespace under XDG configuration, data, state,
 and cache roots. The defaults are `~/.config/`, `~/.local/share/`,
 `~/.local/state/`, and `~/.cache/` respectively. Configuration owns `config.toml`
-and profile files; durable data owns `registry.json` and `wikis/default/` plus
-other selected Wikis. Restart/recovery state belongs in state storage. Only
+and profile files; durable data owns `registry.json` and `vaults/`, which holds
+one folder per vault: `default` for knowledge that belongs to no single plugin,
+and `chat`, `code` and `work` for the plugins of those names. Restart/recovery
+state belongs in state storage. Only
 rebuildable indexes, embeddings, chunks, parsed data, temporary downloads and
 temporary work belong in cache. Cache cleanup MUST preserve raw evidence,
 adopted Wiki knowledge, instructions, configuration, registry and operational
@@ -138,8 +143,8 @@ Each plugin is its own Agent Plugins 1.0 package root and independently
 selectable. Skills and MCP components are added only for selected capabilities.
 A package joins a toolchain workspace, such as Deno's, only when it has
 executable code for that toolchain.
-The chat package has no skills yet and no Deno/MCP declarations, scripts or
-persistent state.
+The chat package has no skills yet and no Deno/MCP declarations or scripts;
+its persistent state is the `chat` vault (principle VI).
 Code and Work run in Codex CLI and
 Claude Code, and no plugin depends on the desktop hub that launches them.
 Do not require one repository-wide runtime, server or composition entry point.
@@ -243,8 +248,14 @@ feature finish requires and held for `main` as a step before the hand-finished
 merge, and made the amending commit's type decide the constitution's version
 bump. On 2026-09-28 the user removed every rule whose criteria were vague or
 that made no functional sense, including principle VIII, instead of clarifying
-them. Also that day the user chose to regenerate each Wiki instance's
-`index.md` from page metadata instead of having the LLM maintain it. The user's
-exact AGENTS.md is maintained as supplied, not regenerated by setup tasks.
+them. Also on 2026-09-28 the user chose to regenerate each Wiki instance's
+`index.md` from page metadata instead of having the LLM maintain it. The same
+day the user renamed the Wiki storage folder `wikis/` to `vaults/` and kept
+four vaults: the existing instance, which held education work, became `work`;
+`default` holds knowledge that belongs to no single plugin; the `chat` vault
+admits exported conversations as Raw evidence and is the chat package's
+persistent state; and the `code` vault holds coding knowledge for work in any
+project. The user's exact AGENTS.md is maintained as supplied, not regenerated
+by setup tasks.
 
-**Version**: 1.0.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-28
+**Version**: 2.0.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-28

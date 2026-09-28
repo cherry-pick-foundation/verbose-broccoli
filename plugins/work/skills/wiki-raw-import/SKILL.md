@@ -14,8 +14,11 @@ layout.
 
 `CONFIG`, `DATA`, `STATE` and `CACHE` below are the `verbose-broccoli` folders
 under the XDG configuration, data, state and cache roots (by default
-`~/.config`, `~/.local/share`, `~/.local/state` and `~/.cache`). The default
-instance is `DATA/wikis/default/`.
+`~/.config`, `~/.local/share`, `~/.local/state` and `~/.cache`). Each Wiki
+instance, called a vault, is `DATA/vaults/<vault>/`. The user keeps four:
+`work` for education work, the default here; `default` for knowledge that
+belongs to no single plugin; `chat` for exported conversations; and `code`
+for coding knowledge from any project.
 
 Run the script from this skill's folder:
 
@@ -25,7 +28,8 @@ uv run --locked --script scripts/raw_import.py admit --selection <file>
 uv run --locked --script scripts/raw_import.py verify
 ```
 
-Add `--wiki <name>` for an instance other than `default`. Exit 0 means every
+Add `--wiki <vault>` for a vault other than `work`; use the vault the user
+names, and ask when it is unclear. Exit 0 means every
 item succeeded, 1 means at least one item was refused or failed (or `verify`
 found an invalid revision), and 2 means an error stopped the command. For an
 invalid argument, selection or configuration, a missing instance or a held
@@ -55,11 +59,12 @@ lock, nothing was written.
 4. **Build the file list.** For an admitted location, list the exact regular
    files to copy, with each file's raw kind: `files` (default), `notes` (the
    user's own text notes), `assets` (images and other media) or `web`
-   (captured web pages). Expand folders into files. Point out files whose
+   (captured web pages). Exported conversations for the `chat` vault are
+   `files`. Expand folders into files. Point out files whose
    names or locations suggest operational or private data. Show the list and
    its total size to the user and wait for approval.
 5. **Write the selection.** Write the approved list as JSON Lines to
-   `STATE/wikis/<wiki>/selections/<name>.jsonl`, one
+   `STATE/vaults/<vault>/selections/<name>.jsonl`, one
    `{"path": "/absolute/path", "kind": "files"}` per line.
 6. **Import.** Run `init` (it changes nothing that exists), then `admit
    --selection <file>`. Keep the JSON Lines report outside every repository.
@@ -88,7 +93,7 @@ lock, nothing was written.
 - Keep file names, file contents and private paths out of code repositories,
   commits and Orca or Linear messages. Records there give locations,
   decisions and counts only.
-- Conversation records, exported chats and program-owned data (for example a
-  sync client's journals or a reference manager's database) are not raw
-  evidence. Copy an item from a program-owned folder only when the user
-  selects it.
+- Conversation records and exported chats are raw evidence only in the
+  `chat` vault. Program-owned data (for example a sync client's journals or a
+  reference manager's database) is not raw evidence. Copy an item from a
+  program-owned folder only when the user selects it.

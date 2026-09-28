@@ -9,7 +9,7 @@ the import. `DATA`, `STATE`, `CACHE` and `CONFIG` stand for
 ## Wiki instance
 
 ```text
-DATA/wikis/default/
+DATA/vaults/default/
 ├── AGENTS.md          # schema: raw admission and provenance rules only
 ├── .gitignore         # ignores raw/
 ├── .git/              # history of AGENTS.md and wiki/
@@ -31,7 +31,7 @@ created.
 ## Source and source revision
 
 ```text
-DATA/wikis/default/raw/<kind>/<source-id>/<revision>/
+DATA/vaults/default/raw/<kind>/<source-id>/<revision>/
 ├── bagit.txt
 ├── bag-info.txt
 ├── manifest-sha256.txt
@@ -74,7 +74,7 @@ revision rN, new digest  ──admit──▶ revision rN+1 added; rN kept
 ## Selection
 
 A JSON Lines file outside the repository, written by the agent from the
-user-approved list, at `STATE/wikis/default/selections/<name>.jsonl`. It is
+user-approved list, at `STATE/vaults/default/selections/<name>.jsonl`. It is
 kept until the import of that list passes `verify`, then removed; the bags
 hold the lasting provenance. One object per line:
 
@@ -105,7 +105,7 @@ command with exit 2 before anything is written.
 
 | Item | Location | Lifetime |
 | --- | --- | --- |
-| lock | `STATE/wikis/default/raw-import.lock` | kept; held with `flock` during a run |
+| lock | `STATE/vaults/default/raw-import.lock` | kept; held with `flock` during a run |
 | staging | `CACHE/raw-import/<wiki>/<run-id>/` | removed at the end of the run and at the start of the next run of the same Wiki, only while that Wiki's lock is held |
 
 ## Import report

@@ -164,7 +164,7 @@ time.
   duplicate revision; the staging root is empty after every run.
   Unperformed check (2026-09-28): a full disk is not simulated.
 - [x] T013 [US4] Implement in SCRIPT the `flock` on
-  `STATE/wikis/<name>/raw-import.lock`, staging cleanup at start and end,
+  `STATE/vaults/<name>/raw-import.lock`, staging cleanup at start and end,
   per-item error handling that continues, and the summary line, until T012
   passes.
 
@@ -204,7 +204,7 @@ originals unchanged (spec US6).
   a location read-only (sizes, counts, types; never open files under excluded
   or private folders), present it with its first judgment, record the user's
   decision, build and show the file list, write the selection under
-  `STATE/wikis/default/selections/`, run `init`, `admit` and `verify`, append
+  `STATE/vaults/default/selections/`, run `init`, `admit` and `verify`, append
   one `wiki/log.md` entry per import and commit the instance, remove the
   selection after `verify` passes, and keep file names out of repositories
   and messages.

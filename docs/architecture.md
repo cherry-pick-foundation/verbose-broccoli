@@ -19,7 +19,8 @@ The `work` package contains the `quarto-authoring`, `session-migrate`,
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
-has no skills, Deno configuration, MCP declaration, scripts or persistent state.
+has no skills, Deno configuration, MCP declaration or scripts, and its
+persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
 
@@ -140,15 +141,30 @@ live data or other external operational or source roots.
 
 ### Wiki storage
 
-The default Wiki instance lives at
-`$XDG_DATA_HOME/verbose-broccoli/wikis/default/` (by default under
-`~/.local/share`), outside the repository. It holds the schema `AGENTS.md`,
-`raw/{web,files,notes,assets}/` and `wiki/`, and its own Git repository
-versions the schema and `wiki/` but ignores `raw/`. The work plugin's
-`wiki-raw-import` skill creates the instance and copies documents the user
-confirms into `raw/`. Each copy is one read-only BagIt bag whose
-`bag-info.txt` records the source ID, the original path and modification time,
-and the admission time, and whose manifest holds the SHA-256 digest. The bags
+The Wiki instances, called vaults, live in
+`$XDG_DATA_HOME/verbose-broccoli/vaults/` (by default under
+`~/.local/share`), outside the repository, one folder per vault:
+
+| Vault | Holds |
+| --- | --- |
+| `default` | Knowledge that belongs to no single plugin |
+| `chat` | Exported conversations as raw evidence and the pages written from them; the chat package's persistent state |
+| `code` | Coding knowledge for work in any project: libraries, patterns, decisions. It is not this repository's development memory, which stays in the Spec Kit records, code and Git |
+| `work` | Education work: the raw imports and the per-student pages |
+
+Each vault holds the schema `AGENTS.md`, `raw/{web,files,notes,assets}/` and
+`wiki/`, and its own Git repository versions the schema and `wiki/` but
+ignores `raw/`. A plugin's Wiki skills use the vault named after the plugin
+unless the user selects another; `default` is always selected by name. Vaults
+are the user's shared Wiki storage, not a plugin's private store, so any
+plugin's Wiki tool may write a vault the user selects.
+
+The work plugin's `wiki-raw-import` skill creates a vault and copies documents
+the user confirms into its `raw/`, in `work` unless another vault is named.
+Only the `chat` vault admits exported conversations. Each copy is one
+read-only BagIt bag whose `bag-info.txt` records the source ID, the original
+path and modification time, and the admission time, and whose manifest holds
+the SHA-256 digest. The bags
 are the only record of sources and revisions. The user's exclusions live in
 `$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
 one-run lock live under the cache and state roots.
@@ -238,7 +254,7 @@ a toolchain workspace only when it has executable code for that toolchain, so
 the Python package `packages/backfire/` stays outside the root Deno workspace.
 Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
 another plugin's private files or open another plugin's private operational
-store.
+store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
 A shipped plugin must include its required package files or resolve explicitly
 pinned runtime dependencies. Do not distribute `skills/` or package components
