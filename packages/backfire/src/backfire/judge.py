@@ -94,21 +94,35 @@ async def judge(
     started = loop.time()
     call = ProviderCall(deadline)
     token = provider_call.set(call)
-    calls_in_flight = sorted(record_file.calls_in_flight) if record_file is not None else []
+    calls_in_flight = (
+        sorted(record_file.calls_in_flight) if record_file is not None else []
+    )
     profile, result = {}, None
     outcome = "cancelled"
     try:
         prepared = validate_request(questions)
         provider_state, provider_questions, restore = state, questions, None
-        enabled = config.load_pseudonymize() if pseudonymize is None else pseudonymize
+        enabled = (
+            config.load_pseudonymize() if pseudonymize is None else pseudonymize
+        )
         if enabled:
             try:
-                from backfire_education.pseudonymize import pseudonymize as replace
+                from backfire_education.pseudonymize import (
+                    pseudonymize as replace,
+                )
             except ImportError:
-                raise JudgmentError("backend_not_configured", str(config.SHIPPED_CONFIG)) from None
+                raise JudgmentError(
+                    "backend_not_configured", str(config.SHIPPED_CONFIG)
+                ) from None
             async with asyncio.timeout_at(deadline):
-                provider_state, provider_questions, restore = await asyncio.to_thread(
-                    replace, state, prepared,
+                (
+                    provider_state,
+                    provider_questions,
+                    restore,
+                ) = await asyncio.to_thread(
+                    replace,
+                    state,
+                    prepared,
                 )
         profile = load_profile()
         credential = load_credential(profile)
@@ -117,16 +131,26 @@ async def judge(
             if remaining <= 0:
                 raise JudgmentError("provider_unavailable")
             async with AsyncSystemOneAdapterClient(
-                model=provider, structured_outputs=False, llm_answer_mode="probabilities",
-                normalize_probabilities=False, n_retry_malformed_structure=0,
+                model=provider,
+                structured_outputs=False,
+                llm_answer_mode="probabilities",
+                normalize_probabilities=False,
+                n_retry_malformed_structure=0,
                 retry=retry_policy(profile, remaining_seconds=remaining),
             ) as client:
-                response = await client.system_one(provider_state, provider_questions)
+                response = await client.system_one(
+                    provider_state, provider_questions
+                )
                 validate_answers(response.answers)
-                answers = {key: answer.model_dump(mode="json") for key, answer in response.answers.items()}
+                answers = {
+                    key: answer.model_dump(mode="json")
+                    for key, answer in response.answers.items()
+                }
                 result = {
                     "model": call.model,
-                    "answers": restore(answers) if restore is not None else answers,
+                    "answers": restore(answers)
+                    if restore is not None
+                    else answers,
                     "usage": call.usage,
                     "metadata": call.metadata,
                 }
@@ -135,8 +159,11 @@ async def judge(
     except asyncio.CancelledError:
         raise
     except Exception as error:
-        failure = (JudgmentError("provider_unavailable") if isinstance(error, TimeoutError)
-                   else map_error(error, profile))
+        failure = (
+            JudgmentError("provider_unavailable")
+            if isinstance(error, TimeoutError)
+            else map_error(error, profile)
+        )
         outcome = failure.error_type
         raise failure from None
     finally:
@@ -144,8 +171,12 @@ async def judge(
         provider_call.reset(token)
         if record_file is not None:
             record_file.write_judgment(
-                state=state, questions=questions, requested_model=profile.get("model"),
-                calls_in_flight=calls_in_flight, outcome=outcome,
-                result=result or {"model": call.model, "usage": call.usage or {}},
+                state=state,
+                questions=questions,
+                requested_model=profile.get("model"),
+                calls_in_flight=calls_in_flight,
+                outcome=outcome,
+                result=result
+                or {"model": call.model, "usage": call.usage or {}},
                 metadata=call.metadata,
             )

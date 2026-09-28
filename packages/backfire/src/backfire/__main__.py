@@ -17,7 +17,11 @@ def main() -> None:
             from pathlib import Path
             from runpy import run_path
 
-            helper = Path(__file__).resolve().parents[2] / "tests" / "scripted_judge.py"
+            helper = (
+                Path(__file__).resolve().parents[2]
+                / "tests"
+                / "scripted_judge.py"
+            )
             judge = run_path(str(helper))["ScriptedJudge"].from_file(script)
         asyncio.run(serve(judge))
         return

@@ -14,20 +14,20 @@ from wiki_consistency import evidence
 
 
 def _docx_bytes(path):
-    content_types = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    content_types = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>'''
-    relationships = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+</Types>"""
+    relationships = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>'''
-    document = b'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+</Relationships>"""
+    document = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body><w:p><w:r><w:t>Synthetic DOCX evidence</w:t></w:r></w:p><w:sectPr/></w:body>
-</w:document>'''
+</w:document>"""
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("[Content_Types].xml", content_types)
         archive.writestr("_rels/.rels", relationships)
@@ -49,7 +49,9 @@ def _pdf_bytes(stream):
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] "
         b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n"
+        b"<< /Length "
+        + str(len(stream)).encode()
+        + b" >>\nstream\n"
         + stream
         + b"\nendstream",
     ]
@@ -88,7 +90,12 @@ def _revisions(*items):
 
 
 def _evidence_root(cache, wiki_id):
-    return cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
+    return (
+        cache
+        / "wiki-evidence"
+        / wiki_id
+        / f"markitdown-{evidence.CONVERTER_VERSION}"
+    )
 
 
 def _chatgpt_conversation(number=1):
@@ -117,7 +124,9 @@ def _chatgpt_conversation(number=1):
                     "author": {"role": "assistant"},
                     "content": {
                         "content_type": "text",
-                        "parts": [f"합성 답변 {number}: It is a place to read."],
+                        "parts": [
+                            f"합성 답변 {number}: It is a place to read."
+                        ],
                     },
                 },
                 "parent": user_id,
@@ -129,7 +138,10 @@ def _chatgpt_conversation(number=1):
 
 
 def _chatgpt_export_bytes(*, ensure_ascii=True, numbered=False):
-    conversations = [_chatgpt_conversation(number) for number in ([1, 2] if numbered else [1])]
+    conversations = [
+        _chatgpt_conversation(number)
+        for number in ([1, 2] if numbered else [1])
+    ]
     output = io.BytesIO()
     with zipfile.ZipFile(output, "w") as archive:
         if numbered:
@@ -143,7 +155,9 @@ def _chatgpt_export_bytes(*, ensure_ascii=True, numbered=False):
                 "conversations.json",
                 json.dumps(conversations, ensure_ascii=ensure_ascii),
             )
-        archive.writestr("chat.html", "<html><body>Synthetic export</body></html>")
+        archive.writestr(
+            "chat.html", "<html><body>Synthetic export</body></html>"
+        )
         archive.writestr("user.json", '{"display_name":"Synthetic user"}')
     return output.getvalue()
 
@@ -172,7 +186,9 @@ def test_convert_supported_files_and_pass_through(tmp_path, monkeypatch):
             _pdf_bytes(b"BT /F1 12 Tf 72 72 Td (Synthetic PDF evidence) Tj ET"),
         ),
         _revision(instance, "text", "r1", "source.txt", b"Plain text evidence"),
-        _revision(instance, "markdown", "r1", "source.md", b"# Markdown evidence\n"),
+        _revision(
+            instance, "markdown", "r1", "source.md", b"# Markdown evidence\n"
+        ),
     ]
     monkeypatch.setattr(socket, "socket", _no_socket)
 
@@ -181,12 +197,29 @@ def test_convert_supported_files_and_pass_through(tmp_path, monkeypatch):
     assert result["converted"] == 5
     assert result["present"] == 0
     assert result["unreadable"] == []
-    assert "Synthetic DOCX evidence" in evidence.read(cache, "wiki-a", "docx", "r1")["text"]
-    assert "Synthetic PPTX evidence" in evidence.read(cache, "wiki-a", "pptx", "r1")["text"]
-    assert "Synthetic PDF evidence" in evidence.read(cache, "wiki-a", "pdf", "r1")["text"]
-    assert evidence.read(cache, "wiki-a", "text", "r1")["text"] == "Plain text evidence"
-    assert evidence.read(cache, "wiki-a", "markdown", "r1")["text"] == "# Markdown evidence\n"
-    assert {path.relative_to(cache).parts[0] for path in cache.rglob("*")} == {"wiki-evidence"}
+    assert (
+        "Synthetic DOCX evidence"
+        in evidence.read(cache, "wiki-a", "docx", "r1")["text"]
+    )
+    assert (
+        "Synthetic PPTX evidence"
+        in evidence.read(cache, "wiki-a", "pptx", "r1")["text"]
+    )
+    assert (
+        "Synthetic PDF evidence"
+        in evidence.read(cache, "wiki-a", "pdf", "r1")["text"]
+    )
+    assert (
+        evidence.read(cache, "wiki-a", "text", "r1")["text"]
+        == "Plain text evidence"
+    )
+    assert (
+        evidence.read(cache, "wiki-a", "markdown", "r1")["text"]
+        == "# Markdown evidence\n"
+    )
+    assert {path.relative_to(cache).parts[0] for path in cache.rglob("*")} == {
+        "wiki-evidence"
+    }
 
 
 def test_unreadable_revisions_record_the_reason(tmp_path):
@@ -197,7 +230,13 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
     with zipfile.ZipFile(damaged, "w") as archive:
         archive.writestr("word/document.xml", "<broken>")
     items = [
-        _revision(instance, "hwp", "r1", "unsupported.hwp", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"),
+        _revision(
+            instance,
+            "hwp",
+            "r1",
+            "unsupported.hwp",
+            b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
+        ),
         _revision(
             instance,
             "image-pdf",
@@ -205,7 +244,9 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
             "image.pdf",
             _pdf_bytes(b"q 0 0 1 rg 72 72 100 100 re f Q"),
         ),
-        _revision(instance, "damaged", "r1", "damaged.docx", damaged.read_bytes()),
+        _revision(
+            instance, "damaged", "r1", "damaged.docx", damaged.read_bytes()
+        ),
     ]
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(*items))
@@ -217,11 +258,15 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
         "damaged": "conversion_failed",
     }
     for source_id, reason in reasons.items():
-        mark = _evidence_root(cache, "wiki-a") / source_id / "r1.unreadable.json"
+        mark = (
+            _evidence_root(cache, "wiki-a") / source_id / "r1.unreadable.json"
+        )
         stored = json.loads(mark.read_text())
         assert stored["reason"] == reason
         assert isinstance(stored["detail"], str)
-        assert evidence.read(cache, "wiki-a", source_id, "r1") == {"unreadable": reason}
+        assert evidence.read(cache, "wiki-a", source_id, "r1") == {
+            "unreadable": reason
+        }
 
 
 def test_convert_never_rewrites_and_reads_unconverted_as_missing(tmp_path):
@@ -231,7 +276,9 @@ def test_convert_never_rewrites_and_reads_unconverted_as_missing(tmp_path):
     item = _revision(instance, "source", "r1", "source.txt", b"first content")
     revisions = _revisions(item)
 
-    assert evidence.convert(instance, "wiki-a", cache, revisions)["converted"] == 1
+    assert (
+        evidence.convert(instance, "wiki-a", cache, revisions)["converted"] == 1
+    )
     target = _evidence_root(cache, "wiki-a") / "source" / "r1.md"
     original = target.read_bytes()
     item_path = instance / item["path"] / "data" / "source.txt"
@@ -256,7 +303,9 @@ def test_budget_is_checked_before_each_write(tmp_path):
     ]
 
     with pytest.raises(ValueError, match="wiki-evidence.*budget"):
-        evidence.convert(instance, "wiki-a", cache, _revisions(*items), budget_bytes=7)
+        evidence.convert(
+            instance, "wiki-a", cache, _revisions(*items), budget_bytes=7
+        )
 
     assert (_evidence_root(cache, "wiki-a") / "a" / "r1.md").exists()
     assert not (_evidence_root(cache, "wiki-a") / "b" / "r1.md").exists()
@@ -264,7 +313,9 @@ def test_budget_is_checked_before_each_write(tmp_path):
 
 
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
-def test_interrupted_write_cleans_temporary_files(tmp_path, monkeypatch, signum):
+def test_interrupted_write_cleans_temporary_files(
+    tmp_path, monkeypatch, signum
+):
     instance = tmp_path / "instance"
     cache = tmp_path / "cache"
     instance.mkdir()
@@ -317,7 +368,9 @@ def test_chatgpt_export_unescapes_korean_and_english_messages(tmp_path):
     payload = _chatgpt_export_bytes(ensure_ascii=True)
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         assert b"\\u" in archive.read("conversations.json")
-        assert {"chat.html", "user.json", "conversations.json"} <= set(archive.namelist())
+        assert {"chat.html", "user.json", "conversations.json"} <= set(
+            archive.namelist()
+        )
     item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
@@ -352,7 +405,9 @@ def test_chatgpt_export_with_numbered_conversation_json_files(tmp_path):
     payload = _chatgpt_export_bytes(ensure_ascii=True, numbered=True)
     with zipfile.ZipFile(io.BytesIO(payload)) as archive:
         assert "conversations.json" not in archive.namelist()
-        assert {"conversation_1.json", "conversation_2.json"} <= set(archive.namelist())
+        assert {"conversation_1.json", "conversation_2.json"} <= set(
+            archive.namelist()
+        )
     item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
@@ -368,7 +423,9 @@ def test_jsonl_unescapes_records_and_keeps_blank_lines(tmp_path):
     instance = tmp_path / "instance"
     cache = tmp_path / "cache"
     instance.mkdir()
-    payload = b'{"text":"\\ud55c\\uad6d Alpha"}\n\n{"text":"\\uc601\\uc5b4 Bravo"}\n'
+    payload = (
+        b'{"text":"\\ud55c\\uad6d Alpha"}\n\n{"text":"\\uc601\\uc5b4 Bravo"}\n'
+    )
     item = _revision(instance, "jsonl", "r1", "source.jsonl", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
@@ -390,7 +447,10 @@ def test_invalid_json_returns_plain_text_converter_output(tmp_path):
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
 
     assert result["unreadable"] == []
-    assert evidence.read(cache, "wiki-a", "invalid-json", "r1")["text"] == plain_text
+    assert (
+        evidence.read(cache, "wiki-a", "invalid-json", "r1")["text"]
+        == plain_text
+    )
 
 
 def test_evidence_cache_path_uses_a_local_converter_revision(tmp_path):

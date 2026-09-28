@@ -4,7 +4,9 @@ from pathlib import Path
 from test_prepare import _prepare, _ready
 
 
-def test_prepare_requests_exclude_configuration_state_and_credentials(tmp_path, monkeypatch):
+def test_prepare_requests_exclude_configuration_state_and_credentials(
+    tmp_path, monkeypatch
+):
     instance, cache, env = _ready(tmp_path)
     marker = "SYNTHETIC-PRIVATE-MARKER-6f6c"
     roots = {

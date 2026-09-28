@@ -42,28 +42,50 @@ def test_replaces_nested_state_and_rebuilds_each_question_type(roster):
             instructions={"text": "라온이가 기록을 읽었다."},
             criteria={"가라온": "학생", "나하늘": "학생"},
         ),
-        "다누리 확인": Noul(criteria={"true": "다누리가 확인", "false": "확인되지 않음"}),
+        "다누리 확인": Noul(
+            criteria={"true": "다누리가 확인", "false": "확인되지 않음"}
+        ),
         "하늘 점수": Score(criteria=["가라온의 진전", "나하늘의 연습"]),
     }
     masked_state, masked_questions, _ = pseudonymize(state, questions)
 
     assert "가라온" not in json.dumps(masked_state, ensure_ascii=False)
-    assert "라온이" not in json.dumps(masked_questions, ensure_ascii=False, default=str)
+    assert "라온이" not in json.dumps(
+        masked_questions, ensure_ascii=False, default=str
+    )
     assert "다누리" not in json.dumps(masked_state, ensure_ascii=False)
     assert "가상별학교" not in json.dumps(masked_state, ensure_ascii=False)
-    assert "날짜 2026-09-28, 범위 20-24, 26, 29-37번, 점수 1234567890." == masked_state["other"]
-    assert set(type(item) for item in masked_questions.values()) == {Choice, Noul, Score}
+    assert (
+        "날짜 2026-09-28, 범위 20-24, 26, 29-37번, 점수 1234567890."
+        == masked_state["other"]
+    )
+    assert set(type(item) for item in masked_questions.values()) == {
+        Choice,
+        Noul,
+        Score,
+    }
     assert len(masked_questions) == len(questions)
     assert "학생" in masked_state["summary"]
     assert "학교" in masked_state["nested"][0]["school"]
 
 
-def test_given_name_particles_shared_given_name_and_longest_school_match(roster):
-    state = "가라온은 라온이가 왔고, 하늘이는 나하늘과 다하늘을 봤다. 가상별학교."
+def test_given_name_particles_shared_given_name_and_longest_school_match(
+    roster,
+):
+    state = (
+        "가라온은 라온이가 왔고, 하늘이는 나하늘과 다하늘을 봤다. 가상별학교."
+    )
     masked, _, _ = pseudonymize(state, {})
-    full, given = masked.split("은 ", 1)[0], masked.split("은 ", 1)[1].split("이가", 1)[0]
+    full, given = (
+        masked.split("은 ", 1)[0],
+        masked.split("은 ", 1)[1].split("이가", 1)[0],
+    )
     assert full == given
-    assert "나하늘" not in masked and "다하늘" not in masked and "하늘이" not in masked
+    assert (
+        "나하늘" not in masked
+        and "다하늘" not in masked
+        and "하늘이" not in masked
+    )
     assert "가상별학교" not in masked
     assert masked.endswith("학교01.")
     # The shared given name has its own assignment, distinct from both students.
@@ -78,7 +100,10 @@ def test_phone_email_normalization_and_pseudonym_like_text(roster):
         "and synthetic.one+2@example.test; keep 학생10명."
     )
     masked, _, _ = pseudonymize(source, {})
-    phone_a, phone_b = masked.split(" and ", 1)[0], masked.split(" and ", 1)[1].split(";", 1)[0]
+    phone_a, phone_b = (
+        masked.split(" and ", 1)[0],
+        masked.split(" and ", 1)[1].split(";", 1)[0],
+    )
     assert phone_a == phone_b
     assert "+1 202-555-0123" not in masked and "+12025550123" not in masked
     assert "Synthetic.One+2@Example.test" not in masked
@@ -102,7 +127,13 @@ def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
 
 
 def test_korean_phone_formats_and_non_phone_numbers(roster):
-    phones = ("010-1234-5678", "01012345678", "010 1234 5678", "+82 10-1234-5678", "02-123-4567")
+    phones = (
+        "010-1234-5678",
+        "01012345678",
+        "010 1234 5678",
+        "+82 10-1234-5678",
+        "02-123-4567",
+    )
     masked, _, _ = pseudonymize(" | ".join(phones), {})
     pseudonyms = masked.split(" | ")
     assert len(set(pseudonyms[:4])) == 1
@@ -120,33 +151,54 @@ def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
     }
     _, masked, restore = pseudonymize({}, questions)
     choice_key = next(key for key in masked if key.startswith("학생"))
-    score_key = next(key for key in masked if key not in {choice_key} and key.startswith("학생"))
+    score_key = next(
+        key
+        for key in masked
+        if key not in {choice_key} and key.startswith("학생")
+    )
     noul_key = next(key for key in masked if key not in {choice_key, score_key})
     choice = masked[choice_key]
     labels = list(choice.criteria)
     score_levels = masked[score_key].criteria
     answers = {
-        choice_key: {"type": "choice", "choice": labels[0], "confidence": 0.9,
-                     "probabilities": {labels[0]: 0.8, labels[1]: 0.2}},
-        score_key: {"type": "score", "score": 0.5, "confidence": 0.9,
-                    "probabilities": {"0": 0.6, "1": 0.4},
-                    "legend": {"0": score_levels[0], "1": score_levels[1]}},
+        choice_key: {
+            "type": "choice",
+            "choice": labels[0],
+            "confidence": 0.9,
+            "probabilities": {labels[0]: 0.8, labels[1]: 0.2},
+        },
+        score_key: {
+            "type": "score",
+            "score": 0.5,
+            "confidence": 0.9,
+            "probabilities": {"0": 0.6, "1": 0.4},
+            "legend": {"0": score_levels[0], "1": score_levels[1]},
+        },
         noul_key: {"type": "noul", "noul": 0.8},
     }
     result = restore(answers)
     assert set(result) == set(questions)
     assert result["가라온의 선택"]["choice"] == "가라온"
-    assert result["가라온의 선택"]["probabilities"] == {"가라온": 0.8, "나하늘": 0.2}
-    assert result["다하늘의 점수"]["legend"] == {"0": "가라온", "1": "나하늘의 진전"}
+    assert result["가라온의 선택"]["probabilities"] == {
+        "가라온": 0.8,
+        "나하늘": 0.2,
+    }
+    assert result["다하늘의 점수"]["legend"] == {
+        "0": "가라온",
+        "1": "나하늘의 진전",
+    }
     assert result["다누리의 확인"] == answers[noul_key]
     assert "학생" not in json.dumps(result, ensure_ascii=False)
 
 
-@pytest.mark.parametrize("questions,state", [
-    ({}, {"가라온": 1, "라온": 2}),
-    ({"가라온": Noul(), "라온": Noul()}, {}),
-    ({"q": Choice(criteria={"가라온": None, "라온": None})}, {}),
-])
+@pytest.mark.parametrize(
+    "questions,state",
+    [
+        ({}, {"가라온": 1, "라온": 2}),
+        ({"가라온": Noul(), "라온": Noul()}, {}),
+        ({"q": Choice(criteria={"가라온": None, "라온": None})}, {}),
+    ],
+)
 def test_key_and_option_collisions_fail_without_names(roster, questions, state):
     with pytest.raises(JudgmentError) as caught:
         pseudonymize(state, questions)

@@ -4,10 +4,17 @@ import asyncio
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 
-from system_one_adapter.providers.base import record_request, render_messages, translating
+from system_one_adapter.providers.base import (
+    record_request,
+    render_messages,
+    translating,
+)
 from system_one_adapter.providers.openai import (
-    AsyncOpenAIProvider, _response_format, _responses_request_kwargs,
-    _responses_result, _result,
+    AsyncOpenAIProvider,
+    _response_format,
+    _responses_request_kwargs,
+    _responses_result,
+    _result,
 )
 from typesafe_sdk import TypeSafeAPIError, TypeSafeError
 
@@ -25,10 +32,14 @@ class ProviderCall:
     deadline: float
     model: str | None = None
     usage: dict[str, int] | None = None
-    metadata: dict = field(default_factory=lambda: {
-        "attempts": 0, "latency_ms": None,
-        "thinking_evidence": None, "reasoning_tokens": None,
-    })
+    metadata: dict = field(
+        default_factory=lambda: {
+            "attempts": 0,
+            "latency_ms": None,
+            "thinking_evidence": None,
+            "reasoning_tokens": None,
+        }
+    )
 
 
 provider_call: ContextVar[ProviderCall] = ContextVar("backfire_provider_call")
@@ -46,7 +57,9 @@ class ProfileProvider(AsyncOpenAIProvider):
     """One SDK attempt; the adapter owns prompting, decoding and retries."""
 
     def __init__(self, profile: dict, api_key: str):
-        super().__init__(profile["model"], base_url=profile["base_url"], api_key=api_key)
+        super().__init__(
+            profile["model"], base_url=profile["base_url"], api_key=api_key
+        )
         self.profile = profile
 
     async def request(self, messages, *, schema, structured):
@@ -55,14 +68,25 @@ class ProfileProvider(AsyncOpenAIProvider):
         if remaining <= 0:
             raise TimeoutError
         if self.api == "responses":
-            kwargs = _responses_request_kwargs(self.model_name, messages, schema, structured=structured)
-            create, read = self._client.responses.with_raw_response.create, _responses_result
+            kwargs = _responses_request_kwargs(
+                self.model_name, messages, schema, structured=structured
+            )
+            create, read = (
+                self._client.responses.with_raw_response.create,
+                _responses_result,
+            )
         else:
             kwargs = {
-                "model": self.model_name, "messages": render_messages(messages),
-                "response_format": _response_format(schema, structured=structured),
+                "model": self.model_name,
+                "messages": render_messages(messages),
+                "response_format": _response_format(
+                    schema, structured=structured
+                ),
             }
-            create, read = self._client.chat.completions.with_raw_response.create, _result
+            create, read = (
+                self._client.chat.completions.with_raw_response.create,
+                _result,
+            )
         # extra_body also carries profile fields the SDK does not know yet.
         kwargs.update(extra_body=self.profile["request"], timeout=remaining)
         record_request(kwargs, api=self.api)
@@ -88,34 +112,56 @@ class ProfileProvider(AsyncOpenAIProvider):
         if isinstance(model, str) and model.strip():
             call.model = model
         usage = response.get("usage")
-        input_key, output_key = (("input_tokens", "output_tokens") if self.api == "responses"
-                                 else ("prompt_tokens", "completion_tokens"))
+        input_key, output_key = (
+            ("input_tokens", "output_tokens")
+            if self.api == "responses"
+            else ("prompt_tokens", "completion_tokens")
+        )
         counts = [_value_at_path(usage, key) for key in (input_key, output_key)]
         if all(type(count) is int and count >= 0 for count in counts):
             call.usage = dict(zip(("input_tokens", "output_tokens"), counts))
 
         if self.api == "responses":
             output = response.get("output")
-            messages = [item for item in output
-                        if isinstance(item, dict) and item.get("type") == "message"] if isinstance(output, list) else []
+            messages = (
+                [
+                    item
+                    for item in output
+                    if isinstance(item, dict) and item.get("type") == "message"
+                ]
+                if isinstance(output, list)
+                else []
+            )
             message = messages[0] if messages else None
-            refusal = any(isinstance(part, dict) and part.get("type") == "refusal"
-                          for item in messages for part in (item.get("content") or []))
+            refusal = any(
+                isinstance(part, dict) and part.get("type") == "refusal"
+                for item in messages
+                for part in (item.get("content") or [])
+            )
         else:
             choices = response.get("choices")
-            choice = choices[0] if isinstance(choices, list) and choices else None
-            message = choice.get("message") if isinstance(choice, dict) else None
-            refusal = message.get("refusal") if isinstance(message, dict) else None
+            choice = (
+                choices[0] if isinstance(choices, list) and choices else None
+            )
+            message = (
+                choice.get("message") if isinstance(choice, dict) else None
+            )
+            refusal = (
+                message.get("refusal") if isinstance(message, dict) else None
+            )
 
         thinking = self.profile["thinking"]
         reasoning = _value_at_path(message, thinking.get("content_path", ""))
         tokens = _value_at_path(usage, thinking.get("token_path", ""))
         if type(tokens) is int and tokens >= 0:
             call.metadata["reasoning_tokens"] = tokens
-        evidence = ((isinstance(reasoning, str) and bool(reasoning.strip()))
-                    or (type(tokens) is int and tokens > 0))
+        evidence = (isinstance(reasoning, str) and bool(reasoning.strip())) or (
+            type(tokens) is int and tokens > 0
+        )
         call.metadata["thinking_evidence"] = evidence
-        if (self.api != "responses" and not isinstance(message, dict)) or call.usage is None:
+        if (
+            self.api != "responses" and not isinstance(message, dict)
+        ) or call.usage is None:
             raise JudgmentError("malformed_output")
         if refusal:
             raise JudgmentError("refused")

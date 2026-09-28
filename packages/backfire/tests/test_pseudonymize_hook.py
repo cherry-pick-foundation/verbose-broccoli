@@ -12,7 +12,7 @@ from backfire.judge import judge
 from backfire.records import RecordFile, digest, read_records
 from fake_provider import FakeProvider, completion
 
-SHIPPED = '''
+SHIPPED = """
 pseudonymize = true
 provider = "hook-test"
 [providers.hook-test]
@@ -21,7 +21,7 @@ base_url = "https://provider.invalid/v1"
 model = "hook-model"
 credential = "HOOK_KEY"
 thinking = { requested = "off" }
-'''
+"""
 STATE = {"record": "synthetic original state"}
 QUESTIONS = {"q": {"type": "noul", "instructions": "synthetic question"}}
 
@@ -48,7 +48,9 @@ def install_stand_in(monkeypatch, replace):
     monkeypatch.setitem(sys.modules, module.__name__, module)
 
 
-def run_judge(state=STATE, questions=QUESTIONS, *, pseudonymize=None, record_file=None):
+def run_judge(
+    state=STATE, questions=QUESTIONS, *, pseudonymize=None, record_file=None
+):
     async def run():
         return await judge(
             state,
@@ -62,7 +64,8 @@ def run_judge(state=STATE, questions=QUESTIONS, *, pseudonymize=None, record_fil
 
 
 def test_hook_sends_stand_in_output_restores_answers_and_records_originals(
-    environment, monkeypatch,
+    environment,
+    monkeypatch,
 ):
     restored = []
 
@@ -74,24 +77,34 @@ def test_hook_sends_stand_in_output_restores_answers_and_records_originals(
             restored.append(answers)
             return {"q": answers["masked-q"]}
 
-        return {"record": "synthetic masked state"}, {"masked-q": questions["q"]}, restore
+        return (
+            {"record": "synthetic masked state"},
+            {"masked-q": questions["q"]},
+            restore,
+        )
 
     install_stand_in(monkeypatch, replace)
     with FakeProvider([completion({"masked-q": 0.5})]) as fake:
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
         with RecordFile(xdg_path("state") / "backfire/records") as records:
             result = run_judge(record_file=records)
-            entry, = read_records(records.path)
+            (entry,) = read_records(records.path)
 
-    request = json.dumps(fake.requests[0]["body"]["messages"], ensure_ascii=False)
+    request = json.dumps(
+        fake.requests[0]["body"]["messages"], ensure_ascii=False
+    )
     assert "synthetic masked state" in request
     assert "masked-q" in request
     assert "synthetic original state" not in request
     assert restored == [{"masked-q": {"type": "noul", "noul": 0.5}}]
     assert result["answers"] == {"q": {"type": "noul", "noul": 0.5}}
-    assert entry["payload_digest"] == digest({
-        "model": "hook-model", "state": STATE, "questions": QUESTIONS,
-    })
+    assert entry["payload_digest"] == digest(
+        {
+            "model": "hook-model",
+            "state": STATE,
+            "questions": QUESTIONS,
+        }
+    )
 
 
 def test_stand_in_failure_sends_no_provider_request(environment, monkeypatch):
@@ -99,7 +112,10 @@ def test_stand_in_failure_sends_no_provider_request(environment, monkeypatch):
         raise JudgmentError("pseudonym_conflict")
 
     install_stand_in(monkeypatch, fail)
-    with FakeProvider([]) as fake, RecordFile(xdg_path("state") / "backfire/records") as records:
+    with (
+        FakeProvider([]) as fake,
+        RecordFile(xdg_path("state") / "backfire/records") as records,
+    ):
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
         with pytest.raises(JudgmentError, match="^pseudonym_conflict:"):
             run_judge(record_file=records)
@@ -115,7 +131,9 @@ def test_explicit_false_skips_the_shipped_hook(environment, monkeypatch):
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
         result = run_judge(pseudonymize=False)
 
-    request = json.dumps(fake.requests[0]["body"]["messages"], ensure_ascii=False)
+    request = json.dumps(
+        fake.requests[0]["body"]["messages"], ensure_ascii=False
+    )
     assert "synthetic original state" in request
     assert "masked-q" not in request
     assert result["answers"] == {"q": {"type": "noul", "noul": 0.5}}

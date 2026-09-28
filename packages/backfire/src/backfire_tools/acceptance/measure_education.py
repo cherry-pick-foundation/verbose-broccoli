@@ -30,8 +30,12 @@ DEADLINE_SECONDS = 118
 
 
 def load_cases():
-    cases = [json.loads(line) for line in
-             (FIXTURES / "education-v1.jsonl").read_text(encoding="utf-8").splitlines()]
+    cases = [
+        json.loads(line)
+        for line in (FIXTURES / "education-v1.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
     for case in cases:
         jsonschema.validate(case["arguments"], TOOLS[case["tool"]].INPUT_SCHEMA)
     return cases
@@ -45,16 +49,26 @@ def value_at_path(value, path):
 
 def matches(result, expected):
     try:
-        return all(value_at_path(result, path) == value for path, value in expected.items())
+        return all(
+            value_at_path(result, path) == value
+            for path, value in expected.items()
+        )
     except (KeyError, IndexError, TypeError, ValueError):
         return False
 
 
 @contextmanager
 def temporary_environment():
-    provider = tomllib.loads(SHIPPED_CONFIG.read_text(encoding="utf-8"))["provider"]
+    provider = tomllib.loads(SHIPPED_CONFIG.read_text(encoding="utf-8"))[
+        "provider"
+    ]
     credential = xdg_path("config") / "backfire" / f"{provider}.env"
-    variables = ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME")
+    variables = (
+        "XDG_CONFIG_HOME",
+        "XDG_DATA_HOME",
+        "XDG_STATE_HOME",
+        "XDG_CACHE_HOME",
+    )
     previous = {key: os.environ.get(key) for key in variables}
     with TemporaryDirectory(prefix="backfire-education-") as temporary:
         directory = Path(temporary) / "verbose-broccoli/backfire"
@@ -62,7 +76,8 @@ def temporary_environment():
         (directory / credential.name).symlink_to(credential)
         roster = str(FIXTURES / "education-roster-v1.csv")
         (directory / "education.toml").write_text(
-            f"roster = {json.dumps(roster)}\n", encoding="utf-8",
+            f"roster = {json.dumps(roster)}\n",
+            encoding="utf-8",
         )
         try:
             os.environ.update(dict.fromkeys(variables, temporary))
@@ -81,8 +96,10 @@ async def measure(case, arm, run):
     try:
         async with asyncio.timeout_at(deadline):
             result, is_error = await TOOLS[case["tool"]].call(
-                case["arguments"], partial(judge, pseudonymize=ARMS[arm]),
-                deadline=deadline, record_file=None,
+                case["arguments"],
+                partial(judge, pseudonymize=ARMS[arm]),
+                deadline=deadline,
+                record_file=None,
             )
         if is_error:
             error_type = "tool_error"
@@ -94,8 +111,14 @@ async def measure(case, arm, run):
         error_type = "deadline_exceeded"
     except Exception as error:
         error_type = type(error).__name__
-    return {"id": case["id"], "tool": case["tool"], "arm": arm, "run": run,
-            "correct": correct, "error_type": error_type}
+    return {
+        "id": case["id"],
+        "tool": case["tool"],
+        "arm": arm,
+        "run": run,
+        "correct": correct,
+        "error_type": error_type,
+    }
 
 
 async def run_cases(cases, runs):
@@ -106,7 +129,9 @@ async def run_cases(cases, runs):
             for arm in ARMS:
                 row = await measure(case, arm, run)
                 print(json.dumps(row), flush=True)
-                counts = accuracy.setdefault(case["tool"], {}).setdefault(arm, {"correct": 0, "total": 0})
+                counts = accuracy.setdefault(case["tool"], {}).setdefault(
+                    arm, {"correct": 0, "total": 0}
+                )
                 counts["correct"] += int(row["correct"])
                 counts["total"] += 1
                 outcomes.append((row["correct"], row["error_type"]))
@@ -115,7 +140,17 @@ async def run_cases(cases, runs):
     for arms in accuracy.values():
         for counts in arms.values():
             counts["accuracy"] = counts["correct"] / counts["total"]
-    print(json.dumps({"summary": {"accuracy": accuracy, "differing_cases": sorted(differing)}}), flush=True)
+    print(
+        json.dumps(
+            {
+                "summary": {
+                    "accuracy": accuracy,
+                    "differing_cases": sorted(differing),
+                }
+            }
+        ),
+        flush=True,
+    )
 
 
 def main(argv=None):

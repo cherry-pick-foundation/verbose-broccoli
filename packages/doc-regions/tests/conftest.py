@@ -22,8 +22,11 @@ def offline(monkeypatch):
 def unchanged():
     def hashes(root):
         return {
-            str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in root.rglob("*") if path.is_file()
+            str(path.relative_to(root)): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in root.rglob("*")
+            if path.is_file()
         }
 
     @contextmanager

@@ -10,14 +10,30 @@ from threading import Event, Lock, Thread
 def completion(answers=None, *, model="reported-model"):
     """A valid Chat Completions envelope; callers can mutate failure fields."""
     return {
-        "id": "synthetic-completion", "object": "chat.completion", "created": 0,
+        "id": "synthetic-completion",
+        "object": "chat.completion",
+        "created": 0,
         "model": model,
-        "choices": [{"index": 0, "finish_reason": "stop", "message": {
-            "role": "assistant", "content": json.dumps({"answers": {"q": 0.5} if answers is None else answers}),
-            "reasoning_content": "synthetic reasoning", "refusal": None,
-        }}],
-        "usage": {"prompt_tokens": 11, "completion_tokens": 7,
-                  "total_tokens": 18, "reasoning_tokens": 3},
+        "choices": [
+            {
+                "index": 0,
+                "finish_reason": "stop",
+                "message": {
+                    "role": "assistant",
+                    "content": json.dumps(
+                        {"answers": {"q": 0.5} if answers is None else answers}
+                    ),
+                    "reasoning_content": "synthetic reasoning",
+                    "refusal": None,
+                },
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 11,
+            "completion_tokens": 7,
+            "total_tokens": 18,
+            "reasoning_tokens": 3,
+        },
     }
 
 
@@ -50,19 +66,36 @@ class FakeProvider:
                 pass
 
             def do_POST(self):
-                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                body = json.loads(
+                    self.rfile.read(int(self.headers["Content-Length"]))
+                )
                 with fake.lock:
-                    fake.requests.append({"path": self.path,
-                                          "headers": {key.lower(): value for key, value in self.headers.items()},
-                                          "body": body})
-                    step = fake.script.popleft() if fake.script else Reply({"error": "script exhausted"}, 500)
+                    fake.requests.append(
+                        {
+                            "path": self.path,
+                            "headers": {
+                                key.lower(): value
+                                for key, value in self.headers.items()
+                            },
+                            "body": body,
+                        }
+                    )
+                    step = (
+                        fake.script.popleft()
+                        if fake.script
+                        else Reply({"error": "script exhausted"}, 500)
+                    )
                 fake.received.set()
                 reply = step if isinstance(step, Reply) else Reply(step)
                 if reply.stall:
                     fake.release.wait()
                 elif reply.delay:
                     fake.release.wait(reply.delay)
-                data = reply.body if isinstance(reply.body, bytes) else json.dumps(reply.body).encode()
+                data = (
+                    reply.body
+                    if isinstance(reply.body, bytes)
+                    else json.dumps(reply.body).encode()
+                )
                 try:
                     self.send_response(reply.status)
                     self.send_header("Content-Type", "application/json")
@@ -77,7 +110,9 @@ class FakeProvider:
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.daemon_threads = False
         self.base_url = f"http://127.0.0.1:{self.server.server_port}/v1"
-        self.thread = Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.01})
+        self.thread = Thread(
+            target=self.server.serve_forever, kwargs={"poll_interval": 0.01}
+        )
 
     def __enter__(self):
         self.thread.start()

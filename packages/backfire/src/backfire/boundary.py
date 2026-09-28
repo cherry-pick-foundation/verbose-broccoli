@@ -39,16 +39,20 @@ class BoundedLineReader:
     async def __anext__(self):
         while True:
             end = self.buffer.find(b"\n")
-            if end > MAX_LINE_BYTES or (end < 0 and len(self.buffer) > MAX_LINE_BYTES):
+            if end > MAX_LINE_BYTES or (
+                end < 0 and len(self.buffer) > MAX_LINE_BYTES
+            ):
                 raise MessageTooLarge("message_limit_exceeded")
             if end >= 0:
-                line = self.buffer[:end + 1]
-                del self.buffer[:end + 1]
+                line = self.buffer[: end + 1]
+                del self.buffer[: end + 1]
                 return line.decode("utf-8", errors="replace")
             # Regular files and /dev/null are readable but cannot register with epoll.
             if not select.select([self.fd], [], [], 0)[0]:
                 await anyio.wait_readable(self.fd)
-            chunk = os.read(self.fd, min(65536, MAX_LINE_BYTES + 1 - len(self.buffer)))
+            chunk = os.read(
+                self.fd, min(65536, MAX_LINE_BYTES + 1 - len(self.buffer))
+            )
             if not chunk:
                 if not self.buffer:
                     raise StopAsyncIteration
@@ -70,11 +74,17 @@ class Call:
 
 
 def error_response(request_id, error_type):
-    return SessionMessage(types.JSONRPCResponse(
-        jsonrpc="2.0", id=request_id,
-        result={"content": [{"type": "text", "text": ERRORS[error_type]}],
-                "isError": True, "resultType": "complete"},
-    ))
+    return SessionMessage(
+        types.JSONRPCResponse(
+            jsonrpc="2.0",
+            id=request_id,
+            result={
+                "content": [{"type": "text", "text": ERRORS[error_type]}],
+                "isError": True,
+                "resultType": "complete",
+            },
+        )
+    )
 
 
 class Boundary:
@@ -92,16 +102,31 @@ class Boundary:
         if not isinstance(item, SessionMessage):
             return
         message = item.message
-        params = (message.params or {}) if isinstance(message, (types.JSONRPCRequest, types.JSONRPCNotification)) else {}
-        if isinstance(message, types.JSONRPCRequest) and message.method == "tools/call":
+        params = (
+            (message.params or {})
+            if isinstance(
+                message, (types.JSONRPCRequest, types.JSONRPCNotification)
+            )
+            else {}
+        )
+        if (
+            isinstance(message, types.JSONRPCRequest)
+            and message.method == "tools/call"
+        ):
             started = asyncio.get_running_loop().time()
             self.sequence += 1
             name = params.get("name")
             call = Call(
-                message.id, self.sequence,
-                name if isinstance(name, str) and name in self.tool_names else "unknown",
-                digest({"tool": name, "arguments": params.get("arguments", {})}),
-                started, started + CALL_SECONDS,
+                message.id,
+                self.sequence,
+                name
+                if isinstance(name, str) and name in self.tool_names
+                else "unknown",
+                digest(
+                    {"tool": name, "arguments": params.get("arguments", {})}
+                ),
+                started,
+                started + CALL_SECONDS,
             )
             self.calls[message.id] = call
             self.closed.discard(message.id)
@@ -109,9 +134,15 @@ class Boundary:
             call.timer = asyncio.create_task(self._expire(call))
             self.timers.add(call.timer)
             call.timer.add_done_callback(self.timers.discard)
-        elif isinstance(message, types.JSONRPCNotification) and message.method == "notifications/cancelled":
+        elif (
+            isinstance(message, types.JSONRPCNotification)
+            and message.method == "notifications/cancelled"
+        ):
             identifier = params.get("requestId")
-            if type(identifier) in (str, int) and (call := self.calls.get(identifier)) is not None:
+            if (
+                type(identifier) in (str, int)
+                and (call := self.calls.get(identifier)) is not None
+            ):
                 self._close(call, "cancelled")
 
     def _close(self, call, outcome, result=None):
@@ -120,7 +151,10 @@ class Boundary:
         self.closed.add(call.request_id)
         if call.timer is not asyncio.current_task():
             call.timer.cancel()
-        if outcome in ("cancelled", "deadline_exceeded", "session_ended") and call.task is not None:
+        if (
+            outcome in ("cancelled", "deadline_exceeded", "session_ended")
+            and call.task is not None
+        ):
             call.task.cancel()
         parsed = None
         if result is not None:
@@ -131,10 +165,15 @@ class Boundary:
         model = parsed.get("model") if isinstance(parsed, dict) else None
         try:
             self.records.write_tool_call(
-                call=call.number, tool=call.tool, input_digest=call.input_digest,
-                outcome=outcome, decisions=decision_units(call.tool, parsed),
-                result=result, model=model if isinstance(model, str) else None,
-                duration_ms=(asyncio.get_running_loop().time() - call.started) * 1000,
+                call=call.number,
+                tool=call.tool,
+                input_digest=call.input_digest,
+                outcome=outcome,
+                decisions=decision_units(call.tool, parsed),
+                result=result,
+                model=model if isinstance(model, str) else None,
+                duration_ms=(asyncio.get_running_loop().time() - call.started)
+                * 1000,
             )
         except RecordWriteError:
             print("record_write_failed", file=sys.stderr)
@@ -145,8 +184,18 @@ class Boundary:
         message = item.message
         if isinstance(message, (types.JSONRPCResponse, types.JSONRPCError)):
             if (call := self.calls.get(message.id)) is not None:
-                result = message.result if isinstance(message, types.JSONRPCResponse) else None
-                outcome = "protocol_error" if result is None else "tool_error" if result.get("isError") else "ok"
+                result = (
+                    message.result
+                    if isinstance(message, types.JSONRPCResponse)
+                    else None
+                )
+                outcome = (
+                    "protocol_error"
+                    if result is None
+                    else "tool_error"
+                    if result.get("isError")
+                    else "ok"
+                )
                 if not self._close(call, outcome, result):
                     return error_response(message.id, "record_write_failed")
             elif message.id in self.closed:
@@ -154,7 +203,9 @@ class Boundary:
         return item
 
     async def _expire(self, call):
-        await asyncio.sleep(max(0, call.deadline - asyncio.get_running_loop().time()))
+        await asyncio.sleep(
+            max(0, call.deadline - asyncio.get_running_loop().time())
+        )
         if self.calls.get(call.request_id) is call:
             reply = error_response(call.request_id, "deadline_exceeded")
             if not self._close(call, "deadline_exceeded", reply.message.result):
@@ -197,7 +248,9 @@ class Boundary:
 
     async def join(self):
         with anyio.CancelScope(shield=True):
-            await asyncio.gather(*self.work, *self.timers, return_exceptions=True)
+            await asyncio.gather(
+                *self.work, *self.timers, return_exceptions=True
+            )
 
     async def run(self, server, read_stream, write_stream):
         self.output = write_stream
@@ -226,7 +279,12 @@ class Boundary:
             async with anyio.create_task_group() as tasks:
                 tasks.start_soon(receive)
                 tasks.start_soon(send)
-                tasks.start_soon(server.run, server_read, server_write, server.create_initialization_options())
+                tasks.start_soon(
+                    server.run,
+                    server_read,
+                    server_write,
+                    server.create_initialization_options(),
+                )
                 await self.stopped.wait()
                 tasks.cancel_scope.cancel()
         finally:

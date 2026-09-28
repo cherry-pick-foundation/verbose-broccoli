@@ -30,21 +30,29 @@ def refuse_existing(output: Path) -> None:
 
 def build(output: str | Path, *, plugin: str = "code") -> Path:
     if plugin not in PLUGINS:
-        raise ValueError(f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}")
+        raise ValueError(
+            f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}"
+        )
     packages, profile, projects = PLUGINS[plugin]
     output = Path(os.path.abspath(output))
     refuse_existing(output)
     destination = output.parent.resolve(strict=True) / output.name
     for path in (output, destination):
-        if any(path.is_relative_to(ROOT / name) for name in ("plugins", "packages")):
-            raise ValueError(f"Output must be outside plugins/ and packages/: {output}")
+        if any(
+            path.is_relative_to(ROOT / name) for name in ("plugins", "packages")
+        ):
+            raise ValueError(
+                f"Output must be outside plugins/ and packages/: {output}"
+            )
     output = destination
     try:
         budget = int(os.environ.get("BACKFIRE_TEST_BUILD_MAX_BYTES", MAX_BYTES))
     except ValueError:
         budget = -1
     if not 0 <= budget <= MAX_BYTES:
-        raise ValueError(f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}")
+        raise ValueError(
+            f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}"
+        )
 
     interrupted = False
     total = 0
@@ -66,13 +74,17 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         nonlocal total
         info = check_source(Path(source))
         if not stat.S_ISREG(info.st_mode):
-            raise ValueError(f"Source is not a regular file or directory: {source}")
+            raise ValueError(
+                f"Source is not a regular file or directory: {source}"
+            )
         total += info.st_size
         if total > budget:
             raise ValueError(f"Build exceeds {budget}-byte budget: {source}")
         return shutil.copy2(source, target)
 
-    def copy_tree(source: Path, target: Path, *, runtime_package=False, exclude=()):
+    def copy_tree(
+        source: Path, target: Path, *, runtime_package=False, exclude=()
+    ):
         check_source(source)
         excluded = set(exclude)
         if runtime_package:
@@ -81,9 +93,13 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         def walk_failed(error):
             raise error
 
-        for directory, directories, files in os.walk(source, onerror=walk_failed):
+        for directory, directories, files in os.walk(
+            source, onerror=walk_failed
+        ):
             directory = Path(directory)
-            directories[:] = [name for name in directories if name not in excluded]
+            directories[:] = [
+                name for name in directories if name not in excluded
+            ]
             files = [name for name in files if name not in excluded]
             if runtime_package and directory == source:
                 files = [name for name in files if name != "config.toml"]
@@ -99,7 +115,11 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         for signum in (signal.SIGINT, signal.SIGTERM)
     }
     try:
-        partial = Path(tempfile.mkdtemp(dir=output.parent, prefix=f"{output.name}.partial-"))
+        partial = Path(
+            tempfile.mkdtemp(
+                dir=output.parent, prefix=f"{output.name}.partial-"
+            )
+        )
         copy_tree(ROOT / "plugins" / plugin, partial)
         package = ROOT / "packages/backfire"
         runtime = partial / "backfire"
@@ -107,8 +127,14 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         for path in ("pyproject.toml", ".python-version", "uv.lock"):
             copy_file(package / path, runtime / path)
         for name in packages:
-            copy_tree(package / "src" / name, runtime / "src" / name, runtime_package=True)
-        copy_file(package / "src" / profile, runtime / "src/backfire/config.toml")
+            copy_tree(
+                package / "src" / name,
+                runtime / "src" / name,
+                runtime_package=True,
+            )
+        copy_file(
+            package / "src" / profile, runtime / "src/backfire/config.toml"
+        )
         for name in projects:
             copy_tree(
                 ROOT / "packages" / name,
@@ -142,7 +168,9 @@ def main() -> int:
         args = args[1:]
     try:
         if len(args) != 2 or not all(args):
-            raise ValueError("Usage: deno task backfire:build -- <plugin> <output>")
+            raise ValueError(
+                "Usage: deno task backfire:build -- <plugin> <output>"
+            )
         print(build(args[1], plugin=args[0]))
         return 0
     except (OSError, ValueError) as error:

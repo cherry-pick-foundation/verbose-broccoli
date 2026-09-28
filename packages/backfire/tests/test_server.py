@@ -12,21 +12,50 @@ from mcp.shared.memory import create_client_server_memory_streams
 from backfire.records import read_records
 from backfire.server import create_server
 from backfire.tools import (
-    classify, compare, decide, extract, find, gate, noul, rerank, review, screen, verify,
+    classify,
+    compare,
+    decide,
+    extract,
+    find,
+    gate,
+    noul,
+    rerank,
+    review,
+    screen,
+    verify,
 )
 from scripted_judge import ScriptedJudge
 from test_boundary_core import session as boundary_session
 
-MODULES = (verify, screen, noul, find, classify, decide, rerank, compare, extract, review, gate)
+MODULES = (
+    verify,
+    screen,
+    noul,
+    find,
+    classify,
+    decide,
+    rerank,
+    compare,
+    extract,
+    review,
+    gate,
+)
 
 
 @asynccontextmanager
 async def session(judge):
     server = create_server(judge)
     with anyio.fail_after(10):
-        async with create_client_server_memory_streams() as (client_streams, server_streams):
+        async with create_client_server_memory_streams() as (
+            client_streams,
+            server_streams,
+        ):
             async with anyio.create_task_group() as tasks:
-                tasks.start_soon(server.run, *server_streams, server.create_initialization_options())
+                tasks.start_soon(
+                    server.run,
+                    *server_streams,
+                    server.create_initialization_options(),
+                )
                 try:
                     async with ClientSession(*client_streams) as client:
                         initialized = await client.initialize()
@@ -45,11 +74,19 @@ def test_registration_preserves_exact_module_metadata():
             assert initialized.server_info.name == "backfire"
             assert initialized.server_info.version == version("backfire")
             result = wire(await client.list_tools())
-            assert result == {"tools": [
-                {"name": tool.NAME, "title": tool.TITLE, "description": tool.DESCRIPTION,
-                 "inputSchema": tool.INPUT_SCHEMA, "execution": tool.EXECUTION}
-                for tool in MODULES
-            ]}
+            assert result == {
+                "tools": [
+                    {
+                        "name": tool.NAME,
+                        "title": tool.TITLE,
+                        "description": tool.DESCRIPTION,
+                        "inputSchema": tool.INPUT_SCHEMA,
+                        "execution": tool.EXECUTION,
+                    }
+                    for tool in MODULES
+                ]
+            }
+
     asyncio.run(run())
 
 
@@ -69,38 +106,68 @@ def test_each_tool_checks_required_arguments(tool):
                 )
                 assert "is a required property" in result.content[0].text
             assert len((await client.list_tools()).tools) == 11
+
     asyncio.run(run())
     assert judge.requests == []
 
 
-@pytest.mark.parametrize("arguments, detail", [
-    ({"claims": [], "evidence": "document"}, "[] should be non-empty"),
-    ({"claims": [7], "evidence": "document"}, "7 is not of type 'string'"),
-    ({"claims": ["claim"], "evidence": "document", "auto_accept": 1.1},
-     "1.1 is greater than the maximum of 1"),
-    ({"claims": ["claim"], "evidence": "document", "extra": True},
-     "Additional properties are not allowed ('extra' was unexpected)"),
-])
-def test_schema_errors_use_the_upstream_prefix_and_jsonschema_detail(arguments, detail):
+@pytest.mark.parametrize(
+    "arguments, detail",
+    [
+        ({"claims": [], "evidence": "document"}, "[] should be non-empty"),
+        ({"claims": [7], "evidence": "document"}, "7 is not of type 'string'"),
+        (
+            {"claims": ["claim"], "evidence": "document", "auto_accept": 1.1},
+            "1.1 is greater than the maximum of 1",
+        ),
+        (
+            {"claims": ["claim"], "evidence": "document", "extra": True},
+            "Additional properties are not allowed ('extra' was unexpected)",
+        ),
+    ],
+)
+def test_schema_errors_use_the_upstream_prefix_and_jsonschema_detail(
+    arguments, detail
+):
     judge = ScriptedJudge([])
 
     async def run():
         async with session(judge) as (client, _):
             assert wire(await client.call_tool(verify.NAME, arguments)) == {
-                "content": [{"type": "text", "text":
-                    "MCP error -32602: Input validation error: "
-                    f"Invalid arguments for tool backfire_verify: {detail}"}],
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "MCP error -32602: Input validation error: "
+                        f"Invalid arguments for tool backfire_verify: {detail}",
+                    }
+                ],
                 "isError": True,
             }
+
     asyncio.run(run())
     assert judge.requests == []
 
 
-@pytest.mark.parametrize("tool, arguments, detail", [
-    (noul, {"propositions": [" \t"]}, "propositions must not be blank at propositions"),
-    (gate, {"request": "request", "diff": "diff", "claims": ["claim"], "evidence": " "},
-     "backfire_gate requires at least one evidence item with non-empty text. at evidence"),
-])
+@pytest.mark.parametrize(
+    "tool, arguments, detail",
+    [
+        (
+            noul,
+            {"propositions": [" \t"]},
+            "propositions must not be blank at propositions",
+        ),
+        (
+            gate,
+            {
+                "request": "request",
+                "diff": "diff",
+                "claims": ["claim"],
+                "evidence": " ",
+            },
+            "backfire_gate requires at least one evidence item with non-empty text. at evidence",
+        ),
+    ],
+)
 def test_tool_refinements_keep_upstream_errors(tool, arguments, detail):
     judge = ScriptedJudge([])
 
@@ -112,12 +179,15 @@ def test_tool_refinements_keep_upstream_errors(tool, arguments, detail):
                 "MCP error -32602: Input validation error: "
                 f"Invalid arguments for tool {tool.NAME}: {detail}"
             )
+
     asyncio.run(run())
     assert judge.requests == []
 
 
 @pytest.mark.parametrize("is_error", [False, True])
-def test_call_passes_arguments_judge_deadline_and_returned_error_flag(monkeypatch, is_error):
+def test_call_passes_arguments_judge_deadline_and_returned_error_flag(
+    monkeypatch, is_error
+):
     arguments = {"claims": ["claim"], "evidence": "document"}
     judge = ScriptedJudge([])
     calls = []
@@ -139,11 +209,14 @@ def test_call_passes_arguments_judge_deadline_and_returned_error_flag(monkeypatc
                 "content": [{"type": "text", "text": "unchanged tool text"}],
                 **({"isError": True} if is_error else {}),
             }
+
     asyncio.run(run())
     assert len(calls) == 1
 
 
-def test_tool_exception_is_only_its_message_and_the_session_keeps_serving(monkeypatch):
+def test_tool_exception_is_only_its_message_and_the_session_keeps_serving(
+    monkeypatch,
+):
     async def call(*args, **kwargs):
         raise RuntimeError("synthetic failure: unchanged 한글")
 
@@ -152,18 +225,29 @@ def test_tool_exception_is_only_its_message_and_the_session_keeps_serving(monkey
     async def run():
         async with session(ScriptedJudge([])) as (client, _):
             for name, arguments, message in (
-                (verify.NAME, {"claims": ["claim"], "evidence": "document"},
-                 "synthetic failure: unchanged 한글"),
-                ("backfire_unknown", {}, "MCP error -32602: Tool backfire_unknown not found"),
+                (
+                    verify.NAME,
+                    {"claims": ["claim"], "evidence": "document"},
+                    "synthetic failure: unchanged 한글",
+                ),
+                (
+                    "backfire_unknown",
+                    {},
+                    "MCP error -32602: Tool backfire_unknown not found",
+                ),
             ):
                 assert wire(await client.call_tool(name, arguments)) == {
-                    "content": [{"type": "text", "text": message}], "isError": True,
+                    "content": [{"type": "text", "text": message}],
+                    "isError": True,
                 }
             assert len((await client.list_tools()).tools) == 11
+
     asyncio.run(run())
 
 
-def test_argument_validation_yields_and_cancels_before_calling_the_tool(tmp_path, monkeypatch):
+def test_argument_validation_yields_and_cancels_before_calling_the_tool(
+    tmp_path, monkeypatch
+):
     judge = ScriptedJudge([])
     validate = jsonschema.validate
 
@@ -184,9 +268,12 @@ def test_argument_validation_yields_and_cancels_before_calling_the_tool(tmp_path
 
         monkeypatch.setattr(jsonschema, "validate", blocked_validation)
         async with boundary_session(tmp_path, judge) as (client, edge, records):
-            call = asyncio.create_task(client.call_tool(
-                verify.NAME, {"claims": ["claim"], "evidence": "document"},
-            ))
+            call = asyncio.create_task(
+                client.call_tool(
+                    verify.NAME,
+                    {"claims": ["claim"], "evidence": "document"},
+                )
+            )
             try:
                 await asyncio.wait_for(started.wait(), 1)
                 assert not finished.is_set()
@@ -196,8 +283,10 @@ def test_argument_validation_yields_and_cancels_before_calling_the_tool(tmp_path
                     await call
                 assert len((await client.list_tools()).tools) == 11
                 await edge.join()
-                assert not edge.calls and not edge.work and not finished.is_set()
-                row, = read_records(records.path)
+                assert (
+                    not edge.calls and not edge.work and not finished.is_set()
+                )
+                (row,) = read_records(records.path)
                 assert row["outcome"] == "cancelled"
             finally:
                 release.set()

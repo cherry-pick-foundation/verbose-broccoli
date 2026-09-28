@@ -3,7 +3,9 @@ import pytest
 from doc_sources import skill_table
 
 
-def test_skill_table_lists_full_names_by_package_and_skill(tmp_path, monkeypatch):
+def test_skill_table_lists_full_names_by_package_and_skill(
+    tmp_path, monkeypatch
+):
     skills = {
         "plugins/work/skills": ["zebra", "alpha"],
         "plugins/code/skills": [

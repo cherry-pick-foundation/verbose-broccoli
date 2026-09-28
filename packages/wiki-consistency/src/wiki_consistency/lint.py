@@ -23,7 +23,10 @@ def _problem(document, line, message):
 
 
 def _targets(root):
-    return [path.relative_to(root).as_posix() for path in files(root, "wiki/**/*.md")]
+    return [
+        path.relative_to(root).as_posix()
+        for path in files(root, "wiki/**/*.md")
+    ]
 
 
 def _index_shape(root):
@@ -36,20 +39,35 @@ def _index_shape(root):
     if marker_problems:
         return []
     if len(spans) != 1:
-        return [_problem("wiki/index.md", 1,
-                         "index.md must contain one page_catalog region and nothing else")]
+        return [
+            _problem(
+                "wiki/index.md",
+                1,
+                "index.md must contain one page_catalog region and nothing else",
+            )
+        ]
     span = spans[0]
     line_count = len(text.split("\n")) - text.endswith("\n")
     if span["start"] != 0 or span["end"] != line_count:
-        return [_problem("wiki/index.md", 1,
-                         "index.md must contain one page_catalog region and nothing else")]
+        return [
+            _problem(
+                "wiki/index.md",
+                1,
+                "index.md must contain one page_catalog region and nothing else",
+            )
+        ]
     try:
         function, sources = shape(span["code"], GENERATORS)
     except ValueError:
         return []
     if function != "page_catalog" or sources != ["wiki/**/*.md"]:
-        return [_problem("wiki/index.md", span["start"] + 1,
-                         'index.md must call page_catalog("wiki/**/*.md")')]
+        return [
+            _problem(
+                "wiki/index.md",
+                span["start"] + 1,
+                'index.md must call page_catalog("wiki/**/*.md")',
+            )
+        ]
     return []
 
 
@@ -57,7 +75,7 @@ def _link_targets(root, page, markdown):
     page_path = root / page["path"]
     try:
         text = page_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
+    except OSError, UnicodeError:
         return
     wiki = root / "wiki"
     for token in markdown.parse(mask_front_matter(text)):
@@ -69,12 +87,17 @@ def _link_targets(root, page, markdown):
                 continue
             try:
                 parsed = urlsplit(href)
-                if parsed.scheme or parsed.netloc or not parsed.path or parsed.path.startswith("/"):
+                if (
+                    parsed.scheme
+                    or parsed.netloc
+                    or not parsed.path
+                    or parsed.path.startswith("/")
+                ):
                     continue
-                target = ((page_path.parent / unquote(parsed.path)).resolve())
+                target = (page_path.parent / unquote(parsed.path)).resolve()
                 if target.is_relative_to(wiki.resolve()):
                     yield target.relative_to(wiki.resolve()).as_posix()
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 continue
 
 
@@ -85,20 +108,38 @@ def _page_findings(root, page_list, revision_map):
     for page in page_list:
         if page["special"]:
             continue
-        problems.extend(_problem(page["path"], item["line"], item["message"])
-                        for item in page["problems"])
+        problems.extend(
+            _problem(page["path"], item["line"], item["message"])
+            for item in page["problems"]
+        )
         for citation in page["sources"]:
             source_id = citation["id"]
             candidates = revision_map.get(source_id)
             if not candidates:
-                problems.append(_problem(page["path"], 1,
-                                         f"citation names no source bag: {source_id}"))
+                problems.append(
+                    _problem(
+                        page["path"],
+                        1,
+                        f"citation names no source bag: {source_id}",
+                    )
+                )
                 continue
-            match = next((item for item in candidates
-                          if item["revision"] == citation["revision"]), None)
+            match = next(
+                (
+                    item
+                    for item in candidates
+                    if item["revision"] == citation["revision"]
+                ),
+                None,
+            )
             if match is None:
-                problems.append(_problem(page["path"], 1,
-                                         f"citation names no revision bag: {source_id}/{citation['revision']}"))
+                problems.append(
+                    _problem(
+                        page["path"],
+                        1,
+                        f"citation names no revision bag: {source_id}/{citation['revision']}",
+                    )
+                )
                 continue
             bag_path = root / match["path"]
             key = bag_path.as_posix()
@@ -110,23 +151,33 @@ def _page_findings(root, page_list, revision_map):
                 else:
                     validated[key] = None
             if validated[key]:
-                problems.append(_problem(
-                    page["path"], 1, f"BagIt fast validation failed for {source_id}/{citation['revision']}: "
-                    f"{validated[key]}"))
+                problems.append(
+                    _problem(
+                        page["path"],
+                        1,
+                        f"BagIt fast validation failed for {source_id}/{citation['revision']}: "
+                        f"{validated[key]}",
+                    )
+                )
             latest = candidates[-1]["revision"]
             if citation["revision"] != latest:
-                stale.append({
-                    "page": page["path"],
-                    "source_id": source_id,
-                    "cited_revision": citation["revision"],
-                    "latest_revision": latest,
-                })
+                stale.append(
+                    {
+                        "page": page["path"],
+                        "source_id": source_id,
+                        "cited_revision": citation["revision"],
+                        "latest_revision": latest,
+                    }
+                )
     return problems, stale
 
 
 def _orphans(page_list, markdown, root):
-    content_pages = [page["path"] for page in page_list
-                     if not page["special"] and page["path"] != "wiki/index.md"]
+    content_pages = [
+        page["path"]
+        for page in page_list
+        if not page["special"] and page["path"] != "wiki/index.md"
+    ]
     pages_by_path = set(content_pages)
     inbound = {path: set() for path in content_pages}
     for page in page_list:
@@ -134,28 +185,47 @@ def _orphans(page_list, markdown, root):
             path = f"wiki/{target}"
             if path in pages_by_path and page["path"] != "wiki/index.md":
                 inbound[path].add(page["path"])
-    return sorted(path for path, sources in inbound.items()
-                  if not (sources - {path}))
+    return sorted(
+        path for path, sources in inbound.items() if not (sources - {path})
+    )
 
 
 def _log_prefix(root):
     try:
-        inside = subprocess.run(["git", "rev-parse", "--is-inside-work-tree"],
-                                cwd=root, text=True, capture_output=True)
+        inside = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=root,
+            text=True,
+            capture_output=True,
+        )
     except OSError as error:
         return [_problem("wiki/log.md", 1, f"git is unavailable: {error}")]
     if inside.returncode:
-        return [_problem("wiki/log.md", 1,
-                         f"git repository check failed: {inside.stderr.strip()}")]
-    head = subprocess.run(["git", "rev-parse", "--verify", "HEAD"],
-                          cwd=root, text=True, capture_output=True)
+        return [
+            _problem(
+                "wiki/log.md",
+                1,
+                f"git repository check failed: {inside.stderr.strip()}",
+            )
+        ]
+    head = subprocess.run(
+        ["git", "rev-parse", "--verify", "HEAD"],
+        cwd=root,
+        text=True,
+        capture_output=True,
+    )
     if head.returncode:
         return []
-    committed = subprocess.run(["git", "show", "HEAD:wiki/log.md"],
-                               cwd=root, capture_output=True)
+    committed = subprocess.run(
+        ["git", "show", "HEAD:wiki/log.md"], cwd=root, capture_output=True
+    )
     if committed.returncode:
         message = committed.stderr.decode("utf-8", errors="replace").strip()
-        return [_problem("wiki/log.md", 1, f"git show HEAD:wiki/log.md failed: {message}")]
+        return [
+            _problem(
+                "wiki/log.md", 1, f"git show HEAD:wiki/log.md failed: {message}"
+            )
+        ]
     try:
         current = (root / "wiki" / "log.md").read_bytes()
     except OSError as error:
@@ -165,10 +235,21 @@ def _log_prefix(root):
         return []
     before = original.splitlines(keepends=True)
     after = current.splitlines(keepends=True)
-    line = next((index + 1 for index, (old, new) in enumerate(zip(before, after))
-                 if old != new), min(len(before), len(after)) + 1)
-    return [_problem("wiki/log.md", line,
-                     f"committed log.md is not a prefix of the current file at line {line}")]
+    line = next(
+        (
+            index + 1
+            for index, (old, new) in enumerate(zip(before, after))
+            if old != new
+        ),
+        min(len(before), len(after)) + 1,
+    )
+    return [
+        _problem(
+            "wiki/log.md",
+            line,
+            f"committed log.md is not a prefix of the current file at line {line}",
+        )
+    ]
 
 
 def check(instance):
@@ -181,9 +262,15 @@ def check(instance):
         problems.append(_problem("wiki", 1, str(error)))
     if targets:
         try:
-            problems.extend(check_regions(
-                root, targets, GENERATORS, Path(__file__).resolve().parent.parent,
-                fix_command=FIX_COMMAND))
+            problems.extend(
+                check_regions(
+                    root,
+                    targets,
+                    GENERATORS,
+                    Path(__file__).resolve().parent.parent,
+                    fix_command=FIX_COMMAND,
+                )
+            )
         except (OSError, ValueError, subprocess.SubprocessError) as error:
             problems.append(_problem("wiki", 1, str(error)))
 
@@ -193,13 +280,21 @@ def check(instance):
     page_problems, stale = _page_findings(root, page_list, revision_map)
     problems.extend(page_problems)
     problems.extend(_log_prefix(root))
-    problems.sort(key=lambda item: (item["document"], item["line"], item["message"]))
+    problems.sort(
+        key=lambda item: (item["document"], item["line"], item["message"])
+    )
     markdown = MarkdownIt("commonmark")
     return {
         "problems": problems,
         "orphans": _orphans(page_list, markdown, root),
         "stale_citations": sorted(
-            stale, key=lambda item: (item["page"], item["source_id"], item["cited_revision"])),
+            stale,
+            key=lambda item: (
+                item["page"],
+                item["source_id"],
+                item["cited_revision"],
+            ),
+        ),
     }
 
 
@@ -211,7 +306,8 @@ def update(instance):
     try:
         targets = _targets(root)
         problems = update_regions(
-            root, targets, GENERATORS, Path(__file__).resolve().parent.parent)
+            root, targets, GENERATORS, Path(__file__).resolve().parent.parent
+        )
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         problems = [_problem("wiki", 1, str(error))]
     return {"problems": problems}

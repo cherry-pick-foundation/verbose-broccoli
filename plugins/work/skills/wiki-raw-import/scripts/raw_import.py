@@ -33,10 +33,14 @@ def roots():
     storage = {}
     configured = {}
     for name, default in (
-        ("data", ".local/share"), ("state", ".local/state"),
-        ("cache", ".cache"), ("config", ".config"),
+        ("data", ".local/share"),
+        ("state", ".local/state"),
+        ("cache", ".cache"),
+        ("config", ".config"),
     ):
-        path = Path(os.environ.get(f"XDG_{name.upper()}_HOME") or home / default)
+        path = Path(
+            os.environ.get(f"XDG_{name.upper()}_HOME") or home / default
+        )
         if not path.is_absolute():
             path = home / default
         configured[name] = Path(os.path.normpath(path / "verbose-broccoli"))
@@ -53,23 +57,36 @@ def wiki_name(value):
 
 def initialize(instance):
     created = []
-    for path in (instance, instance / "raw", *(instance / "raw" / kind for kind in KINDS), instance / "wiki"):
+    for path in (
+        instance,
+        instance / "raw",
+        *(instance / "raw" / kind for kind in KINDS),
+        instance / "wiki",
+    ):
         if not path.exists():
             path.mkdir(parents=True)
             created.append(str(path))
     files = {"AGENTS.md": None, ".gitignore": b"/raw/\n"}
-    files.update({f"wiki/{name}.md": b"" for name in ("index", "overview", "log")})
+    files.update(
+        {f"wiki/{name}.md": b"" for name in ("index", "overview", "log")}
+    )
     for name, content in files.items():
         path = instance / name
         if path.exists():
             continue
         if content is None:
-            content = (Path(__file__).parent.parent / "assets" / "AGENTS.md").read_bytes()
+            content = (
+                Path(__file__).parent.parent / "assets" / "AGENTS.md"
+            ).read_bytes()
         with path.open("xb") as target:
             target.write(content)
         created.append(str(path))
     if not (instance / ".git").exists():
-        subprocess.run(["git", "init", "--quiet", str(instance)], check=True, capture_output=True)
+        subprocess.run(
+            ["git", "init", "--quiet", str(instance)],
+            check=True,
+            capture_output=True,
+        )
         created.append(str(instance / ".git"))
     print(json.dumps({"created": created}))
     return 0
@@ -110,17 +127,28 @@ def latest_revision(raw, original):
         raise ValueError("multiple sources have this original path")
     if not matches:
         return None
-    return max(next(iter(matches.values())), key=lambda bag: Path(bag.path).name)
+    return max(
+        next(iter(matches.values())), key=lambda bag: Path(bag.path).name
+    )
 
 
 def selection_items(selection):
-    items = [json.loads(line) for line in selection.read_text(encoding="utf-8").splitlines()]
+    items = [
+        json.loads(line)
+        for line in selection.read_text(encoding="utf-8").splitlines()
+    ]
     seen = set()
     for item in items:
-        if (not isinstance(item, dict) or set(item) != {"path", "kind"}
-                or not isinstance(item["path"], str) or not Path(item["path"]).is_absolute()
-                or item["kind"] not in KINDS):
-            raise ValueError("invalid selection: expected an absolute path and a known kind")
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"path", "kind"}
+            or not isinstance(item["path"], str)
+            or not Path(item["path"]).is_absolute()
+            or item["kind"] not in KINDS
+        ):
+            raise ValueError(
+                "invalid selection: expected an absolute path and a known kind"
+            )
         if item["path"] in seen:
             raise ValueError("invalid selection: duplicate path")
         seen.add(item["path"])
@@ -136,13 +164,22 @@ def exclusions(storage):
         for key in ("wiki", "raw_import"):
             table = table.get(key, {})
             if not isinstance(table, dict):
-                raise ValueError("invalid configuration: wiki.raw_import must be a table")
+                raise ValueError(
+                    "invalid configuration: wiki.raw_import must be a table"
+                )
         excluded = table.get("exclude", [])
-        if (not isinstance(excluded, list) or any(
-                not isinstance(path, str) or not Path(path).is_absolute() for path in excluded)):
-            raise ValueError("invalid configuration: exclude must be a list of absolute paths")
-    roots = [root for key in ("data", "state", "cache")
-             for root in (storage["configured"][key], storage[key])]
+        if not isinstance(excluded, list) or any(
+            not isinstance(path, str) or not Path(path).is_absolute()
+            for path in excluded
+        ):
+            raise ValueError(
+                "invalid configuration: exclude must be a list of absolute paths"
+            )
+    roots = [
+        root
+        for key in ("data", "state", "cache")
+        for root in (storage["configured"][key], storage[key])
+    ]
     for path in excluded:
         configured = Path(os.path.normpath(path))
         roots.extend((configured, configured.resolve()))
@@ -155,17 +192,27 @@ def refusal(path, original, excluded):
     except UnicodeError:
         return "original path is not valid UTF-8"
     if path.is_symlink() or not path.is_file():
-        return "original is not a regular file (symbolic links are not admitted)"
+        return (
+            "original is not a regular file (symbolic links are not admitted)"
+        )
     listed = Path(os.path.normpath(path))
-    if any(candidate.is_relative_to(root) for candidate in (listed, original)
-           for root in excluded):
+    if any(
+        candidate.is_relative_to(root)
+        for candidate in (listed, original)
+        for root in excluded
+    ):
         return "original is under an excluded location"
     return None
 
 
 def admit_item(item, raw, run, excluded):
-    result = dict(path=item["path"], outcome="failed", source_id=None,
-                  revision=None, reason=None)
+    result = dict(
+        path=item["path"],
+        outcome="failed",
+        source_id=None,
+        revision=None,
+        reason=None,
+    )
     staged = run / str(uuid7())
     try:
         path = Path(item["path"])
@@ -175,15 +222,26 @@ def admit_item(item, raw, run, excluded):
             result.update(outcome="refused", reason=reason)
             return result
         digest = sha256(original)
-        modified = datetime.fromtimestamp(original.stat().st_mtime, timezone.utc)
+        modified = datetime.fromtimestamp(
+            original.stat().st_mtime, timezone.utc
+        )
         latest = latest_revision(raw, original)
         source_id = Path(latest.path).parent.name if latest else str(uuid7())
         if latest and Path(latest.path).parent.parent.name != item["kind"]:
-            result.update(outcome="refused", reason=f"source already belongs to kind {Path(latest.path).parent.parent.name}")
+            result.update(
+                outcome="refused",
+                reason=f"source already belongs to kind {Path(latest.path).parent.parent.name}",
+            )
             return result
-        if latest and latest.entries[f"data/{original.name}"]["sha256"] == digest:
-            result.update(outcome="already_admitted", source_id=source_id,
-                          revision=Path(latest.path).name)
+        if (
+            latest
+            and latest.entries[f"data/{original.name}"]["sha256"] == digest
+        ):
+            result.update(
+                outcome="already_admitted",
+                source_id=source_id,
+                revision=Path(latest.path).name,
+            )
             return result
         revision = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
         if latest and revision <= Path(latest.path).name:
@@ -198,11 +256,16 @@ def admit_item(item, raw, run, excluded):
             "Source-Modified": modified.isoformat(),
             "Admission-Time": revision,
         }
-        bag = bagit.make_bag(str(staged), bag_info=provenance.copy(), checksums=["sha256"])
+        bag = bagit.make_bag(
+            str(staged), bag_info=provenance.copy(), checksums=["sha256"]
+        )
         if any(bag.info.get(key) != value for key, value in provenance.items()):
             raise ValueError("provenance not preserved by bag-info.txt")
         bag.validate()
-        if bag.entries[f"data/{original.name}"]["sha256"] != digest or sha256(original) != digest:
+        if (
+            bag.entries[f"data/{original.name}"]["sha256"] != digest
+            or sha256(original) != digest
+        ):
             raise ValueError("original changed during copying")
         destination = raw / item["kind"] / source_id / revision
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -210,7 +273,9 @@ def admit_item(item, raw, run, excluded):
             path.chmod(0o555 if path.is_dir() else 0o444)
         staged.rename(destination)
         destination.chmod(0o555)
-        result.update(outcome="admitted", source_id=source_id, revision=revision)
+        result.update(
+            outcome="admitted", source_id=source_id, revision=revision
+        )
     except Exception as error:
         result["reason"] = str(error)
     finally:
@@ -245,7 +310,10 @@ def admit(selection, instance, storage):
             shutil.rmtree(run)
     print(json.dumps({"summary": counts}))
     if counts["refused"] or counts["failed"]:
-        print(f"{counts['refused']} refused, {counts['failed']} failed", file=sys.stderr)
+        print(
+            f"{counts['refused']} refused, {counts['failed']} failed",
+            file=sys.stderr,
+        )
         return 1
     return 0
 
@@ -257,7 +325,12 @@ def verify(instance):
         try:
             bagit.Bag(str(revision)).validate()
         except Exception as error:
-            invalid.append({"revision": str(revision.relative_to(instance)), "reason": str(error)})
+            invalid.append(
+                {
+                    "revision": str(revision.relative_to(instance)),
+                    "reason": str(error),
+                }
+            )
     print(json.dumps({"count": len(revisions), "invalid": invalid}))
     if invalid:
         print(f"{len(invalid)} invalid revisions", file=sys.stderr)
@@ -271,7 +344,9 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "admit", "verify"):
         command = commands.add_parser(name)
-        command.add_argument("--wiki", type=wiki_name, default=argparse.SUPPRESS)
+        command.add_argument(
+            "--wiki", type=wiki_name, default=argparse.SUPPRESS
+        )
         if name == "admit":
             command.add_argument("--selection", type=Path, required=True)
     args = parser.parse_args()

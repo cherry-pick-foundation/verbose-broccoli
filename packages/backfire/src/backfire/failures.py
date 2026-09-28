@@ -39,7 +39,9 @@ class JudgmentError(Exception):
 
     def __init__(self, error_type: str, detail: str | None = None) -> None:
         if detail is not None and error_type != "backend_not_configured":
-            raise ValueError("Only configuration failures may include a location.")
+            raise ValueError(
+                "Only configuration failures may include a location."
+            )
         self.error_type = error_type
         self.message = MESSAGES[error_type]
         self.detail = detail
@@ -76,12 +78,16 @@ def _connect_failure(error: BaseException) -> bool:
     cause = error.__cause__
     while cause is not None:
         if isinstance(cause, httpx2.TransportError):
-            return isinstance(cause, (httpx2.ConnectError, httpx2.ConnectTimeout))
+            return isinstance(
+                cause, (httpx2.ConnectError, httpx2.ConnectTimeout)
+            )
         cause = cause.__cause__
     return False
 
 
-def retry_policy(profile: Mapping[str, Any], *, remaining_seconds: float) -> RetryPolicy:
+def retry_policy(
+    profile: Mapping[str, Any], *, remaining_seconds: float
+) -> RetryPolicy:
     """Use the caller's remaining budget; its outer deadline cancels in-flight work."""
     statuses = {429}
     for status, error_type in profile.get("statuses", {}).items():

@@ -35,8 +35,11 @@ def load_roster() -> dict[str, tuple[str, str]]:
     try:
         with _open_regular(path, mode="rb") as file:
             config = tomllib.load(file)
-        if (set(config) != {"roster"} or not isinstance(config["roster"], str)
-                or not Path(config["roster"]).is_absolute()):
+        if (
+            set(config) != {"roster"}
+            or not isinstance(config["roster"], str)
+            or not Path(config["roster"]).is_absolute()
+        ):
             raise ValueError
     except (OSError, ValueError):
         raise JudgmentError("backend_not_configured", str(path)) from None
@@ -44,7 +47,9 @@ def load_roster() -> dict[str, tuple[str, str]]:
     path = Path(config["roster"])
     students, guardians, schools = {}, {}, {}
     try:
-        with _open_regular(path, mode="r", encoding="utf-8-sig", newline="") as file:
+        with _open_regular(
+            path, mode="r", encoding="utf-8-sig", newline=""
+        ) as file:
             rows = csv.DictReader(file, strict=True)
             if not rows.fieldnames or "name" not in rows.fieldnames:
                 raise ValueError
@@ -70,7 +75,10 @@ def load_roster() -> dict[str, tuple[str, str]]:
             given[short].append(name)
     identifiers = dict(students)
     for short, names in given.items():
-        identifiers.setdefault(short, ("student", names[0]) if len(names) == 1 else ("given", short))
+        identifiers.setdefault(
+            short,
+            ("student", names[0]) if len(names) == 1 else ("given", short),
+        )
     for values in (guardians, schools):
         for value, identifier in values.items():
             identifiers.setdefault(value, identifier)

@@ -3,8 +3,18 @@
 from collections.abc import Mapping
 import os
 
-from system_one_adapter._schema import convert_question_collection_to_validated_api_question_models
-from typesafe_sdk import Answer, Choice, ChoiceAnswer, Noul, Questions, Score, ScoreAnswer
+from system_one_adapter._schema import (
+    convert_question_collection_to_validated_api_question_models,
+)
+from typesafe_sdk import (
+    Answer,
+    Choice,
+    ChoiceAnswer,
+    Noul,
+    Questions,
+    Score,
+    ScoreAnswer,
+)
 
 from backfire.failures import JudgmentError
 from backfire.lib import PROBABILITY_SUM_TOLERANCE
@@ -19,7 +29,9 @@ def validate_request(questions: Questions) -> dict[str, Noul | Choice | Score]:
     if not isinstance(questions, Mapping):
         raise JudgmentError("invalid_request")
     try:
-        prepared = convert_question_collection_to_validated_api_question_models(questions)
+        prepared = convert_question_collection_to_validated_api_question_models(
+            questions
+        )
     except ValueError:
         raise JudgmentError("invalid_request") from None
 
@@ -31,11 +43,16 @@ def validate_request(questions: Questions) -> dict[str, Noul | Choice | Score]:
             if min(option_limit, cell_limit) <= 0:
                 raise ValueError
         except ValueError:
-            raise JudgmentError("backend_not_configured", "BACKFIRE_TEST_REQUEST_LIMITS") from None
+            raise JudgmentError(
+                "backend_not_configured", "BACKFIRE_TEST_REQUEST_LIMITS"
+            ) from None
 
     cells = 0
     for question in prepared.values():
-        if isinstance(question, Choice) and len(question.criteria) > option_limit:
+        if (
+            isinstance(question, Choice)
+            and len(question.criteria) > option_limit
+        ):
             raise JudgmentError("request_limit_exceeded")
         cells += 1 if isinstance(question, Noul) else len(question.criteria)
         if cells > cell_limit:
@@ -51,5 +68,8 @@ def validate_answers(answers: Mapping[str, Answer]) -> None:
     """
     for answer in answers.values():
         if isinstance(answer, (ChoiceAnswer, ScoreAnswer)):
-            if not abs(sum(answer.probabilities.values()) - 1) <= PROBABILITY_SUM_TOLERANCE:
+            if (
+                not abs(sum(answer.probabilities.values()) - 1)
+                <= PROBABILITY_SUM_TOLERANCE
+            ):
                 raise JudgmentError("invalid_distribution")

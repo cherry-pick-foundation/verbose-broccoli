@@ -45,22 +45,41 @@ def _replace_tree(value, replace):
 
 
 def pseudonymize(
-    state: Any, questions: Mapping[str, Any],
+    state: Any,
+    questions: Mapping[str, Any],
 ) -> tuple[Any, dict[str, Any], Callable[[dict], dict]]:
     """Return masked JSON inputs and a call-local answer restoration function."""
     try:
         import phonenumbers
     except ImportError:
-        raise JudgmentError("backend_not_configured", str(SHIPPED_CONFIG)) from None
+        raise JudgmentError(
+            "backend_not_configured", str(SHIPPED_CONFIG)
+        ) from None
 
     identifiers = load_roster()
-    roster_pattern = (re.compile("|".join(re.escape(value) for value in
-                                          sorted(identifiers, key=lambda item: (-len(item), item))))
-                      if identifiers else None)
+    roster_pattern = (
+        re.compile(
+            "|".join(
+                re.escape(value)
+                for value in sorted(
+                    identifiers, key=lambda item: (-len(item), item)
+                )
+            )
+        )
+        if identifiers
+        else None
+    )
     question_items = []
     for key, question in questions.items():
         if hasattr(question, "model_dump"):
-            question_items.append((key, question, type(question), question.model_dump(mode="json")))
+            question_items.append(
+                (
+                    key,
+                    question,
+                    type(question),
+                    question.model_dump(mode="json"),
+                )
+            )
         else:
             question_items.append((key, question, None, question))
 
@@ -71,14 +90,22 @@ def pseudonymize(
             return spans_by_text[text]
         candidates = []
         if roster_pattern is not None:
-            candidates.extend((match.start(), match.end(), identifiers[match.group()], 0)
-                              for match in roster_pattern.finditer(text))
+            candidates.extend(
+                (match.start(), match.end(), identifiers[match.group()], 0)
+                for match in roster_pattern.finditer(text)
+            )
         for match in phonenumbers.PhoneNumberMatcher(text, "KR"):
-            value = phonenumbers.format_number(match.number, phonenumbers.PhoneNumberFormat.E164)
+            value = phonenumbers.format_number(
+                match.number, phonenumbers.PhoneNumberFormat.E164
+            )
             candidates.append((match.start, match.end, ("phone", value), 1))
-        candidates.extend((match.start(), match.end(), ("email", match.group().lower()), 2)
-                          for match in _EMAIL.finditer(text))
-        candidates.sort(key=lambda item: (item[0], -(item[1] - item[0]), item[3]))
+        candidates.extend(
+            (match.start(), match.end(), ("email", match.group().lower()), 2)
+            for match in _EMAIL.finditer(text)
+        )
+        candidates.sort(
+            key=lambda item: (item[0], -(item[1] - item[0]), item[3])
+        )
         selected, end = [], -1
         for start, stop, identifier, _ in candidates:
             if start >= end:
@@ -124,12 +151,17 @@ def pseudonymize(
         provider_document = _replace_tree(document, replace)
         provider_questions[provider_key] = (
             question_class.model_validate(provider_document)
-            if question_class is not None else provider_document
+            if question_class is not None
+            else provider_document
         )
         question_restore[provider_key] = key
         labels, levels = {}, {}
-        criteria = document.get("criteria") if isinstance(document, Mapping) else None
-        question_type = document.get("type") if isinstance(document, Mapping) else None
+        criteria = (
+            document.get("criteria") if isinstance(document, Mapping) else None
+        )
+        question_type = (
+            document.get("type") if isinstance(document, Mapping) else None
+        )
         if question_type == "choice" and isinstance(criteria, Mapping):
             labels = {replace(label): label for label in criteria}
         elif question_type == "score" and isinstance(criteria, list):
@@ -143,13 +175,17 @@ def pseudonymize(
             labels, levels = answer_restore.get(key, ({}, {}))
             item = dict(answer)
             if item.get("type") == "choice":
-                item["choice"] = labels.get(item.get("choice"), item.get("choice"))
+                item["choice"] = labels.get(
+                    item.get("choice"), item.get("choice")
+                )
             if isinstance(item.get("probabilities"), dict):
                 item["probabilities"] = {
                     labels.get(label, label): probability
                     for label, probability in item["probabilities"].items()
                 }
-            if item.get("type") == "score" and isinstance(item.get("legend"), dict):
+            if item.get("type") == "score" and isinstance(
+                item.get("legend"), dict
+            ):
                 item["legend"] = {
                     label: levels.get(label, description)
                     for label, description in item["legend"].items()

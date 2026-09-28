@@ -23,13 +23,25 @@ class PatternResult(TypedDict):
 
 
 def _failure(message: str) -> PatternResult:
-    return {"candidates": [], "truncated": False, "tooLong": 0, "error": message}
+    return {
+        "candidates": [],
+        "truncated": False,
+        "tooLong": 0,
+        "error": message,
+    }
 
 
 def _match(document: str, pattern: str, flags: str) -> PatternResult:
     """Run only in the child: even compilation can consume the whole budget."""
     try:
-        flag_values = {"a": re.A, "i": re.I, "m": re.M, "s": re.S, "u": re.U, "x": re.X}
+        flag_values = {
+            "a": re.A,
+            "i": re.I,
+            "m": re.M,
+            "s": re.S,
+            "u": re.U,
+            "x": re.X,
+        }
         mask = 0
         for flag in flags:
             if flag == "g" or not "a" <= flag <= "z":
@@ -46,37 +58,56 @@ def _match(document: str, pattern: str, flags: str) -> PatternResult:
             if not value or value in seen:
                 continue
             seen.add(value)
-            if len(value.encode("utf-16-le", errors="surrogatepass")) > MAX_EXTRACT_CANDIDATE_CHARS * 2:
+            if (
+                len(value.encode("utf-16-le", errors="surrogatepass"))
+                > MAX_EXTRACT_CANDIDATE_CHARS * 2
+            ):
                 too_long += 1
                 continue
             if len(candidates) >= MAX_EXTRACT_CANDIDATES:
                 truncated = True
                 break
             candidates.append(value)
-        return {"candidates": candidates, "truncated": truncated, "tooLong": too_long}
+        return {
+            "candidates": candidates,
+            "truncated": truncated,
+            "tooLong": too_long,
+        }
     except (re.error, ValueError, OverflowError, RecursionError) as error:
         return _failure(str(error))
 
 
-async def run_regex(document: str, pattern: str, flags: str = "") -> PatternResult:
+async def run_regex(
+    document: str, pattern: str, flags: str = ""
+) -> PatternResult:
     """Return upstream's worker shape; timeout and cancellation reap the child."""
     process = await asyncio.create_subprocess_exec(
-        sys.executable, "-m", "backfire.patterns",
+        sys.executable,
+        "-m",
+        "backfire.patterns",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.DEVNULL,
     )
-    timeout_error = f"regex timed out after {REGEX_TIMEOUT_MS}ms; simplify the pattern"
+    timeout_error = (
+        f"regex timed out after {REGEX_TIMEOUT_MS}ms; simplify the pattern"
+    )
     try:
-        payload = json.dumps({"document": document, "pattern": pattern, "flags": flags}).encode()
+        payload = json.dumps(
+            {"document": document, "pattern": pattern, "flags": flags}
+        ).encode()
         try:
-            output, _ = await asyncio.wait_for(process.communicate(payload), REGEX_TIMEOUT_MS / 1000)
+            output, _ = await asyncio.wait_for(
+                process.communicate(payload), REGEX_TIMEOUT_MS / 1000
+            )
         except TimeoutError:
             return _failure(timeout_error)
         if process.returncode == -signal.SIGALRM:
             return _failure(timeout_error)
         if process.returncode:
-            return _failure(f"regex worker exited with code {process.returncode}")
+            return _failure(
+                f"regex worker exited with code {process.returncode}"
+            )
         return json.loads(output)
     finally:
         if process.returncode is None:
