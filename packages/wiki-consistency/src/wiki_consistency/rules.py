@@ -7,20 +7,26 @@ import re
 import unicodedata
 
 import yaml
+from yaml.nodes import MappingNode
+from yaml.nodes import ScalarNode
+
 from backfire.failures import JudgmentError
-from backfire_education.pseudonymize import compile_roster_pattern, find_spans
+from backfire_education.pseudonymize import compile_roster_pattern
+from backfire_education.pseudonymize import find_spans
 from backfire_education.roster import load_roster
 from doc_regions.config import files
-from doc_regions.regions import END, START, scan
-from yaml.nodes import MappingNode, ScalarNode
-
+from doc_regions.regions import END
+from doc_regions.regions import START
+from doc_regions.regions import scan
 
 _MESSAGES = {
     "phone": "pages hold no phone numbers",
     "email": "pages hold no email addresses",
     "id-number": "pages hold no resident or foreign registration numbers",
     "address": "pages hold no postal addresses",
-    "student-roster": "add the student to the backfire roster or fix the page name",
+    "student-roster": (
+        "add the student to the backfire roster or fix the page name"
+    ),
     "english": "write pages in English",
     "school": "write the school as its domain ID",
     "date": "write dates as YYYY-MM-DD",
@@ -49,7 +55,8 @@ _ROAD_ADDRESS = (
 )
 _LOT_ADDRESS = re.compile(rf"(?<![0-9]){_NUMBER}[ ]*번지(?![0-9])")
 _ROMANIZED_SCHOOL = re.compile(
-    r"(?<![A-Za-z])(?:[A-Z][A-Za-z]*[ ]+)+(?:Elementary|Middle|High)[ ]+School(?![A-Za-z])"
+    r"(?<![A-Za-z])(?:[A-Z][A-Za-z]*[ ]+)+"
+    r"(?:Elementary|Middle|High)[ ]+School(?![A-Za-z])"
 )
 _ISO_DATE = re.compile(r"(?<![0-9])[0-9]{4}-[0-9]{2}-[0-9]{2}(?![0-9])")
 _DATE_PATTERNS = (
@@ -70,7 +77,8 @@ _DATE_PATTERNS = (
         r"Oct|Nov|Dec)\.?(?:,?[ ]+[0-9]{4})?(?![A-Za-z0-9])"
     ),
     re.compile(
-        r"(?<![0-9])[0-9]{1,4}[ ]*년[ ]*[0-9]{1,2}[ ]*월(?:[ ]*[0-9]{1,2}[ ]*일)?(?![0-9])"
+        r"(?<![0-9])[0-9]{1,4}[ ]*년"
+        r"[ ]*[0-9]{1,2}[ ]*월(?:[ ]*[0-9]{1,2}[ ]*일)?(?![0-9])"
     ),
     re.compile(r"(?<![0-9])[0-9]{1,2}[ ]*월[ ]*[0-9]{1,2}[ ]*일(?![0-9])"),
 )
@@ -387,6 +395,14 @@ def _is_student_page(document):
 
 
 def check(root):
+    """Return page-rule violations found in Markdown files under the Wiki root.
+
+    Args:
+        root: Root directory of the Wiki instance.
+
+    Returns:
+        A list of page-rule findings.
+    """
     root = Path(root).resolve()
     try:
         paths = files(root, "wiki/**/*.md")
@@ -424,7 +440,10 @@ def check(root):
             {
                 "document": "wiki",
                 "line": 1,
-                "message": f"page rule roster: cannot read the roster: {roster_error}",
+                "message": (
+                    "page rule roster: cannot read the roster: "
+                    + f"{roster_error}"
+                ),
             }
         )
     student_names = {

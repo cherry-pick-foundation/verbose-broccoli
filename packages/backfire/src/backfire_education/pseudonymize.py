@@ -1,6 +1,7 @@
 """Replace education identifiers before a judgment reaches its provider."""
 
 from collections.abc import Callable, Mapping
+import importlib
 import re
 from typing import Any
 
@@ -16,6 +17,14 @@ __all__ = ["compile_roster_pattern", "find_spans", "pseudonymize"]
 def compile_roster_pattern(
     identifiers: Mapping[str, tuple[str, str]],
 ) -> re.Pattern[str] | None:
+    """Build a longest-first regex for roster identifiers.
+
+    Args:
+        identifiers: Map from roster text to its identifier kind and value.
+
+    Returns:
+        A compiled regex, or None when there are no identifiers.
+    """
     return (
         re.compile(
             "|".join(
@@ -35,7 +44,21 @@ def find_spans(
     identifiers: Mapping[str, tuple[str, str]],
     roster_pattern: re.Pattern[str] | None,
 ) -> list[tuple[int, int, tuple[str, str]]]:
-    import phonenumbers
+    """Find roster, phone, and email spans, merging overlapping matches.
+
+    Args:
+        text: Text to search.
+        identifiers: Map from roster text to its identifier kind and value.
+        roster_pattern: Compiled pattern for roster text, or None.
+
+    Returns:
+        A list of (start, stop, identifier) tuples; phone and email values are
+        normalized.
+
+    Raises:
+        ImportError: If the optional phonenumbers package is unavailable.
+    """
+    phonenumbers = importlib.import_module("phonenumbers")
 
     candidates = []
     if roster_pattern is not None:
@@ -102,7 +125,7 @@ def pseudonymize(
 ) -> tuple[Any, dict[str, Any], Callable[[dict], dict]]:
     """Return masked inputs and a call-local answer restoration function."""
     try:
-        import phonenumbers  # noqa: PLC0415  # Optional dependency.
+        importlib.import_module("phonenumbers")
     except ImportError:
         raise JudgmentError(
             "backend_not_configured", str(SHIPPED_CONFIG)

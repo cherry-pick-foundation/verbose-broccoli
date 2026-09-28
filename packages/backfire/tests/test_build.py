@@ -236,6 +236,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert backfire.returncode == 0, backfire.stderr

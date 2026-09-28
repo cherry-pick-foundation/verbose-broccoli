@@ -10,12 +10,10 @@ from typesafe_sdk import Score
 from backfire.config import SHIPPED_CONFIG
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
+from backfire_education.pseudonymize import compile_roster_pattern
+from backfire_education.pseudonymize import find_spans
+from backfire_education.pseudonymize import pseudonymize
 from backfire_education.roster import load_roster
-from backfire_education.pseudonymize import (
-    compile_roster_pattern,
-    find_spans,
-    pseudonymize,
-)
 
 
 @pytest.fixture
@@ -150,6 +148,7 @@ def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
     ],
 )
 def test_find_spans_keeps_roster_identifier_kinds(roster, text, identifier):
+    del roster  # Unused.
     identifiers = load_roster()
     pattern = compile_roster_pattern(identifiers)
 
@@ -159,6 +158,7 @@ def test_find_spans_keeps_roster_identifier_kinds(roster, text, identifier):
 
 
 def test_find_spans_normalizes_phone_spans(roster):
+    del roster  # Unused.
     text = "010-1234-5678"
     assert find_spans(text, load_roster(), None) == [
         (0, len(text), ("phone", "+821012345678"))
@@ -166,6 +166,7 @@ def test_find_spans_normalizes_phone_spans(roster):
 
 
 def test_find_spans_normalizes_email_spans(roster):
+    del roster  # Unused.
     text = "Synthetic.One+2@Example.test"
     assert find_spans(text, load_roster(), None) == [
         (0, len(text), ("email", "synthetic.one+2@example.test"))
@@ -173,6 +174,7 @@ def test_find_spans_normalizes_email_spans(roster):
 
 
 def test_find_spans_merges_overlaps_and_keeps_first_identifier(roster):
+    del roster  # Unused.
     identifiers = load_roster()
     text = "Ann Lee.one@example.test Tail!"
     pattern = compile_roster_pattern(identifiers)
@@ -183,6 +185,7 @@ def test_find_spans_merges_overlaps_and_keeps_first_identifier(roster):
 
 
 def test_find_spans_returns_empty_for_text_without_identifiers(roster):
+    del roster  # Unused.
     text = "Date 2026-09-28, score 85/100."
     identifiers = load_roster()
     pattern = compile_roster_pattern(identifiers)
@@ -191,6 +194,7 @@ def test_find_spans_returns_empty_for_text_without_identifiers(roster):
 
 
 def test_find_spans_checks_contacts_with_an_empty_identifier_map(roster):
+    del roster  # Unused.
     text = "010-1234-5678; Synthetic.One+2@Example.test"
 
     assert find_spans(text, {}, None) == [
