@@ -118,7 +118,7 @@ def test_changed_page_request_can_use_unchanged_candidate_units(tmp_path, monkey
             "line": _line_of(beta, "Quadratic equations have roots."), "score": 0.0, "mode": "vec",
         }]
 
-    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
     monkeypatch.setattr(requests.search, "search", semantic_search)
 
     result = _prepare(instance, cache)
@@ -191,6 +191,34 @@ def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(t
     assert not any(request["kind"] in {"pages", "crossref"} for request in result["requests"])
 
 
+def test_prepare_with_cached_model_and_pending_embeddings_skips_semantic_queries(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
+    monkeypatch.setattr(search, "EMBED_MODEL", "hf:synthetic/pending.gguf")
+    model_dir = cache / "qmd" / "models"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    (model_dir / "pending.gguf").touch()
+    captured = []
+
+    def capture_queries(wiki_id, cache, queries):
+        captured.extend(queries)
+        return []
+
+    monkeypatch.setattr(requests.search, "search", capture_queries)
+
+    result = _prepare(instance, cache, scope="lint", max_evidence_chars=32)
+
+    assert result["search"] == {
+        "keyword": True, "semantic": False, "not_searched": ["crossref", "pages"],
+    }
+    assert all(query["collection"] == "evidence" for query in captured)
+    assert any(request["kind"] == "evidence" for request in result["requests"])
+    assert not any(request["kind"] in {"pages", "crossref"} for request in result["requests"])
+
+
 def test_large_evidence_uses_matching_converted_passages(tmp_path):
     instance, env = make_instance(tmp_path, commit=True)
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
@@ -225,7 +253,7 @@ def test_page_candidates_keep_best_search_rank_before_sorting(tmp_path, monkeypa
     evidence.convert(instance, instance.name, cache, revisions(instance))
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
-    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
     def stub_search(wiki_id, cache, queries):
         return [
@@ -264,7 +292,7 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(tmp_path, monk
          "score": float(21 - index), "mode": "lex"}
         for index, path in enumerate([best, *paths])
     ]
-    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
     monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries: hits)
 
     result = requests.prepare(instance, instance.name, cache, scope="lint",
@@ -445,7 +473,7 @@ def test_collection_query_ids_keep_page_candidate_ranks_independent(tmp_path, mo
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
     captured = []
-    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
     def stub_search(wiki_id, cache, queries):
         captured.extend(queries)
@@ -514,6 +542,44 @@ def test_evidence_queries_cover_the_full_collection_limit(tmp_path, monkeypatch)
     evidence_queries = [query for query in captured if query["collection"] == "evidence"]
     assert evidence_queries
     assert all(query["limit"] >= document_count for query in evidence_queries)
+
+
+def test_evidence_search_is_limited_to_cited_files(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    assert update_regions(instance) == []
+    source = (instance / "raw" / "files" / SOURCE_ID / REVISIONS[-1]
+              / "data" / "document.txt")
+    source.write_text("Synthetic cited claim. " * 100, encoding="utf-8")
+    page = instance / "wiki" / "concepts" / "alpha.md"
+    page.write_text(page.read_text(encoding="utf-8").replace(
+        "See [the source](../sources/source.md).", "Synthetic cited claim."),
+        encoding="utf-8")
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    evidence_root = cache / "wiki-evidence" / instance.name / f"markitdown-{evidence.CONVERTER_VERSION}"
+    decoy = evidence_root / "decoy" / "extra.md"
+    decoy.parent.mkdir(parents=True)
+    decoy.write_text("Synthetic cited claim. " * 100, encoding="utf-8")
+    search.index(instance, instance.name, cache, download=False)
+    captured = []
+    real_search = search.search
+
+    def capture_search(wiki_id, cache, queries):
+        captured.extend(queries)
+        return real_search(wiki_id, cache, queries)
+
+    monkeypatch.setattr(requests.search, "search", capture_search)
+
+    requests.prepare(instance, instance.name, cache, scope="changed",
+                     max_evidence_chars=10, candidates=3)
+
+    evidence_queries = [query for query in captured if query["collection"] == "evidence"]
+    cited_path = f"{SOURCE_ID}/{REVISIONS[-1]}.md"
+    assert evidence_queries
+    assert all(query["allowed_paths"] == [cited_path] for query in evidence_queries)
+    hits = real_search(instance.name, cache, evidence_queries)
+    assert hits
+    assert {hit["path"] for hit in hits} == {cited_path}
 
 
 def test_overview_evidence_uses_linked_pages_and_path_ids(tmp_path):
@@ -607,7 +673,7 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(tmp_path, m
                     })
         return hits
 
-    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
     monkeypatch.setattr(requests.search, "search", semantic_search)
 
     result = _prepare(instance, cache, scope="lint")

@@ -337,8 +337,15 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
             queries.append({
                 "id": f"evidence:{unit['id']}", "text": unit["text"], "collection": "evidence",
                 "limit": evidence_limit,
+                "allowed_paths": sorted(
+                    f"{source_id}/{revision}.md"
+                    for source_id, revision in job["texts"]
+                ),
             })
-    semantic = search._model_is_cached(cache)
+    try:
+        semantic = search.semantic_ready(wiki_id, cache)
+    except LookupError as error:
+        raise ValueError(f"prepare requires index: {error}") from error
     page_query_ids = {}
     for unit in units:
         page_query_ids[unit["id"]] = f"pages:{unit['id']}"

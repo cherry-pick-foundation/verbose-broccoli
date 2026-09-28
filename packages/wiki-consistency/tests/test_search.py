@@ -111,7 +111,7 @@ def test_search_refuses_stale_document_paths_and_content_hashes(tmp_path, change
         )
 
 
-def test_search_refuses_unembedded_documents_when_semantic_model_is_cached(tmp_path, monkeypatch):
+def test_search_uses_keyword_when_cached_model_needs_embeddings(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
     search.index(instance, "wiki-a", cache, download=False)
     model_dir = cache / "qmd" / "models"
@@ -120,12 +120,81 @@ def test_search_refuses_unembedded_documents_when_semantic_model_is_cached(tmp_p
     model.touch()
     monkeypatch.setattr(search, "EMBED_MODEL", str(model))
 
-    with pytest.raises(LookupError, match="wiki-consistency index"):
-        search.search(
-            "wiki-a",
-            cache,
-            [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
-        )
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
+    )
+
+    assert any(hit["path"] == "concepts/quad.md" and hit["mode"] == "lex" for hit in hits)
+    assert not any(hit["mode"] == "vec" for hit in hits)
+
+
+def test_index_uses_index_health_after_failed_embedding(tmp_path, monkeypatch):
+    instance = tmp_path / "instance"
+    (instance / "wiki").mkdir(parents=True)
+    cache = tmp_path / "cache"
+    model_dir = cache / "qmd" / "models"
+    model_dir.mkdir(parents=True)
+    model_name = "synthetic-model.gguf"
+    (model_dir / model_name).touch()
+    monkeypatch.setattr(search, "EMBED_MODEL", f"hf:synthetic/{model_name}")
+    run_qmd = search._run_qmd
+
+    def fail_embedding(wiki_id, cache_root, args, *, budget_action):
+        if list(args) == ["embed"]:
+            raise subprocess.CalledProcessError(
+                1, "qmd embed", stderr="synthetic embedding failure"
+            )
+        return run_qmd(wiki_id, cache_root, args, budget_action=budget_action)
+
+    monkeypatch.setattr(search, "_run_qmd", fail_embedding)
+
+    result = search.index(instance, "wiki-a", cache, download=False)
+
+    assert result["semantic"] is True
+    assert result["semantic_error"] == "synthetic embedding failure"
+
+
+def test_index_and_search_match_qmd_document_scan_rules(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    wiki = instance / "wiki"
+    ignored = [
+        "concepts/build/x.md",
+        "node_modules/x.md",
+        ".cache/x.md",
+        "vendor/x.md",
+        "dist/x.md",
+        ".hidden.md",
+        "concepts/.hidden/x.md",
+    ]
+    for relative in ignored:
+        path = wiki / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# Synthetic ignored page\n", encoding="utf-8")
+    blank = wiki / "concepts" / "blank.md"
+    blank.write_text(" \n\t\n", encoding="utf-8")
+
+    result = search.index(instance, "wiki-a", cache, download=False)
+    assert result["pages"] == 1
+
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
+    )
+
+    assert any(hit["path"] == "concepts/quad.md" for hit in hits)
+
+
+def test_search_refuses_stale_evidence_converter_version(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    monkeypatch.setattr(evidence, "CONVERTER_VERSION", "synthetic-old-version")
+    search.index(instance, "wiki-a", cache, download=False)
+    monkeypatch.setattr(evidence, "CONVERTER_VERSION", "synthetic-new-version")
+
+    with pytest.raises(LookupError, match="index"):
+        search.search("wiki-a", cache, [])
 
 
 def test_model_cache_accepts_qmd_filename_and_rejects_partial_or_directory(tmp_path):

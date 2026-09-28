@@ -17,6 +17,7 @@ from wiki_consistency.evidence import _clean_on_signals, _component, _tree_size
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+_QMD_EXCLUDED_DIRS = {"node_modules", ".git", ".cache", "vendor", "dist", "build"}
 
 
 def _paths(wiki_id: str, cache: Path) -> tuple[Path, Path, Path]:
@@ -166,22 +167,20 @@ def index(
         _remove_index(index_path)
         raise
 
-    semantic = _model_is_cached(cache)
+    model_cached = _model_is_cached(cache)
     semantic_error = None
-    if semantic or download:
+    if model_cached or download:
         try:
             with _clean_on_signals():
                 _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
         except subprocess.CalledProcessError as error:
-            semantic = False
             detail = error.stderr or error.stdout or str(error)
             semantic_error = " ".join(str(detail).split()) or str(error)
-        else:
-            semantic = True
+    semantic = semantic_ready(wiki_id, cache)
 
     return {
-        "pages": _markdown_count(wiki_root),
-        "evidence": _markdown_count(evidence_root),
+        "pages": len(_current_documents(wiki_root)),
+        "evidence": len(_current_documents(evidence_root)),
         "semantic": semantic,
         "semantic_error": semantic_error,
     }
@@ -200,14 +199,51 @@ def _relative_path(filepath: str, collection: str, root: Path) -> str:
 def _current_documents(root: Path) -> list[dict[str, str]]:
     if not root.is_dir():
         return []
-    return [
-        {
-            "path": path.relative_to(root).as_posix(),
-            "hash": hashlib.sha256(path.read_bytes()).hexdigest(),
-        }
-        for path in sorted(root.rglob("*.md"))
-        if path.is_file()
-    ]
+    # Match qmd 2.8.3 store.js:1256-1272,1307-1310: hidden and excluded
+    # paths are skipped, as are files whose decoded contents are whitespace.
+    documents = []
+    for path in sorted(root.rglob("*.md")):
+        relative = path.relative_to(root)
+        if not path.is_file() or any(
+            part.startswith(".") or part in _QMD_EXCLUDED_DIRS for part in relative.parts
+        ):
+            continue
+        content = path.read_bytes().decode("utf-8", errors="replace")
+        if content.strip():
+            documents.append({
+                "path": relative.as_posix(),
+                "hash": hashlib.sha256(content.encode("utf-8")).hexdigest(),
+            })
+    return documents
+
+
+def _run_search_mjs(wiki_id: str, cache: Path, payload: Mapping[str, object]) -> dict[str, object]:
+    _, index_path, _ = _paths(wiki_id, cache)
+    if not index_path.is_file():
+        raise LookupError(f"qmd index is missing; run wiki-consistency index for {wiki_id}")
+    environment = _environment(cache)
+    environment["QMD_SEMANTIC_AVAILABLE"] = "1" if _model_is_cached(cache) else "0"
+    process = subprocess.run(
+        ["node", str(Path(__file__).with_name("search.mjs")), str(index_path.resolve())],
+        cwd=Path(__file__).resolve().parents[2],
+        env=environment,
+        input=json.dumps(payload, ensure_ascii=False),
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    result = json.loads(process.stdout)
+    if "error" in result:
+        raise LookupError(result["error"])
+    return result
+
+
+def semantic_ready(wiki_id: str, cache: Path) -> bool:
+    """Return whether the cached model and qmd index health allow vector search."""
+    cache = Path(cache)
+    if not _model_is_cached(cache):
+        return False
+    return bool(_run_search_mjs(wiki_id, cache, {"operation": "semantic"})["semantic"])
 
 
 def search(
@@ -226,6 +262,12 @@ def search(
             raise ValueError("search collection must be pages or evidence")
         if not isinstance(query.get("text"), str) or not query["text"].strip():
             raise ValueError("search query text must be non-empty")
+        allowed_paths = query.get("allowed_paths")
+        if allowed_paths is not None and (
+            not isinstance(allowed_paths, list)
+            or any(not isinstance(path, str) for path in allowed_paths)
+        ):
+            raise ValueError("evidence allowed paths must be a list of strings")
 
     configured = _collections(config_path)
     try:
@@ -237,25 +279,24 @@ def search(
         raise LookupError(
             f"qmd collection config is missing; run wiki-consistency index for {wiki_id}"
         ) from error
+    expected_evidence_root = (
+        cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
+    ).resolve()
+    if roots["evidence"].resolve() != expected_evidence_root:
+        raise LookupError(
+            f"qmd evidence collection uses a different markitdown version; "
+            f"run wiki-consistency index for {wiki_id}"
+        )
 
     expected_documents = {
         name: _current_documents(root)
         for name, root in roots.items()
     }
-    environment = _environment(cache)
-    environment["QMD_SEMANTIC_AVAILABLE"] = "1" if _model_is_cached(cache) else "0"
-    process = subprocess.run(
-        ["node", str(Path(__file__).with_name("search.mjs")), str(index_path.resolve())],
-        cwd=Path(__file__).resolve().parents[2],
-        env=environment,
-        input=json.dumps({"queries": queries, "documents": expected_documents}, ensure_ascii=False),
-        check=True,
-        capture_output=True,
-        text=True,
+    result = _run_search_mjs(
+        wiki_id,
+        cache,
+        {"queries": queries, "documents": expected_documents},
     )
-    result = json.loads(process.stdout)
-    if "error" in result:
-        raise LookupError(result["error"])
     raw_hits = result["hits"]
     hits: list[dict[str, object]] = []
     for hit in raw_hits:
