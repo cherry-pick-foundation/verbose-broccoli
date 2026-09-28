@@ -325,13 +325,17 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
             })
 
     queries = []
+    try:
+        evidence_chunks = search._collection_chunk_count(wiki_id, cache, "evidence")
+    except LookupError as error:
+        raise ValueError(f"prepare requires index: {error}") from error
     evidence_limit = max(
         20,
         candidates * 4,
         search._markdown_count(
             cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
         ),
-        search._collection_chunk_count(wiki_id, cache, "evidence"),
+        evidence_chunks,
     )
     for job in passage_jobs:
         for unit in job["units"]:

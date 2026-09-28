@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from contextlib import closing
 import json
 import os
-import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Mapping, Sequence
@@ -136,22 +134,10 @@ def _markdown_count(root: Path) -> int:
 
 
 def _collection_chunk_count(wiki_id: str, cache: Path, collection: str) -> int:
-    _, index_path, _ = _paths(wiki_id, cache)
-    if not index_path.is_file():
-        return 0
-    try:
-        with closing(sqlite3.connect(
-            f"{index_path.resolve().as_uri()}?mode=ro&immutable=1", uri=True
-        )) as database:
-            return int(database.execute(
-                "SELECT COUNT(DISTINCT vectors.hash || '_' || vectors.seq) "
-                "FROM content_vectors AS vectors "
-                "JOIN documents ON documents.hash = vectors.hash AND documents.active = 1 "
-                "WHERE documents.collection = ?",
-                (collection,),
-            ).fetchone()[0])
-    except sqlite3.Error:
-        return 0
+    result = _run_search_mjs(
+        wiki_id, cache, {"operation": "chunk-count", "collection": collection}
+    )
+    return int(result["count"])
 
 
 def index(

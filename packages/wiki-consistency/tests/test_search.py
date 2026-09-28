@@ -153,6 +153,58 @@ def test_search_refuses_stale_document_paths_and_content_hashes(tmp_path, change
         )
 
 
+def test_search_stale_error_lists_sorted_paths_and_counts_rest(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    pages = instance / "wiki" / "concepts"
+    for name in ("a-changed", "b-whitespace", "c-whitespace"):
+        (pages / f"{name}.md").write_text(
+            f"# {name}\n\nSynthetic {name} page.\n", encoding="utf-8"
+        )
+    search.index(instance, "wiki-a", cache, download=False)
+
+    (pages / "a-changed.md").write_text("# Changed\n\nFirst changed text.\n", encoding="utf-8")
+    for name in ("b-whitespace", "c-whitespace"):
+        (pages / f"{name}.md").write_text(" \t\n", encoding="utf-8")
+    search.index(instance, "wiki-a", cache, download=False)
+    (pages / "a-changed.md").write_text("# Changed again\n\nSecond changed text.\n", encoding="utf-8")
+    for name in ("d-added", "e-added", "f-added", "g-added", "h-added", "i-added", "j-added"):
+        (pages / f"{name}.md").write_text(f"# {name}\n\nSynthetic {name} page.\n", encoding="utf-8")
+
+    with pytest.raises(LookupError) as error:
+        search.search(
+            "wiki-a",
+            cache,
+            [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
+        )
+
+    assert str(error.value) == (
+        "qmd pages collection is stale; changed: concepts/a-changed.md, "
+        "missing: concepts/b-whitespace.md, missing: concepts/c-whitespace.md, "
+        "added: concepts/d-added.md, added: concepts/e-added.md, 5 more; "
+        "run wiki-consistency index"
+    )
+
+
+def test_collection_chunk_count_propagates_qmd_errors(tmp_path, monkeypatch):
+    index_path = tmp_path / "cache" / "qmd" / "wiki-a.sqlite"
+    index_path.parent.mkdir(parents=True)
+    index_path.touch()
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("synthetic qmd error")
+
+    monkeypatch.setattr(search, "_run_search_mjs", fail)
+
+    with pytest.raises(RuntimeError, match="synthetic qmd error"):
+        search._collection_chunk_count("wiki-a", tmp_path / "cache", "evidence")
+
+
+def test_qmd_internal_import_documents_pinned_version():
+    source = Path(search.__file__).with_name("search.mjs").read_text(encoding="utf-8")
+
+    assert "// Relies on qmd 2.8.3's internal module; qmd exports no scan helper." in source
+
+
 def test_search_uses_keyword_when_cached_model_needs_embeddings(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
     search.index(instance, "wiki-a", cache, download=False)

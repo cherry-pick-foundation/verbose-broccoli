@@ -1,6 +1,7 @@
 import {existsSync, readFileSync} from 'node:fs';
 import fastGlob from 'fast-glob';
 import {createStore, extractSnippet} from '@tobilu/qmd';
+// Relies on qmd 2.8.3's internal module; qmd exports no scan helper.
 import {
   getRealPath,
   hashContent,
@@ -26,6 +27,7 @@ const {
   operation = 'search',
   queries = [],
   roots = {},
+  collection,
 } = JSON.parse(input || '{"queries":[],"roots":{}}');
 const store = await createStore({dbPath: process.argv[2]});
 
@@ -70,6 +72,16 @@ async function semanticReady() {
 try {
   if (operation === 'semantic') {
     process.stdout.write(JSON.stringify({semantic: await semanticReady()}));
+  } else if (operation === 'chunk-count') {
+    const result = store.internal.db
+      .prepare(
+        "SELECT COUNT(DISTINCT vectors.hash || '_' || vectors.seq) AS count " +
+          'FROM content_vectors AS vectors ' +
+          'JOIN documents ON documents.hash = vectors.hash AND documents.active = 1 ' +
+          'WHERE documents.collection = ?',
+      )
+      .get(collection);
+    process.stdout.write(JSON.stringify({count: Number(result.count)}));
   } else if (operation === 'counts') {
     const counts = {};
     for (const name of ['pages', 'evidence']) {
@@ -104,12 +116,43 @@ try {
       const lookupErrors = errors.filter(
         error => !error.startsWith(`No files matched pattern: ${pattern}`),
       );
+      const expectedByPath = new Map(
+        expected.map(({path, hash}) => [path, hash]),
+      );
+      const differences = [];
+      for (const [path, hash] of expectedByPath) {
+        if (!indexed.has(path)) differences.push({kind: 'added', path});
+        else if (indexed.get(path) !== hash)
+          differences.push({kind: 'changed', path});
+      }
+      for (const path of indexed.keys()) {
+        if (!expectedByPath.has(path))
+          differences.push({kind: 'missing', path});
+      }
+      differences.sort((left, right) =>
+        left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
+      );
       if (
         lookupErrors.length ||
         indexed.size !== expected.length ||
-        expected.some(document => indexed.get(document.path) !== document.hash)
+        differences.length
       ) {
-        error = `qmd ${name} collection is stale; run wiki-consistency index`;
+        const details = differences
+          .slice(0, 5)
+          .map(({kind, path}) => `${kind}: ${path}`);
+        if (differences.length > details.length) {
+          details.push(`${differences.length - details.length} more`);
+        }
+        if (!details.length) {
+          details.push(
+            lookupErrors.length
+              ? `${lookupErrors.length} lookup errors`
+              : 'document counts differ',
+          );
+        }
+        error =
+          `qmd ${name} collection is stale; ${details.join(', ')}; ` +
+          'run wiki-consistency index';
         break;
       }
     }

@@ -253,6 +253,7 @@ def test_page_candidates_keep_best_search_rank_before_sorting(tmp_path, monkeypa
     assert update_regions(instance) == []
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
     evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
@@ -288,6 +289,7 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(tmp_path, monk
     assert update_regions(instance) == []
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
     evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
     hits = [
         {"query": "crossref:wiki/concepts/alpha.md", "collection": "pages",
          "path": f"concepts/{path.stem}.md", "line": _line_of(path, "Synthetic candidate content."),
@@ -319,6 +321,7 @@ def test_passage_selection_uses_best_ranked_fitting_passage(tmp_path, monkeypatc
     assert update_regions(instance) == []
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
     evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
 
@@ -570,6 +573,39 @@ def test_evidence_query_limit_covers_qmd_embedding_chunks(tmp_path, monkeypatch)
 
     requests.prepare(instance, instance.name, cache, scope="changed",
                      max_evidence_chars=1, candidates=3)
+
+    evidence_queries = [query for query in captured if query["collection"] == "evidence"]
+    assert evidence_queries
+    assert all(query["limit"] >= 50 for query in evidence_queries)
+
+
+def test_evidence_query_limit_includes_chunks_in_qmd_wal(tmp_path, monkeypatch):
+    instance, cache, _ = _ready(tmp_path)
+    index_path = cache / "qmd" / f"{instance.name}.sqlite"
+    database = sqlite3.connect(index_path)
+    database.execute("PRAGMA journal_mode = WAL")
+    content_hash = database.execute(
+        "SELECT hash FROM documents WHERE collection = 'evidence' AND active = 1 LIMIT 1"
+    ).fetchone()[0]
+    database.executemany(
+        "INSERT INTO content_vectors "
+        "(hash, seq, pos, model, embed_fingerprint, total_chunks, embedded_at) "
+        "VALUES (?, ?, 0, 'synthetic', 'synthetic', 50, 'synthetic')",
+        [(content_hash, sequence) for sequence in range(50)],
+    )
+    database.commit()
+    captured = []
+    monkeypatch.setattr(
+        requests.search,
+        "search",
+        lambda wiki_id, cache_root, queries, **kwargs: captured.extend(queries) or [],
+    )
+
+    try:
+        requests.prepare(instance, instance.name, cache, scope="changed",
+                         max_evidence_chars=1, candidates=3)
+    finally:
+        database.close()
 
     evidence_queries = [query for query in captured if query["collection"] == "evidence"]
     assert evidence_queries
