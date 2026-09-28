@@ -441,8 +441,7 @@ def check(root):
                 "document": "wiki",
                 "line": 1,
                 "message": (
-                    "page rule roster: cannot read the roster: "
-                    + f"{roster_error}"
+                    f"page rule roster: cannot read the roster: {roster_error}"
                 ),
             }
         )

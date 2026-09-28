@@ -1,7 +1,6 @@
 """Replace education identifiers before a judgment reaches its provider."""
 
 from collections.abc import Callable, Mapping
-import importlib
 import re
 from typing import Any
 
@@ -58,7 +57,7 @@ def find_spans(
     Raises:
         ImportError: If the optional phonenumbers package is unavailable.
     """
-    phonenumbers = importlib.import_module("phonenumbers")
+    import phonenumbers  # noqa: PLC0415  # Optional dependency.
 
     candidates = []
     if roster_pattern is not None:
@@ -125,7 +124,7 @@ def pseudonymize(
 ) -> tuple[Any, dict[str, Any], Callable[[dict], dict]]:
     """Return masked inputs and a call-local answer restoration function."""
     try:
-        importlib.import_module("phonenumbers")
+        import phonenumbers  # noqa: F401, PLC0415  # Availability check for the optional dependency.
     except ImportError:
         raise JudgmentError(
             "backend_not_configured", str(SHIPPED_CONFIG)
