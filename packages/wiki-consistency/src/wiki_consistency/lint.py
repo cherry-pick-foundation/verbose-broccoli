@@ -11,7 +11,7 @@ from doc_regions.config import files
 from doc_regions.regions import check as check_regions
 from doc_regions.regions import scan, shape, update as update_regions
 
-from wiki_consistency.instance import mask_front_matter, pages, revisions
+from wiki_consistency.instance import declared_topics, mask_front_matter, pages, revisions
 
 
 GENERATORS = "wiki_consistency.sources"
@@ -124,6 +124,30 @@ def _page_findings(root, page_list, revision_map):
     return problems, stale
 
 
+def _topic_problems(root, page_list):
+    declared, schema_problems = declared_topics(root)
+    problems = [
+        _problem("AGENTS.md", item["line"], item["message"])
+        for item in schema_problems
+    ]
+    if schema_problems:
+        return problems
+
+    declared = set(declared)
+    for page in page_list:
+        if page["special"]:
+            continue
+        problems.extend(
+            _problem(
+                page["path"], 1,
+                f"page topic is not declared in AGENTS.md: {topic}",
+            )
+            for topic in page["topics"]
+            if topic not in declared
+        )
+    return problems
+
+
 def _orphans(page_list, markdown, root):
     content_pages = [page["path"] for page in page_list
                      if not page["special"] and page["path"] != "wiki/index.md"]
@@ -189,6 +213,7 @@ def check(instance):
 
     problems.extend(_index_shape(root))
     page_list = pages(root)
+    problems.extend(_topic_problems(root, page_list))
     revision_map = revisions(root)
     page_problems, stale = _page_findings(root, page_list, revision_map)
     problems.extend(page_problems)
@@ -205,6 +230,16 @@ def check(instance):
 
 def update(instance):
     root = Path(instance).resolve()
+    page_list = pages(root)
+    topic_problems = _topic_problems(root, page_list)
+    topic_problems.extend(
+        _problem(page["path"], item["line"], item["message"])
+        for page in page_list
+        if not page["special"] and not page["topics"]
+        for item in page["problems"]
+    )
+    if topic_problems:
+        return {"problems": topic_problems}
     problems = _index_shape(root)
     if problems:
         return {"problems": problems}

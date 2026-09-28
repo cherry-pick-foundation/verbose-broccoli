@@ -194,17 +194,22 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   which stays unchanged; student names keep the roster's spelling so backfire
   still replaces them, a school is written as its domain ID, and a short
   direct quote may stay next to its translation.
-- Pages carry YAML front matter with a title, a one-line summary and the
-  source revisions they cite. `index.md` is one mechanical region,
-  `page_catalog`, built from that metadata; a source page may hold a
-  `source_provenance` region built from its bags. `overview.md` is written by
-  the agent, and `log.md` is append-only and never judged.
+- Pages carry YAML front matter with a title, a one-line summary, the
+  source revisions they cite and one or more topics. A vault groups its
+  pages by topic instead of splitting into more vaults; the front matter of
+  its `AGENTS.md` declares the topics its pages may list, and the layer
+  folders stay as they are. `index.md` is one mechanical region,
+  `page_catalog`, built from that metadata, which lists the pages under a
+  heading per topic; a source page may hold a `source_provenance` region
+  built from its bags. `overview.md` is written by the agent, and `log.md`
+  is append-only and never judged.
 - `check` runs before every commit of the instance. It fails on a stale or
   malformed region, a broken link (lychee, offline), missing or unresolvable
-  page metadata, a cited bag that fails BagIt's fast validation, or a changed
-  earlier `log.md` entry, and it lists orphan pages and citations of
-  non-latest revisions. It writes nothing, uses no network and needs no
-  cache. `update` regenerates stale regions.
+  page metadata, a missing or malformed topic list in `AGENTS.md`, a page
+  topic that list does not declare, a cited bag that fails BagIt's fast
+  validation, or a changed earlier `log.md` entry, and it lists orphan pages
+  and citations of non-latest revisions. It writes nothing, uses no network
+  and needs no cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown with markitdown 0.1.8 under
