@@ -68,6 +68,9 @@ repository or into Orca or Linear messages.
     requests failed at the provider and succeeded on retry; 6 judgments
     used 146,370 input and 34,841 output tokens. The audit's 19
     constitution warnings are unchanged.
+  - 2026-09-29: A second fresh Codex reviewer (`gpt-6-luna`, max effort)
+    reviewed `e8078e4` and found one minor issue, fixed in `a71382f`: the
+    `wiki-consistency` skill's sentence now names the quote exception.
 
 ## Phase 3: After the finish (US2)
 
