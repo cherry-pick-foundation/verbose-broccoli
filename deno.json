@@ -4,8 +4,8 @@
   "exclude": ["tools/", "scripts/vendor/"],
   "tasks": {
     "doctor": {
-      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, the Spec Kit environment and locked dependencies",
-      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git scripts/doctor.ts"
+      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, the Spec Kit and doc-regions environments and locked dependencies",
+      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",
@@ -30,6 +30,23 @@
     "backfire:eval": "uv run --project packages/backfire --frozen --offline --no-sync python -m backfire_tools.acceptance.evaluate",
     "test:backfire": "(test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m 'not slow'",
     "test:backfire-slow": "(test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m slow",
+    "doc-regions:check": {
+      "description": "Check mechanical regions and local links in the target documents, offline and without writing",
+      "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions check scripts/doc_regions.toml"
+    },
+    "doc-regions:update": {
+      "description": "Regenerate stale mechanical regions in the target documents",
+      "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions update scripts/doc_regions.toml"
+    },
+    "doc-regions:prepare": {
+      "description": "Print backfire requests for the agent regions before a develop merge review (pass --base and --max-evidence-chars)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions prepare scripts/doc_regions.toml"
+    },
+    "doc-regions:audit": {
+      "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
+      "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --no-sync doc-regions audit scripts/doc_regions.toml"
+    },
+    "test:doc-regions": "(test -f packages/doc-regions/.venv/bin/pytest || (echo 'Missing doc-regions environment. Run uv sync --locked --project packages/doc-regions.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
     "check": {
       "dependencies": [
         "doctor",
@@ -40,7 +57,8 @@
         "clean-code",
         "clean-architecture",
         "test",
-        "docs:check"
+        "docs:check",
+        "doc-regions:check"
       ]
     },
     "lint:fix": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --write --error-on-warnings .",
@@ -59,12 +77,15 @@
         "test:workflow",
         "test:cli-contract",
         "test:docs",
-        "test:backfire"
+        "test:backfire",
+        "test:doc-regions",
+        "test:wiki-raw-import"
       ]
     },
     "docs:generate": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-write=docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts generate",
     "docs:check": "deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts check",
-    "test:docs": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts"
+    "test:docs": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts",
+    "test:wiki-raw-import": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/wiki_raw_import_test.ts"
   },
   "fmt": { "singleQuote": true },
   "compilerOptions": {
