@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "items": {
+      "minItems": 1,
+      "maxItems": 64,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text"],
+        "additionalProperties": false
+      },
+      "description": "Items to classify. Text is truncated at 2000 characters; send bounded excerpts, not whole documents."
+    },
+    "classes": {
+      "minItems": 2,
+      "maxItems": 250,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["description"],
+        "additionalProperties": false
+      },
+      "description": "Shared class catalog. Strong descriptions carry the decision: a precise definition, what belongs, what does not, precedence over overlapping classes, and a short example."
+    },
+    "purpose": {
+      "description": "What this classification is for; shared across all items.",
+      "type": "string"
+    },
+    "context": {
+      "description": "Shared context available to every item's judgment: policies, catalogs, anything stable.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {}
+        }
+      ]
+    },
+    "auto_accept": {
+      "description": "Minimum top probability for auto. Default 0.85.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "minimum_margin": {
+      "description": "Minimum winner-to-runner-up gap for auto. Default 0.5.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  },
+  "required": ["items", "classes"],
+  "additionalProperties": false
+}

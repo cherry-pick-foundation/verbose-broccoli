@@ -27,12 +27,18 @@ const versions = {
   lychee: '0.24.2',
 };
 type Tool = keyof typeof versions;
+interface NpmLock {
+  lockfileVersion?: number;
+  packages?: Record<string, {version?: string}>;
+}
 interface Options {
   deno?: string;
   quarto?: string;
   uv?: string;
   gitFlow?: string;
   git?: string;
+  node?: string;
+  npm?: string;
   report?: string;
 }
 
@@ -79,7 +85,11 @@ export async function probeVersion(path: string, tool: Tool) {
   return version;
 }
 
-async function checkUvEnvironment(uv: string, project: string) {
+async function checkUvEnvironment(
+  uv: string,
+  project: string,
+  repair = `uv sync --locked --project ${project}`,
+) {
   const result = await new Deno.Command(uv, {
     args: ['sync', '--locked', '--check', '--project', project],
     cwd: fromFileUrl(new URL('../', import.meta.url)),
@@ -89,12 +99,79 @@ async function checkUvEnvironment(uv: string, project: string) {
   }).output();
   if (!result.success)
     throw new Error(
-      `${project} environment is missing or out of sync with uv.lock; run uv sync --locked --project ${project}.`,
+      `${project} environment is missing or out of sync with uv.lock; run ${repair}.`,
     );
   return {
     project,
     python: `${project}/.venv/bin/python`,
     sync: 'PASS' as const,
+  };
+}
+
+async function probeNodeVersion(path: string) {
+  let result: Deno.CommandOutput;
+  try {
+    result = await new Deno.Command(path, {
+      args: ['--version'],
+      signal: AbortSignal.timeout(5000),
+      stdout: 'piped',
+      stderr: 'null',
+    }).output();
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound)
+      throw new Error(
+        'Node.js 22 or later is required, but node was not found.',
+      );
+    throw error;
+  }
+  if (!result.success || result.stdout.length > 4096)
+    throw new Error('node version probe failed');
+  const output = new TextDecoder().decode(result.stdout).trim();
+  const version = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(output);
+  if (!version) throw new Error('node version probe failed');
+  if (Number(version[1]) < 22)
+    throw new Error(`Node.js 22 or later is required (found ${output}).`);
+  return output.replace(/^v/, '');
+}
+
+export async function checkNpmEnvironment(npm: string, project: string) {
+  const root = fromFileUrl(new URL('../', import.meta.url));
+  const result = await new Deno.Command(npm, {
+    args: ['ls', '--all', '--prefix', project],
+    cwd: root,
+    signal: AbortSignal.timeout(30_000),
+    stdout: 'null',
+    stderr: 'null',
+  }).output();
+  const message = `${project} node_modules is missing or out of sync with package-lock.json; run deno task wiki-consistency:install.`;
+  if (!result.success) throw new Error(message);
+  try {
+    const [lockText, installedText] = await Promise.all([
+      Deno.readTextFile(resolve(root, project, 'package-lock.json')),
+      Deno.readTextFile(
+        resolve(root, project, 'node_modules', '.package-lock.json'),
+      ),
+    ]);
+    const lock = JSON.parse(lockText) as NpmLock;
+    const installed = JSON.parse(installedText) as NpmLock;
+    if (
+      lock.lockfileVersion !== installed.lockfileVersion ||
+      !lock.packages ||
+      !installed.packages ||
+      Object.entries(installed.packages).some(
+        ([path, pkg]) =>
+          pkg.version !== undefined &&
+          lock.packages?.[path]?.version !== pkg.version,
+      )
+    )
+      throw new Error(message);
+  } catch {
+    throw new Error(message);
+  }
+  return {
+    project,
+    nodeModules: `${project}/node_modules`,
+    npm: 'PASS' as const,
   };
 }
 
@@ -175,12 +252,18 @@ export async function runDoctor(options: Options = {}) {
     ? await executable(options.gitFlow, 'git-flow')
     : {selected: 'git-flow', canonical: 'git-flow'};
   const lychee = {selected: defaults.lychee, canonical: defaults.lychee};
+  const node = {
+    selected: options.node ?? 'node',
+    canonical: options.node ?? 'node',
+  };
+  const npm = options.npm ?? 'npm';
   const [
     denoVersion,
     quartoVersion,
     uvVersion,
     gitFlowVersion,
     lycheeVersion,
+    nodeVersion,
     lock,
   ] = await Promise.all([
     probeVersion(deno.canonical, 'deno'),
@@ -188,6 +271,7 @@ export async function runDoctor(options: Options = {}) {
     probeVersion(uv.canonical, 'uv'),
     probeVersion(gitFlow.canonical, 'git-flow'),
     probeVersion(lychee.canonical, 'lychee'),
+    probeNodeVersion(node.canonical),
     dependencies(),
   ]);
   const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
@@ -195,6 +279,14 @@ export async function runDoctor(options: Options = {}) {
     uv.canonical,
     'packages/doc-regions',
   );
+  const wikiConsistency = {
+    ...(await checkUvEnvironment(
+      uv.canonical,
+      'packages/wiki-consistency',
+      'deno task wiki-consistency:install',
+    )),
+    ...(await checkNpmEnvironment(npm, 'packages/wiki-consistency')),
+  };
   const gitFlowConfig = await checkGitFlowConfig(gitFlow.canonical);
   const gitHooksPath = await checkGitHooksPath(options.git ?? 'git');
   const report = {
@@ -205,9 +297,11 @@ export async function runDoctor(options: Options = {}) {
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
     lychee: {...lychee, version: lycheeVersion},
+    node: {...node, version: nodeVersion},
     gitHooksPath,
     specKit,
     docRegions,
+    wikiConsistency,
     lock,
   };
   if (options.report)

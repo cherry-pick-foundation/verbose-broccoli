@@ -4,8 +4,8 @@
   "exclude": ["tools/", "scripts/vendor/"],
   "tasks": {
     "doctor": {
-      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, the Spec Kit and doc-regions environments and locked dependencies",
-      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee scripts/doctor.ts"
+      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, doc-regions and wiki-consistency environments and locked dependencies",
+      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",
@@ -46,6 +46,8 @@
       "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
       "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --no-sync doc-regions audit scripts/doc_regions.toml"
     },
+    "wiki-consistency:install": "uv sync --locked --project packages/wiki-consistency && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
+    "test:wiki-consistency": "(test -f packages/wiki-consistency/.venv/bin/pytest || (echo 'Missing wiki-consistency environment. Run deno task wiki-consistency:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/wiki-consistency --frozen --offline --no-sync pytest packages/wiki-consistency/tests",
     "test:doc-regions": "(test -f packages/doc-regions/.venv/bin/pytest || (echo 'Missing doc-regions environment. Run uv sync --locked --project packages/doc-regions.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
     "check": {
       "dependencies": [
@@ -79,6 +81,7 @@
         "test:docs",
         "test:backfire",
         "test:doc-regions",
+        "test:wiki-consistency",
         "test:wiki-raw-import"
       ]
     },
