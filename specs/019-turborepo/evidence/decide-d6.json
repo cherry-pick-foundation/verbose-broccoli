@@ -1,0 +1,99 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the three Python packages get their environments once they are members of one root uv workspace, given that egg_base='.venv' and the readiness check assume a package-local .venv?",
+  "evidence": "Found by syncing a throwaway shared workspace (develop session, 2026-09-29): (a) egg_base='.venv' in each packages/*/pyproject.toml makes uv sync fail in a workspace whose environment is the root .venv, because the package-local .venv directory does not exist; (b) removing egg_base makes built plugins (setuptools backend) write src/*.egg-info, and packages/backfire/tests/test_load.py:78 (built copies write nothing outside .venv) fails; (c) packages/backfire/src/backfire/ready.py:77 requires Path(sys.prefix) == packages/backfire/.venv and runs 'uv sync --project <package> --check --frozen --offline'; tests test_entry.py:32, test_ready.py:105 and :138 fail with a root .venv; (e) scripts/doctor.ts:88 runs 'uv sync --locked --check --project <package>' per package. On toy projects: uv_build as the build backend wrote nothing outside .venv, kept .toml and .mjs package data, and installed when one listed module was missing (the code build leaves out backfire_education); UV_PROJECT_ENVIRONMENT kept a per-package venv inside a workspace, with egg_base working and 'uv sync --package X --check' passing. Turborepo's Python support runs its inferred tasks as 'uv run --active --frozen --package <name> ...', which uses the active or root environment; builds whose only build requirement is uv_build are cacheable by default, other backends default to cache:false. In a shared root .venv synced with --all-packages, a per-member exact 'uv sync --check' reports packages to uninstall, so whole-workspace checks are needed.",
+  "candidates": [
+   {
+    "id": "uv_build_root_venv",
+    "description": "Switch the three packages' build backend from setuptools to uv_build and drop egg_base; use the one root .venv synced with --all-packages; change ready.py to accept the environment of the uv project that contains it (the root .venv in the repository, the copy's own .venv in a built plugin) and change the doctor and readiness sync checks to whole-workspace checks."
+   },
+   {
+    "id": "per_package_env",
+    "description": "Keep setuptools and egg_base; give each member its own environment with UV_PROJECT_ENVIRONMENT=packages/<name>/.venv in every task that runs it, so ready.py and the per-package doctor checks stay as they are; there is no shared root .venv."
+   },
+   {
+    "id": "uv_build_backfire_env",
+    "description": "Switch all three to uv_build and drop egg_base; doc-regions and wiki-consistency use the root .venv, while backfire keeps packages/backfire/.venv through UV_PROJECT_ENVIRONMENT so ready.py stays unchanged."
+   }
+  ],
+  "requirements": [
+   "Built plugins still write nothing outside their own .venv.",
+   "A built plugin's readiness still proves the server runs from that copy's own .venv.",
+   "Works with Turborepo's inferred uv tasks without setting a per-task environment variable."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "uv_build_root_venv",
+   "escaped": false,
+   "confidence": 0.76,
+   "probabilities": {
+    "uv_build_root_venv": 0.8,
+    "per_package_env": 0.04,
+    "uv_build_backfire_env": 0.05,
+    "ask_user": 0.02,
+    "investigate": 0.05,
+    "none": 0.04
+   }
+  },
+  "requirements_checked": 3,
+  "checks": [
+   {
+    "candidate": "uv_build_root_venv",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "uv_build_root_venv",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "uv_build_root_venv",
+    "requirement": 2,
+    "answer": "supported"
+   },
+   {
+    "candidate": "per_package_env",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "per_package_env",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "per_package_env",
+    "requirement": 2,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "uv_build_backfire_env",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "uv_build_backfire_env",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "uv_build_backfire_env",
+    "requirement": 2,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 3298,
+   "output_tokens": 6483
+  }
+ }
+}

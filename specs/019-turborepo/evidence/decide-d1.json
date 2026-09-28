@@ -1,0 +1,99 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the repository's TypeScript scripts and tests (scripts/*.ts and the clean-code skill scripts), written against the Deno namespace, run on Node.js 24.19?",
+  "evidence": "Measured on 2026-09-29 at develop 3627cb2. 31 TS/JS files use Deno.* APIs: 733 call sites. Breakdown: Deno.test 158; file-system calls (writeTextFile 127, mkdir 47, readTextFile 38, remove 35, readFile 24, makeTempDir 22, stat 21, symlink 17, rename 13, readDirSync 13, copyFile 13, chmod 13, realPath 11, lstat 8, cwd 6, writeFile 5, open 3, readLink 2, chdir 2); Deno.Command 47 constructions in 21 files (39 .output() calls, 2 .spawn() calls) plus 5 Deno.CommandOutput types; Deno.execPath 19 (all spawn the deno executable with Deno subcommands such as run, test, check); env 20; exit 14; errors.NotFound 12 and AlreadyExists 3; args 18; kill 1; exitCode 1; permissions.query 1.\n@deno/shim-deno 0.19.2 (npm, MIT, denoland/node_shims, last publish 2026-03-24) provides every used API except Deno.Command and Deno.exitCode; its Deno.test only pushes test definitions to an array and needs a separate runner. Upstream PR denoland/node_shims#183 'feat: add shim for Command' has been open since 2024-02-28, is marked blocked, returns success:false for exit code 0, defaults output() to inherited stdio, and throws 'Not implemented' from spawn().\nProbe: with a two-line preload that sets globalThis.Deno to the shim, scripts/validate_plugins.ts ran unchanged on Node 24.19 and printed the same PASS report as on Deno. Test files failed at their first new Deno.Command.\n@std/testing/snapshot (used by scripts/cli_contract_test.ts) reads the Deno test context's origin and name and calls Deno.writeTextFileSync, Deno.permissions.query, Deno.inspect and Deno.args; node:test in Node 24.19 provides TestContext.name, TestContext.filePath and its own t.assert.snapshot with a different snapshot file format. @std/testing/mock stub is plain JavaScript.\nNode 24.19 built-ins cover every used API: node:fs/promises, node:child_process (spawn, execFile), node:test, process.env, process.argv, process.exit, process.exitCode.",
+  "candidates": [
+   {
+    "id": "shim_with_glue",
+    "description": "Preload @deno/shim-deno as globalThis.Deno and add local glue: a Deno.test adapter onto node:test that passes name and origin, and a local Deno.Command class on node:child_process with output() and spawn(). Existing Deno.* call sites stay unchanged; only the Deno.execPath spawns of Deno subcommands change."
+   },
+   {
+    "id": "shim_plus_rewrite",
+    "description": "Preload @deno/shim-deno as globalThis.Deno in a two-line module, so the file-system, env, args, exit and errors call sites stay unchanged; rewrite only the call sites the shim cannot serve: Deno.Command and Deno.CommandOutput to node:child_process, Deno.test to node:test, Deno.exitCode to process.exitCode, and the Deno.execPath spawns. No local Command or test implementation."
+   },
+   {
+    "id": "rewrite_to_node",
+    "description": "Rewrite every Deno.* call site to Node built-ins (node:fs/promises, node:child_process, node:test, process) and drop the Deno namespace entirely; no shim dependency and no preload."
+   }
+  ],
+  "requirements": [
+   "Adds no locally owned implementation of a Deno API (no local Command or test-runner class).",
+   "Leaves call sites unchanged where an existing dependency or runtime already serves them.",
+   "Uses no unmerged upstream code."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "shim_plus_rewrite",
+   "escaped": false,
+   "confidence": 0.856,
+   "probabilities": {
+    "shim_with_glue": 0.08,
+    "shim_plus_rewrite": 0.88,
+    "rewrite_to_node": 0.02,
+    "ask_user": 0.01,
+    "investigate": 0.005,
+    "none": 0.005
+   }
+  },
+  "requirements_checked": 3,
+  "checks": [
+   {
+    "candidate": "shim_with_glue",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "shim_with_glue",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "shim_with_glue",
+    "requirement": 2,
+    "answer": "supported"
+   },
+   {
+    "candidate": "shim_plus_rewrite",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "shim_plus_rewrite",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "shim_plus_rewrite",
+    "requirement": 2,
+    "answer": "supported"
+   },
+   {
+    "candidate": "rewrite_to_node",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "rewrite_to_node",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "rewrite_to_node",
+    "requirement": 2,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 3492,
+   "output_tokens": 4967
+  }
+ }
+}

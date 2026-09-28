@@ -1,0 +1,67 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should Turborepo cache the check tasks whose results depend on files outside the package Turborepo hashes (for example backfire tests reading scripts/backfire/fixtures, doc-regions tests including scripts/doc_sources_test.py, wiki-consistency running Node and qmd from its own node_modules, and root tasks reading the whole repository)?",
+  "evidence": "Turborepo hashes a uv member's own source files, root uv files, the member's slice of uv.lock and the uv and Python identities; it does not include files outside the package unless listed in the task's inputs (with $TURBO_DEFAULT$ to keep the defaults). A root task ('//#name') hashes the root package's files. Missing an input can return a cached pass for changed code. Measured today: 'deno task check' takes about 2 min 10 s wall clock, of which the non-slow backfire tests take about 121 s. The trial's report must give check time before and after. The repository's verification (deno task verify) must reflect the current code, and 'deno task workflow' records verification evidence against exact file contents.",
+  "candidates": [
+   {
+    "id": "declare_inputs",
+    "description": "Keep caching on and declare each task's outside inputs explicitly in turbo.json, keeping $TURBO_DEFAULT$."
+   },
+   {
+    "id": "cache_off_outside",
+    "description": "Turn caching off (cache:false) for tasks that read files outside their package or run external programs, and keep caching on only where Turborepo's default inputs are complete."
+   },
+   {
+    "id": "cache_off_all",
+    "description": "Turn caching off for every check task; use Turborepo only for the task graph and parallel runs."
+   }
+  ],
+  "requirements": [
+   "A cached result is never reused after a change to a file the task reads."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "cache_off_outside",
+   "escaped": false,
+   "confidence": 0.4,
+   "probabilities": {
+    "declare_inputs": 0.3,
+    "cache_off_outside": 0.5,
+    "cache_off_all": 0.1,
+    "ask_user": 0.03,
+    "investigate": 0.05,
+    "none": 0.02
+   }
+  },
+  "requirements_checked": 1,
+  "checks": [
+   {
+    "candidate": "declare_inputs",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "cache_off_outside",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "cache_off_all",
+    "requirement": 0,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 1753,
+   "output_tokens": 9585
+  }
+ }
+}

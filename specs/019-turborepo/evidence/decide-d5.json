@@ -1,0 +1,57 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "Should the clean-code skill shipped in plugins/code/skills/clean-code (a portable skill that users copy into their own projects and that currently runs with Deno) also move from Deno to Node.js in this trial?",
+  "evidence": "plugins/code/skills/clean-code has its own deno.json and deno.lock, three TS files (scripts/clean_code.ts, scripts/cli.ts, scripts/clean_code_test.ts) using Deno.readTextFile, Deno.args and Deno.test, and a SKILL.md that tells the agent to run 'deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt ...' from the target workspace root. It is a shipped plugin component that runs in the user's client environment, not repository tooling. scripts/plugin_skills_test.ts and scripts/cli_contract_test.ts copy the skill and run it through Deno as a contract test; scripts/docs.ts and scripts/workflow_skills.ts also run it through the deno executable. The repository's own tasks clean-code, clean-code:scope and test:clean-code call it. Changing its runtime changes what users need installed to use the skill.",
+  "candidates": [
+   {
+    "id": "keep_skill_on_deno",
+    "description": "Leave the shipped skill, its deno.json, deno.lock and SKILL.md on Deno; the Turborepo tasks call it through deno, and the report lists it as a remaining Deno dependency."
+   },
+   {
+    "id": "move_skill_to_node",
+    "description": "Move the skill to Node too: replace its deno.json and deno.lock with a package.json and package-lock.json, change SKILL.md's run command, and change the copied-skill contract test."
+   }
+  ],
+  "requirements": [
+   "Does not change what users of the shipped plugin must install."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "keep_skill_on_deno",
+   "escaped": false,
+   "confidence": 0.7749999999999998,
+   "probabilities": {
+    "keep_skill_on_deno": 0.82,
+    "move_skill_to_node": 0.08,
+    "ask_user": 0.05,
+    "investigate": 0.03,
+    "none": 0.02
+   }
+  },
+  "requirements_checked": 1,
+  "checks": [
+   {
+    "candidate": "keep_skill_on_deno",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "move_skill_to_node",
+    "requirement": 0,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 1593,
+   "output_tokens": 1696
+  }
+ }
+}
