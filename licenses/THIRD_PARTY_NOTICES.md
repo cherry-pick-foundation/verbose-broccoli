@@ -142,3 +142,43 @@ with the already approved Ajv dependency. Sources:
   `uv.lock` and installed with it by `uv sync`. No source is copied into the
   repository.
 - Copyright (c) 2026 TypeSafe AI. MIT license.
+
+## nedbat/cog — document regions
+
+- Source: <https://github.com/nedbat/cog>, published on PyPI as `cogapp`
+  3.6.0.
+- Used as a pinned Python dependency of `packages/doc-regions/`, locked in its
+  `uv.lock`, to check and regenerate mechanical regions. No source is copied
+  into the repository.
+- Copyright (c) 2004-2024 Ned Batchelder. MIT license.
+
+## executablebooks/markdown-it-py — document units
+
+- Source: <https://github.com/executablebooks/markdown-it-py>, published on
+  PyPI as `markdown-it-py` 4.2.0.
+- Used as a pinned Python dependency of `packages/doc-regions/`, locked in its
+  `uv.lock`, to split agent regions into units. No source is copied into the
+  repository.
+- Copyright (c) 2020 ExecutableBookProject. MIT license. It includes
+  markdown-it, Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin, MIT license.
+
+## lycheeverse/lychee — local link check
+
+- Source: <https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2>.
+- Used as a host tool at `~/.local/bin/lychee`, installed from the release's
+  `lychee-x86_64-unknown-linux-gnu.tar.gz` after a SHA-256 check, and run
+  offline by `deno task doc-regions:check`. Nothing is copied into the
+  repository.
+- Copyright (c) 2022 The lychee maintainers. MIT or Apache-2.0, at the user's
+  choice.
+
+## RbBtSn0w/spec-kit-extensions — MemoryLint audit
+
+- Source:
+  <https://github.com/RbBtSn0w/spec-kit-extensions/releases/tag/memorylint-v1.5.1>,
+  archive `memorylint.zip` with SHA-256
+  `df4b31049dcd7f794e7bbed1460b5f5f5008b12a966939366e354926bb5f6648`.
+- Used by `deno task doc-regions:audit`, which downloads the archive into the
+  user's cache and runs its read-only `scripts/audit_workspace.py`. Nothing is
+  copied into the repository.
+- Copyright (c) 2026 Spec-kit Community. MIT license.
