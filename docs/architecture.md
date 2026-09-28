@@ -13,8 +13,9 @@ the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
-The `work` package contains the `quarto-authoring`, `session-migrate` and
-`backfire` skills and an MCP declaration for its own `backfire` server, which
+The `work` package contains the `quarto-authoring`, `session-migrate`,
+`wiki-raw-import` and `backfire` skills and an MCP declaration for its own
+`backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
@@ -214,7 +215,10 @@ global skill migration remain separate.
 ### Skill source ownership — 2026-09-14
 
 Maintain each skill only in its owning package, without discovery links or
-duplicate source trees elsewhere in the repository.
+duplicate source trees elsewhere in the repository. The one exception is the
+`backfire` skill: the code and work plugins each carry a vendored copy of the
+same upstream skill, because a plugin may not link to another plugin's files,
+and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |

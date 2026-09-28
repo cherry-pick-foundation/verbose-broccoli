@@ -381,6 +381,33 @@ none either. With the user's approval, the feature branch's own commits since
 `develop`, never pushed, were rewritten with the same replacements, and a
 search of every rewritten commit finds none of the values.
 
+### Document consistency judgment
+
+Before the last develop merge review, after `develop` (`7137315`, with feature
+008's document regions) was merged in, the coordinator ran `deno task
+doc-regions:update`, which regenerated the skill table in
+`docs/architecture.md`, and `deno task doc-regions:prepare -- --base develop
+--max-evidence-chars 20000`. It sent the 216 units' requests through backfire
+from the repository package. Two requests failed at the provider and passed on
+a retry; one failed twice with `malformed_output` and passed when split into
+batches of six claims.
+
+- Contradicted: one unit, the skill-ownership rule in `docs/architecture.md`,
+  because this feature vendors a second copy of the `backfire` skill. The rule
+  now names that exception and the test that keeps the copies identical.
+- Flagged for review: 26 units of `README.md`, `docs/architecture.md` and
+  `docs/backfire.md`. Checked against the code, two needed changes: the work
+  package's skill list lacked `wiki-raw-import`, and the operator guide's list
+  of undetected names lacked the given-name limit the work skill states. The
+  others match the code and stand.
+- Report-only `AGENTS.md` and the constitution: no unit contradicted or
+  flagged.
+- Mechanical candidates: backfire suggested seven units of `docs/backfire.md`
+  (headings, one-line sentences and the "What is replaced" table). None was
+  made a mechanical region: the headings and sentences carry no generated
+  data, and the table's example column is prose, so a generator would own only
+  the prefixes.
+
 ### Education measurement
 
 On 2026-09-28, with the user's go-ahead, the coordinator ran

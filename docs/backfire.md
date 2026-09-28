@@ -143,7 +143,8 @@ two syllables. Scores, dates,
 grades, observations and other learning content are sent as is.
 
 The work build cannot detect names, schools or guardians missing from the
-roster, nicknames, one-syllable given names, shortened school names such as
+roster, nicknames, one-syllable given names, given names of roster names that
+are not all Hangul or shorter than three syllables, shortened school names such as
 `별빛고` for `가상별빛고`, addresses, or Hangul written in decomposed form
 (NFD), as some file names and PDF copies are. They reach the provider as
 written; add them to the roster or leave them out of tool inputs. A student removed
