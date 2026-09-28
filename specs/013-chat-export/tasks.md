@@ -116,6 +116,15 @@ exports built in temporary folders.
   reviewer for the documents), resolve findings, commit the review record,
   check that `develop` has not moved, and run
   `git flow feature finish chat-export` in the `develop` worktree.
+  - 2026-09-29: Backfire rated the code review medium, so a fresh Claude
+    Code reviewer (`claude-sonnet-5`, high effort; Orca dispatch
+    `ctx_f0cae78f75e6`) reviewed T001 to T003 at `c3ee8d3` and found
+    nothing. A fresh Codex reviewer (`gpt-6-luna`, `max`;
+    `ctx_8dcdb75a3466`) reviewed the documents and found one major issue
+    (the spec named a file inside the work vault) and one minor one (an
+    unattributed claim about the student pages); both are fixed in the
+    spec, which also names the fixed export path as SC-005's one exception.
+    Next: the review record and the finish.
 
 ## Phase 4: After the finish
 
