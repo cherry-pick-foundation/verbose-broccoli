@@ -1,7 +1,7 @@
 import hashlib
 import json
 import os
-from pathlib import Path
+import selectors
 import signal
 import subprocess
 import sys
@@ -10,9 +10,8 @@ import zipfile
 import pytest
 
 from doc_regions import audit as audit_module
-from doc_regions.audit import audit
 from doc_regions.__main__ import main
-
+from doc_regions.audit import audit
 
 FINDINGS = [
     dict(
@@ -43,7 +42,8 @@ def archive(tmp_path, script=None, extra=None):
         script = (
             "import json, pathlib, sys\n"
             'assert sys.argv[2:] == ["--format", "json"]\n'
-            'assert "scripts/missing.py" in (pathlib.Path(sys.argv[1]) / "AGENTS.md").read_text()\n'
+            'assert "scripts/missing.py" in '
+            '(pathlib.Path(sys.argv[1]) / "AGENTS.md").read_text()\n'
             f"print({json.dumps(dict(findings=FINDINGS))!r})\n"
         )
     path = tmp_path / "memorylint.zip"
@@ -97,6 +97,7 @@ def test_hash_extract_run_filter_and_cache(root, cache, tmp_path, unchanged):
 def test_combined_sources_keep_finding_if_any_source_is_report_only(
     root, cache, tmp_path, unchanged
 ):
+    del cache  # Unused.
     findings = [
         dict(
             id="ML-025",
@@ -228,7 +229,8 @@ def test_cli_audit_uses_config_and_prints_json(tmp_path, monkeypatch, capsys):
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
 def test_interrupt_cleans_download(root, cache, tmp_path, signum, unchanged):
     url, digest = archive(tmp_path)
-    # Wait at a deterministic point after the staging directory has been created.
+    # Wait at a deterministic point after the staging directory has been
+    # created.
     script = """
 import contextlib, signal, sys
 import doc_regions.audit as module
@@ -248,8 +250,6 @@ module.audit(sys.argv[1], ["AGENTS.md"], url=sys.argv[2], sha256=sys.argv[3])
             stderr=subprocess.PIPE,
         )
         try:
-            import selectors
-
             with selectors.DefaultSelector() as selector:
                 selector.register(child.stdout, selectors.EVENT_READ)
                 assert selector.select(timeout=10), (

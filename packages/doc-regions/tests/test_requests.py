@@ -7,8 +7,9 @@ import sys
 import jsonschema
 import pytest
 
-from doc_regions.requests import classify_requests, prepare, verify_requests
-
+from doc_regions.requests import classify_requests
+from doc_regions.requests import prepare
+from doc_regions.requests import verify_requests
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
@@ -307,6 +308,7 @@ def cli(root, *args):
         cwd=root,
         text=True,
         capture_output=True,
+        check=False,
     )
 
 

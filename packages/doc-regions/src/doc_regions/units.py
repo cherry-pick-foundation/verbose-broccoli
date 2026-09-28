@@ -4,8 +4,8 @@ from difflib import SequenceMatcher
 
 from markdown_it import MarkdownIt
 
-from doc_regions.regions import _split_lf_lines, scan
-
+from doc_regions.regions import _split_lf_lines
+from doc_regions.regions import scan
 
 KINDS = {
     "heading_open": "heading",
@@ -19,6 +19,7 @@ KINDS = {
 
 
 def split(document, text, base_text=None):
+    """Split document text into Markdown units outside generated regions."""
     lines = _split_lf_lines(text)
     spans, problems = scan(document, text)
     if problems:

@@ -1,33 +1,48 @@
+from importlib.metadata import version
 import io
 import json
 import os
 import signal
 import socket
 import zipfile
-from importlib.metadata import version
 
-import pytest
 from pptx import Presentation
 from pptx.util import Inches
+import pytest
 
 from wiki_consistency import evidence
 
 
 def _docx_bytes(path):
-    content_types = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>"""
-    relationships = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>"""
-    document = b"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body><w:p><w:r><w:t>Synthetic DOCX evidence</w:t></w:r></w:p><w:sectPr/></w:body>
-</w:document>"""
+    content_types = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        b'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">\n'
+        b'  <Default Extension="rels" ContentType="'
+        b"application/vnd.openxmlformats-package."
+        b'relationships+xml"/>\n'
+        b'  <Default Extension="xml" ContentType="application/xml"/>\n'
+        b'  <Override PartName="/word/document.xml" '
+        b'ContentType="application/vnd.openxmlformats-officedocument.'
+        b'wordprocessingml.document.main+xml"/>\n'
+        b"</Types>"
+    )
+    relationships = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        b'<Relationships xmlns="'
+        b'http://schemas.openxmlformats.org/package/2006/relationships">\n'
+        b'  <Relationship Id="rId1" Type="'
+        b"http://schemas.openxmlformats.org/officeDocument/2006/"
+        b'relationships/officeDocument" Target="word/document.xml"/>\n'
+        b"</Relationships>"
+    )
+    document = (
+        b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        b'<w:document xmlns:w="'
+        b'http://schemas.openxmlformats.org/wordprocessingml/2006/main">\n'
+        b"  <w:body><w:p><w:r><w:t>Synthetic DOCX evidence</w:t></w:r>"
+        b"</w:p><w:sectPr/></w:body>\n"
+        b"</w:document>"
+    )
     with zipfile.ZipFile(path, "w") as archive:
         archive.writestr("[Content_Types].xml", content_types)
         archive.writestr("_rels/.rels", relationships)
@@ -163,6 +178,7 @@ def _chatgpt_export_bytes(*, ensure_ascii=True, numbered=False):
 
 
 def _no_socket(*args, **kwargs):
+    del args, kwargs  # Unused.
     raise AssertionError("evidence conversion must not open a socket")
 
 
@@ -322,6 +338,7 @@ def test_interrupted_write_cleans_temporary_files(
     item = _revision(instance, "source", "r1", "source.txt", b"source evidence")
 
     def interrupt_rename(*args):
+        del args  # Unused.
         os.kill(os.getpid(), signum)
 
     monkeypatch.setattr(evidence.os, "rename", interrupt_rename)
@@ -339,6 +356,7 @@ def test_failed_rename_cleans_temporary_files(tmp_path, monkeypatch):
     item = _revision(instance, "source", "r1", "source.txt", b"source evidence")
 
     def fail_rename(*args):
+        del args  # Unused.
         raise OSError("synthetic rename failure")
 
     monkeypatch.setattr(evidence.os, "rename", fail_rename)

@@ -4,7 +4,6 @@ import pytest
 
 from doc_regions.units import split
 
-
 TEXT = """# Title
 
 First paragraph

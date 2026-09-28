@@ -12,7 +12,6 @@ import tempfile
 from urllib.request import urlopen
 import zipfile
 
-
 VERSION = "1.5.1"
 URL = (
     "https://github.com/RbBtSn0w/spec-kit-extensions/releases/download/"
@@ -23,11 +22,13 @@ BUDGET = 1024 * 1024
 
 
 def verify_hash(archive, sha256):
+    """Check that an archive matches its expected SHA-256 digest."""
     if hashlib.sha256(archive.read_bytes()).hexdigest() != sha256:
         raise ValueError("MemoryLint archive SHA-256 mismatch")
 
 
 def install(cache, url, sha256):
+    """Install the pinned MemoryLint archive in the cache."""
     cache.parent.mkdir(parents=True, exist_ok=True)
     for leftover in cache.parent.glob(f".{VERSION}-*"):
         if leftover.is_dir() and not leftover.is_symlink():
@@ -44,6 +45,7 @@ def install(cache, url, sha256):
         return
 
     def interrupted(signum, frame):
+        del frame  # Unused.
         raise SystemExit(128 + signum)
 
     handlers = {
@@ -94,6 +96,7 @@ def install(cache, url, sha256):
 
 
 def audit(root, report_only, *, url=URL, sha256=SHA256):
+    """Run MemoryLint and return findings for report-only sources."""
     root = Path(root).resolve()
     cache_home = Path(
         os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"

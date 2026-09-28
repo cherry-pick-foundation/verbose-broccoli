@@ -5,14 +5,19 @@ import os
 from pathlib import Path
 import subprocess
 
-from doc_regions.requests import classify_requests, verify_requests
-from doc_regions.units import split
 from markdown_it import MarkdownIt
 
-from wiki_consistency import evidence, search
-from wiki_consistency.instance import mask_front_matter, pages, revisions
+from doc_regions.requests import classify_requests
+from doc_regions.requests import verify_requests
+from doc_regions.units import split
+from wiki_consistency import evidence
+from wiki_consistency import search
+from wiki_consistency.instance import mask_front_matter
+from wiki_consistency.instance import pages
+from wiki_consistency.instance import revisions
 from wiki_consistency.lint import _link_targets
-
+from wiki_consistency.search import _collection_chunk_count
+from wiki_consistency.search import _markdown_count
 
 SPECIAL_NO_UNITS = {"wiki/index.md", "wiki/log.md"}
 REQUEST_ORDER = {"evidence": 0, "pages": 1, "crossref": 2, "classify": 3}
@@ -24,6 +29,7 @@ def _git(root, *args):
         cwd=root,
         text=True,
         capture_output=True,
+        check=False,
         env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
     )
 
@@ -123,11 +129,17 @@ def _collect(instance, scope):
     scoped_units.sort(
         key=lambda unit: (unit["page"], unit["first_line"], unit["id"])
     )
-    return head, page_info, scoped_units, scoped_pages, revision_by_key
+    return (
+        head,
+        page_info,
+        scoped_units,
+        scoped_pages,
+        revision_by_key,
+    )
 
 
 def revisions_for_scope(instance, scope):
-    """Return cited and stale-latest revisions that convert needs for a scope."""
+    """Return revisions to convert for the selected scope."""
     _, page_info, _, scoped_pages, revision_by_key = _collect(instance, scope)
     selected = {}
     for path in sorted(scoped_pages):
@@ -416,15 +428,13 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
 
     queries = []
     try:
-        evidence_chunks = search._collection_chunk_count(
-            wiki_id, cache, "evidence"
-        )
+        evidence_chunks = _collection_chunk_count(wiki_id, cache, "evidence")
     except LookupError as error:
         raise ValueError(f"prepare requires index: {error}") from error
     evidence_limit = max(
         20,
         candidates * 4,
-        search._markdown_count(
+        _markdown_count(
             cache
             / "wiki-evidence"
             / wiki_id
@@ -623,7 +633,8 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
                             if unit["id"] in requestable
                         ],
                         "arguments": {
-                            "query": f"{info['page']['title']}\n{info['page']['summary']}",
+                            "query": f"{info['page']['title']}\n"
+                            f"{info['page']['summary']}",
                             "candidates": selected,
                         },
                     }

@@ -1,7 +1,8 @@
 import json
 from pathlib import Path
 
-from test_prepare import _prepare, _ready
+from test_prepare import _prepare
+from test_prepare import _ready
 
 
 def test_prepare_requests_exclude_configuration_state_and_credentials(

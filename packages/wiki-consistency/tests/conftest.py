@@ -1,13 +1,17 @@
+"""Fixtures for synthetic Wiki consistency tests."""
+
 import hashlib
+from pathlib import Path
 import socket
 import subprocess
 import sys
 import warnings
-from pathlib import Path
 
 import bagit
 import pytest
 
+from doc_regions.config import files
+from doc_regions.regions import update
 
 sys.dont_write_bytecode = True
 
@@ -22,7 +26,10 @@ INDEX = (
 
 @pytest.fixture(autouse=True)
 def offline(monkeypatch):
+    """Block network access and bytecode writes during each test."""
+
     def blocked(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise AssertionError("network access is forbidden")
 
     monkeypatch.setattr(socket, "socket", blocked)
@@ -35,6 +42,7 @@ def offline(monkeypatch):
 
 
 def add_revision(instance, revision, content):
+    """Create a BagIt revision with synthetic document content."""
     path = instance / "raw" / "files" / SOURCE_ID / revision
     path.mkdir(parents=True)
     (path / "document.txt").write_text(content, encoding="utf-8")
@@ -60,6 +68,7 @@ def _page(title, summary, revision, body=""):
 
 
 def make_instance(tmp_path, *, wiki_id="work", commit=False):
+    """Create a synthetic Wiki instance and its isolated environment."""
     home = tmp_path / "home"
     data_home = tmp_path / "xdg-data"
     cache_home = tmp_path / "xdg-cache"
@@ -97,7 +106,8 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
     )
     region = (
         "<!-- [[[cog import wiki_consistency.sources; "
-        f'cog.out(wiki_consistency.sources.source_provenance("raw/files/{SOURCE_ID}/*/bag-info.txt", '
+        f"cog.out(wiki_consistency.sources.source_provenance("
+        f'"raw/files/{SOURCE_ID}/*/bag-info.txt", '
         f'"raw/files/{SOURCE_ID}/*/manifest-sha256.txt")) ]]] -->\n'
         "<!-- [[[end]]] -->\n"
     )
@@ -117,6 +127,7 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
 
 
 def commit_instance(instance):
+    """Commit the synthetic pages of a Wiki instance."""
     subprocess.run(
         ["git", "add", "AGENTS.md", ".gitignore", "wiki"],
         cwd=instance,
@@ -143,9 +154,7 @@ def commit_instance(instance):
 
 
 def update_regions(instance):
-    from doc_regions.config import files
-    from doc_regions.regions import update
-
+    """Regenerate source regions for the synthetic Wiki."""
     targets = [
         path.relative_to(instance).as_posix()
         for path in files(instance, "wiki/**/*.md")
@@ -155,6 +164,7 @@ def update_regions(instance):
 
 
 def tree_hash(root):
+    """Return a deterministic hash of a tree's paths and bytes."""
     root = Path(root)
     if not root.exists():
         return None

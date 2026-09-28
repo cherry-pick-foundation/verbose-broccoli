@@ -4,8 +4,8 @@ import sys
 
 import pytest
 
-from doc_regions.regions import check, update
-
+from doc_regions.regions import check
+from doc_regions.regions import update
 
 CODE = 'import sources; cog.out(sources.render("source.txt"))'
 
@@ -242,6 +242,7 @@ def test_check_checks_target_links_without_regions_and_ignores_report_only(
             cwd=root,
             text=True,
             capture_output=True,
+            check=False,
         )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == {"problems": []}

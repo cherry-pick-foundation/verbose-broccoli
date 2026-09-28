@@ -2,10 +2,13 @@ import hashlib
 import os
 import time
 
+from conftest import REVISIONS
+from conftest import SOURCE_ID
+from conftest import make_instance
 import pytest
 
-from conftest import REVISIONS, SOURCE_ID, make_instance
-from wiki_consistency.sources import page_catalog, source_provenance
+from wiki_consistency.sources import page_catalog
+from wiki_consistency.sources import source_provenance
 
 
 def test_page_catalog_has_sorted_relative_links_and_skips_special_pages(
@@ -74,6 +77,7 @@ def test_generators_do_not_read_environment_or_clock(tmp_path, monkeypatch):
             raise AssertionError(f"environment access: {name}")
 
     def forbidden_clock(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise AssertionError("clock access")
 
     with monkeypatch.context() as patcher:

@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-import json
-import os
-import signal
-import uuid
 from contextlib import contextmanager
 from importlib.metadata import version
+import json
+import os
 from pathlib import Path
+import signal
 from typing import Any, BinaryIO, Iterator, Mapping
+import uuid
 
 # Prevent ONNX Runtime from writing telemetry files during import.
 os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
-from markitdown import MarkItDown, StreamInfo, UnsupportedFormatException
+from markitdown import MarkItDown
+from markitdown import StreamInfo
+from markitdown import UnsupportedFormatException
 from markitdown.converters import PlainTextConverter
-
 
 CONVERTER_VERSION = f"{version('markitdown')}-json-1"
 EVIDENCE_BUDGET_BYTES = 1024**3
@@ -24,9 +25,12 @@ TEMP_SUFFIX = ".wiki-consistency-tmp"
 
 
 class JsonConverter(PlainTextConverter):
+    """Convert JSON and JSONL streams through MarkItDown."""
+
     def accepts(
         self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
     ) -> bool:
+        """Return whether the stream contains JSON or JSONL."""
         extension = (stream_info.extension or "").lower()
         mimetype = (stream_info.mimetype or "").split(";", 1)[0].strip().lower()
         return (
@@ -36,6 +40,7 @@ class JsonConverter(PlainTextConverter):
     def convert(
         self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
     ):
+        """Normalize JSON content in the converted Markdown."""
         result = super().convert(file_stream, stream_info, **kwargs)
         try:
             if (stream_info.extension or "").lower() == ".jsonl":
@@ -117,6 +122,7 @@ def _clean_on_signals() -> Iterator[None]:
     previous: dict[signal.Signals, object] = {}
 
     def exit_on_signal(signum: int, frame: object) -> None:
+        del frame  # Unused.
         raise SystemExit(128 + signum)
 
     for signum in (signal.SIGINT, signal.SIGTERM):
@@ -240,7 +246,7 @@ def convert(
                     except UnsupportedFormatException as error:
                         reason = "unsupported_format"
                         detail = _detail(error, payload)
-                    except Exception as error:
+                    except Exception as error:  # noqa: BLE001 -- isolate failures per source revision.
                         reason = "conversion_failed"
                         detail = _detail(error, payload)
 

@@ -1,13 +1,12 @@
 from pathlib import Path
 
-from conftest import (
-    REVISIONS,
-    SOURCE_ID,
-    add_revision,
-    make_instance,
-    tree_hash,
-    update_regions,
-)
+from conftest import REVISIONS
+from conftest import SOURCE_ID
+from conftest import add_revision
+from conftest import make_instance
+from conftest import tree_hash
+from conftest import update_regions
+
 from wiki_consistency.lint import check
 
 

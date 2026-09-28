@@ -4,12 +4,14 @@ from pathlib import Path
 import subprocess
 import sys
 
+from conftest import make_instance
+from conftest import update_regions
 import pytest
-
-from conftest import make_instance, update_regions
 from test_prepare import _ready
+
 from wiki_consistency import search
-from wiki_consistency.__main__ import _parser, main
+from wiki_consistency.__main__ import _parser
+from wiki_consistency.__main__ import main
 
 
 def _setenv(monkeypatch, env):

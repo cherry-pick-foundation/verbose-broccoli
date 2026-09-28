@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 from pathlib import Path
+import subprocess
 from typing import Mapping, Sequence
 
 import yaml
 
 from wiki_consistency import evidence
-from wiki_consistency.evidence import _clean_on_signals, _component, _tree_size
-
+from wiki_consistency.evidence import _clean_on_signals
+from wiki_consistency.evidence import _component
+from wiki_consistency.evidence import _tree_size
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
@@ -264,7 +265,7 @@ def _run_search_mjs(
 
 
 def semantic_ready(wiki_id: str, cache: Path) -> bool:
-    """Return whether the cached model and qmd index health allow vector search."""
+    """Return whether qmd can run vector search with the cached model."""
     cache = Path(cache)
     if not _model_is_cached(cache):
         return False
@@ -314,7 +315,8 @@ def search(
         }
     except (KeyError, TypeError) as error:
         raise LookupError(
-            f"qmd collection config is missing; run wiki-consistency index for {wiki_id}"
+            "qmd collection config is missing; run wiki-consistency index "
+            f"for {wiki_id}"
         ) from error
     if (
         expected_pages_root is not None

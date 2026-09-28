@@ -5,7 +5,8 @@
 """Admit approved originals into immutable Wiki BagIt revisions."""
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime
+from datetime import timezone
 import fcntl
 import hashlib
 import json
@@ -16,19 +17,20 @@ import shutil
 import subprocess
 import sys
 import tomllib
-import warnings
 from uuid import uuid7
+import warnings
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 logging.getLogger("bagit").disabled = True
 
-import bagit
+import bagit  # noqa: E402 -- warning filters must run first.
 
 KINDS = ("web", "files", "notes", "assets")
 OUTCOMES = ("admitted", "already_admitted", "refused", "failed")
 
 
 def roots():
+    """Return configured XDG storage roots for the work vault."""
     home = Path.home()
     storage = {}
     configured = {}
@@ -50,12 +52,14 @@ def roots():
 
 
 def wiki_name(value):
+    """Validate a Wiki folder name."""
     if value in ("", ".", "..") or "/" in value or "\0" in value:
         raise argparse.ArgumentTypeError("wiki must be a single folder name")
     return value
 
 
 def initialize(instance):
+    """Create the Wiki folder layout and report created paths."""
     created = []
     for path in (
         instance,
@@ -93,11 +97,13 @@ def initialize(instance):
 
 
 def sha256(path):
+    """Return the SHA-256 digest of a file."""
     with path.open("rb") as source:
         return hashlib.file_digest(source, "sha256").hexdigest()
 
 
 def remove_staging(path):
+    """Remove a temporary staging tree and its contents."""
     if path.is_symlink() or not path.is_dir():
         if path.exists() or path.is_symlink():
             path.unlink()
@@ -117,7 +123,9 @@ def remove_staging(path):
 
 
 def latest_revision(raw, original):
-    # ponytail: scan bags per item; build an in-memory run lookup if imports grow slow.
+    """Find the latest bag for an original file."""
+    # ponytail: scan bags per item; build an in-memory run lookup if imports
+    # grow slow.
     matches = {}
     for info in raw.glob("*/*/*/bag-info.txt"):
         bag = bagit.Bag(str(info.parent))
@@ -133,6 +141,7 @@ def latest_revision(raw, original):
 
 
 def selection_items(selection):
+    """Read and validate selected paths from a JSONL file."""
     items = [
         json.loads(line)
         for line in selection.read_text(encoding="utf-8").splitlines()
@@ -156,6 +165,7 @@ def selection_items(selection):
 
 
 def exclusions(storage):
+    """Return normalized storage and configured exclusion roots."""
     config = storage["config"] / "config.toml"
     excluded = []
     if config.exists():
@@ -173,7 +183,8 @@ def exclusions(storage):
             for path in excluded
         ):
             raise ValueError(
-                "invalid configuration: exclude must be a list of absolute paths"
+                "invalid configuration: exclude must be a list of "
+                "absolute paths"
             )
     roots = [
         root
@@ -187,6 +198,7 @@ def exclusions(storage):
 
 
 def refusal(path, original, excluded):
+    """Return why an original path must not be admitted, if any."""
     try:
         str(original).encode("utf-8")
     except UnicodeError:
@@ -206,6 +218,7 @@ def refusal(path, original, excluded):
 
 
 def admit_item(item, raw, run, excluded):
+    """Admit one source file and return its outcome."""
     result = dict(
         path=item["path"],
         outcome="failed",
@@ -230,7 +243,10 @@ def admit_item(item, raw, run, excluded):
         if latest and Path(latest.path).parent.parent.name != item["kind"]:
             result.update(
                 outcome="refused",
-                reason=f"source already belongs to kind {Path(latest.path).parent.parent.name}",
+                reason=(
+                    "source already belongs to kind "
+                    f"{Path(latest.path).parent.parent.name}"
+                ),
             )
             return result
         if (
@@ -276,7 +292,7 @@ def admit_item(item, raw, run, excluded):
         result.update(
             outcome="admitted", source_id=source_id, revision=revision
         )
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001 -- record failures per selected item.
         result["reason"] = str(error)
     finally:
         if staged.exists():
@@ -285,6 +301,7 @@ def admit_item(item, raw, run, excluded):
 
 
 def admit(selection, instance, storage):
+    """Admit selected files into immutable raw revisions."""
     items = selection_items(selection)
     excluded = exclusions(storage)
     counts = dict.fromkeys(OUTCOMES, 0)
@@ -319,12 +336,13 @@ def admit(selection, instance, storage):
 
 
 def verify(instance):
+    """Validate every raw BagIt revision."""
     invalid = []
     revisions = sorted((instance / "raw").glob("*/*/*"))
     for revision in revisions:
         try:
             bagit.Bag(str(revision)).validate()
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- collect failures per revision.
             invalid.append(
                 {
                     "revision": str(revision.relative_to(instance)),
@@ -339,6 +357,7 @@ def verify(instance):
 
 
 def main():
+    """Run the raw-import command."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wiki", type=wiki_name, default="work")
     commands = parser.add_subparsers(dest="command", required=True)

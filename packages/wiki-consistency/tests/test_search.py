@@ -1,14 +1,14 @@
 import json
 import os
+from pathlib import Path
 import signal
 import subprocess
-from pathlib import Path
 
 import pytest
 import yaml
 
-from wiki_consistency import evidence, search
-
+from wiki_consistency import evidence
+from wiki_consistency import search
 
 MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
 
@@ -260,6 +260,7 @@ def test_collection_chunk_count_propagates_qmd_errors(tmp_path, monkeypatch):
     index_path.touch()
 
     def fail(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise RuntimeError("synthetic qmd error")
 
     monkeypatch.setattr(search, "_run_search_mjs", fail)

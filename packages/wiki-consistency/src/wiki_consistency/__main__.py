@@ -6,10 +6,14 @@ import os
 import subprocess
 import sys
 
-from wiki_consistency import evidence, search
-from wiki_consistency.instance import instance_path, roots
-from wiki_consistency.lint import check, update
-from wiki_consistency.requests import prepare, revisions_for_scope
+from wiki_consistency import evidence
+from wiki_consistency import search
+from wiki_consistency.instance import instance_path
+from wiki_consistency.instance import roots
+from wiki_consistency.lint import check
+from wiki_consistency.lint import update
+from wiki_consistency.requests import prepare
+from wiki_consistency.requests import revisions_for_scope
 
 
 def _wiki_id(value):
@@ -65,6 +69,7 @@ def _parser():
 
 
 def main(argv=None):
+    """Run an offline Wiki consistency command."""
     args = _parser().parse_args(sys.argv[1:] if argv is None else argv)
     try:
         instance = instance_path(args.wiki_id, os.environ)
@@ -105,7 +110,8 @@ def main(argv=None):
     if result.get("problems"):
         for problem in result["problems"]:
             print(
-                f"{problem['document']}:{problem['line']}: {problem['message']}",
+                f"{problem['document']}:{problem['line']}: "
+                f"{problem['message']}",
                 file=sys.stderr,
             )
         return 1

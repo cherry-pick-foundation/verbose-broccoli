@@ -1,25 +1,27 @@
 """Prepare lossless Backfire requests from Markdown units and Git evidence."""
 
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
+from pathlib import PurePosixPath
 import subprocess
 
 from doc_regions.config import load
 from doc_regions.units import split
 
-
 CLASSES = [
     {
         "id": "mechanical_candidate",
         "description": (
-            "Text fully derivable from named source files by a deterministic generator, "
+            "Text fully derivable from named source files by a deterministic "
+            "generator, "
             "such as a table listing skills."
         ),
     },
     {
         "id": "agent_region",
         "description": (
-            "Text requiring judgment or explanation, not fully derivable from named "
+            "Text requiring judgment or explanation, not fully derivable from "
+            "named "
             "source files, such as design rationale."
         ),
     },
@@ -27,6 +29,7 @@ CLASSES = [
 
 
 def verify_requests(groups):
+    """Build bounded Backfire verification requests from units and evidence."""
     requests = []
     for units, evidence in groups:
         if not evidence:
@@ -54,6 +57,7 @@ def verify_requests(groups):
 
 
 def classify_requests(units, purpose):
+    """Build batched Backfire classification requests."""
     requests = []
     for start in range(0, len(units), 64):
         batch = units[start : start + 64]
@@ -75,6 +79,7 @@ def classify_requests(units, purpose):
 
 
 def git(root, *args):
+    """Run a Git command at the repository root and return its output."""
     return subprocess.run(
         ["git", *args],
         cwd=root,
@@ -86,6 +91,7 @@ def git(root, *args):
 
 
 def prepare(root, config_path, *, base, max_evidence_chars):
+    """Prepare requests for changed document units and evidence."""
     if not isinstance(max_evidence_chars, int) or max_evidence_chars < 1:
         raise ValueError("max-evidence-chars must be a positive integer")
     root = Path(root).resolve()

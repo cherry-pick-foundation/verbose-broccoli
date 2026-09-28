@@ -2,17 +2,20 @@
 
 from pathlib import Path
 import subprocess
-from urllib.parse import unquote, urlsplit
+from urllib.parse import unquote
+from urllib.parse import urlsplit
 
 import bagit
 from markdown_it import MarkdownIt
 
 from doc_regions.config import files
 from doc_regions.regions import check as check_regions
-from doc_regions.regions import scan, shape, update as update_regions
-
-from wiki_consistency.instance import mask_front_matter, pages, revisions
-
+from doc_regions.regions import scan
+from doc_regions.regions import shape
+from doc_regions.regions import update as update_regions
+from wiki_consistency.instance import mask_front_matter
+from wiki_consistency.instance import pages
+from wiki_consistency.instance import revisions
 
 GENERATORS = "wiki_consistency.sources"
 FIX_COMMAND = "wiki-consistency update"
@@ -43,7 +46,8 @@ def _index_shape(root):
             _problem(
                 "wiki/index.md",
                 1,
-                "index.md must contain one page_catalog region and nothing else",
+                "index.md must contain one page_catalog region "
+                "and nothing else",
             )
         ]
     span = spans[0]
@@ -53,7 +57,8 @@ def _index_shape(root):
             _problem(
                 "wiki/index.md",
                 1,
-                "index.md must contain one page_catalog region and nothing else",
+                "index.md must contain one page_catalog region "
+                "and nothing else",
             )
         ]
     try:
@@ -137,7 +142,8 @@ def _page_findings(root, page_list, revision_map):
                     _problem(
                         page["path"],
                         1,
-                        f"citation names no revision bag: {source_id}/{citation['revision']}",
+                        f"citation names no revision bag: {source_id}/"
+                        f"{citation['revision']}",
                     )
                 )
                 continue
@@ -146,7 +152,7 @@ def _page_findings(root, page_list, revision_map):
             if key not in validated:
                 try:
                     bagit.Bag(str(bag_path)).validate(fast=True)
-                except Exception as error:
+                except Exception as error:  # noqa: BLE001 -- report validation failures per bag.
                     validated[key] = str(error)
                 else:
                     validated[key] = None
@@ -155,7 +161,8 @@ def _page_findings(root, page_list, revision_map):
                     _problem(
                         page["path"],
                         1,
-                        f"BagIt fast validation failed for {source_id}/{citation['revision']}: "
+                        "BagIt fast validation failed for "
+                        f"{source_id}/{citation['revision']}: "
                         f"{validated[key]}",
                     )
                 )
@@ -197,6 +204,7 @@ def _log_prefix(root):
             cwd=root,
             text=True,
             capture_output=True,
+            check=False,
         )
     except OSError as error:
         return [_problem("wiki/log.md", 1, f"git is unavailable: {error}")]
@@ -213,11 +221,15 @@ def _log_prefix(root):
         cwd=root,
         text=True,
         capture_output=True,
+        check=False,
     )
     if head.returncode:
         return []
     committed = subprocess.run(
-        ["git", "show", "HEAD:wiki/log.md"], cwd=root, capture_output=True
+        ["git", "show", "HEAD:wiki/log.md"],
+        cwd=root,
+        capture_output=True,
+        check=False,
     )
     if committed.returncode:
         message = committed.stderr.decode("utf-8", errors="replace").strip()
@@ -247,12 +259,14 @@ def _log_prefix(root):
         _problem(
             "wiki/log.md",
             line,
-            f"committed log.md is not a prefix of the current file at line {line}",
+            f"committed log.md is not a prefix of the current file "
+            f"at line {line}",
         )
     ]
 
 
 def check(instance):
+    """Check local links, metadata, citations, and source-derived regions."""
     root = Path(instance).resolve()
     problems = []
     try:
@@ -299,6 +313,7 @@ def check(instance):
 
 
 def update(instance):
+    """Regenerate the Wiki index and other source-derived regions."""
     root = Path(instance).resolve()
     problems = _index_shape(root)
     if problems:

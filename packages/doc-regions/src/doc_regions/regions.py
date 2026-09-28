@@ -10,12 +10,12 @@ import sys
 
 from doc_regions.config import files
 
-
 START = re.compile(r"\s*<!-- \[\[\[cog (.+?) \]\]\] -->\s*")
 END = re.compile(r"\s*<!-- \[\[\[end\]\]\] -->\s*")
 
 
 def problem(document, line, message):
+    """Build a structured problem entry for a document."""
     return dict(document=document, line=line, message=message)
 
 
@@ -120,11 +120,13 @@ def shape(code, module):
 
 
 def generator_names(root, generator_path, module):
+    """Return public functions exposed by a generator module."""
     code = (
         "import importlib, inspect, json, sys; "
         "sys.path.insert(0, sys.argv[1]); "
         "m = importlib.import_module(sys.argv[2]); "
-        "print(json.dumps([n for n, f in inspect.getmembers(m, inspect.isfunction) "
+        "print(json.dumps([n for n, f in inspect.getmembers(m, "
+        "inspect.isfunction) "
         'if not n.startswith("_")]))'
     )
     result = subprocess.run(
@@ -132,6 +134,7 @@ def generator_names(root, generator_path, module):
         cwd=root,
         text=True,
         capture_output=True,
+        check=False,
     )
     if result.returncode:
         raise ValueError(
@@ -141,6 +144,7 @@ def generator_names(root, generator_path, module):
 
 
 def validate(root, targets, generators, generator_path):
+    """Validate region markers, generator calls, and their source files."""
     problems, documents, functions = [], {}, None
     for document in targets:
         try:
@@ -173,7 +177,10 @@ def validate(root, targets, generators, generator_path):
 
 
 def run(root, arguments):
-    return subprocess.run(arguments, cwd=root, text=True, capture_output=True)
+    """Run a subprocess from the repository root."""
+    return subprocess.run(
+        arguments, cwd=root, text=True, capture_output=True, check=False
+    )
 
 
 def cog(
@@ -183,6 +190,7 @@ def cog(
     update,
     fix_command="deno task doc-regions:update",
 ):
+    """Run Cog over a document in check or update mode."""
     options = (
         ["-r"]
         if update
@@ -204,6 +212,7 @@ def cog(
 
 
 def changed_regions(diff, spans):
+    """Return the region start lines touched by a diff."""
     changed, line = set(), None
     for text in diff.split("\n"):
         match = re.match(r"^@@ -(\d+)", text)
@@ -228,6 +237,7 @@ def changed_regions(diff, spans):
 
 
 def replace_outputs(document, original, updated, spans):
+    """Combine updated Cog output with the original Markdown."""
     old_lines = _split_lf_lines(original.decode("utf-8"))
     new_lines = _split_lf_lines(updated.decode("utf-8"))
     new_spans, errors = scan(document, updated.decode("utf-8"))
@@ -249,6 +259,7 @@ def process(
     *,
     fix_command="deno task doc-regions:update",
 ):
+    """Check or update configured Cog regions and local links."""
     root = Path(root).resolve()
     generator_path = Path(generator_path)
     if not generator_path.is_absolute():
@@ -317,7 +328,12 @@ def process(
                         problem(
                             document,
                             (failure.get("span") or {}).get("line", 1),
-                            f"{failure.get('url', '')}: {failure.get('status', {}).get('text', 'link failed')}",
+                            f"{failure.get('url', '')}: "
+                            f"{
+                                failure.get('status', {}).get(
+                                    'text', 'link failed'
+                                )
+                            }",
                         )
                         for failure in failures
                     )
@@ -338,10 +354,12 @@ def check(
     *,
     fix_command="deno task doc-regions:update",
 ):
+    """Check configured Cog regions and local links."""
     return process(
         root, targets, generators, generator_path, fix_command=fix_command
     )
 
 
 def update(root, targets, generators, generator_path):
+    """Regenerate configured Cog regions."""
     return process(root, targets, generators, generator_path, updating=True)

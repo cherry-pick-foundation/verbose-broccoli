@@ -6,12 +6,13 @@ from pathlib import Path
 import subprocess
 import sys
 
-from doc_regions.config import load
 from doc_regions import regions
+from doc_regions.config import load
 from doc_regions.requests import prepare
 
 
 def positive(value):
+    """Parse a positive integer from an argument."""
     number = int(value)
     if number < 1:
         raise argparse.ArgumentTypeError("must be a positive integer")
@@ -19,6 +20,7 @@ def positive(value):
 
 
 def main(argv=None):
+    """Run the doc-regions command for the current document root."""
     argv = list(sys.argv[1:] if argv is None else argv)
     # Deno task forwards its separator after the configured positional path.
     if len(argv) > 2 and argv[0] == "prepare" and argv[2] == "--":
@@ -46,7 +48,9 @@ def main(argv=None):
         else:
             config = load(args.config, root)
             if args.command == "audit":
-                from doc_regions.audit import audit
+                from doc_regions.audit import (  # noqa: PLC0415 -- load only for audit.
+                    audit,
+                )
 
                 result = audit(root, config["report_only"])
             else:

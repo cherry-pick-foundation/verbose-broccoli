@@ -5,11 +5,12 @@ from pathlib import Path
 import re
 
 from doc_regions.config import files
-
-from wiki_consistency.instance import SPECIAL_PAGES, _metadata
+from wiki_consistency.instance import SPECIAL_PAGES
+from wiki_consistency.instance import _metadata
 
 
 def page_catalog(source_glob):
+    """Return sorted links for ordinary Wiki pages in a source glob."""
     root = Path.cwd().resolve()
     wiki = root / "wiki"
     rows = []
@@ -57,6 +58,7 @@ def _manifest(path):
 
 
 def source_provenance(bag_info_glob, manifest_glob):
+    """Return source revision metadata from matched BagIt records."""
     root = Path.cwd().resolve()
     bag_infos = files(root, bag_info_glob)
     manifests = files(root, manifest_glob)

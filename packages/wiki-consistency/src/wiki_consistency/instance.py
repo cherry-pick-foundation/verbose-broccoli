@@ -7,11 +7,11 @@ import yaml
 
 from doc_regions.config import files
 
-
 SPECIAL_PAGES = {"wiki/index.md", "wiki/overview.md", "wiki/log.md"}
 
 
 def roots(env=None):
+    """Return namespaced data and cache roots from the environment."""
     env = os.environ if env is None else env
     home = Path(env.get("HOME") or Path.home())
     result = {}
@@ -25,6 +25,7 @@ def roots(env=None):
 
 
 def instance_path(wiki_id, env=None):
+    """Return a Wiki instance path after validating its name."""
     if (
         not isinstance(wiki_id, str)
         or wiki_id in ("", ".", "..")
@@ -103,7 +104,8 @@ def _metadata(text):
                 problems.append(
                     {
                         "line": 1,
-                        "message": "source citation needs a non-empty id and revision",
+                        "message": "source citation needs a non-empty "
+                        "id and revision",
                     }
                 )
                 continue
@@ -119,6 +121,7 @@ def _metadata(text):
 
 
 def pages(instance):
+    """Read page metadata and validation problems for a Wiki instance."""
     root = Path(instance).resolve()
     try:
         matches = files(root, "wiki/**/*.md")
@@ -152,6 +155,7 @@ def pages(instance):
 
 
 def mask_front_matter(text):
+    """Replace front matter with blank lines while preserving line numbers."""
     _, end, error = _front_matter(text)
     if error:
         return text
@@ -162,6 +166,7 @@ def mask_front_matter(text):
 
 
 def revisions(instance):
+    """Return raw BagIt revisions grouped by source identifier."""
     root = Path(instance).resolve()
     raw = root / "raw"
     result = {}

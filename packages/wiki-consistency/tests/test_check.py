@@ -2,10 +2,14 @@ import json
 from pathlib import Path
 import re
 
+from conftest import REVISIONS
+from conftest import SOURCE_ID
+from conftest import add_revision
+from conftest import make_instance
+from conftest import tree_hash
+from conftest import update_regions
 import pytest
 
-from conftest import REVISIONS, SOURCE_ID, add_revision, make_instance
-from conftest import tree_hash, update_regions
 from doc_regions.regions import scan
 from wiki_consistency.__main__ import main
 
@@ -283,6 +287,7 @@ def test_update_changes_only_region_text_and_is_idempotent(
 
 
 def test_invalid_wiki_name_is_an_argument_error(tmp_path, monkeypatch, capsys):
+    del capsys  # Unused.
     instance, env = make_instance(tmp_path)
     with monkeypatch.context() as patcher:
         for name, value in env.items():

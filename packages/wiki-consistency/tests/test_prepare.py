@@ -1,24 +1,23 @@
 import ast
 import json
+from pathlib import Path
 import shutil
 import sqlite3
-from pathlib import Path
 
+from conftest import REVISIONS
+from conftest import SOURCE_ID
+from conftest import add_revision
+from conftest import commit_instance
+from conftest import make_instance
+from conftest import tree_hash
+from conftest import update_regions
 import jsonschema
 import pytest
 
-from conftest import (
-    REVISIONS,
-    SOURCE_ID,
-    add_revision,
-    commit_instance,
-    make_instance,
-    tree_hash,
-    update_regions,
-)
-from wiki_consistency import evidence, requests, search
+from wiki_consistency import evidence
+from wiki_consistency import requests
+from wiki_consistency import search
 from wiki_consistency.instance import revisions
-
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
@@ -176,6 +175,7 @@ def test_changed_page_request_can_use_unchanged_candidate_units(
     )
 
     def semantic_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         page_query = next(
             query for query in queries if query["collection"] == "pages"
         )
@@ -284,6 +284,7 @@ def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(
     captured = []
 
     def capture_queries(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         captured.extend(queries)
         return []
 
@@ -304,7 +305,7 @@ def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(
     )
 
 
-def test_prepare_with_cached_model_and_pending_embeddings_skips_semantic_queries(
+def test_prepare_skips_semantic_queries_for_pending_embeddings(
     tmp_path, monkeypatch
 ):
     instance, env = make_instance(tmp_path)
@@ -319,6 +320,7 @@ def test_prepare_with_cached_model_and_pending_embeddings_skips_semantic_queries
     captured = []
 
     def capture_queries(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         captured.extend(queries)
         return []
 
@@ -403,6 +405,7 @@ def test_page_candidates_keep_best_search_rank_before_sorting(
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
     def stub_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, queries, kwargs  # Unused.
         return [
             {
                 "query": f"pages:{target['id']}",
@@ -537,6 +540,7 @@ def test_passage_selection_uses_best_ranked_fitting_passage(
     )
 
     def stub_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, queries, kwargs  # Unused.
         return [
             {
                 "query": f"evidence:{target['id']}",
@@ -812,6 +816,7 @@ def test_collection_query_ids_keep_page_candidate_ranks_independent(
     monkeypatch.setattr(search, "semantic_ready", lambda wiki_id, cache: True)
 
     def stub_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         captured.extend(queries)
         evidence_id = f"evidence:{target['id']}"
         page_id = f"pages:{target['id']}"
@@ -912,6 +917,7 @@ def test_evidence_queries_cover_the_full_collection_limit(
     captured = []
 
     def stub_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         captured.extend(queries)
         return [
             {
@@ -949,18 +955,22 @@ def test_evidence_query_limit_covers_qmd_embedding_chunks(
     index_path = cache / "qmd" / f"{instance.name}.sqlite"
     with sqlite3.connect(index_path) as database:
         content_hash = database.execute(
-            "SELECT hash FROM documents WHERE collection = 'evidence' AND active = 1 LIMIT 1"
+            "SELECT hash FROM documents WHERE collection = 'evidence' "
+            "AND active = 1 LIMIT 1"
         ).fetchone()[0]
         database.executemany(
             "INSERT INTO content_vectors "
-            "(hash, seq, pos, model, embed_fingerprint, total_chunks, embedded_at) "
-            "VALUES (?, ?, 0, 'synthetic', 'synthetic', 50, 'synthetic')",
+            "(hash, seq, pos, model, embed_fingerprint, "
+            "total_chunks, embedded_at) "
+            "VALUES (?, ?, 0, 'synthetic', 'synthetic', "
+            "50, 'synthetic')",
             [(content_hash, sequence) for sequence in range(50)],
         )
     database.close()
     captured = []
 
     def capture_search(wiki_id, cache_root, queries, **kwargs):
+        del wiki_id, cache_root, kwargs  # Unused.
         captured.extend(queries)
         return []
 
@@ -988,12 +998,14 @@ def test_evidence_query_limit_includes_chunks_in_qmd_wal(tmp_path, monkeypatch):
     database = sqlite3.connect(index_path)
     database.execute("PRAGMA journal_mode = WAL")
     content_hash = database.execute(
-        "SELECT hash FROM documents WHERE collection = 'evidence' AND active = 1 LIMIT 1"
+        "SELECT hash FROM documents WHERE collection = 'evidence' "
+        "AND active = 1 LIMIT 1"
     ).fetchone()[0]
     database.executemany(
         "INSERT INTO content_vectors "
         "(hash, seq, pos, model, embed_fingerprint, total_chunks, embedded_at) "
-        "VALUES (?, ?, 0, 'synthetic', 'synthetic', 50, 'synthetic')",
+        "VALUES (?, ?, 0, 'synthetic', 'synthetic', "
+        "50, 'synthetic')",
         [(content_hash, sequence) for sequence in range(50)],
     )
     database.commit()
@@ -1136,6 +1148,7 @@ def test_overview_without_links_is_unverifiable_with_no_sources(tmp_path):
 
 
 def test_unreadable_sources_are_listed_and_never_sent(tmp_path, monkeypatch):
+    del monkeypatch  # Unused.
     instance, env = make_instance(tmp_path)
     assert update_regions(instance) == []
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
@@ -1206,6 +1219,7 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
     search.index(instance, instance.name, cache, download=False)
 
     def semantic_search(wiki_id, cache, queries, **kwargs):
+        del wiki_id, cache, kwargs  # Unused.
         hits = []
         for query in queries:
             if not query["id"].startswith("crossref:"):
@@ -1257,10 +1271,12 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
             candidate["id"] for candidate in request["arguments"]["candidates"]
         }
         assert len(paths) >= 2
-        assert (
-            f"wiki/concepts/{ ({'alpha': 'beta', 'beta': 'alpha', 'gamma': 'alpha'}[name]) }.md"
-            in paths
-        )
+        expected_target = {
+            "alpha": "beta",
+            "beta": "alpha",
+            "gamma": "alpha",
+        }[name]
+        assert f"wiki/concepts/{expected_target}.md" in paths
         assert all(
             "Synthetic quadratic formula roots" in candidate["text"]
             for candidate in request["arguments"]["candidates"]
@@ -1287,7 +1303,7 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
     _assert_schemas(result)
 
 
-def test_prepare_batches_verify_and_classify_with_deterministic_read_only_output(
+def test_prepare_batches_verify_and_classify_deterministically(
     tmp_path, monkeypatch
 ):
     instance, env = make_instance(tmp_path)

@@ -1,13 +1,13 @@
+from conftest import REVISIONS
+from conftest import SOURCE_ID
+from conftest import make_instance
 import pytest
 
-from conftest import REVISIONS, SOURCE_ID, make_instance
-from wiki_consistency.instance import (
-    instance_path,
-    mask_front_matter,
-    pages,
-    revisions,
-    roots,
-)
+from wiki_consistency.instance import instance_path
+from wiki_consistency.instance import mask_front_matter
+from wiki_consistency.instance import pages
+from wiki_consistency.instance import revisions
+from wiki_consistency.instance import roots
 
 
 def test_roots_use_absolute_xdg_paths_with_namespace(tmp_path):

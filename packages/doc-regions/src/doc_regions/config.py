@@ -22,6 +22,7 @@ def files(root, entry):
 
 
 def load(config_path, root):
+    """Load and validate document region configuration."""
     root = Path(root).resolve()
     config_path = Path(config_path)
     path = config_path if config_path.is_absolute() else root / config_path

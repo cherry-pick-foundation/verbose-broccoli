@@ -1,6 +1,5 @@
-import pytest
-
 from doc_sources import skill_table
+import pytest
 
 
 def test_skill_table_lists_full_names_by_package_and_skill(
@@ -25,7 +24,8 @@ def test_skill_table_lists_full_names_by_package_and_skill(
     assert skill_table("plugins/*/skills/*/SKILL.md") == (
         "| Package | Owned skills |\n"
         "| --- | --- |\n"
-        "| `plugins/code/skills` | `clean-code`, `ponytail-review`, `speckit-plan`, "
+        "| `plugins/code/skills` | `clean-code`, `ponytail-review`, "
+        "`speckit-plan`, "
         "`verification-before-completion` |\n"
         "| `plugins/work/skills` | `alpha`, `zebra` |\n"
     )
