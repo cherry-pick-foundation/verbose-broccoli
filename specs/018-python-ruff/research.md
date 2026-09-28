@@ -80,7 +80,7 @@ counts will be lower for the lint rules; the formatter and line counts hold.
 ## Scope of checked files
 
 - **Decision**: One root `ruff.toml` covers the repository. It excludes
-  `.specify/` (Spec Kit's bundled extensions, vendored upstream) by path;
+  `.specify/extensions/` (Spec Kit's bundled extensions, vendored upstream) by path;
   `tools/` holds no Python today, and ignored folders such as `.venv/` are
   skipped by Ruff's `.gitignore` support. Each package's `pyproject.toml`
   extends the root file (`[tool.ruff] extend = "../../ruff.toml"`), so Ruff
@@ -103,15 +103,26 @@ counts will be lower for the lint rules; the formatter and line counts hold.
 | `D` family, stable rules except `D105` and `D107` | Google guide §3.8; Pylint docstring messages `empty-docstring`, `missing-module-docstring`, and `missing-class-docstring`.            |
 | `N` family, all stable rules                      | Google guide §3.16; Pylint naming messages `invalid-name`, `bad-classmethod-argument`, `no-self-argument`, and `non-ascii-file-name`. |
 | `A001`                                            | Pylint: `redefined-builtin`.                                                                                                          |
-| `ARG001`                                          | Pylint: `unused-argument`.                                                                                                            |
+| `A002`                                            | Pylint: `redefined-builtin` for arguments.                                                                                            |
+| `A003`                                            | Pylint: `redefined-builtin` for attributes.                                                                                           |
+| `A004`                                            | Pylint: `redefined-builtin` for imports.                                                                                              |
+| `A006`                                            | Pylint: `redefined-builtin` for lambda arguments.                                                                                     |
+| `ARG001`                                          | Pylint: `unused-argument` in functions.                                                                                               |
+| `ARG002`                                          | Pylint: `unused-argument` in methods.                                                                                                 |
+| `ARG003`                                          | Pylint: `unused-argument` in class methods.                                                                                           |
+| `ARG004`                                          | Pylint: `unused-argument` in static methods.                                                                                          |
+| `ARG005`                                          | Pylint: `unused-argument` in lambdas.                                                                                                 |
 | `B002`                                            | Pylint: `nonexistent-operator`.                                                                                                       |
 | `B006`                                            | Pylint: `dangerous-default-value`.                                                                                                    |
+| `B007`                                            | Pylint: `unused-variable` for loop targets.                                                                                           |
 | `B012`                                            | Pylint: `lost-exception`.                                                                                                             |
-| `B014`                                            | Pylint: `duplicate-except`.                                                                                                           |
-| `B018`                                            | Pylint: `expression-not-assigned`, `pointless-statement`.                                                                             |
+| `B014`                                            | Pylint: `duplicate-except` for duplicate exception types.                                                                             |
+| `B018`                                            | Pylint: `expression-not-assigned`, `pointless-statement`, `pointless-string-statement`.                                               |
 | `B019`                                            | Pylint: `method-cache-max-size-none`.                                                                                                 |
 | `B023`                                            | Pylint: `cell-var-from-loop`.                                                                                                         |
 | `B026`                                            | Pylint: `keyword-arg-before-vararg`.                                                                                                  |
+| `B025`                                            | Pylint: `duplicate-except` for repeated exception handlers.                                                                           |
+| `B030`                                            | Pylint: `catching-non-exception`.                                                                                                     |
 | `B033`                                            | Pylint: `duplicate-value`.                                                                                                            |
 | `B904`                                            | Pylint: `raise-missing-from`.                                                                                                         |
 | `BLE001`                                          | Pylint: `broad-exception-caught`.                                                                                                     |
@@ -121,7 +132,10 @@ counts will be lower for the lint rules; the formatter and line counts hold.
 | `E701`                                            | Pylint: `multiple-statements`.                                                                                                        |
 | `E702`                                            | Pylint: `multiple-statements`.                                                                                                        |
 | `E703`                                            | Pylint: `unnecessary-semicolon`.                                                                                                      |
+| `E711`                                            | Pylint: `singleton-comparison` with `None`.                                                                                           |
 | `E712`                                            | Pylint: `singleton-comparison`.                                                                                                       |
+| `E713`                                            | Pylint: `unnecessary-negation` for membership tests.                                                                                  |
+| `E714`                                            | Pylint: `unnecessary-negation` for identity tests.                                                                                    |
 | `E721`                                            | Pylint: `unidiomatic-typecheck`.                                                                                                      |
 | `E722`                                            | Pylint: `bare-except`.                                                                                                                |
 | `E731`                                            | Pylint: `unnecessary-lambda-assignment`.                                                                                              |
@@ -146,9 +160,11 @@ counts will be lower for the lint rules; the formatter and line counts hold.
 | `F704`                                            | Pylint: `yield-outside-function`.                                                                                                     |
 | `F706`                                            | Pylint: `return-outside-function`.                                                                                                    |
 | `F811`                                            | Pylint: `function-redefined`, `reimported`.                                                                                           |
-| `F821`                                            | Pylint: `undefined-variable`, `used-before-assignment`.                                                                               |
+| `F821`                                            | Pylint: `undefined-variable`.                                                                                                         |
 | `F822`                                            | Pylint: `undefined-all-variable`.                                                                                                     |
+| `F823`                                            | Pylint: `used-before-assignment`.                                                                                                     |
 | `F841`                                            | Pylint: `unused-variable`.                                                                                                            |
+| `F842`                                            | Pylint: `unused-variable` for annotated locals.                                                                                      |
 | `F901`                                            | Pylint: `notimplemented-raised`.                                                                                                      |
 | `G001`                                            | Pylint: `logging-format-interpolation`.                                                                                               |
 | `G002`                                            | Pylint: `logging-not-lazy`.                                                                                                           |
@@ -223,14 +239,25 @@ counts will be lower for the lint rules; the formatter and line counts hold.
 | `PLW1510`                                         | Pylint: `subprocess-run-check`.                                                                                                       |
 | `PLW2101`                                         | Pylint: `useless-with-lock`.                                                                                                          |
 | `PLW3301`                                         | Pylint: `nested-min-max`.                                                                                                             |
-| `Q000`                                            | Pylint: `inconsistent-quotes`.                                                                                                        |
+| `PIE790`                                          | Pylint: `unnecessary-ellipsis`.                                                                                                        |
 | `S102`                                            | Pylint: `exec-used`.                                                                                                                  |
+| `S113`                                            | Pylint: `missing-timeout`.                                                                                                            |
 | `S307`                                            | Pylint: `eval-used`.                                                                                                                  |
 | `SIM118`                                          | Pylint: `consider-iterating-dictionary`.                                                                                              |
+| `SIM107`                                          | Pylint: `return-in-finally`.                                                                                                          |
+| `SIM201`                                          | Pylint: `unnecessary-negation` for equality tests.                                                                                    |
+| `SIM202`                                          | Pylint: `unnecessary-negation` for inequality tests.                                                                                  |
+| `SIM208`                                          | Pylint: `unnecessary-negation` for double negations.                                                                                  |
 | `SLF001`                                          | Pylint: `protected-access`.                                                                                                           |
 | `TID252`                                          | Google guide §2.2.4; Pylint message `relative-beyond-top-level`.                                                                      |
+| `T100`                                            | Pylint: `forgotten-debug-statement`.                                                                                                  |
 | `TRY002`                                          | Pylint: `broad-exception-raised`.                                                                                                     |
+| `TRY203`                                          | Pylint: `try-except-raise`.                                                                                                           |
 | `UP025`                                           | Pylint: `redundant-u-string-prefix`.                                                                                                  |
+| `UP031`                                           | Pylint: `consider-using-f-string` for printf-style formatting.                                                                       |
+| `UP032`                                           | Pylint: `consider-using-f-string` for `.format` calls.                                                                                |
+| `UP034`                                           | Pylint: `superfluous-parens`.                                                                                                         |
+| `RUF059`                                          | Pylint: `unused-variable` for unpacked values.                                                                                        |
 | `W291`                                            | Pylint: `trailing-whitespace`.                                                                                                        |
 | `W292`                                            | Pylint: `missing-final-newline`.                                                                                                      |
 | `W605`                                            | Pylint: `anomalous-backslash-in-string`.                                                                                              |
@@ -240,23 +267,21 @@ The scratch conversion uses `pylint-to-ruff` 0.3.0 with Pylint 4.0.9 and Ruff
 distinct codes, including removed E999, and misses cross-linter equivalents. The
 final selection supplements its output with Ruff issue
 [#970](https://github.com/astral-sh/ruff/issues/970) and the guide text. Of the
-297 messages enabled by Google’s pylintrc, 143 have a selected stable Ruff
-counterpart, six have only preview candidates, E999 is removed, and 147 have no
-stable equivalent.
+297 messages enabled by Google’s pylintrc, 152 have a selected stable Ruff
+counterpart, six have only preview candidates, E999 is removed, and 138 have no
+stable equivalent. The mappings were rechecked against the stable rule list with
+`ruff rule <code>`; preview rules remain excluded.
 
 The following enabled Pylint messages have no selected stable Ruff equivalent.
-“No equivalent” means neither the converter nor Ruff issue #970 identifies a
-stable rule in Ruff 0.16.9.
+The converter and Ruff issue #970 supplied candidates; the stable rule list was
+checked separately so cross-linter mappings are not missed.
 
 | Left-out Pylint message                                        | Reason                                                           |
 | -------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `disallowed-name` (`C0104`)                                    | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `unnecessary-negation` (`C0117`)                               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-mcs-method-argument` (`C0203`)                            | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-mcs-classmethod-argument` (`C0204`)                       | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `consider-using-f-string` (`C0209`)                            | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `too-many-lines` (`C0302`)                                     | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `superfluous-parens` (`C0325`)                                 | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `mixed-line-endings` (`C0327`)                                 | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `unexpected-line-ending-format` (`C0328`)                      | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `wrong-spelling-in-comment` (`C0401`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
@@ -297,7 +322,6 @@ stable rule in Ruff 0.16.9.
 | `raising-bad-type` (`E0702`)                                   | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-exception-cause` (`E0705`)                                | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `raising-non-exception` (`E0710`)                              | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `catching-non-exception` (`E0712`)                             | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-super-call` (`E1003`)                                     | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `not-callable` (`E1102`)                                       | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `assignment-from-no-return` (`E1111`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
@@ -340,11 +364,9 @@ stable rule in Ruff 0.16.9.
 | `config-parse-error` (`F0011`)                                 | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `method-check-failed` (`F0202`)                                | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `unreachable` (`W0101`)                                        | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `pointless-string-statement` (`W0105`)                         | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `confusing-with-statement` (`W0124`)                           | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-constant-test` (`W0125`)                                | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `missing-parentheses-for-call-in-test` (`W0126`)               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `return-in-finally` (`W0134`)                                  | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `contextmanager-generator-missing-cleanup` (`W0135`)           | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `break-in-finally` (`W0137`)                                   | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `comparison-with-callable` (`W0143`)                           | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
@@ -366,7 +388,6 @@ stable rule in Ruff 0.16.9.
 | `unbalanced-tuple-unpacking` (`W0632`)                         | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `possibly-unused-variable` (`W0641`)                           | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `unbalanced-dict-unpacking` (`W0644`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `try-except-raise` (`W0706`)                                   | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `raising-format-tuple` (`W0715`)                               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `wrong-exception-operation` (`W0716`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `arguments-out-of-order` (`W1114`)                             | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
@@ -378,17 +399,15 @@ stable rule in Ruff 0.16.9.
 | `invalid-format-index` (`W1307`)                               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `duplicate-string-formatting-argument` (`W1308`)               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `anomalous-unicode-escape-in-string` (`W1402`)                 | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
+| `inconsistent-quotes` (`W1405`)                                | Neither Google source requires one quote style; the formatter normalizes quotes. |
 | `redundant-unittest-assert` (`W1503`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-thread-instantiation` (`W1506`)                           | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `forgotten-debug-statement` (`W1515`)                          | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `unnecessary-ellipsis` (`W2301`)                               | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-f-string-in-unsupported-version` (`W2601`)              | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-final-decorator-in-unsupported-version` (`W2602`)       | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-exception-groups-in-unsupported-version` (`W2603`)      | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-generic-type-syntax-in-unsupported-version` (`W2604`)   | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-assignment-expression-in-unsupported-version` (`W2605`) | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `using-positional-only-args-in-unsupported-version` (`W2606`)  | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
-| `missing-timeout` (`W3101`)                                    | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `bad-chained-comparison` (`W3601`)                             | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `modified-iterating-list` (`W4701`)                            | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
 | `deprecated-module` (`W4901`)                                  | No stable Ruff 0.16.9 equivalent in the converter or issue #970. |
@@ -420,10 +439,16 @@ stable rule in Ruff 0.16.9.
 | `D1` in `*_test.py` and `test_*.py`                                                 | Google guide §3.8.2.1.                                       | Test modules, classes, and functions need no docstrings.                                                                                                                                                                               |
 | `SLF001` in `*_test.py` and `test_*.py`                                             | Pylint `protected-access`.                                   | Tests may inspect protected state.                                                                                                                                                                                                     |
 | `F401` in `__init__.py`                                                             | Pylintrc `[VARIABLES] init-import=no`.                       | Package initializer imports form the public module API.                                                                                                                                                                                |
-| `D103` on `main` and test-named declarations                                        | Pylintrc `no-docstring-rgx`.                                 | Ruff has no matching identifier-level pydocstyle exemption; apply local `# noqa: D103` where this source exception applies.                                                                                                            |
+| `D103` on `main` and test-named declarations                                        | Pylintrc `no-docstring-rgx`.                                 | Ruff has no name-based pydocstyle exemption; use a local directive only where the source exception applies.                                                                                                                           |
 | `E501` on long import lines, URLs or paths in comments, flags, and string constants | Google guide §3.2.                                           | Ruff’s automatic exceptions do not cover every Google exception; use a local `# noqa: E501` only for these documented cases.                                                                                                           |
+| `E402` after warning-filter initialization                                           | Python import-order requirement.                              | Keep warning filters active before importing the optional source package; the local directive explains this ordering.                                                                                                                |
+| `BLE001` at failure-isolation boundaries                                             | Google guide §2.4.4.                                          | Broad catches are allowed at isolation points that record and suppress failures; each local comment names the boundary.                                                                                                               |
+| `F401` on optional-dependency availability probes                                    | Optional dependency behavior.                                  | The import itself checks whether the optional package is installed.                                                                                                                                                                   |
+| `N818` on `MessageTooLarge`                                                         | FR-007 behavior-preserving fixes.                             | Renaming the public class would change its name.                                                                                                                                                                                      |
+| `PLC0415` on lazy, optional, or test-only imports                                    | Pylint `import-outside-toplevel`.                              | Keep deferred imports at their current boundary; each local comment gives the reason.                                                                                                                                                  |
+| `SLF001` on same-package private helper calls                                        | Pylint `protected-access`.                                    | Preserve the private helper names and identify their same-package use at each call.                                                                                                                                                   |
 | Naming exemptions in `extend-ignore-names`                                          | Pylintrc `[BASIC]` and `[CLASSES]`.                          | Preserve the source’s `main`, `_`, test, assertion, setup/teardown, and `class_`/`mcs` conventions where Ruff exposes matching name exemptions.                                                                                        |
-| `dummy-variables-rgx`                                                               | Pylintrc `[VARIABLES]`.                                      | Ruff 0.16.9 has no equivalent setting; its unused-variable check ignores `_` names.                                                                                                                                                    |
+| `dummy-variable-rgx`                                                               | Pylintrc `[VARIABLES]` and Pylint's default `ignored-argument-names`. | Ruff uses one setting for both source patterns.                                                                                                                                                                                        |
 | `docstring-min-length=12`                                                           | Pylintrc `[BASIC]`.                                          | Ruff pydocstyle has no matching minimum-length setting.                                                                                                                                                                                |
 | Fenced Python in Clean Code reference Markdown                                      | Vendored upstream references; Markdown is not Python source. | Exclude these documents from Ruff formatting so their examples retain upstream form.                                                                                                                                                   |
-| `.specify/`                                                                         | FR-004; vendored Spec Kit extensions.                        | Keep vendored upstream code unchanged.                                                                                                                                                                                                 |
+| `.specify/extensions/`                                                              | FR-005; vendored Spec Kit extensions.                        | Keep vendored upstream code unchanged.                                                                                                                                                                                                 |

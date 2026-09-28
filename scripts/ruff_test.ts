@@ -94,6 +94,18 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     ]);
     assert(testPass.success, output(testPass));
 
+    const unsortedImports = join(temp, 'unsorted_imports.py');
+    await Deno.writeTextFile(unsortedImports, 'import os\nimport json\n');
+    const importOrderFail = await ruff([
+      'check',
+      '--no-cache',
+      '--config',
+      config,
+      unsortedImports,
+    ]);
+    assert(!importOrderFail.success);
+    assertMatch(output(importOrderFail), /I001/);
+
     const unformatted = join(temp, 'unformatted.py');
     await Deno.writeTextFile(unformatted, 'value=[1,2]\n');
     const formatFail = await ruff([
@@ -106,15 +118,46 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     ]);
     assert(!formatFail.success);
 
+    const formatAtLimit = join(temp, 'format_at_limit.py');
+    const formatOverLimit = join(temp, 'format_over_limit.py');
+    const call = (length: number) =>
+      `result = function("${'x'.repeat(length - 21)}")\n`;
+    await Deno.writeTextFile(formatAtLimit, call(80));
+    await Deno.writeTextFile(formatOverLimit, call(81));
+    const formatBoundaryPass = await ruff([
+      'format',
+      '--check',
+      '--no-cache',
+      '--config',
+      config,
+      formatAtLimit,
+    ]);
+    assert(formatBoundaryPass.success, output(formatBoundaryPass));
+    const formatBoundaryFail = await ruff([
+      'format',
+      '--check',
+      '--no-cache',
+      '--config',
+      config,
+      formatOverLimit,
+    ]);
+    assert(!formatBoundaryFail.success);
+
     const isolatedConfig = join(temp, 'ruff.toml');
-    const vendor = join(temp, '.specify');
+    const vendor = join(temp, '.specify/extensions');
     const vendorFile = join(vendor, 'synthetic.py');
+    const specifyScript = join(temp, '.specify/scripts/synthetic.py');
     const repositoryFile = join(temp, 'synthetic.py');
     await Deno.copyFile(config, isolatedConfig);
-    await Deno.mkdir(vendor);
+    await Deno.mkdir(vendor, {recursive: true});
+    await Deno.mkdir(join(temp, '.specify/scripts'), {recursive: true});
     await Deno.writeTextFile(
       vendorFile,
       'def vendor_api():\n    return None\n',
+    );
+    await Deno.writeTextFile(
+      specifyScript,
+      'def repository_owned():\n    return None\n',
     );
     await Deno.writeTextFile(
       repositoryFile,
@@ -126,6 +169,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     );
     assert(shownFiles.success, output(shownFiles));
     assert(!output(shownFiles).includes(vendorFile));
+    assert(output(shownFiles).includes(specifyScript), output(shownFiles));
     assert(output(shownFiles).includes(repositoryFile), output(shownFiles));
   } finally {
     await Deno.remove(temp, {recursive: true});

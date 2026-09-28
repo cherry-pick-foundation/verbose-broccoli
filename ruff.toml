@@ -1,8 +1,8 @@
 line-length = 80
 indent-width = 4
 preview = false
-# FR-004 keeps vendored upstream Spec Kit extensions in their upstream form.
-extend-exclude = [".specify/"]
+# FR-005 keeps vendored upstream Spec Kit extensions in their upstream form.
+extend-exclude = [".specify/extensions/"]
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
@@ -23,20 +23,33 @@ exclude = ["*.md"]
 
 [lint]
 # Google pylintrc [BASIC] and [MESSAGES CONTROL], mapped to stable Ruff rules.
+# Google pylintrc VARIABLES regex and Pylint default ignored-argument-names.
+dummy-variable-rgx = "^(?:\\*{0,2}(?:_$|unused_|dummy_)|_.*|ignored_|unused_)"
 select = [
-  # Pylint builtin-name checks.
+  # Pylint builtin-name checks, including lambda arguments.
   "A001",
-  # Pylint argument checks.
+  "A002",
+  "A003",
+  "A004",
+  "A006",
+  # Pylint unused-argument checks by function kind.
   "ARG001",
+  "ARG002",
+  "ARG003",
+  "ARG004",
+  "ARG005",
   # Pylint bug checks and Ruff's stable equivalents.
   "B002",
   "B006",
+  "B007",
   "B012",
   "B014",
   "B018",
   "B019",
   "B023",
+  "B025",
   "B026",
+  "B030",
   "B033",
   "B904",
   # Pylint's broad-exception-caught message.
@@ -53,7 +66,10 @@ select = [
   "E701",
   "E702",
   "E703",
+  "E711",
   "E712",
+  "E713",
+  "E714",
   "E721",
   "E722",
   "E731",
@@ -81,7 +97,9 @@ select = [
   "F811",
   "F821",
   "F822",
+  "F823",
   "F841",
+  "F842",
   "F901",
   # Pylint [LOGGING] messages mapped to stable Ruff rules.
   "G001",
@@ -91,6 +109,8 @@ select = [
   "I001",
   # Google §3.16 naming and Pylint's stable naming equivalents.
   "N",
+  # Pylint's unnecessary-ellipsis message.
+  "PIE790",
   # Stable Pylint convention rules.
   "PLC0105",
   "PLC0131",
@@ -163,21 +183,37 @@ select = [
   "PLW1510",
   "PLW2101",
   "PLW3301",
-  # Pylint string-quote consistency.
-  "Q000",
+  # Pylint unused-variable equivalent for unpacked values.
+  "RUF059",
   # Pylint's security rules.
   "S102",
+  "S113",
   "S307",
+  # Pylint's return-in-finally message.
+  "SIM107",
   # Pylint dictionary-iteration guidance.
   "SIM118",
+  # Stable equivalents for Pylint's unnecessary-negation message.
+  "SIM201",
+  "SIM202",
+  "SIM208",
   # Pylint protected-access; tests may inspect protected state below.
   "SLF001",
+  # Pylint's forgotten-debug-statement message.
+  "T100",
   # Google §2.2.4 prohibits relative imports.
   "TID252",
   # Pylint's broad-exception-raised rule.
   "TRY002",
+  # Pylint's try-except-raise message.
+  "TRY203",
   # Pylint's redundant-u-string-prefix rule.
   "UP025",
+  # Pylint's consider-using-f-string message.
+  "UP031",
+  "UP032",
+  # Pylint's superfluous-parens message.
+  "UP034",
   # Pylint whitespace and string-escape rules.
   "W291",
   "W292",
@@ -186,7 +222,7 @@ select = [
 # Google's pylintrc disables Pylint's full R/refactor category; Ruff PLR stays off.
 # Ruff 0.16.9 marks PLC2801, PLE1141, PLE4703, PLW0244, PLW1514 and E111 as preview.
 # Other enabled Pylint messages without stable Ruff equivalents are listed in research.md.
-# Pylintrc no-docstring-rgx exempts main/Test names; Ruff needs local D103 noqa for these.
+# Pylintrc no-docstring-rgx exempts main and test names; see research.md for D103 limits.
 # Pylintrc no-docstring-rgx exempts magic methods and __init__; D105 and D107 stay off.
 ignore = ["D105", "D107"]
 
@@ -237,4 +273,3 @@ extend-ignore-names = [
 [lint.pydocstyle]
 # Google §3.8; Ruff has no setting for pylintrc's 12-character minimum.
 convention = "google"
-# Pylintrc VARIABLES dummy-variables-rgx also exempts unused_/dummy_; Ruff 0.16.9 has no equivalent setting.
