@@ -136,6 +136,21 @@ internal layers only when a specified capability has an actual consumer. Selecte
 Wiki storage follows constitution principle VI; restructuring code does not move
 live data or other external operational or source roots.
 
+### Wiki storage
+
+The default Wiki instance lives at
+`$XDG_DATA_HOME/verbose-broccoli/wikis/default/` (by default under
+`~/.local/share`), outside the repository. It holds the schema `AGENTS.md`,
+`raw/{web,files,notes,assets}/` and `wiki/`, and its own Git repository
+versions the schema and `wiki/` but ignores `raw/`. The work plugin's
+`wiki-raw-import` skill creates the instance and copies documents the user
+confirms into `raw/`. Each copy is one read-only BagIt bag whose
+`bag-info.txt` records the source ID, the original path and modification time,
+and the admission time, and whose manifest holds the SHA-256 digest. The bags
+are the only record of sources and revisions. The user's exclusions live in
+`$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
+one-run lock live under the cache and state roots.
+
 ### Backfire server
 
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
@@ -203,7 +218,7 @@ duplicate source trees elsewhere in the repository.
 | Package | Owned skills |
 | --- | --- |
 | `plugins/code/skills` | `clean-code`, `git-commit`, `ponytail*`, `speckit-*`, `verification-before-completion` |
-| `plugins/work/skills` | `quarto-authoring`, `session-migrate` |
+| `plugins/work/skills` | `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
 
 `session-migrate` owns task handoff and resumption, including checks of current
 sources.
@@ -338,9 +353,19 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
   the middle digit, `docs` or `fix` the last digit. Other types and an
   unchanged version are refused. A breaking change also needs the user's
-  approval before it is committed, which the hook cannot check. A `commit-msg`
-  hook is not told about `--amend`, so an amend is compared with the commit it
-  replaces.
+  approval before it is committed, which the hook cannot check.
+- An amend is compared with `HEAD^`, the parent of the commit it replaces, so
+  it keeps the version that commit set. Git does not tell a `commit-msg` hook
+  about `--amend`, so the hook reads the arguments of the `git` process that
+  runs it from `/proc/$PPID/cmdline`. When one is `--amend` or an abbreviation
+  git accepts (`--am`, `--ame`, `--amen`) and no later `--no-amend` form
+  cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
+  otherwise it clears any inherited value. Where those arguments cannot be
+  read, an amend is compared with the commit it replaces, as before this rule
+  handled amends, so it can be refused or accepted wrongly. The hook does not
+  know which options take a value, so a value such as the message in
+  `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
+  and a value `--no-amend` hides a real amend.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,

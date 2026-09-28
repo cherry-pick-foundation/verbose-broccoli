@@ -56,9 +56,9 @@ def create_server(judge: Judge, boundary: Boundary | None = None) -> Server:
             )
         except Exception as error:
             text, is_error = str(error), True
-        # A dict goes on the wire as given; a CallToolResult would add isError false
-        # and resultType, which upstream's results do not have.
-        result = {"content": [{"type": "text", "text": text}]}
+        # The SDK drops resultType for legacy versions; a dict avoids adding
+        # isError: false to successful results.
+        result = {"content": [{"type": "text", "text": text}], "resultType": "complete"}
         return {**result, "isError": True} if is_error else result
 
     async def call_tool(context, params):

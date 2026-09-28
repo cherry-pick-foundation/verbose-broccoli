@@ -50,5 +50,8 @@ constitution.
 
 ## Known limit
 
-A `commit-msg` hook is not told about `--amend`, so an amend is compared with
-the commit being replaced (research R3).
+A `commit-msg` hook is not told about `--amend` (research R3). Since CHE-15,
+the hook reads `--amend` from the arguments of the `git` process that runs it,
+and an amend is compared with the parent of the commit being replaced.
+`docs/architecture.md` (Commit messages) describes the detection and the cases
+it misses.
