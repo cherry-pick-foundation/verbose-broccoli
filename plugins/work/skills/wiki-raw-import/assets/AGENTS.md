@@ -76,6 +76,8 @@ Rules:
   alias.
 - Pages hold no contact details or ID numbers: no phone numbers, email or
   postal addresses, guardian contacts or resident registration numbers.
+- A student's page is `wiki/students/<name>.md`, named with the student's
+  name in the roster's spelling.
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
   synthesis. Both start empty; `index.md` gets its region lines (below)
   before the first `update`.
@@ -155,6 +157,21 @@ steps; its commands are `check`, `update`, `convert`, `index` and `prepare`.
    read, no passage of a long source within the evidence limit, or an
    `overview.md` unit without linked pages).
 3. Run `check` again, append one `log.md` entry and commit.
+
+`check` also tests the Wiki rules above as far as a pattern can tell, in
+every page except `log.md` and outside mechanical regions: no phone
+numbers, email or postal addresses, or registration numbers; each student
+page's name is in backfire's roster; no Hangul, Chinese or Japanese text
+except roster names and one quote of at most 100 characters beside its
+English translation on the same line; schools as domain IDs, not Hangul or
+romanized names; dates as YYYY-MM-DD and times followed by `Z`, an offset
+such as `+09:00`, or a UTC form such as `(UTC+9)`. It reads the roster
+through backfire's `education.toml` only when a student page or such text
+exists. A passing `check` does not prove the rest, which stays with the
+judgment step and your own review: whether Latin-letter text is English and
+a translation faithful, names written in other forms, whether a domain ID
+is the right school, contact details and ID numbers in other forms, whether
+dates and times are right, and which source wins.
 
 A lint operation reviews the whole Wiki: the same steps with `prepare --scope
 lint`, plus the cross-reference suggestions and the orphan pages and stale

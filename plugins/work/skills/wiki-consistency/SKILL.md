@@ -31,16 +31,18 @@ Install it once after the plugin is installed or updated:
 
 ```sh
 uv sync --project ../../doc-regions --frozen --no-dev
+uv sync --project ../../backfire --frozen --no-dev --extra education
 uv sync --project ../../wiki-consistency --frozen --no-dev
 npm ci --ignore-scripts --no-audit --no-fund --prefix ../../wiki-consistency
 ```
 
-The first line gives `doc-regions`, which the tool uses as a library, the
-`.venv/` its build needs.
+The first two lines give `doc-regions` and `backfire`, which the tool uses
+as libraries, the `.venv/` their builds need; `check` reads the roster and
+finds names, phone numbers and email addresses with backfire's code.
 
 | Command | What it does | Network | Writes |
 | --- | --- | --- | --- |
-| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags and that `log.md` only grew; lists orphan pages and stale citations | none | nothing |
+| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags, that `log.md` only grew, and the page rules a pattern can test (below); lists orphan pages and stale citations | none | nothing |
 | `update` | Regenerates stale mechanical regions | none | region text in `wiki/` |
 | `convert [--scope changed\|lint]` | Converts cited raw revisions to Markdown | none | `CACHE/wiki-evidence/` |
 | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |
@@ -50,6 +52,18 @@ On success a command prints one JSON object and exits 0. A failed check or an
 execution failure exits 1 and invalid arguments exit 2; both print their
 details on stderr only.
 `check` needs Git and lychee; `index` and `prepare` need Node 22 or later.
+
+The page rules that `check` tests, in every page except `log.md` and
+outside mechanical regions: no phone numbers, email or postal addresses,
+or registration numbers; each page directly in `wiki/students/` is named
+after a student in the roster; no Hangul, Chinese or Japanese text except
+roster names and one quote of at most 100 characters beside its English
+translation on the same line; schools as domain IDs; dates as YYYY-MM-DD
+and times with `Z`, an offset or a UTC form. A failure names the page, line
+and rule but not the matched text. `check` reads the roster through
+backfire's `education.toml` only when a student page or such text exists;
+it then fails if the file is missing. The instance's `AGENTS.md` lists the
+rules that stay with the judgment step.
 
 ## After an operation that changed the Wiki
 

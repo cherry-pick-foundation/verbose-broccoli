@@ -79,10 +79,11 @@ merge review.
 - [ ] T005 [P] [US4] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   state how student pages are laid out, which rules `check` enforces, and
   the rules left to judgment (FR-014).
-- [ ] T006 [P] [US4] In `plugins/work/skills/wiki-consistency/SKILL.md`,
-  `docs/architecture.md` and `docs/examples/wiki/AGENTS.md`, describe the
-  new rules the same way (FR-015), and in the skill's install steps sync
-  `../../backfire` with its `education` extra before `wiki-consistency`.
+- [ ] T006 [P] [US4] In `plugins/work/skills/wiki-consistency/SKILL.md`
+  and `docs/architecture.md`, describe the new rules the same way, and in
+  `docs/examples/wiki/AGENTS.md` state the student page layout (FR-015); in
+  the skill's install steps sync `../../backfire` with its `education`
+  extra before `wiki-consistency`.
 - [ ] T007 [P] In `deno.json`'s `wiki-consistency:install` and `orca.yaml`'s
   setup, sync `packages/backfire` with its `education` extra before
   `packages/wiki-consistency`, and name it in `docs/architecture.md`'s

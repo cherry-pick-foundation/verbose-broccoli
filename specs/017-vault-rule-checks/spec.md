@@ -329,9 +329,10 @@ documents that describe the check.
 - **FR-014**: The schema template MUST say how student pages are laid out
   and which page rules the offline check enforces, and MUST list the rules
   that stay with judgment, without changing the rules themselves.
-- **FR-015**: The consistency skill, the example schema
-  `docs/examples/wiki/AGENTS.md` and `docs/architecture.md` MUST describe the
-  check the same way where they describe it.
+- **FR-015**: The consistency skill and `docs/architecture.md` MUST
+  describe the new rules of the check the same way as the template, and the
+  example schema `docs/examples/wiki/AGENTS.md`, which describes page
+  conventions but not the check, MUST state the student page layout.
 
 **Fixtures and privacy**
 
