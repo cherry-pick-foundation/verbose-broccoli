@@ -64,6 +64,12 @@ Rules:
 - When sources disagree, student information follows the user's student
   information system (EduOK) first, and school information follows the
   school's official homepage first.
+- Write dates as YYYY-MM-DD, and every time with its time zone.
+- A student who has a page stays in backfire's roster even after leaving
+  the student information system (EduOK), so the name keeps getting its
+  alias.
+- Pages hold no contact details or ID numbers: no phone numbers, email or
+  postal addresses, guardian contacts or resident registration numbers.
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
   synthesis. Both start empty; `index.md` gets its region lines (below)
   before the first `update`.
