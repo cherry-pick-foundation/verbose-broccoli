@@ -11,8 +11,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[4]
 MAX_BYTES = 16 * 1024 * 1024
 PLUGINS = {
-    "code": (("backfire",), "backfire/config.toml"),
-    "work": (("backfire", "backfire_education"), "backfire_education/config.toml"),
+    "code": (("backfire",), "backfire/config.toml", ()),
+    "work": (
+        ("backfire", "backfire_education"),
+        "backfire_education/config.toml",
+        ("doc-regions", "wiki-consistency"),
+    ),
 }
 
 
@@ -27,7 +31,7 @@ def refuse_existing(output: Path) -> None:
 def build(output: str | Path, *, plugin: str = "code") -> Path:
     if plugin not in PLUGINS:
         raise ValueError(f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}")
-    packages, profile = PLUGINS[plugin]
+    packages, profile, projects = PLUGINS[plugin]
     output = Path(os.path.abspath(output))
     refuse_existing(output)
     destination = output.parent.resolve(strict=True) / output.name
@@ -68,19 +72,21 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
             raise ValueError(f"Build exceeds {budget}-byte budget: {source}")
         return shutil.copy2(source, target)
 
-    def copy_tree(source: Path, target: Path, *, runtime_package=False):
+    def copy_tree(source: Path, target: Path, *, runtime_package=False, exclude=()):
         check_source(source)
+        excluded = set(exclude)
+        if runtime_package:
+            excluded.add("__pycache__")
 
         def walk_failed(error):
             raise error
 
         for directory, directories, files in os.walk(source, onerror=walk_failed):
             directory = Path(directory)
-            if runtime_package:
-                directories[:] = [name for name in directories if name != "__pycache__"]
-                files = [name for name in files if name != "__pycache__"]
-                if directory == source:
-                    files = [name for name in files if name != "config.toml"]
+            directories[:] = [name for name in directories if name not in excluded]
+            files = [name for name in files if name not in excluded]
+            if runtime_package and directory == source:
+                files = [name for name in files if name != "config.toml"]
             destination = target / directory.relative_to(source)
             destination.mkdir(parents=True, exist_ok=True)
             for name in directories:
@@ -103,6 +109,12 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         for name in packages:
             copy_tree(package / "src" / name, runtime / "src" / name, runtime_package=True)
         copy_file(package / "src" / profile, runtime / "src/backfire/config.toml")
+        for name in projects:
+            copy_tree(
+                ROOT / "packages" / name,
+                partial / name,
+                exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache"),
+            )
         if interrupted:
             raise InterruptedError("Build interrupted")
         refuse_existing(output)

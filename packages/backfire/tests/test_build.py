@@ -28,13 +28,24 @@ def run_build(output: Path, source: Path = ROOT, *, plugin: str = "code", budget
     )
 
 
-def tree(directory: Path) -> dict[str, bytes | None]:
+def tree(directory: Path, *, exclude: tuple[str, ...] = ()) -> dict[str, bytes | None]:
     entries = {"": None}
-    for path in directory.rglob("*"):
-        assert not path.is_symlink(), f"Unexpected link: {path}"
-        entries[path.relative_to(directory).as_posix()] = (
-            None if path.is_dir() else path.read_bytes()
-        )
+    excluded = set(exclude)
+
+    def walk_failed(error):
+        raise error
+
+    for current, directories, files in os.walk(directory, onerror=walk_failed):
+        current = Path(current)
+        directories[:] = [name for name in directories if name not in excluded]
+        for name in directories:
+            path = current / name
+            assert not path.is_symlink(), f"Unexpected link: {path}"
+            entries[path.relative_to(directory).as_posix()] = None
+        for name in files:
+            path = current / name
+            assert not path.is_symlink(), f"Unexpected link: {path}"
+            entries[path.relative_to(directory).as_posix()] = path.read_bytes()
     return entries
 
 
@@ -64,10 +75,12 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     assert result.returncode == 0, result.stderr
     assert result.stdout == f"{output}\n"
     assert result.stderr == ""
+    projects = ("doc-regions", "wiki-consistency") if plugin == "work" else ()
     plugin_files = {
         path: contents
         for path, contents in tree(output).items()
         if path != "backfire" and not path.startswith("backfire/")
+        and not any(path == name or path.startswith(f"{name}/") for name in projects)
     }
     assert plugin_files == tree(ROOT / "plugins" / plugin)
 
@@ -75,12 +88,12 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     expected = {"": None, "src": None}
     for path in PACKAGE_FILES:
         expected[path] = (package / path).read_bytes()
-    packages = ("backfire",) if plugin == "code" else ("backfire", "backfire_education")
-    for name in packages:
+    runtime_packages = ("backfire",) if plugin == "code" else ("backfire", "backfire_education")
+    for name in runtime_packages:
         for path, contents in tree(package / "src" / name).items():
             if "__pycache__" not in Path(path).parts and path != "config.toml":
                 expected[(Path("src") / name / path).as_posix()] = contents
-    profile = package / "src" / packages[-1] / "config.toml"
+    profile = package / "src" / runtime_packages[-1] / "config.toml"
     expected["src/backfire/config.toml"] = profile.read_bytes()
     assert tree(output / "backfire") == expected
     assert "src/backfire/__main__.py" in expected
@@ -90,7 +103,121 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
                 profile if path == "src/backfire/config.toml" else package / path
             ).stat().st_mode
     assert not os.path.lexists(ROOT / "plugins" / plugin / "backfire")
+    for name in projects:
+        source = ROOT / "packages" / name
+        built = output / name
+        assert tree(built) == tree(
+            source,
+            exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache"),
+        )
+        for path in ("pyproject.toml", "uv.lock", "src"):
+            assert (built / path).exists()
+        assert not any(
+            path.is_dir()
+            and path.name in {".venv", "node_modules", "__pycache__", ".pytest_cache"}
+            for path in built.rglob("*")
+        )
+        if name == "wiki-consistency":
+            assert (built / "package.json").is_file()
+            assert (built / "package-lock.json").is_file()
+    if plugin == "code":
+        assert not (output / "doc-regions").exists()
+        assert not (output / "wiki-consistency").exists()
     assert list(tmp_path.iterdir()) == [output]
+
+
+def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Path) -> None:
+    output = tmp_path / "work"
+    assert not output.is_relative_to(ROOT)
+    result = run_build(output, plugin="work")
+    assert result.returncode == 0, result.stderr
+    assert (output / "mcp.json").is_file()
+
+    data_home = tmp_path / "data"
+    cache_home = tmp_path / "cache"
+    wiki_id = "build-test"
+    instance = data_home / "verbose-broccoli" / "wikis" / wiki_id
+    (instance / "wiki").mkdir(parents=True)
+    (instance / "AGENTS.md").write_text("# Wiki rules\n", encoding="utf-8")
+    (instance / "wiki" / "index.md").write_text(
+        '<!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->\n'
+        "<!-- [[[end]]] -->\n",
+        encoding="utf-8",
+    )
+    (instance / "wiki" / "overview.md").write_text("", encoding="utf-8")
+    (instance / "wiki" / "log.md").write_text("", encoding="utf-8")
+    subprocess.run(
+        ["git", "init", "--quiet"], cwd=instance, check=True, capture_output=True
+    )
+
+    uv_cache = subprocess.run(
+        ["uv", "cache", "dir"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    env = {
+        **os.environ,
+        "UV_CACHE_DIR": uv_cache,
+        "XDG_DATA_HOME": str(data_home),
+        "XDG_CACHE_HOME": str(cache_home),
+    }
+    doc_regions = subprocess.run(
+        [
+            "uv",
+            "sync",
+            "--project",
+            str(output / "doc-regions"),
+            "--frozen",
+            "--offline",
+            "--no-dev",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert doc_regions.returncode == 0, doc_regions.stderr
+    install = subprocess.run(
+        [
+            "uv",
+            "sync",
+            "--project",
+            str(output / "wiki-consistency"),
+            "--frozen",
+            "--offline",
+            "--no-dev",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert install.returncode == 0, install.stderr
+    check = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--project",
+            str(output / "wiki-consistency"),
+            "--frozen",
+            "--offline",
+            "--no-sync",
+            "wiki-consistency",
+            "check",
+            "--wiki",
+            wiki_id,
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert check.returncode == 0, check.stderr
 
 
 @pytest.mark.parametrize("plugin", ["chat", "unknown", "../code"])
