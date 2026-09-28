@@ -258,6 +258,58 @@ Deno.test('commit-msg hook: amendments use the parent constitution version', asy
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
     assert(first.success, output(first));
+
+    await writeConstitution(repo, constitution('1.0.0', 'Follow-up text.'));
+    const amend = await runGit(repo, ['commit', '--amen', '--no-edit']);
+    assert(amend.success, output(amend));
+    assertMatch(
+      output(
+        await runGit(repo, ['show', 'HEAD:.specify/memory/constitution.md']),
+      ),
+      /Follow-up text/,
+    );
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('2.0.0', 'Bumped again.'));
+    const amend = await runGit(repo, [
+      'commit',
+      '--am',
+      '-m',
+      'docs!: break again',
+    ]);
+    assert(!amend.success);
+    assertMatch(output(amend), /requires 1\.0\.0; found 2\.0\.0/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+
+    await writeConstitution(repo, constitution('2.0.0', 'New commit.'));
+    const commitResult = await runGit(repo, [
+      'commit',
+      '--am',
+      '--no-am',
+      '-m',
+      'docs!: break again',
+    ]);
+    assert(commitResult.success, output(commitResult));
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD^'])), before);
+  });
+
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
     await writeConstitution(repo, constitution('1.0.0', 'Reworded change.'));
     const amend = await runGit(repo, [
       'commit',

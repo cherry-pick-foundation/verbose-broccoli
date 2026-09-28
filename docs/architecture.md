@@ -333,10 +333,12 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
 - An amend is compared with `HEAD^`, the parent of the commit it replaces, so
   it keeps the version that commit set. Git does not tell a `commit-msg` hook
   about `--amend`, so the hook reads the arguments of the `git` process that
-  runs it from `/proc/$PPID/cmdline` and, when one is exactly `--amend`, sets
-  `CONSTITUTION_VERSION_AMEND` for the rule; it clears any inherited value
-  otherwise. Where those arguments cannot be read, or `--amend` is abbreviated,
-  an amend is compared with the commit it replaces and refused as before.
+  runs it from `/proc/$PPID/cmdline`. When one is `--amend` or an abbreviation
+  git accepts (`--am`, `--ame`, `--amen`) and no later `--no-amend` form
+  cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
+  otherwise it clears any inherited value. Where those arguments cannot be
+  read, an amend is compared with the commit it replaces, as before this rule
+  handled amends, so it can be refused or accepted wrongly.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,
