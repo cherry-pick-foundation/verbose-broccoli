@@ -86,7 +86,7 @@ class Fixture {
     };
     this.instance = join(
       this.env.XDG_DATA_HOME,
-      'verbose-broccoli/wikis/default',
+      'verbose-broccoli/vaults/work',
     );
     this.raw = join(this.instance, 'raw');
   }
@@ -150,7 +150,7 @@ class Fixture {
   async selection(items: unknown[]) {
     const path = join(
       this.env.XDG_STATE_HOME,
-      'verbose-broccoli/wikis/default/selections/test.jsonl',
+      'verbose-broccoli/vaults/work/selections/test.jsonl',
     );
     await Deno.mkdir(dirname(path), {recursive: true});
     await Deno.writeTextFile(
@@ -168,7 +168,7 @@ class Fixture {
     );
   }
 
-  staging(wiki = 'default') {
+  staging(wiki = 'work') {
     return join(this.env.XDG_CACHE_HOME, 'verbose-broccoli/raw-import', wiki);
   }
 }
@@ -828,7 +828,7 @@ Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL relea
     try {
       const lock = join(
         f.env.XDG_STATE_HOME,
-        'verbose-broccoli/wikis/default/raw-import.lock',
+        'verbose-broccoli/vaults/work/raw-import.lock',
       );
       // Python observes the Linux lock owner because Deno restricts direct /proc reads.
       const paused = await output(
@@ -944,6 +944,42 @@ Deno.test('raw import US5: init copies the schema and creates an uncommitted Wik
   });
 });
 
+Deno.test('raw import US5: unnamed commands use the work vault under vaults', async () => {
+  await fixture(async f => {
+    await f.init();
+    const path = await f.file('work-vault.txt');
+    const [item] = report(await f.admit([path]));
+    assertEquals(item.outcome, 'admitted');
+    const verified = await f.run('verify');
+    assertEquals(verified.code, 0, verified.stderr);
+    assertEquals(JSON.parse(verified.stdout), {count: 1, invalid: []});
+
+    const selection = join(
+      f.env.XDG_STATE_HOME,
+      'verbose-broccoli/vaults/work/selections/test.jsonl',
+    );
+    const lock = join(
+      f.env.XDG_STATE_HOME,
+      'verbose-broccoli/vaults/work/raw-import.lock',
+    );
+    const paths = new Set((await snapshot(f.home)).map(entry => entry.path));
+    assert(
+      [f.instance, f.raw, selection, lock, revisionPath(f, item)].every(path =>
+        paths.has(relative(f.home, path)),
+      ),
+    );
+    for (const root of [f.env.XDG_DATA_HOME, f.env.XDG_STATE_HOME]) {
+      assertEquals(
+        Array.from(
+          Deno.readDirSync(join(root, 'verbose-broccoli')),
+          entry => entry.name,
+        ),
+        ['vaults'],
+      );
+    }
+  });
+});
+
 Deno.test('raw import US5: repeated init preserves every byte and modification time', async () => {
   await fixture(async f => {
     await f.init();
@@ -970,7 +1006,7 @@ Deno.test('raw import US5: named Wiki and all four kinds use their own roots', a
     const initialized = await f.run('--wiki', 'selected', 'init');
     assertEquals(initialized.code, 0, initialized.stderr);
     assertEquals(initialized.stderr, '');
-    f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/wikis/selected');
+    f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults/selected');
     f.raw = join(f.instance, 'raw');
     const items = await Promise.all(
       ['web', 'files', 'notes', 'assets'].map(async kind => ({
@@ -1001,13 +1037,47 @@ Deno.test('raw import US5: named Wiki and all four kinds use their own roots', a
     await Deno.stat(
       join(
         f.env.XDG_STATE_HOME,
-        'verbose-broccoli/wikis/selected/raw-import.lock',
+        'verbose-broccoli/vaults/selected/raw-import.lock',
       ),
     );
     assertEquals(Array.from(Deno.readDirSync(f.staging('selected'))), []);
     assertEquals(
       Array.from(Deno.readDirSync(dirname(f.instance)), entry => entry.name),
       ['selected'],
+    );
+  });
+});
+
+Deno.test('raw import US5: a synthetic conversation export is admitted to chat', async () => {
+  await fixture(async f => {
+    const initialized = await f.run('--wiki', 'chat', 'init');
+    assertEquals(initialized.code, 0, initialized.stderr);
+    f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults/chat');
+    f.raw = join(f.instance, 'raw');
+    const path = await f.file(
+      'synthetic-chat-export.json',
+      `${JSON.stringify({
+        conversation_id: 'synthetic-1',
+        messages: [
+          {speaker: 'speaker_1', text: 'Group the blue cards by shape.'},
+          {speaker: 'speaker_2', text: 'I will sort the circles first.'},
+        ],
+      })}\n`,
+    );
+    const selection = await f.selection([{path, kind: 'files'}]);
+    const [item] = report(
+      await f.run('admit', '--wiki', 'chat', '--selection', selection),
+    );
+    assertEquals(item.outcome, 'admitted');
+    const verified = await f.run('verify', '--wiki', 'chat');
+    assertEquals(verified.code, 0, verified.stderr);
+    assertEquals(JSON.parse(verified.stdout), {count: 1, invalid: []});
+    assertEquals(
+      Array.from(
+        Deno.readDirSync(dirname(revisionPath(f, item))),
+        entry => entry.name,
+      ),
+      [item.revision],
     );
   });
 });
@@ -1034,7 +1104,7 @@ for (const value of ['unset', '', 'relative']) {
           }),
         );
       assertEquals((await command('init')).code, 0);
-      f.instance = join(f.home, '.local/share/verbose-broccoli/wikis/default');
+      f.instance = join(f.home, '.local/share/verbose-broccoli/vaults/work');
       f.raw = join(f.instance, 'raw');
       await Deno.stat(join(f.instance, 'AGENTS.md'));
       const path = await f.file('default-roots.txt');
@@ -1047,13 +1117,13 @@ for (const value of ['unset', '', 'relative']) {
       await Deno.stat(
         join(
           f.home,
-          '.local/state/verbose-broccoli/wikis/default/raw-import.lock',
+          '.local/state/verbose-broccoli/vaults/work/raw-import.lock',
         ),
       );
       assertEquals(
         Array.from(
           Deno.readDirSync(
-            join(f.home, '.cache/verbose-broccoli/raw-import/default'),
+            join(f.home, '.cache/verbose-broccoli/raw-import/work'),
           ),
         ),
         [],

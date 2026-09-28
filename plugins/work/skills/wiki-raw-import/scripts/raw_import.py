@@ -223,7 +223,7 @@ def admit(selection, instance, storage):
     items = selection_items(selection)
     excluded = exclusions(storage)
     counts = dict.fromkeys(OUTCOMES, 0)
-    lock_path = storage["state"] / "wikis" / instance.name / "raw-import.lock"
+    lock_path = storage["state"] / "vaults" / instance.name / "raw-import.lock"
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a") as lock:
         try:
@@ -267,7 +267,7 @@ def verify(instance):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--wiki", type=wiki_name, default="default")
+    parser.add_argument("--wiki", type=wiki_name, default="work")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("init", "admit", "verify"):
         command = commands.add_parser(name)
@@ -277,7 +277,7 @@ def main():
     args = parser.parse_args()
     try:
         storage = roots()
-        instance = storage["data"] / "wikis" / args.wiki
+        instance = storage["data"] / "vaults" / args.wiki
         if args.command == "init":
             return initialize(instance)
         if not (instance / "raw").is_dir():
