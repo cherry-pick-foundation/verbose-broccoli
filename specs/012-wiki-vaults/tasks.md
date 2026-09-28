@@ -63,9 +63,9 @@ messages; tests use only synthetic fixtures.
 - [x] T005 [P] [US2] In `docs/architecture.md`, describe the four vaults,
   their owners, the default rule, shared vault storage and the chat package's
   state (FR-009).
-- [x] T006 [P] [US1] [US2] [US3] In the `wiki-raw-import` skill's `SKILL.md`
-  and `assets/AGENTS.md`, name `vaults/`, the default `work`, and allow
-  exported conversations only in the chat vault (FR-010).
+- [x] T006 [P] [US1] [US2] [US3] In the `wiki-raw-import` skill's `SKILL.md`,
+  name `vaults/` and the default `work`; in it and in `assets/AGENTS.md`,
+  allow exported conversations only in the chat vault (FR-010).
 - [x] T007 [P] [US1] In `specs/009-wiki-storage/`, rename the storage folder
   in the units research R1 lists; leave the single-instance statements
   (FR-011).
@@ -73,9 +73,13 @@ messages; tests use only synthetic fixtures.
 ## Phase 3: Verification and review
 
 - [x] T008 Run `deno task test:wiki-raw-import`, `deno task verify` and
-  `git grep -n wikis`; no storage folder mention may remain.
-  - 2026-09-28: 43 tests passed, `deno task verify` passed at `948011b`, and
-    `git grep -n wikis` found nothing.
+  `git grep -n wikis`; only records of this rename may match (SC-001).
+  - 2026-09-28: 43 tests passed and `deno task verify` passed at `948011b`.
+    An earlier version of this line said that `git grep -n wikis` found
+    nothing, but that search had not run; the merge review found the matches.
+    They are three lines of the constitution's amendment report and
+    Governance history and this feature's records, none naming `wikis/` as
+    the storage folder.
 - [x] T009 Run the document judgment step of research R2; correct or record
   each contradicted or flagged unit; report the requests and input tokens.
   - 2026-09-28: No correction was needed; the results, the reasons the

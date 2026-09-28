@@ -117,7 +117,8 @@ cases already cover named vaults, locks, staging and XDG defaults.
    `DATA/wikis/` or `STATE/wikis/`, and that the user's session that writes
    student pages is idle; otherwise ask through the develop session.
 3. Check that `DATA/vaults/` and `STATE/vaults/` do not exist or hold no
-   `work` folder.
+   `work` folder, then create the missing `DATA/vaults/` and `STATE/vaults/`
+   with `mkdir`, so that the renames have their target parents.
 4. `mv DATA/wikis/default DATA/vaults/work` and
    `mv STATE/wikis/default STATE/vaults/work` on the same file system.
 5. Compare the recorded values; run `verify` on `work`.

@@ -8,7 +8,7 @@ Run from the feature worktree's root with Deno on `PATH`
 ```sh
 deno task test:wiki-raw-import  # new paths, default work, chat admission
 deno task verify                # everything, with recorded evidence
-git grep -n wikis               # no mention of the storage folder
+git grep -n wikis               # only records of this rename (SC-001)
 ```
 
 ## Document judgments

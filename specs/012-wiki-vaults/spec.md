@@ -93,7 +93,8 @@ synthetic file and verify it; list the data and state roots.
 2. **Given** a created vault, **When** a file is admitted, **Then** the run
    lock is in `vaults/<name>/` under the state root.
 3. **Given** the repository after the change, **When** it is searched for
-   `wikis`, **Then** no mention of the storage folder remains.
+   `wikis`, **Then** only records of this rename match; none says that
+   `wikis/` is the storage folder.
 
 ---
 
@@ -211,9 +212,10 @@ vault.
 - **FR-009**: `docs/architecture.md` MUST describe the four vaults, their
   owners, the default rule, and that any plugin's Wiki tool may write a vault
   the user selects.
-- **FR-010**: The `wiki-raw-import` skill and its schema template MUST name
-  `vaults/` and the default vault `work`, and MUST allow exported
-  conversations as raw evidence only in the chat vault.
+- **FR-010**: The `wiki-raw-import` skill MUST name `vaults/` and the default
+  vault `work`. The skill and its schema template MUST allow exported
+  conversations as raw evidence only in the chat vault; the template names no
+  storage path, because each vault gets its own copy.
 - **FR-011**: Every other repository document, including feature 009's
   records, MUST name `vaults/` wherever it names the storage folder; concept
   names and the `--wiki` option stay.
@@ -240,8 +242,10 @@ vault.
 
 ### Measurable Outcomes
 
-- **SC-001**: After the merge, a search of `develop` for `wikis` finds no
-  mention of the storage folder.
+- **SC-001**: After the merge, a search of `develop` for `wikis` finds only
+  records of this rename: the constitution's amendment report and Governance
+  history, and this feature's records. No code, test, skill or document names
+  `wikis/` as the storage folder.
 - **SC-002**: Four vaults exist under `~/.local/share/verbose-broccoli/vaults/`,
   and the tool's verification passes on each.
 - **SC-003**: `vaults/work/` has the same latest commit, commit count and
