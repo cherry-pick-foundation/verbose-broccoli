@@ -76,7 +76,7 @@ and for 2025-11-25 the same function drops `resultType` from its output.
   builds the `deadline_exceeded` and `record_write_failed` replies itself and
   writes them past the SDK's serializer, also without `resultType`. A client
   on 2026-07-28 would receive an invalid result there too.
-- `packages/backfire/src/backfire/boundary.py:170, 186` — `Boundary.call()`
+- `packages/backfire/src/backfire/boundary.py:169, 187` — `Boundary.call()`
   returns `types.CallToolResult(content=[], is_error=True)`. The typed model
   already sets `resultType: "complete"`, and for legacy versions the SDK drops
   it, so this path is not affected.

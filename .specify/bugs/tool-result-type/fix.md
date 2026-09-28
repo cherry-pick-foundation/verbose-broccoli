@@ -15,6 +15,9 @@ versions, so their wire output is unchanged. The boundary's own
 `error_response()`; they bypass the SDK, so clients on every version receive
 the field there.
 
+The line numbers in the assessment's Suspected Code Paths refer to develop
+`969979d`, before the fix.
+
 ## Changes
 
 | File | Change | Notes |
