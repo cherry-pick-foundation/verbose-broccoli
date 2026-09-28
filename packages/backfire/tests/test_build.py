@@ -144,7 +144,9 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Pa
     wiki_id = "build-test"
     instance = data_home / "verbose-broccoli" / "vaults" / wiki_id
     (instance / "wiki").mkdir(parents=True)
-    (instance / "AGENTS.md").write_text("# Wiki rules\n", encoding="utf-8")
+    (instance / "AGENTS.md").write_text(
+        "---\ntopics: []\n---\n# Wiki rules\n", encoding="utf-8"
+    )
     (instance / "wiki" / "index.md").write_text(
         '<!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->\n'
         "<!-- [[[end]]] -->\n",

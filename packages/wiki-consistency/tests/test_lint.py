@@ -17,7 +17,8 @@ def test_check_lists_orphans_and_stale_citations_without_writing(tmp_path):
     assert update_regions(instance) == []
     orphan = instance / "wiki" / "concepts" / "orphan.md"
     orphan.write_text(
-        "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\nsources:\n"
+        "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[0]}\n---\n\n# Orphan\n",
         encoding="utf-8")
     assert update_regions(instance) == []

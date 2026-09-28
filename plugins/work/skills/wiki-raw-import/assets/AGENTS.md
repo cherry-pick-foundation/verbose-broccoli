@@ -1,3 +1,8 @@
+---
+# The topics this vault's pages may list; see "Pages".
+topics: []
+---
+
 # Wiki instance schema
 
 This file governs the adjacent `raw/` and `wiki/` folders of one Wiki instance.
@@ -88,6 +93,8 @@ with YAML front matter:
 ---
 title: Quadratic formula
 summary: How the quadratic formula follows from completing the square.
+topics:
+  - Algebra
 sources:
   - id: 0199a0e2-7c1b-7d3e-9f00-000000000000
     revision: 20260928T010203000000Z
@@ -95,11 +102,17 @@ sources:
 ```
 
 - `title` and `summary` are non-empty single lines.
+- `topics` lists one or more topics from the `topics` list at the top of this
+  file, each once. A page may carry several topics.
+- Declare a topic before a page lists it: add it to the list at the top of
+  this file, as a non-empty single line that appears once, in the same
+  commit as the first page that lists it. Reuse a declared topic instead of
+  adding another spelling of it.
 - `sources` lists one or more source revisions: `id` is a source ID and
   `revision` a revision folder name of a bag in `raw/`. A page cites the
   revision it was checked against.
 - Source summaries go in `wiki/sources/`; entities, concepts, comparisons and
-  synthesis go in their own folders.
+  synthesis go in their own folders. Topics do not replace these folders.
 
 The special pages:
 
@@ -111,8 +124,9 @@ The special pages:
   <!-- [[[end]]] -->
   ```
 
-  `update` then lists every other page with its title and summary. Never
-  edit the list by hand.
+  `update` then lists every other page, with its title and summary, under a
+  heading for each of its topics; topics and pages are sorted. Never edit
+  the list by hand.
 - `overview.md` is written by the agent. It links to the pages it
   summarizes, and those pages are its evidence.
 - `log.md` gets one entry per operation, appended at the end. An entry starts
