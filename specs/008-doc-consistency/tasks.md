@@ -302,9 +302,13 @@ following it.
 
 ## Phase 7: Polish and Integration
 
-- [ ] T024 Run the quickstart, `deno task verify` and `deno task docs:check`
+- [x] T024 Run the quickstart, `deno task verify` and `deno task docs:check`
   on the combined result; rerun `deno task workflow` with the same task and
   base; repair until they pass. Check SC-002 (the check adds at most 5 s).
+  - 2026-09-28: at `bc0d6f1`, after merging `develop` `969979d`: the
+    quickstart's checks, stale-region steps (in a scratch clone) and audit
+    pass; `deno task verify` passed (phase VERIFIED) and `deno task
+    docs:check` passes. SC-002 is recorded under T025.
 - [x] T025 SC-005: on a scratch branch that renames a task
   `docs/architecture.md` describes in prose, run `prepare` and
   `backfire_verify` three times; the paragraph must come back `contradicted`
