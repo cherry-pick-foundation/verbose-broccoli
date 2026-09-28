@@ -58,7 +58,7 @@ async def failed_attempts(error, profile, remaining_seconds=118):
 
 def test_fixed_error_types_and_configuration_detail():
     expected = {
-        "invalid_request", "request_limit_exceeded", "backend_not_configured",
+        "invalid_request", "request_limit_exceeded", "backend_not_configured", "pseudonym_conflict",
         "credential_rejected", "balance_exhausted", "request_rejected", "rate_limited",
         "provider_unavailable", "provider_error", "truncated_output", "malformed_output",
         "refused", "invalid_distribution", "thinking_not_confirmed", "model_not_confirmed",

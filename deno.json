@@ -25,7 +25,7 @@
     "clean-code:scope": "deno task clean-code --scope",
     "test:clean-code": "deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/skills/clean-code/scripts/clean_code_test.ts",
     "backfire:build": "uv run --project packages/backfire --frozen --offline --no-sync python -m backfire_tools.build",
-    "backfire:install": "uv sync --project packages/backfire --frozen",
+    "backfire:install": "uv sync --project packages/backfire --frozen --extra education",
     "backfire:ready": "uv run --project packages/backfire --frozen --offline --no-sync backfire ready",
     "backfire:eval": "uv run --project packages/backfire --frozen --offline --no-sync python -m backfire_tools.acceptance.evaluate",
     "test:backfire": "(test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m 'not slow'",

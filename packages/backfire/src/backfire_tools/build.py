@@ -1,4 +1,4 @@
-"""Build a code plugin containing the Backfire runtime package."""
+"""Build a plugin with its selected Backfire packages and profile."""
 
 import os
 import shutil
@@ -10,6 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 MAX_BYTES = 16 * 1024 * 1024
+PLUGINS = {
+    "code": (("backfire",), "backfire/config.toml"),
+    "work": (("backfire", "backfire_education"), "backfire_education/config.toml"),
+}
 
 
 def refuse_existing(output: Path) -> None:
@@ -20,7 +24,10 @@ def refuse_existing(output: Path) -> None:
     raise FileExistsError(f"Output already exists: {output}")
 
 
-def build(output: str | Path) -> Path:
+def build(output: str | Path, *, plugin: str = "code") -> Path:
+    if plugin not in PLUGINS:
+        raise ValueError(f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}")
+    packages, profile = PLUGINS[plugin]
     output = Path(os.path.abspath(output))
     refuse_existing(output)
     destination = output.parent.resolve(strict=True) / output.name
@@ -61,7 +68,7 @@ def build(output: str | Path) -> Path:
             raise ValueError(f"Build exceeds {budget}-byte budget: {source}")
         return shutil.copy2(source, target)
 
-    def copy_tree(source: Path, target: Path, *, exclude_cache=False):
+    def copy_tree(source: Path, target: Path, *, runtime_package=False):
         check_source(source)
 
         def walk_failed(error):
@@ -69,9 +76,11 @@ def build(output: str | Path) -> Path:
 
         for directory, directories, files in os.walk(source, onerror=walk_failed):
             directory = Path(directory)
-            if exclude_cache:
+            if runtime_package:
                 directories[:] = [name for name in directories if name != "__pycache__"]
                 files = [name for name in files if name != "__pycache__"]
+                if directory == source:
+                    files = [name for name in files if name != "config.toml"]
             destination = target / directory.relative_to(source)
             destination.mkdir(parents=True, exist_ok=True)
             for name in directories:
@@ -85,13 +94,15 @@ def build(output: str | Path) -> Path:
     }
     try:
         partial = Path(tempfile.mkdtemp(dir=output.parent, prefix=f"{output.name}.partial-"))
-        copy_tree(ROOT / "plugins/code", partial)
+        copy_tree(ROOT / "plugins" / plugin, partial)
         package = ROOT / "packages/backfire"
         runtime = partial / "backfire"
         runtime.mkdir()
         for path in ("pyproject.toml", ".python-version", "uv.lock"):
             copy_file(package / path, runtime / path)
-        copy_tree(package / "src/backfire", runtime / "src/backfire", exclude_cache=True)
+        for name in packages:
+            copy_tree(package / "src" / name, runtime / "src" / name, runtime_package=True)
+        copy_file(package / "src" / profile, runtime / "src/backfire/config.toml")
         if interrupted:
             raise InterruptedError("Build interrupted")
         refuse_existing(output)
@@ -112,9 +123,9 @@ def main() -> int:
     if args[:1] == ["--"]:
         args = args[1:]
     try:
-        if len(args) != 1 or not args[0]:
-            raise ValueError("Usage: deno task backfire:build -- <output>")
-        print(build(args[0]))
+        if len(args) != 2 or not all(args):
+            raise ValueError("Usage: deno task backfire:build -- <plugin> <output>")
+        print(build(args[1], plugin=args[0]))
         return 0
     except (OSError, ValueError) as error:
         print(error, file=sys.stderr)
