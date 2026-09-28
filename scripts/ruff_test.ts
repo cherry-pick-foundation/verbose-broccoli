@@ -51,6 +51,25 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assert(!missingDoc.success);
     assertMatch(output(missingDoc), /D103/);
 
+    const dummyArguments = join(temp, 'dummy_arguments.py');
+    await Deno.writeTextFile(
+      dummyArguments,
+      '"""Synthetic module."""\n\n' +
+        'def _allows(unused_value):\n    return None\n\n' +
+        'def _fails(_value):\n    return None\n',
+    );
+    const dummyArgumentsResult = await ruff([
+      'check',
+      '--no-cache',
+      '--config',
+      config,
+      dummyArguments,
+    ]);
+    const dummyArgumentsOutput = output(dummyArgumentsResult);
+    assert(!dummyArgumentsResult.success);
+    assert(!dummyArgumentsOutput.includes('unused_value'));
+    assertMatch(dummyArgumentsOutput, /ARG001.*_value/);
+
     const lineAtLimit = join(temp, 'line_at_limit.py');
     const lineOverLimit = join(temp, 'line_over_limit.py');
     const line = (length: number) => '# ' + 'x'.repeat(length - 2) + '\n';

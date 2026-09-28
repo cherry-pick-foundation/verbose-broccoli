@@ -23,13 +23,12 @@ exclude = ["*.md"]
 
 [lint]
 # Google pylintrc [BASIC] and [MESSAGES CONTROL], mapped to stable Ruff rules.
-# Google pylintrc VARIABLES regex and Pylint default ignored-argument-names.
-dummy-variable-rgx = "^(?:\\*{0,2}(?:_$|unused_|dummy_)|_.*|ignored_|unused_)"
+# Google pylintrc [VARIABLES] dummy-variables-rgx, without Pylint's * prefix.
+dummy-variable-rgx = "^(?:_$|unused_|dummy_)"
 select = [
   # Pylint builtin-name checks, including lambda arguments.
   "A001",
   "A002",
-  "A003",
   "A004",
   "A006",
   # Pylint unused-argument checks by function kind.
@@ -109,8 +108,6 @@ select = [
   "I001",
   # Google §3.16 naming and Pylint's stable naming equivalents.
   "N",
-  # Pylint's unnecessary-ellipsis message.
-  "PIE790",
   # Stable Pylint convention rules.
   "PLC0105",
   "PLC0131",
