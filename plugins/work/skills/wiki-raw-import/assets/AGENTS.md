@@ -56,9 +56,11 @@ Rules:
 ## Wiki
 
 - Write everything in `wiki/` in English, whatever the language of the raw
-  evidence, which stays unchanged. Student and school names keep the
-  roster's spelling, so backfire still replaces them. A short direct quote
-  may keep its original language next to an English translation.
+  evidence, which stays unchanged. Student names keep the roster's spelling,
+  so backfire still replaces them. Write a school as its domain ID, the short
+  ID that names its folders in the user's documents, not by its Korean name.
+  A short direct quote may keep its original language next to an English
+  translation.
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
   synthesis. Both start empty; `index.md` gets its region lines (below)
   before the first `update`.

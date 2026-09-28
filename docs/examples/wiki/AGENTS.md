@@ -21,9 +21,9 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   is create-only: a changed original becomes a new revision, and earlier
   revisions and their provenance stay.
 - Write pages in English, whatever the language of the raw evidence, which
-  stays unchanged. Student and school names keep the roster's spelling, and
-  a short direct quote may keep its original language next to an English
-  translation.
+  stays unchanged. Student names keep the roster's spelling, a school is
+  written as its domain ID, and a short direct quote may keep its original
+  language next to an English translation.
 - Maintain ordinary Markdown pages under `wiki/sources/`, `wiki/entities/`,
   `wiki/concepts/`, `wiki/comparisons/` or `wiki/synthesis/`. Each page needs safe
   YAML metadata with a stable ID, type, title and nonempty `sources`, plus a
