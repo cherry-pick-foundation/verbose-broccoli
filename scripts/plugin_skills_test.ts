@@ -35,10 +35,7 @@ Deno.test('plugin skills: isolated packages retain resources and executable help
         const mcp = JSON.parse(
           await Deno.readTextFile(join(target, 'mcp.json')),
         );
-        assertEquals(
-          Object.keys(mcp.mcpServers),
-          pluginDirectory === 'code' ? ['backfire'] : [],
-        );
+        assertEquals(Object.keys(mcp.mcpServers), ['backfire']);
       }
       for (const component of ['skills', 'hooks', 'tests']) {
         if (!(await exists(join(source, component)))) continue;
@@ -68,5 +65,14 @@ Deno.test('plugin skills: isolated packages retain resources and executable help
     } finally {
       await Deno.remove(temp, {recursive: true});
     }
+  }
+});
+
+Deno.test('plugin skills: work Backfire shares code tool reference and license', async () => {
+  for (const path of ['reference/tools.md', 'LICENSE']) {
+    assertEquals(
+      await Deno.readTextFile(join(ROOT, 'plugins/work/skills/backfire', path)),
+      await Deno.readTextFile(join(ROOT, 'plugins/code/skills/backfire', path)),
+    );
   }
 });
