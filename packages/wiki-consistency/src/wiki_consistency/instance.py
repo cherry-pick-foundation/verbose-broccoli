@@ -57,7 +57,7 @@ def _front_matter(text):
     )
 
 
-def _metadata(text):
+def _front_matter_mapping(text):
     source, _, error = _front_matter(text)
     if error:
         return {}, [{"line": 1, "message": error}]
@@ -71,8 +71,41 @@ def _metadata(text):
         ]
     if not isinstance(metadata, dict):
         return {}, [{"line": 2, "message": "front matter must be a mapping"}]
+    return metadata, []
 
+
+def _topic_names(values):
     problems = []
+    topics = []
+    seen_topics = set()
+    for topic in values:
+        if (
+            not isinstance(topic, str)
+            or not topic.strip()
+            or "\n" in topic
+            or "\r" in topic
+        ):
+            problems.append(
+                {
+                    "line": 1,
+                    "message": "topics must contain non-empty single-line names",
+                }
+            )
+        elif topic in seen_topics:
+            problems.append(
+                {"line": 1, "message": "topics must not contain duplicates"}
+            )
+        else:
+            seen_topics.add(topic)
+            topics.append(topic)
+    return (topics if not problems else []), problems
+
+
+def _metadata(text):
+    metadata, problems = _front_matter_mapping(text)
+    if problems:
+        return {}, problems
+
     for field in ("title", "summary"):
         value = metadata.get(field)
         if (
@@ -87,6 +120,16 @@ def _metadata(text):
                     "message": f"{field} must be a non-empty single line",
                 }
             )
+
+    topic_values = metadata.get("topics")
+    topics = []
+    if not isinstance(topic_values, list) or not topic_values:
+        problems.append(
+            {"line": 1, "message": "topics must be a non-empty list"}
+        )
+    else:
+        topics, topic_problems = _topic_names(topic_values)
+        problems.extend(topic_problems)
 
     citations = metadata.get("sources")
     sources = []
@@ -116,8 +159,26 @@ def _metadata(text):
     return {
         "title": metadata.get("title"),
         "summary": metadata.get("summary"),
+        "topics": topics,
         "sources": sources,
     }, problems
+
+
+def declared_topics(root):
+    path = Path(root) / "AGENTS.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [], [{"line": 1, "message": str(error)}]
+
+    metadata, problems = _front_matter_mapping(text)
+    if problems:
+        return [], problems
+
+    topics = metadata.get("topics")
+    if not isinstance(topics, list):
+        return [], [{"line": 1, "message": "topics must be a list"}]
+    return _topic_names(topics)
 
 
 def pages(instance):
@@ -139,6 +200,7 @@ def pages(instance):
             "title": None,
             "summary": None,
             "sources": [],
+            "topics": [],
             "special": special,
             "problems": [],
         }

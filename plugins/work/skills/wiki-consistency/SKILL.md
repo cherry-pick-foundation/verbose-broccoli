@@ -40,7 +40,7 @@ The first line gives `doc-regions`, which the tool uses as a library, the
 
 | Command | What it does | Network | Writes |
 | --- | --- | --- | --- |
-| `check` | Checks mechanical regions, links, page metadata, cited bags and that `log.md` only grew; lists orphan pages and stale citations | none | nothing |
+| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags and that `log.md` only grew; lists orphan pages and stale citations | none | nothing |
 | `update` | Regenerates stale mechanical regions | none | region text in `wiki/` |
 | `convert [--scope changed\|lint]` | Converts cited raw revisions to Markdown | none | `CACHE/wiki-evidence/` |
 | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |

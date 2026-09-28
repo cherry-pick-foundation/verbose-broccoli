@@ -60,11 +60,20 @@ def add_revision(instance, revision, content):
     return path
 
 
-def _page(title, summary, revision, body=""):
+def _page(title, summary, revision, body="", topics=("Algebra",)):
     return (
-        f"---\ntitle: {title}\nsummary: {summary}\nsources:\n"
+        f"---\ntitle: {title}\nsummary: {summary}\ntopics:\n"
+        + "".join(f"  - {topic}\n" for topic in topics)
+        + "sources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {revision}\n---\n{body}"
     )
+
+
+def replace_page_topics(page, field):
+    text = page.read_text(encoding="utf-8")
+    start = text.index("topics:\n")
+    end = text.index("sources:\n", start)
+    page.write_text(text[:start] + field + text[end:], encoding="utf-8")
 
 
 def make_instance(tmp_path, *, wiki_id="work", commit=False):
@@ -82,7 +91,9 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
     (instance / "wiki" / "sources").mkdir(parents=True)
     (instance / "raw").mkdir()
     (instance / "AGENTS.md").write_text(
-        "Synthetic Wiki schema.\n", encoding="utf-8"
+        "---\ntopics:\n  - Algebra\n  - Reference\n  - Unused\n---\n"
+        "Synthetic Wiki schema.\n",
+        encoding="utf-8",
     )
     (instance / ".gitignore").write_text("/raw/\n", encoding="utf-8")
     (instance / "wiki" / "index.md").write_text(INDEX, encoding="utf-8")
@@ -112,7 +123,13 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
         "<!-- [[[end]]] -->\n"
     )
     (instance / "wiki" / "sources" / "source.md").write_text(
-        _page("Source", "A synthetic source.", REVISIONS[-1], region),
+        _page(
+            "Source",
+            "A synthetic source.",
+            REVISIONS[-1],
+            region,
+            topics=("Reference",),
+        ),
         encoding="utf-8",
     )
     subprocess.run(

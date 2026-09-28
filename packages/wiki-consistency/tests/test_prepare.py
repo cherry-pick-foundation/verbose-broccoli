@@ -67,7 +67,8 @@ def _evidence_units(result):
 def _add_candidate_page(instance, name):
     path = instance / "wiki" / "concepts" / f"{name}.md"
     path.write_text(
-        f"---\ntitle: {name}\nsummary: Synthetic candidate {name}.\nsources:\n"
+        f"---\ntitle: {name}\nsummary: Synthetic candidate {name}.\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
         f"# {name}\n\nSynthetic candidate content.\n",
         encoding="utf-8",
@@ -148,7 +149,8 @@ def test_changed_page_request_can_use_unchanged_candidate_units(
     instance, env = make_instance(tmp_path)
     beta = instance / "wiki" / "concepts" / "beta.md"
     beta.write_text(
-        f"---\ntitle: Beta\nsummary: A synthetic quadratic page.\nsources:\n"
+        f"---\ntitle: Beta\nsummary: A synthetic quadratic page.\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
         "# Beta\n\nQuadratic equations have roots.\n",
         encoding="utf-8",
@@ -1205,13 +1207,15 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
     )
     for name in ("beta", "gamma"):
         (instance / "wiki" / "concepts" / f"{name}.md").write_text(
-            f"---\ntitle: Quadratic\nsummary: {shared}\nsources:\n"
+            f"---\ntitle: Quadratic\nsummary: {shared}\n"
+            "topics:\n  - Algebra\nsources:\n"
             f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
             f"# Quadratic\n\n{shared} describe a synthetic equation.\n",
             encoding="utf-8",
         )
     (instance / "wiki" / "concepts" / "solo.md").write_text(
-        f"---\ntitle: Solo\nsummary: Unique nebula observation\nsources:\n"
+        f"---\ntitle: Solo\nsummary: Unique nebula observation\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
         "# Solo\n\nA unique nebula observation.\n",
         encoding="utf-8",
@@ -1313,7 +1317,8 @@ def test_prepare_batches_verify_and_classify_deterministically(
     )
     page = instance / "wiki" / "concepts" / "many.md"
     page.write_text(
-        f"---\ntitle: Many\nsummary: Many synthetic claims\nsources:\n"
+        f"---\ntitle: Many\nsummary: Many synthetic claims\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n{body}\n",
         encoding="utf-8",
     )

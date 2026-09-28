@@ -6,12 +6,127 @@ from conftest import REVISIONS
 from conftest import SOURCE_ID
 from conftest import add_revision
 from conftest import make_instance
+from conftest import replace_page_topics
 from conftest import tree_hash
 from conftest import update_regions
 import pytest
 
 from doc_regions.regions import scan
 from wiki_consistency.__main__ import main
+
+TOPIC_FAILURES = [
+    pytest.param(
+        "page", "", "wiki/concepts/alpha.md", "topics", id="page-missing"
+    ),
+    pytest.param(
+        "page",
+        "topics: Algebra\n",
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-not-a-list",
+    ),
+    pytest.param(
+        "page",
+        "topics: []\n",
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-empty-list",
+    ),
+    pytest.param(
+        "page",
+        "topics:\n  - 7\n",
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-non-string-name",
+    ),
+    pytest.param(
+        "page",
+        "topics:\n  - ''\n",
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-empty-name",
+    ),
+    pytest.param(
+        "page",
+        'topics:\n  - "Algebra\\nvariant"\n',
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-multi-line-name",
+    ),
+    pytest.param(
+        "page",
+        "topics:\n  - Algebra\n  - Algebra\n",
+        "wiki/concepts/alpha.md",
+        "topics",
+        id="page-duplicate-name",
+    ),
+    pytest.param(
+        "page",
+        "topics:\n  - Unlisted\n",
+        "wiki/concepts/alpha.md",
+        "Unlisted",
+        id="undeclared-page-topic",
+    ),
+    pytest.param("schema", None, "AGENTS.md", "AGENTS.md", id="missing-schema"),
+    pytest.param(
+        "schema",
+        "Synthetic Wiki schema.\n",
+        "AGENTS.md",
+        "front matter",
+        id="schema-missing-front-matter",
+    ),
+    pytest.param(
+        "schema",
+        "---\nname: Synthetic\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-missing-topics",
+    ),
+    pytest.param(
+        "schema",
+        "---\ntopics: Algebra\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-not-a-list",
+    ),
+    pytest.param(
+        "schema",
+        "---\ntopics:\n  - 7\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-non-string-name",
+    ),
+    pytest.param(
+        "schema",
+        "---\ntopics:\n  - ''\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-empty-name",
+    ),
+    pytest.param(
+        "schema",
+        "---\ntopics:\n  - |\n    Algebra\n    variant\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-multi-line-name",
+    ),
+    pytest.param(
+        "schema",
+        "---\ntopics:\n  - Algebra\n  - Algebra\n---\n",
+        "AGENTS.md",
+        "topics",
+        id="schema-duplicate-name",
+    ),
+]
+
+
+def set_topic_failure(instance, target, value):
+    if target == "page":
+        replace_page_topics(instance / "wiki" / "concepts" / "alpha.md", value)
+    elif value is None:
+        (instance / "AGENTS.md").unlink()
+    else:
+        (instance / "AGENTS.md").write_text(value, encoding="utf-8")
 
 
 def ready_instance(tmp_path, *, commit=False):
@@ -43,7 +158,7 @@ def assert_problem(result, page, message):
     assert message in stderr
 
 
-def test_check_passes_without_a_commit_and_prints_one_json_object(
+def test_check_passes_with_unused_declared_topic_and_prints_one_json_object(
     tmp_path, monkeypatch, capsys
 ):
     instance, env = ready_instance(tmp_path)
@@ -55,6 +170,58 @@ def test_check_passes_without_a_commit_and_prints_one_json_object(
     assert status == 0
     assert stderr == ""
     assert stdout.count("\n") == 1
+    assert json.loads(stdout) == {
+        "orphans": [],
+        "problems": [],
+        "stale_citations": [],
+    }
+
+
+@pytest.mark.parametrize("target, value, document, message", TOPIC_FAILURES)
+def test_check_fails_on_topic_problems(
+    tmp_path, monkeypatch, capsys, target, value, document, message
+):
+    instance, env = ready_instance(tmp_path)
+    set_topic_failure(instance, target, value)
+
+    result = run_check(instance, env, monkeypatch, capsys)
+
+    assert_problem(result, document, message)
+
+
+@pytest.mark.parametrize("target, value, document, message", TOPIC_FAILURES)
+def test_update_refuses_topic_problems_without_writing(
+    tmp_path, monkeypatch, capsys, target, value, document, message
+):
+    instance, env = make_instance(tmp_path)
+    assert update_regions(instance) == []
+    set_topic_failure(instance, target, value)
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    before = tree_hash(instance), tree_hash(cache)
+
+    with monkeypatch.context() as patcher:
+        for name, value in env.items():
+            patcher.setenv(name, value)
+        status = main(["update", "--wiki", instance.name])
+        output = capsys.readouterr()
+
+    assert_problem((status, output.out, output.err), document, message)
+    assert (tree_hash(instance), tree_hash(cache)) == before
+
+
+def test_check_passes_for_an_empty_vault(tmp_path, monkeypatch, capsys):
+    instance, env = ready_instance(tmp_path)
+    for folder in ("concepts", "sources"):
+        for page in (instance / "wiki" / folder).glob("*.md"):
+            page.unlink()
+    (instance / "wiki" / "overview.md").write_text(
+        "# Overview\n", encoding="utf-8"
+    )
+    assert update_regions(instance) == []
+
+    status, stdout, stderr = run_check(instance, env, monkeypatch, capsys)
+
+    assert status == 0, stderr
     assert json.loads(stdout) == {
         "orphans": [],
         "problems": [],
@@ -148,7 +315,7 @@ def test_check_fails_when_page_metadata_is_missing(
     instance, env = ready_instance(tmp_path)
     page = instance / "wiki" / "concepts" / "alpha.md"
     lines = page.read_text(encoding="utf-8").splitlines()
-    remove = {"title": {1}, "summary": {2}, "sources": {3, 4, 5}}[field]
+    remove = {"title": {1}, "summary": {2}, "sources": {5, 6, 7}}[field]
     page.write_text(
         "\n".join(
             line for number, line in enumerate(lines) if number not in remove
@@ -236,7 +403,8 @@ def test_check_accepts_appended_log_entry_and_lists_findings(
     )
     orphan = instance / "wiki" / "concepts" / "orphan.md"
     orphan.write_text(
-        "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\nsources:\n"
+        "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\n"
+        "topics:\n  - Algebra\nsources:\n"
         f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[0]}\n---\n",
         encoding="utf-8",
     )

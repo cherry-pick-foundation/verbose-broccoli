@@ -13,7 +13,7 @@ def page_catalog(source_glob):
     """Return sorted links for ordinary Wiki pages in a source glob."""
     root = Path.cwd().resolve()
     wiki = root / "wiki"
-    rows = []
+    grouped = {}
     for path in files(root, source_glob):
         relative = path.relative_to(root).as_posix()
         if relative in SPECIAL_PAGES:
@@ -30,10 +30,16 @@ def page_catalog(source_glob):
             raise ValueError(
                 f"{relative}:{problem['line']}: {problem['message']}"
             )
-        rows.append((page_path, metadata["title"], metadata["summary"]))
-    return "".join(
-        f"- [{title}]({path}) — {summary}\n"
-        for path, title, summary in sorted(rows)
+        row = (page_path, metadata["title"], metadata["summary"])
+        for topic in metadata["topics"]:
+            grouped.setdefault(topic, []).append(row)
+    return "\n".join(
+        f"## {topic}\n\n"
+        + "".join(
+            f"- [{title}]({path}) — {summary}\n"
+            for path, title, summary in sorted(grouped[topic])
+        )
+        for topic in sorted(grouped)
     )
 
 

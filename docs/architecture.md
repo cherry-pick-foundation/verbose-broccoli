@@ -25,8 +25,8 @@ No release has occurred, and actual client installation
 remains open.
 
 Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins
-schemas. `deno task check` runs the runtime doctor, formatting, lint, type
-checks, plugin schema validation, Clean Code, architecture checks, the test
+schemas. `deno task check` runs the runtime doctor, formatting, lint, the
+shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
 suites, the reference drift check and the document region check (see
 [Document consistency](#document-consistency--2026-09-28)). Biome formats and lints code and JSON with
 one root `biome.json`, which keeps the Google TypeScript style settings, turns
@@ -34,13 +34,23 @@ on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
 Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
-The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
+The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
+which the Google shell style guide recommends, checks the repository's own
+shell scripts: `deno task lint:shell` runs it on every `*.sh` file and on the
+hooks in `scripts/git-hooks/` and `scripts/git-flow-hooks/`, but not on Spec
+Kit's vendored scripts under `.specify/`. The root `.shellcheckrc` turns on
+four optional checks for guide rules: `${var}` braces, quoted variables,
+explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts stay
+POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
+formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
+project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
+official binary; Orca's setup script syncs it. `doctor` checks the
 selected standalone Deno/Quarto executables, uv, git-flow and lychee from
-`PATH`, the Spec Kit, Ruff, doc-regions and wiki-consistency environments, the
-git-flow configuration and locked dependencies without writing by default.
-`workflow` supplies execution mode, graph queries, verification evidence and
-three additive skill triggers; `verify` uses that same loop. In REVIEW mode it
-asks the implementer or the orchestrator to review the
+`PATH`, the Spec Kit, ShellCheck, Ruff, doc-regions and wiki-consistency
+environments, the git-flow configuration
+and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
+verification evidence and three additive skill triggers; `verify` uses that same
+loop. In REVIEW mode it asks the implementer or the orchestrator to review the
 diff before each commit and leaves the independent review to the merge into `develop` or
 `main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later
 feature work.
@@ -186,17 +196,22 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   which stays unchanged; student names keep the roster's spelling so backfire
   still replaces them, a school is written as its domain ID, and a short
   direct quote may stay next to its translation.
-- Pages carry YAML front matter with a title, a one-line summary and the
-  source revisions they cite. `index.md` is one mechanical region,
-  `page_catalog`, built from that metadata; a source page may hold a
-  `source_provenance` region built from its bags. `overview.md` is written by
-  the agent, and `log.md` is append-only and never judged.
+- Pages carry YAML front matter with a title, a one-line summary, the
+  source revisions they cite and one or more topics. A vault groups its
+  pages by topic instead of splitting into more vaults; the front matter of
+  its `AGENTS.md` declares the topics its pages may list, and the layer
+  folders stay as they are. `index.md` is one mechanical region,
+  `page_catalog`, built from that metadata, which lists the pages under a
+  heading per topic; a source page may hold a `source_provenance` region
+  built from its bags. `overview.md` is written by the agent, and `log.md`
+  is append-only and never judged.
 - `check` runs before every commit of the instance. It fails on a stale or
   malformed region, a broken link (lychee, offline), missing or unresolvable
-  page metadata, a cited bag that fails BagIt's fast validation, or a changed
-  earlier `log.md` entry, and it lists orphan pages and citations of
-  non-latest revisions. It writes nothing, uses no network and needs no
-  cache. `update` regenerates stale regions.
+  page metadata, a missing or malformed topic list in `AGENTS.md`, a page
+  topic that list does not declare, a cited bag that fails BagIt's fast
+  validation, or a changed earlier `log.md` entry, and it lists orphan pages
+  and citations of non-latest revisions. It writes nothing, uses no network
+  and needs no cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown with markitdown 0.1.8 under

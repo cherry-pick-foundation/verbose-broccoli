@@ -139,9 +139,9 @@ def test_profile_fields_and_reported_model_survive_real_adapter(
 @pytest.mark.parametrize(
     "fault, expected",
     [
-        ("empty_choices", "malformed_output"),
-        ("missing_choices", "malformed_output"),
-        ("null_choices", "malformed_output"),
+        ("empty_choices", "provider_error"),
+        ("missing_choices", "provider_error"),
+        ("null_choices", "provider_error"),
         ("empty_content", "malformed_output"),
         ("blank_content", "malformed_output"),
         ("null_content", "malformed_output"),
@@ -215,13 +215,24 @@ def test_response_failures_are_fixed_and_never_retried(
         body["usage"].pop("completion_tokens_details", None)
     with FakeProvider([body]) as fake:
         profile["base_url"] = fake.base_url
-        with pytest.raises(JudgmentError) as caught:
-            asyncio.run(evaluate(profile))
-        assert caught.value.error_type == expected
-        assert str(caught.value) == str(JudgmentError(expected))
-        assert "private" not in "".join(
-            traceback.format_exception(caught.value)
-        )
+
+        async def run():
+            call = ProviderCall(asyncio.get_running_loop().time() + 10)
+            with pytest.raises(JudgmentError) as caught:
+                await evaluate(profile, call=call)
+            if fault in ("empty_choices", "missing_choices", "null_choices"):
+                assert call.model == "reported-model"
+                assert call.usage == {"input_tokens": 11, "output_tokens": 7}
+                assert call.metadata["reasoning_tokens"] == (
+                    3 if profile["name"] == "hive" else 4
+                )
+                assert call.metadata["thinking_evidence"] is True
+            return caught.value
+
+        caught = asyncio.run(run())
+        assert caught.error_type == expected
+        assert str(caught) == str(JudgmentError(expected))
+        assert "private" not in "".join(traceback.format_exception(caught))
         assert len(fake.requests) == 1
     assert capsys.readouterr() == ("", "")
 
@@ -471,17 +482,37 @@ def test_concurrent_calls_keep_model_usage_and_metadata_separate(profile, body):
 
 
 @pytest.mark.parametrize(
-    "payload", [b"private invalid JSON", [], None, {"choices": [None]}]
+    "payload, expected",
+    [
+        (b"private invalid JSON", "provider_error"),
+        ([], "provider_error"),
+        (None, "provider_error"),
+        ({"choices": "private invalid choices"}, "provider_error"),
+        ({"choices": [None]}, "malformed_output"),
+    ],
 )
 def test_malformed_envelopes_fail_without_raw_diagnostics(
-    profile, payload, capsys
+    profile, payload, expected, capsys
 ):
     with FakeProvider([payload]) as fake:
         profile["base_url"] = fake.base_url
-        with pytest.raises(JudgmentError, match="^malformed_output:"):
+        with pytest.raises(JudgmentError, match=f"^{expected}:"):
             asyncio.run(evaluate(profile))
         assert len(fake.requests) == 1
     assert capsys.readouterr() == ("", "")
+
+
+def test_answerless_provider_error_body_is_sanitized_and_not_retried(
+    profile, capsys
+):
+    reply_text = b'{"status_code":500,"message":"Internal Server Error"}'
+    with FakeProvider([Reply(b"        " + reply_text)]) as fake:
+        profile["base_url"] = fake.base_url
+        with pytest.raises(JudgmentError, match="^provider_error:") as caught:
+            asyncio.run(evaluate(profile))
+        assert len(fake.requests) == 1
+    assert reply_text.decode() not in str(caught.value)
+    assert reply_text.decode() not in "".join(capsys.readouterr())
 
 
 def test_optional_token_limit_and_adapter_null_finish_reason(profile, body):
@@ -494,7 +525,9 @@ def test_optional_token_limit_and_adapter_null_finish_reason(profile, body):
         assert call.usage["output_tokens"] == 100000
 
 
-@pytest.mark.parametrize("outcome", ["completed", "incomplete", "refusal"])
+@pytest.mark.parametrize(
+    "outcome", ["completed", "incomplete", "refusal", "missing_output"]
+)
 def test_inherited_responses_route_keeps_adapter_handling(
     profile, monkeypatch, outcome
 ):
@@ -541,6 +574,8 @@ def test_inherited_responses_route_keeps_adapter_handling(
             "output_tokens_details": {"reasoning_tokens": 3},
         },
     }
+    if outcome == "missing_output":
+        body.pop("output")
     sent = []
 
     async def respond(request):
@@ -570,7 +605,11 @@ def test_inherited_responses_route_keeps_adapter_handling(
             asyncio.run(evaluate(profile))
         assert (
             caught.value.error_type
-            == {"incomplete": "truncated_output", "refusal": "refused"}[outcome]
+            == {
+                "incomplete": "truncated_output",
+                "refusal": "refused",
+                "missing_output": "provider_error",
+            }[outcome]
         )
     assert len(sent) == 1
     assert sent[0]["model"] == profile["model"]

@@ -1,8 +1,10 @@
 from conftest import REVISIONS
 from conftest import SOURCE_ID
 from conftest import make_instance
+from conftest import replace_page_topics
 import pytest
 
+from wiki_consistency.instance import _metadata
 from wiki_consistency.instance import instance_path
 from wiki_consistency.instance import mask_front_matter
 from wiki_consistency.instance import pages
@@ -75,6 +77,7 @@ def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):
         "path": "wiki/concepts/alpha.md",
         "title": "Alpha",
         "summary": "A synthetic page.",
+        "topics": ["Algebra"],
         "sources": [{"id": SOURCE_ID, "revision": REVISIONS[-1]}],
         "special": False,
         "problems": [],
@@ -84,6 +87,92 @@ def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):
         "wiki/log.md",
         "wiki/overview.md",
     ]
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        pytest.param("", id="missing"),
+        pytest.param("topics: Algebra\n", id="not-a-list"),
+        pytest.param("topics: []\n", id="empty-list"),
+        pytest.param("topics:\n  - 7\n", id="non-string-name"),
+        pytest.param("topics:\n  - ''\n", id="empty-name"),
+        pytest.param(
+            'topics:\n  - "Algebra\\nvariant"\n', id="multi-line-name"
+        ),
+        pytest.param(
+            "topics:\n  - Algebra\n  - Algebra\n", id="duplicate-name"
+        ),
+    ],
+)
+def test_metadata_rejects_invalid_topics(tmp_path, field):
+    instance, _ = make_instance(tmp_path)
+    page = instance / "wiki" / "concepts" / "alpha.md"
+    replace_page_topics(page, field)
+
+    metadata, problems = _metadata(page.read_text(encoding="utf-8"))
+
+    assert metadata["topics"] == []
+    assert any("topics" in problem["message"] for problem in problems)
+
+
+def test_declared_topics_returns_names_and_accepts_empty_list(tmp_path):
+    from wiki_consistency.instance import declared_topics
+
+    instance, _ = make_instance(tmp_path)
+
+    assert declared_topics(instance) == (["Algebra", "Reference", "Unused"], [])
+
+    (instance / "AGENTS.md").write_text(
+        "---\ntopics: []\n---\n", encoding="utf-8"
+    )
+    assert declared_topics(instance) == ([], [])
+
+
+@pytest.mark.parametrize(
+    ("schema", "problem"),
+    [
+        pytest.param(None, "agents.md", id="missing-schema"),
+        pytest.param(
+            "Synthetic Wiki schema.\n",
+            "front matter",
+            id="missing-front-matter",
+        ),
+        pytest.param(
+            "---\nname: Synthetic\n---\n", "topics", id="missing-topics"
+        ),
+        pytest.param("---\ntopics: Algebra\n---\n", "topics", id="not-a-list"),
+        pytest.param(
+            "---\ntopics:\n  - 7\n---\n", "topics", id="non-string-name"
+        ),
+        pytest.param("---\ntopics:\n  - ''\n---\n", "topics", id="empty-name"),
+        pytest.param(
+            "---\ntopics:\n  - |\n    Algebra\n    variant\n---\n",
+            "topics",
+            id="multi-line-name",
+        ),
+        pytest.param(
+            "---\ntopics:\n  - Algebra\n  - Algebra\n---\n",
+            "topics",
+            id="duplicate-name",
+        ),
+    ],
+)
+def test_declared_topics_reports_bad_schema(tmp_path, schema, problem):
+    from wiki_consistency.instance import declared_topics
+
+    instance, _ = make_instance(tmp_path)
+    path = instance / "AGENTS.md"
+    if schema is None:
+        path.unlink()
+    else:
+        path.write_text(schema, encoding="utf-8")
+
+    topics, problems = declared_topics(instance)
+
+    assert topics == []
+    assert problems
+    assert any(problem in item["message"].lower() for item in problems)
 
 
 def test_mask_front_matter_keeps_lf_line_numbers():
