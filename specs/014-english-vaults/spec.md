@@ -13,8 +13,22 @@ develop session's task brief of 2026-09-29. The user decided on 2026-09-29
 that all vault content is written in English and that the vault schema says
 so. Three things stay as they are: raw evidence is never changed; student and
 school names keep the roster's spelling, so backfire's pseudonymization still
-replaces them; and a short direct quote may stay in its original language next
-to an English translation.
+replaces them (the Clarifications change this for schools); and a short
+direct quote may stay in its original language next to an English
+translation.
+
+## Clarifications
+
+### Session 2026-09-29
+
+The develop session relayed this addition from the user during the merge
+review.
+
+- Q: How do pages write a school? → A: As its domain ID, the short ID that
+  names the school's folders in the user's documents, not by its Korean
+  name. Student names still keep the roster's spelling. Real school IDs and
+  names stay out of the repository, so the rule names only the folder
+  convention.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -35,10 +49,12 @@ describes how vault pages are written; each states the rule.
 1. **Given** a vault whose raw evidence is in Korean, **When** an agent reads
    the schema before writing a page, **Then** the schema tells it to write the
    page in English and to leave the raw evidence unchanged.
-2. **Given** a page that names a student or a school, **When** the agent
-   writes it, **Then** the schema tells it to keep the roster's spelling of
-   the name.
-3. **Given** a short direct quote from a source, **When** the agent writes it,
+2. **Given** a page that names a student, **When** the agent writes it,
+   **Then** the schema tells it to keep the roster's spelling of the name.
+3. **Given** a page that names a school, **When** the agent writes it,
+   **Then** the schema tells it to write the school's domain ID instead of
+   its Korean name.
+4. **Given** a short direct quote from a source, **When** the agent writes it,
    **Then** the schema lets it keep the original language next to an English
    translation.
 
@@ -76,9 +92,12 @@ template, its Git log has one new commit, and the offline `check` passes.
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md` MUST state that the
   agent writes the vault's Wiki in English, whatever the language of the raw
   evidence, which stays unchanged.
-- **FR-002**: The template MUST say that student and school names keep the
-  roster's spelling, so backfire still replaces them, and that a short direct
-  quote may keep its original language next to an English translation.
+- **FR-002**: The template MUST say that student names keep the roster's
+  spelling, so backfire still replaces them; that a school is written as its
+  domain ID, the short ID that names its folders in the user's documents, not
+  by its Korean name; and that a short direct quote may keep its original
+  language next to an English translation. No real school ID or name enters
+  the repository.
 - **FR-003**: Every other document that describes how vault pages are written
   MUST state the rule briefly: the `wiki-consistency` skill,
   `docs/architecture.md` and the example schema `docs/examples/wiki/AGENTS.md`.

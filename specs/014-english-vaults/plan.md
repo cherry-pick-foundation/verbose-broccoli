@@ -11,8 +11,9 @@ State the user's rule that vault content is written in English where page
 writing is described, and apply it to the three vaults that have no pages yet:
 
 - The schema template's Wiki section gets one rule: write `wiki/` in English,
-  leave raw evidence unchanged, keep student and school names in the roster's
-  spelling, and allow a short direct quote next to an English translation.
+  leave raw evidence unchanged, keep student names in the roster's spelling,
+  write a school as its domain ID, and allow a short direct quote next to an
+  English translation.
 - The `wiki-consistency` skill, `docs/architecture.md` and the example schema
   `docs/examples/wiki/AGENTS.md` state the rule in one sentence each.
 - After `git flow feature finish`, the template is copied into the `default`,
