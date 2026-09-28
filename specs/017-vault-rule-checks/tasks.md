@@ -40,17 +40,26 @@ merge review.
 
 ## Phase 1: Shared span finder and dependency
 
-- [ ] T001 [US1] [US2] In `packages/backfire/tests/test_education_pseudonymize.py`,
+- [x] T001 [US1] [US2] In `packages/backfire/tests/test_education_pseudonymize.py`,
   add cases for a public span finder in `backfire_education.pseudonymize`
   (research R4): roster spans with their kinds (student, given, guardian,
   school), phone and email spans, and overlap merging, matching what
   `pseudonymize` replaces today. Commit the cases failing, then move the
   `spans` closure to that module-level function, leaving `pseudonymize`'s
   behavior and existing tests unchanged, and commit the move.
-- [ ] T002 [US1] Add `backfire[education]` as a path dependency of `WC`
+- [x] T002 [US1] Add `backfire[education]` as a path dependency of `WC`
   (`../backfire`, editable, as `doc-regions` is), update `WC/uv.lock`, and
   confirm `uv sync --locked --project WC` and the built work plugin's
   offline install in `packages/backfire/tests/test_build.py` (research R3).
+  - 2026-09-29: A Codex worker (`gpt-6-luna`, `max`; Orca dispatch
+    `ctx_e39d83fa019a`) committed T001's cases in `c648c0e`, where 9 new
+    cases failed, then moved the finder to `compile_roster_pattern` and
+    `find_spans` in `dc8b679`. T002 is `5028f2e`; the built plugin's
+    install test now syncs backfire before `wiki-consistency`. Afterwards
+    169 wiki-consistency and 1,360 backfire tests passed (3 deselected), and
+    `deno task verify` passed with Node 24.19.0 first on `PATH`, because the
+    mise `node` shim failed. Main reviewed the diff. Next: T003 and T004 in
+    the same terminal (`ctx_276b91ba0ade`).
 
 ## Phase 2: The rules (US1 to US3)
 
@@ -76,18 +85,19 @@ merge review.
 
 ## Phase 3: Documents and environments (US4)
 
-- [ ] T005 [P] [US4] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
+- [x] T005 [P] [US4] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   state how student pages are laid out, which rules `check` enforces, and
   the rules left to judgment (FR-014).
-- [ ] T006 [P] [US4] In `plugins/work/skills/wiki-consistency/SKILL.md`
+- [x] T006 [P] [US4] In `plugins/work/skills/wiki-consistency/SKILL.md`
   and `docs/architecture.md`, describe the new rules the same way, and in
   `docs/examples/wiki/AGENTS.md` state the student page layout (FR-015); in
   the skill's install steps sync `../../backfire` with its `education`
   extra before `wiki-consistency`.
-- [ ] T007 [P] In `deno.json`'s `wiki-consistency:install` and `orca.yaml`'s
+- [x] T007 [P] In `deno.json`'s `wiki-consistency:install` and `orca.yaml`'s
   setup, sync `packages/backfire` with its `education` extra before
   `packages/wiki-consistency`, and name it in `docs/architecture.md`'s
   install bullet.
+  - 2026-09-29: Main wrote T005 to T007 in `dbb2751`.
 
 ## Phase 4: Verification and review
 

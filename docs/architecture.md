@@ -204,7 +204,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   (`wiki/students/<name>.md`) whose name is not in backfire's roster; Hangul,
   Chinese or Japanese text other than roster names and one short quote
   beside its translation; Hangul or romanized school names instead of domain
-  IDs; and dates and times in other forms than YYYY-MM-DD and a zoned time.
+  IDs; and dates not written as YYYY-MM-DD or times without a zone.
   Roster names, phone numbers and email addresses are found with the work
   build's own `backfire_education` code, so the check sees them as backfire
   replaces them; it reads the roster only when a page needs it. A failure
@@ -234,7 +234,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 - `deno task wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `deno task
-  doctor` checks them and Node 22. `deno task test:wiki-consistency` runs the package's tests.
+  doctor` checks them and Node 22. `deno task test:wiki-consistency` runs
+  the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
   new schema template to an existing instance, and converting HWP files or
