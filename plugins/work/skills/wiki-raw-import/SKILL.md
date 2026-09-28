@@ -1,6 +1,6 @@
 ---
 name: wiki-raw-import
-description: Copy original documents the user confirms into a verbose-broccoli Wiki instance's raw/ layer, one BagIt revision per file with its source recorded, and check raw/ integrity. Use when the user wants to admit documents as raw evidence, re-import changed originals, or verify raw/; not for writing Wiki pages.
+description: Copy original documents the user confirms into a verbose-broccoli Wiki instance's raw/ layer, one BagIt revision per file with its source recorded, and check raw/ integrity. Use when the user wants to admit documents as raw evidence, including ChatGPT exports, re-import changed originals, or verify raw/; not for writing Wiki pages.
 ---
 
 # Wiki Raw Import
@@ -59,10 +59,10 @@ lock, nothing was written.
 4. **Build the file list.** For an admitted location, list the exact regular
    files to copy, with each file's raw kind: `files` (default), `notes` (the
    user's own text notes), `assets` (images and other media) or `web`
-   (captured web pages). Exported conversations for the `chat` vault are
-   `files`. Expand folders into files. Point out files whose
-   names or locations suggest operational or private data. Show the list and
-   its total size to the user and wait for approval.
+   (captured web pages). Exported conversations, admitted only into the
+   `chat` and `work` vaults, are `files`. Expand folders into files. Point
+   out files whose names or locations suggest operational or private data.
+   Show the list and its total size to the user and wait for approval.
 5. **Write the selection.** Write the approved list as JSON Lines to
    `STATE/vaults/<vault>/selections/<name>.jsonl`, one
    `{"path": "/absolute/path", "kind": "files"}` per line.
@@ -86,6 +86,36 @@ lock, nothing was written.
    Commit it in the instance's own Git repository (`raw/` is ignored there).
 9. **Clean up.** Remove the selection file after `verify` passes.
 
+## ChatGPT exports
+
+The user's ChatGPT conversations reach the vaults through OpenAI's account
+data export. An export holds the whole account; conversations cannot be
+picked. Each export is admitted unchanged into the `chat` vault and then into
+the `work` vault, whose pages about students can cite it.
+
+1. **The user requests it.** In ChatGPT on the web: **Settings > Data
+   controls > Export data > Export**, then **Confirm export**. This and every
+   other account step are the user's; never do them. A new request waits
+   until the previous one has finished.
+2. **The user saves it.** A download link arrives by email or SMS within up
+   to 7 days. It expires 24 hours after it arrives and works only while
+   signed in to the same account. The user saves the ZIP over
+   `~/Documents/chatgpt/chatgpt-export.zip`. Every export goes to this one
+   file: the raw import knows a source by its path, so a changed file there
+   becomes a new revision of the same source, while a file saved anywhere
+   else would start a new source.
+3. **Wait for go.** Admit an export only when the user asks.
+4. **Check the file.** Run
+   `python3 -m zipfile -t ~/Documents/chatgpt/chatgpt-export.zip`. If it does
+   not exit 0 after printing `Done testing`, stop: the download is partial or
+   damaged, and the user downloads it again or requests a new export.
+5. **Admit it into both vaults.** The selection is the one line
+   `{"path": "<absolute path of the file>", "kind": "files"}`. Follow steps 5
+   to 9 of the procedure above for the `chat` vault, then for the `work`
+   vault (`--wiki chat`, then `--wiki work`), so each vault gets its own
+   selection, log entry and commit. An unchanged export is reported as
+   `already_admitted`.
+
 ## Boundaries
 
 - Copy only files the user approved in a selection. Never move, change or
@@ -93,7 +123,7 @@ lock, nothing was written.
 - Keep file names, file contents and private paths out of code repositories,
   commits and Orca or Linear messages. Records there give locations,
   decisions and counts only.
-- Conversation records and exported chats are raw evidence only in the
-  `chat` vault. Program-owned data (for example a sync client's journals or a
+- Exported conversations are raw evidence only in the `chat` and `work`
+  vaults, and other conversation records in none. Program-owned data (for example a sync client's journals or a
   reference manager's database) is not raw evidence. Copy an item from a
   program-owned folder only when the user selects it.

@@ -150,7 +150,7 @@ The Wiki instances, called vaults, live in
 | `default` | Knowledge that belongs to no single plugin |
 | `chat` | Exported conversations as raw evidence and the pages written from them; the chat package's persistent state |
 | `code` | Coding knowledge for work in any project: libraries, patterns, decisions. It is not this repository's development memory, which stays in the Spec Kit records, code and Git |
-| `work` | Education work: the raw imports and the per-student pages |
+| `work` | Education work: the raw imports, including exported conversations, and the per-student pages |
 
 Each vault holds the schema `AGENTS.md`, `raw/{web,files,notes,assets}/` and
 `wiki/`, and its own Git repository versions the schema and `wiki/` but
@@ -161,7 +161,8 @@ plugin's Wiki tool may write a vault the user selects.
 
 The work plugin's `wiki-raw-import` skill creates a vault and copies documents
 the user confirms into its `raw/`, in `work` unless another vault is named.
-Only the `chat` vault admits exported conversations. Each copy is one
+Only the `chat` and `work` vaults admit exported conversations; the skill
+admits each ChatGPT export into both. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
