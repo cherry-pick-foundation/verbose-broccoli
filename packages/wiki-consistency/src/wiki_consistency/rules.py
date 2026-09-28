@@ -11,7 +11,7 @@ from backfire.failures import JudgmentError
 from backfire_education.pseudonymize import compile_roster_pattern, find_spans
 from backfire_education.roster import load_roster
 from doc_regions.config import files
-from doc_regions.regions import scan
+from doc_regions.regions import END, START, scan
 from yaml.nodes import MappingNode, ScalarNode
 
 
@@ -67,8 +67,11 @@ _DATE_PATTERNS = (
 )
 _DATE_SKIP = (
     re.compile(r"https?://\S+"),
-    re.compile(r"<[^>\n]*>"),
-    re.compile(r"\]\((?:\\.|[^)\n])*\)"),
+    re.compile(r"<(?:[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\s]*|"
+               r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+               r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
+               r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"),
+    re.compile(r"\]\((?P<destination>(?:\\.|[^)\n])*)\)"),
 )
 _TIME = re.compile(
     r"(?<![0-9:])(?:(?P<clock_hour>[0-9]{1,2}):(?P<minute>[0-9]{2})"
@@ -76,11 +79,13 @@ _TIME = re.compile(
     r"|(?P<meridiem_hour>[0-9]{1,2})[ ]*(?P<suffix>AM|PM|a\.m\.|p\.m\.))"
     r"(?![0-9:])"
 )
-_NUMERIC_ZONE = re.compile(r"[+-][0-9]{2}:?[0-9]{2}(?![0-9])")
+_NUMERIC_ZONE = re.compile(
+    r"(?P<sign>[+-])(?P<hour>[0-9]{2}):?(?P<minute>[0-9]{2})(?![0-9])"
+)
 _OFFSET_PREFIX = re.compile(
     r"(?P<clock>(?<![0-9:])(?:[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?"
     r"|[0-9]{1,2}[ ]*(?:AM|PM|a\.m\.|p\.m\.))"
-    r"(?:[ ]*(?:AM|PM|a\.m\.|p\.m\.))?)(?P<spaces>[ ]*)(?P<sign>[+-])$"
+    r"(?:[ ]*(?:AM|PM|a\.m\.|p\.m\.))?)[ ]*(?P<sign>[+-])$"
 )
 _UTC_ZONE = re.compile(r"(?:UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?|\(UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?\))(?![A-Za-z0-9])")
 _UTC_OFFSET_TIME = re.compile(
@@ -130,7 +135,10 @@ def _blank_lines(text, ranges):
 
 def _checked_text(document, text):
     spans, _ = scan(document, text)
-    ranges = [(span["start"], span["end"]) for span in spans]
+    lines = text.split("\n")
+    ranges = [(span["start"], span["end"]) for span in spans
+              if START.fullmatch(lines[span["start"]].removesuffix("\r"))
+              and END.fullmatch(lines[span["end"] - 1].removesuffix("\r"))]
     source_lines = _sources_lines(text)
     if source_lines is not None:
         ranges.append(source_lines)
@@ -187,9 +195,6 @@ def _quote_origin(line, base, first, name_marks):
     if is_original:
         if quoted:
             translation_start, translation_stop = quoted[2], quoted[3]
-            after = _space_end(line, quoted[1])
-            if after >= len(line) or line[after] != ")":
-                return None
         else:
             close = line.find(")", inside)
             if close < 0:
@@ -198,17 +203,19 @@ def _quote_origin(line, base, first, name_marks):
             translation_stop = close
             while translation_stop > translation_start and line[translation_stop - 1] == " ":
                 translation_stop -= 1
-        if _translation_ok(line, translation_start, translation_stop,
+    else:
+        if not quoted:
+            return None
+        translation_start, translation_stop = first[2], first[3]
+    if quoted:
+        after = _space_end(line, quoted[1])
+        if after >= len(line) or line[after] != ")":
+            return None
+    if not _translation_ok(line, translation_start, translation_stop,
                            name_marks[base:base + len(line)]):
-            return base + first[2], base + first[3]
         return None
-    if not quoted:
-        return None
-    after = _space_end(line, quoted[1])
-    if after >= len(line) or line[after] != ")":
-        return None
-    if not _translation_ok(line, first[2], first[3], name_marks[base:base + len(line)]):
-        return None
+    if is_original:
+        return base + first[2], base + first[3]
     original = line[quoted[2]:quoted[3]]
     if len(original) <= 100 and any(_is_cjk(character) for character in original):
         return base + quoted[2], base + quoted[3]
@@ -220,14 +227,19 @@ def _allowed_originals(text, name_marks):
     offset = 0
     for raw_line in text.splitlines(keepends=True):
         line = raw_line.rstrip("\r\n")
-        for position, character in enumerate(line):
-            if character not in _QUOTE_OPENERS:
+        position = 0
+        while position < len(line):
+            if line[position] not in _QUOTE_OPENERS:
+                position += 1
                 continue
             quoted = _quoted_at(line, position)
-            if quoted:
-                original = _quote_origin(line, offset, quoted, name_marks)
-                if original is not None:
-                    result.append(original)
+            if not quoted:
+                position += 1
+                continue
+            original = _quote_origin(line, offset, quoted, name_marks)
+            if original is not None:
+                result.append(original)
+            position = quoted[1]
         offset += len(raw_line)
     return result
 
@@ -236,10 +248,7 @@ def _dates(text):
     masked = list(text)
     for pattern in _DATE_SKIP:
         for match in pattern.finditer(text):
-            start, stop = match.span()
-            if pattern is _DATE_SKIP[2]:
-                start += 2
-                stop -= 1
+            start, stop = match.span(match.lastindex or 0)
             for index in range(start, stop):
                 if masked[index] not in "\r\n":
                     masked[index] = " "
@@ -267,7 +276,7 @@ def _time_tokens(text):
         if prefix:
             follows_t = (prefix.start("clock") > 0
                          and prefix_text[prefix.start("clock") - 1] == "T")
-            if prefix["sign"] == "+" or prefix["spaces"] or follows_t:
+            if prefix["sign"] == "+" or follows_t:
                 continue
         hour = int(match["clock_hour"] or match["meridiem_hour"])
         minute = int(match["minute"] or 0)
@@ -288,10 +297,12 @@ def _has_zone(text, start, stop):
     if direct and tail.startswith("Z") and (len(tail) == 1 or not tail[1].isalnum()):
         return True
     numeric = _NUMERIC_ZONE.match(tail)
-    if numeric and (numeric.end() == len(tail)
-                    or not tail[numeric.end()].isalnum()):
+    if (numeric and int(numeric["hour"]) <= 14
+            and int(numeric["minute"]) <= 59
+            and (numeric.end() == len(tail)
+                 or not tail[numeric.end()].isalnum())):
         follows_t = start > 0 and text[start - 1] == "T"
-        if tail[0] != "-" or not direct or follows_t:
+        if numeric["sign"] == "+" or (direct and follows_t):
             return True
     utc = _UTC_ZONE.match(tail)
     return utc is not None
@@ -335,13 +346,11 @@ def check(root):
         _is_cjk(character) for _, _, text in pages for character in text)
     identifiers = {}
     roster_error = None
-    roster_failed = False
     if roster_needed:
         try:
             identifiers = load_roster()
         except JudgmentError as error:
             roster_error = error.detail
-            roster_failed = True
     pattern = compile_roster_pattern(identifiers)
     problems = []
     seen = set()
@@ -351,10 +360,9 @@ def check(root):
             "line": 1,
             "message": f"page rule roster: cannot read the roster: {roster_error}",
         })
-    student_names = ({key for key, (kind, value) in identifiers.items()
-                      if kind == "student" and key == value}
-                     if not roster_failed else set())
-    if not roster_failed:
+    student_names = {key for key, (kind, value) in identifiers.items()
+                     if kind == "student" and key == value}
+    if roster_error is None:
         for _, document, _ in student_pages:
             if Path(document).name[:-3] not in student_names:
                 _add(problems, seen, document, 1, "student-roster")
@@ -369,10 +377,9 @@ def check(root):
         quote_ranges = _allowed_originals(text, name_marks)
         quote_marks = _mark(len(text), quote_ranges)
 
-        for start, _, (kind, _) in spans:
+        for start, _, (kind, _) in find_spans(text, {}, None):
             if kind in {"phone", "email"}:
-                rule = kind
-                _add(problems, seen, document, _line_number(starts, start), rule)
+                _add(problems, seen, document, _line_number(starts, start), kind)
 
         for match in _ID_NUMBER.finditer(text):
             birth, gender = match[1], match[2]
@@ -387,7 +394,7 @@ def check(root):
             for match in regex.finditer(text):
                 _add(problems, seen, document, _line_number(starts, match.start()), "address")
 
-        if not roster_failed:
+        if roster_error is None:
             for index, character in enumerate(text):
                 if (_is_cjk(character) and not name_marks[index]
                         and not quote_marks[index]):
@@ -397,11 +404,8 @@ def check(root):
                 if any(_is_cjk(text[index]) and not quote_marks[index]
                        for index in range(start, stop)):
                     _add(problems, seen, document, _line_number(starts, start), "school")
-            for match in _ROMANIZED_SCHOOL.finditer(text):
-                _add(problems, seen, document, _line_number(starts, match.start()), "school")
-        else:
-            for match in _ROMANIZED_SCHOOL.finditer(text):
-                _add(problems, seen, document, _line_number(starts, match.start()), "school")
+        for match in _ROMANIZED_SCHOOL.finditer(text):
+            _add(problems, seen, document, _line_number(starts, match.start()), "school")
 
         for offset in _dates(text):
             _add(problems, seen, document, _line_number(starts, offset), "date")
