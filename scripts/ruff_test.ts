@@ -1,5 +1,5 @@
-import { assert, assertMatch } from '@std/assert';
-import { fromFileUrl, join } from '@std/path';
+import {assert, assertMatch} from '@std/assert';
+import {fromFileUrl, join} from '@std/path';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
 const project = join(root, 'tools/ruff');
@@ -24,8 +24,10 @@ async function ruff(args: string[], cwd = root) {
 }
 
 function output(result: Deno.CommandOutput) {
-  return new TextDecoder().decode(result.stdout) +
-    new TextDecoder().decode(result.stderr);
+  return (
+    new TextDecoder().decode(result.stdout) +
+    new TextDecoder().decode(result.stderr)
+  );
 }
 
 Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {
@@ -113,17 +115,13 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
       vendorFile,
       'def vendor_api():\n    return None\n',
     );
-    const shownFiles = await ruff([
-      'check',
-      '--show-files',
-      '--no-cache',
-      '--config',
-      isolatedConfig,
-      '.',
-    ], temp);
+    const shownFiles = await ruff(
+      ['check', '--show-files', '--no-cache', '--config', isolatedConfig, '.'],
+      temp,
+    );
     assert(shownFiles.success, output(shownFiles));
     assert(!output(shownFiles).includes(vendorFile));
   } finally {
-    await Deno.remove(temp, { recursive: true });
+    await Deno.remove(temp, {recursive: true});
   }
 });
