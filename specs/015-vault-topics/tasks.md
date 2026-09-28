@@ -34,7 +34,7 @@ into Orca or Linear messages; tests use synthetic vaults only.
 
 ## Phase 1: Code and tests (US1, US2)
 
-- [ ] T001 [US1] [US2] In `TESTS/conftest.py`, give the synthetic schema
+- [x] T001 [US1] [US2] In `TESTS/conftest.py`, give the synthetic schema
   `AGENTS.md` front matter that declares topics and give each synthetic page
   a `topics` list, so the existing tests keep passing after T002 to T004.
   Then add cases for the [data model](data-model.md) and the
@@ -52,30 +52,42 @@ into Orca or Linear messages; tests use synthetic vaults only.
   under exactly those (SC-001), sorted topics and pages, identical output
   from two runs, an empty region for a vault without pages, and a stale
   index after a page's topics change.
-- [ ] T002 [US2] In `SRC/instance.py`, validate `topics` in `_metadata` next
+- [x] T002 [US2] In `SRC/instance.py`, validate `topics` in `_metadata` next
   to `title`, `summary` and `sources` and return it; add
   `declared_topics(root)`, which reads the list from `AGENTS.md`'s front
   matter with `_front_matter` and PyYAML and returns the names and problems
   (research R1, R2, R5).
-- [ ] T003 [US2] In `SRC/lint.py`, add one helper that returns the schema's
+- [x] T003 [US2] In `SRC/lint.py`, add one helper that returns the schema's
   problems and each page's undeclared topics, skipping the undeclared check
   when the schema has problems; call it from `check` and, before
   regeneration, from `update` (research R3, R5).
-- [ ] T004 [US1] In `SRC/sources.py`, make `page_catalog` write one
+- [x] T004 [US1] In `SRC/sources.py`, make `page_catalog` write one
   `## <topic>` heading per topic, sorted, with the existing page lines
   sorted by path under it and a blank line between groups (research R4).
   T001's cases and the rest of `deno task test:wiki-consistency` pass.
+  - 2026-09-29: A Codex worker (`gpt-6-luna`, `max`; Orca dispatch
+    `ctx_8c5f078b3c4f`) made T001 to T004 in `2dcaaf3`; 51 of T001's cases
+    failed before T002 to T004, and 169 tests pass. With main's approval it
+    also added topics to the synthetic pages in `test_lint.py` and
+    `test_prepare.py`, which the required field broke. After main's review,
+    the same worker (`ctx_72230381a6f3`) shared the front matter and topic
+    name checks and made `update` pick refused pages by their empty topic
+    list instead of by message text, in `7760ab4`. Next: verification and
+    the merge review.
 
 ## Phase 2: Documents (US3)
 
-- [ ] T005 [P] [US3] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
+- [x] T005 [P] [US3] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   add the schema front matter with an empty list, the `topics` field and its
   rules in `## Pages`, and the grouped index in the `index.md` bullet, as
   the [contract](contracts/topics.md) states (FR-005, FR-010).
-- [ ] T006 [P] [US3] In `docs/architecture.md`, add topics to the Wiki
+- [x] T006 [P] [US3] In `docs/architecture.md`, add topics to the Wiki
   consistency bullets on page metadata, `index.md` and the check (FR-007).
-- [ ] T007 [P] [US3] In `plugins/work/skills/wiki-consistency/SKILL.md`, name
+- [x] T007 [P] [US3] In `plugins/work/skills/wiki-consistency/SKILL.md`, name
   topics in the `check` row of the command table (FR-007).
+  - 2026-09-29: Main wrote T005 to T007 in `60b505f`, after merging
+    `develop` at `df912f4` (CHE-25) into this branch, so the template keeps
+    CHE-25's English and page rules.
 
 ## Phase 3: Verification and review
 
