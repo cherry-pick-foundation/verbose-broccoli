@@ -3,14 +3,17 @@ import json
 import sys
 from types import ModuleType
 
+from fake_provider import FakeProvider
+from fake_provider import completion
 import pytest
 
 from backfire import config
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.judge import judge
-from backfire.records import RecordFile, digest, read_records
-from fake_provider import FakeProvider, completion
+from backfire.records import RecordFile
+from backfire.records import digest
+from backfire.records import read_records
 
 SHIPPED = """
 pseudonymize = true
@@ -67,6 +70,7 @@ def test_hook_sends_stand_in_output_restores_answers_and_records_originals(
     environment,
     monkeypatch,
 ):
+    del environment  # Unused.
     restored = []
 
     def replace(state, questions):
@@ -108,7 +112,10 @@ def test_hook_sends_stand_in_output_restores_answers_and_records_originals(
 
 
 def test_stand_in_failure_sends_no_provider_request(environment, monkeypatch):
+    del environment  # Unused.
+
     def fail(state, questions):
+        del state, questions  # Unused.
         raise JudgmentError("pseudonym_conflict")
 
     install_stand_in(monkeypatch, fail)
@@ -123,7 +130,10 @@ def test_stand_in_failure_sends_no_provider_request(environment, monkeypatch):
 
 
 def test_explicit_false_skips_the_shipped_hook(environment, monkeypatch):
+    del environment  # Unused.
+
     def fail(state, questions):
+        del state, questions  # Unused.
         raise AssertionError("pseudonymizer was called")
 
     install_stand_in(monkeypatch, fail)

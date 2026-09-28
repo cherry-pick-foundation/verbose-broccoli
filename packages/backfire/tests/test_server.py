@@ -5,27 +5,25 @@ import threading
 
 import anyio
 import jsonschema
-import pytest
 from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
+import pytest
+from scripted_judge import ScriptedJudge
+from test_boundary_core import session as boundary_session
 
 from backfire.records import read_records
 from backfire.server import create_server
-from backfire.tools import (
-    classify,
-    compare,
-    decide,
-    extract,
-    find,
-    gate,
-    noul,
-    rerank,
-    review,
-    screen,
-    verify,
-)
-from scripted_judge import ScriptedJudge
-from test_boundary_core import session as boundary_session
+from backfire.tools import classify
+from backfire.tools import compare
+from backfire.tools import decide
+from backfire.tools import extract
+from backfire.tools import find
+from backfire.tools import gate
+from backfire.tools import noul
+from backfire.tools import rerank
+from backfire.tools import review
+from backfire.tools import screen
+from backfire.tools import verify
 
 MODULES = (
     verify,
@@ -164,7 +162,10 @@ def test_schema_errors_use_the_upstream_prefix_and_jsonschema_detail(
                 "claims": ["claim"],
                 "evidence": " ",
             },
-            "backfire_gate requires at least one evidence item with non-empty text. at evidence",
+            (
+                "backfire_gate requires at least one evidence item with "
+                "non-empty text. at evidence"
+            ),
         ),
     ],
 )
@@ -218,6 +219,7 @@ def test_tool_exception_is_only_its_message_and_the_session_keeps_serving(
     monkeypatch,
 ):
     async def call(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise RuntimeError("synthetic failure: unchanged 한글")
 
     monkeypatch.setattr(verify, "call", call)

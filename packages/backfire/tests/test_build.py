@@ -1,10 +1,10 @@
 import os
+from pathlib import Path
 import selectors
 import shutil
 import signal
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -30,6 +30,7 @@ def run_build(
         env={**os.environ, "BACKFIRE_TEST_BUILD_MAX_BYTES": budget},
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 
@@ -171,7 +172,9 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
     (instance / "wiki").mkdir(parents=True)
     (instance / "AGENTS.md").write_text("# Wiki rules\n", encoding="utf-8")
     (instance / "wiki" / "index.md").write_text(
-        '<!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->\n'
+        "<!-- [[[cog import wiki_consistency.sources; "
+        "cog.out(wiki_consistency.sources.page_catalog("
+        '"wiki/**/*.md")) ]]] -->\n'
         "<!-- [[[end]]] -->\n",
         encoding="utf-8",
     )
@@ -211,6 +214,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert doc_regions.returncode == 0, doc_regions.stderr
@@ -228,6 +232,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert install.returncode == 0, install.stderr
@@ -249,6 +254,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert check.returncode == 0, check.stderr
@@ -278,6 +284,7 @@ def test_build_requires_plugin_and_output(
         cwd=tmp_path,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
     assert result.returncode == 1

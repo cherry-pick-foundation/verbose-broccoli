@@ -49,7 +49,7 @@ def test_guard_allows_archive_and_only_the_two_shipped_configs(tmp_path):
     ]
 
 
-def test_education_profile_has_the_development_settings_and_enables_protection():
+def test_education_profile_keeps_development_protection_settings():
     root = Path(__file__).resolve().parents[1] / "src"
     development = tomllib.loads((root / "backfire/config.toml").read_text())
     education = tomllib.loads(

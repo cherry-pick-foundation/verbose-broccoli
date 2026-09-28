@@ -12,15 +12,15 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-from backfire.judge import (
-    JSONContent,
-    JudgmentRequest,
-    JudgmentResult,
-    Questions,
-)
+from backfire.judge import JSONContent
+from backfire.judge import JudgmentRequest
+from backfire.judge import JudgmentResult
+from backfire.judge import Questions
 
 
 class ScriptedJudge:
+    """Consume scripted results and record requests for offline tests."""
+
     def __init__(
         self, script: Iterable[object], *, requests_file: Path | None = None
     ) -> None:
@@ -32,6 +32,7 @@ class ScriptedJudge:
 
     @classmethod
     def from_file(cls, path: str | Path) -> "ScriptedJudge":
+        """Create a judge from a JSON script and request-file path."""
         path = Path(path).resolve()
         data = json.loads(path.read_text(encoding="utf-8"))
         if (
@@ -42,12 +43,14 @@ class ScriptedJudge:
             or not data["requests_file"]
         ):
             raise ValueError(
-                "Scripted judge requires a script array and a non-empty requests_file path."
+                "Scripted judge requires a script array and a non-empty "
+                "requests_file path."
             )
         requests_file = path.parent / data["requests_file"]
         if requests_file.resolve() == path:
             raise ValueError(
-                "Scripted judge script and requests_file must be different files."
+                "Scripted judge script and requests_file must be different "
+                "files."
             )
         return cls(data["script"], requests_file=requests_file)
 
@@ -59,6 +62,7 @@ class ScriptedJudge:
         deadline: float,
         record_file: Path | None = None,
     ) -> JudgmentResult:
+        """Record a request and consume the next scripted step."""
         self.requests.append(
             deepcopy(
                 {

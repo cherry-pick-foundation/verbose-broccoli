@@ -6,11 +6,12 @@ from pathlib import Path
 import sys
 
 import anyio
+from fake_provider import FakeProvider
+from fake_provider import completion
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 import pytest
-
-from fake_provider import FakeProvider, completion
 
 
 @pytest.mark.parametrize("tool", ["backfire_review", "backfire_gate"])

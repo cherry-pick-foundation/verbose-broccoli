@@ -11,17 +11,18 @@ import httpx2
 import openai
 import pytest
 from system_one_adapter.providers.openai import AsyncOpenAIProvider
-from typesafe_sdk import (
-    RetryPolicy,
-    TypeSafeAPIConnectionError,
-    TypeSafeAPIResponseValidationError,
-    TypeSafeAPITimeoutError,
-    TypeSafeError,
-)
+from typesafe_sdk import RetryPolicy
+from typesafe_sdk import TypeSafeAPIConnectionError
+from typesafe_sdk import TypeSafeAPIResponseValidationError
+from typesafe_sdk import TypeSafeAPITimeoutError
+from typesafe_sdk import TypeSafeError
 from typesafe_sdk._core.errors import api_error
 from typesafe_sdk._core.retry import build_tenacity_async
 
-from backfire.failures import JudgmentError, MESSAGES, map_error, retry_policy
+from backfire.failures import MESSAGES
+from backfire.failures import JudgmentError
+from backfire.failures import map_error
+from backfire.failures import retry_policy
 
 PRIVATE = "synthetic-request-credential-and-provider-body"
 
@@ -288,7 +289,7 @@ def test_typed_failures_are_never_retried(profile, error_type):
     )
 
 
-def test_sdk_validation_failure_is_not_retried_even_with_success_status_override():
+def test_sdk_validation_failure_not_retried_with_success_status_override():
     profile = {"statuses": {"200": "rate_limited"}}
     error = TypeSafeAPIResponseValidationError(
         200, PRIVATE, httpx2.Headers(), "answers"

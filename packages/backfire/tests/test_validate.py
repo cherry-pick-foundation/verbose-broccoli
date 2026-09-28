@@ -9,11 +9,14 @@ from unittest.mock import AsyncMock
 import pytest
 from system_one_adapter import AsyncSystemOneAdapterClient
 from system_one_adapter.providers.base import ProviderResult
-from typesafe_sdk import Choice, Noul, Score
+from typesafe_sdk import Choice
+from typesafe_sdk import Noul
+from typesafe_sdk import Score
 
 from backfire.failures import JudgmentError
 from backfire.tools.answers import validate_score_answer
-from backfire.validate import validate_answers, validate_request
+from backfire.validate import validate_answers
+from backfire.validate import validate_request
 
 
 def question(kind, count=3):

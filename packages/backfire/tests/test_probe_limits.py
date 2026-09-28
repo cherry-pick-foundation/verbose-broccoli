@@ -9,12 +9,13 @@ import os
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from fake_provider import FakeProvider
+from fake_provider import completion
 import pytest
 
 from backfire.failures import JudgmentError
 from backfire.validate import validate_request
 from backfire_tools.acceptance import probe_limits as probe
-from fake_provider import FakeProvider, completion
 
 
 def test_maximum_shapes_and_obvious_answers_pass_adapter_schema(monkeypatch):
@@ -156,6 +157,7 @@ def test_three_runs_or_stop_without_retry_and_restore_override(
     monkeypatch.setenv("BACKFIRE_TEST_REQUEST_LIMITS", "2,3")
 
     async def fake(state, questions, *, deadline):
+        del state  # Unused.
         calls.append(questions)
         assert 117 < deadline - asyncio.get_running_loop().time() <= 118
         assert os.environ["BACKFIRE_TEST_REQUEST_LIMITS"] == "200,200"
@@ -201,6 +203,7 @@ def test_deadline_cancels_judge_and_external_cancellation_propagates(
     cancelled = []
 
     async def stall(*args, **kwargs):
+        del args, kwargs  # Unused.
         try:
             await asyncio.Future()
         finally:
@@ -241,6 +244,7 @@ def test_failed_size_skips_its_remaining_runs_but_continues_next_size(
     case = {"questions": {"q": {"type": "noul"}}}
 
     async def fake(name, case, run):
+        del case  # Unused.
         calls.append((name, run))
         return {
             "case": name,
@@ -274,6 +278,7 @@ def test_correct_answer_still_has_to_finish_within_sixty_seconds(
     }
 
     async def fake(*args, **kwargs):
+        del args, kwargs  # Unused.
         return {
             "model": "synthetic",
             "usage": {},

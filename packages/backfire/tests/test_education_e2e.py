@@ -6,12 +6,15 @@ from pathlib import Path
 import shutil
 import subprocess
 from tempfile import TemporaryDirectory
+import tomllib
 
 import anyio
+from fake_provider import FakeProvider
+from fake_provider import completion
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 import pytest
-import tomllib
 
 from backfire import config
 from backfire.config import xdg_path
@@ -20,8 +23,8 @@ from backfire.judge import judge
 from backfire.tools import find
 from backfire_education.pseudonymize import pseudonymize
 from backfire_education.table import assign
-from backfire_tools.build import ROOT, build
-from fake_provider import FakeProvider, completion
+from backfire_tools.build import ROOT
+from backfire_tools.build import build
 
 TOOL_NAMES = {
     "backfire_gate",
@@ -67,6 +70,7 @@ async def capture_find(arguments):
     captured = {}
 
     async def capture(state, questions, *, deadline, record_file):
+        del deadline, record_file  # Unused.
         captured["state"] = state
         captured["questions"] = questions
         labels = list(questions["best"]["criteria"])
@@ -196,6 +200,7 @@ def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
             env={**os.environ, "UV_OFFLINE": "1"},
             capture_output=True,
             text=True,
+            check=False,
             timeout=60,
         )
         assert install.returncode == 0, install.stderr
@@ -238,13 +243,20 @@ def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
                 [
                     {
                         "id": "synthetic-a",
-                        "text": f"{STUDENT_A}은 2026-09-28 91점을 받았다. {GIVEN_A}이는 {GUARDIANS[0]}와 "
-                        f"{SCHOOLS[0]}에서 연습했다. 연락처 {PHONE}, 이메일 {EMAIL}.",
+                        "text": (
+                            f"{STUDENT_A}은 2026-09-28 91점을 받았다. "
+                            f"{GIVEN_A}이는 {GUARDIANS[0]}와 "
+                            f"{SCHOOLS[0]}에서 연습했다. "
+                            f"연락처 {PHONE}, 이메일 {EMAIL}."
+                        ),
                     },
                     {
                         "id": "synthetic-b",
-                        "text": f"{STUDENT_B}은 2026-09-27 84점을 받았다. {GIVEN_B}이는 {GUARDIANS[1]}와 "
-                        f"{SCHOOLS[1]}에서 복습했다.",
+                        "text": (
+                            f"{STUDENT_B}은 2026-09-27 84점을 받았다. "
+                            f"{GIVEN_B}이는 {GUARDIANS[1]}와 "
+                            f"{SCHOOLS[1]}에서 복습했다."
+                        ),
                     },
                 ]
             )
@@ -355,7 +367,10 @@ def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
                             "items": [
                                 {
                                     "id": "synthetic-item",
-                                    "text": f"{STUDENT_A}은 {GIVEN_A}이가 {SCHOOLS[0]}에서 연습했다.",
+                                    "text": (
+                                        f"{STUDENT_A}은 {GIVEN_A}이가 "
+                                        f"{SCHOOLS[0]}에서 연습했다."
+                                    ),
                                 }
                             ],
                             "classes": [
@@ -378,14 +393,20 @@ def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
                         classification["results"][0]["id"] == "synthetic-item"
                     )
 
-                    claim = f"{STUDENT_A}은 91점을 받았고 {GIVEN_A}이는 꾸준히 연습했다."
+                    claim = (
+                        f"{STUDENT_A}은 91점을 받았고 "
+                        f"{GIVEN_A}이는 꾸준히 연습했다."
+                    )
                     verified = await successful_call(
                         client,
                         "backfire_verify",
                         {
                             "claims": [claim],
-                            "evidence": f"{STUDENT_A}의 {SCHOOLS[0]} 기록은 {GUARDIANS[0]}가 확인했다. "
-                            f"연락처 {PHONE}, 이메일 {EMAIL}.",
+                            "evidence": (
+                                f"{STUDENT_A}의 {SCHOOLS[0]} 기록은 "
+                                f"{GUARDIANS[0]}가 확인했다. "
+                                f"연락처 {PHONE}, 이메일 {EMAIL}."
+                            ),
                         },
                     )
                     assert verified["results"][0]["claim"] == claim
@@ -442,7 +463,10 @@ def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
                     for contents in (
                         b"roster = [\n",
                         b'roster = "relative.csv"\n',
-                        f"roster = {json.dumps(str(roster_path))}\nextra = true\n".encode(),
+                        (
+                            f"roster = {json.dumps(str(roster_path))}\n"
+                            "extra = true\n"
+                        ).encode(),
                     ):
                         config_path.write_bytes(contents)
                         await failed_call(

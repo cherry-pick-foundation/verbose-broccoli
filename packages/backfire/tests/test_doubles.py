@@ -6,12 +6,14 @@ import runpy
 import sys
 
 import anyio
-import pytest
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
-
-from backfire import __main__, server
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
+import pytest
 from scripted_judge import ScriptedJudge
+
+from backfire import __main__
+from backfire import server
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 QUESTIONS = {"q": {"type": "noul", "instructions": "Is it true?"}}
@@ -225,6 +227,7 @@ def test_serve_without_override_does_not_load_test_helper(monkeypatch):
         calls.append(judge)
 
     def unexpected_load(*args, **kwargs):
+        del args, kwargs  # Unused.
         pytest.fail("Test helper loaded without BACKFIRE_TEST_JUDGE_SCRIPT")
 
     monkeypatch.delenv("BACKFIRE_TEST_JUDGE_SCRIPT", raising=False)
@@ -328,7 +331,11 @@ def test_real_serve_mcp_uses_script_and_logs_only_judgments(
                 "type": "noul",
                 "instructions": f"proposition `proposition0`: {proposition}",
                 "criteria": {
-                    "true": "The proposition is likely true, given the supplied context (when present) and general knowledge",
+                    "true": (
+                        "The proposition is likely true, given "
+                        "the supplied context (when present) "
+                        "and general knowledge"
+                    ),
                     "false": "The proposition is likely not true",
                 },
             }

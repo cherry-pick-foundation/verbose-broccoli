@@ -4,7 +4,6 @@ import pytest
 
 from backfire.decisions import decision_units
 
-
 CASES = [
     (
         "backfire_gate",
@@ -348,7 +347,8 @@ def test_nullable_values_and_reported_statuses(tool, result, expected):
 def test_out_of_vocabulary_values_never_enter_records(
     tool, result, expected, unexpected
 ):
-    # Replace decision values at every depth, leaving the structural containers intact.
+    # Replace decision values at every depth, leaving the structural
+    # containers intact.
     def replace(value):
         if isinstance(value, list):
             return [replace(item) for item in value]

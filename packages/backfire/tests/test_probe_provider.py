@@ -136,7 +136,8 @@ def test_selection_and_optional_burst():
         == profile
     )
     assert json.dumps(probe.burst_not_applicable(), separators=(",", ":")) == (
-        '{"label":"burst","status":null,"not_applicable":"profile has no rate_limit_per_second"}'
+        '{"label":"burst","status":null,"not_applicable":"profile has no '
+        'rate_limit_per_second"}'
     )
     assert probe.burst_size(5) == 6
     assert probe.burst_size(0) == 1
@@ -222,15 +223,20 @@ def test_main_reads_toml_and_credentials_and_preserves_requests(
         encoding="utf-8",
     )
     with source.open("a", encoding="utf-8") as file:
-        file.write("""
-[providers.alpha]
-api = "openai"
-base_url = "https://example.test/v1///"
-model = "model-for-test"
-credential = "API_KEY"
-request = {max_tokens = 32768, response_format = {type = "json_object"}, reasoning_effort = "medium"}
-thinking = {requested = "on", content_path = "reasoning_content", token_path = "details.tokens"}
-""")
+        file.write(
+            "\n"
+            "[providers.alpha]\n"
+            'api = "openai"\n'
+            'base_url = "https://example.test/v1///"\n'
+            'model = "model-for-test"\n'
+            'credential = "API_KEY"\n'
+            "request = {max_tokens = 32768, response_format = "
+            '{type = "json_object"}, reasoning_effort = '
+            '"medium"}\n'
+            'thinking = {requested = "on", content_path = '
+            '"reasoning_content", token_path = '
+            '"details.tokens"}\n'
+        )
         if with_burst:
             file.write("rate_limit_per_second = 5\n")
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -242,7 +248,9 @@ thinking = {requested = "on", content_path = "reasoning_content", token_path = "
     credential = config_home / "verbose-broccoli" / "backfire" / "alpha.env"
     credential.parent.mkdir(parents=True)
     credential.write_bytes(
-        b"OTHER_KEY=ignored\r\nAPI_KEY=  private-key-marker  \r\nAPI_KEY=ignored\r\n"
+        b"OTHER_KEY=ignored\r\n"
+        b"API_KEY=  private-key-marker  \r\n"
+        b"API_KEY=ignored\r\n"
     )
     monkeypatch.setenv("API_KEY", "inherited-key-is-ignored")
     received = []
@@ -344,6 +352,7 @@ def test_request_keeps_failures_private(monkeypatch, capsys, failure):
             yield b""
 
     async def respond(request):
+        del request  # Unused.
         if failure == "transport":
             raise httpx2.ConnectError("private credential marker")
         if failure == "deadline":
@@ -398,6 +407,7 @@ def test_cli_startup_failure_prints_only_fixed_message(tmp_path, arguments):
         },
         capture_output=True,
         text=True,
+        check=False,
         timeout=5,
     )
     assert result.returncode == 1
@@ -412,6 +422,7 @@ def test_default_config_and_missing_credential_fail_before_network(
     seen = []
 
     def reject_network(*args, **kwargs):
+        del args, kwargs  # Unused.
         pytest.fail("missing credential must not send a request")
 
     select = probe.select_profile

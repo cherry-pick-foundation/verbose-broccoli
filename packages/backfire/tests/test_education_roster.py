@@ -6,7 +6,8 @@ import pytest
 
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
-from backfire_education.roster import given_name, load_roster
+from backfire_education.roster import given_name
+from backfire_education.roster import load_roster
 
 
 @pytest.fixture
@@ -112,6 +113,7 @@ def test_bad_rosters_fail_with_only_the_path(roster, content):
     ],
 )
 def test_bad_configuration_names_only_education_file(roster, content):
+    del roster  # Unused.
     config = xdg_path("config") / "backfire" / "education.toml"
     config.write_bytes(content)
     with pytest.raises(JudgmentError) as caught:
@@ -153,6 +155,7 @@ def test_unusable_files_fail_without_blocking_or_diagnostics(
 
 
 def test_relative_config_root_fails(roster, monkeypatch):
+    del roster  # Unused.
     monkeypatch.setenv("XDG_CONFIG_HOME", "relative")
     with pytest.raises(JudgmentError) as caught:
         load_roster()

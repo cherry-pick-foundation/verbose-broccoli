@@ -44,10 +44,15 @@ LOCAL_EXTRACT = {
 
 
 def install_stream_probe(path, hold_id):
-    """Observe the SDK side; hold a completed reply until cancellation arrives."""
-    import anyio
-    from backfire.boundary import Boundary
-    from mcp.server.lowlevel import Server
+    """Hold completed SDK replies until cancellation arrives."""
+    import anyio  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
+    from mcp.server.lowlevel import (  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
+        Server,
+    )
+
+    from backfire.boundary import (  # noqa: PLC0415  # Loaded only by subprocess hook, not pytest.
+        Boundary,
+    )
 
     def capture(direction, item):
         message = item.message.model_dump(by_alias=True, exclude_unset=True)
@@ -121,10 +126,11 @@ async def server(
             "if sys.orig_argv[-2:] == ['backfire', 'serve-mcp']:",
         ]
         if probe:
+            trace_path = str(tmp_path / "trace.jsonl")
             lines.extend(
                 (
                     "    from test_boundary import install_stream_probe",
-                    f"    install_stream_probe({str(tmp_path / 'trace.jsonl')!r}, {hold_id!r})",
+                    f"    install_stream_probe({trace_path!r}, {hold_id!r})",
                 )
             )
         if call_seconds is not None:
@@ -368,7 +374,8 @@ def test_messages_pass_unchanged_and_every_call_is_recorded_before_reply(
                 elif identifier in ("invalid-arguments", "missing-arguments"):
                     assert reply["result"]["isError"] is True
                     assert reply["result"]["content"][0]["text"].startswith(
-                        "MCP error -32602: Input validation error: Invalid arguments for tool backfire_noul: "
+                        "MCP error -32602: Input validation error: "
+                        "Invalid arguments for tool backfire_noul: "
                     )
                 else:
                     assert (
@@ -574,7 +581,11 @@ def test_record_write_failure_withholds_result_and_session_recovers(tmp_path):
                         "content": [
                             {
                                 "type": "text",
-                                "text": "record_write_failed: Cannot write the tool-call record; check record directory permissions and available space.",
+                                "text": (
+                                    "record_write_failed: Cannot write the "
+                                    "tool-call record; check record directory "
+                                    "permissions and available space."
+                                ),
                             }
                         ],
                         "isError": True,

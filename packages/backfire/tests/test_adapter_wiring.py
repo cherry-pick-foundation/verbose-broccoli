@@ -1,10 +1,13 @@
-"""Gate 9: real adapter prompting, concurrent metadata and private diagnostics."""
+"""Gate 9: adapter prompts, concurrent metadata, and private diagnostics."""
 
 import asyncio
 import json
 import logging
 import traceback
 
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 from jsonschema import Draft202012Validator
 import pytest
 from system_one_adapter import AsyncSystemOneAdapterClient
@@ -13,8 +16,9 @@ from typesafe_sdk import TypeSafeError
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.judge import judge
-from backfire.records import RecordFile, digest, read_records
-from fake_provider import FakeProvider, Reply, completion
+from backfire.records import RecordFile
+from backfire.records import digest
+from backfire.records import read_records
 
 PRIVATE = "adapter-wiring-private-document"
 RAW = "adapter-wiring-private-provider-output"

@@ -3,17 +3,25 @@ from dataclasses import asdict
 import json
 import traceback
 
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 import httpx2
 import openai
 import pytest
 from system_one_adapter import AsyncSystemOneAdapterClient
 from system_one_adapter.providers.base import Message
 
-from backfire.config import load_credential, load_profile
-from backfire.failures import JudgmentError, map_error, retry_policy
-from backfire.provider import ProfileProvider, ProviderCall, provider_call
-from backfire.validate import validate_answers, validate_request
-from fake_provider import FakeProvider, Reply, completion
+from backfire.config import load_credential
+from backfire.config import load_profile
+from backfire.failures import JudgmentError
+from backfire.failures import map_error
+from backfire.failures import retry_policy
+from backfire.provider import ProfileProvider
+from backfire.provider import ProviderCall
+from backfire.provider import provider_call
+from backfire.validate import validate_answers
+from backfire.validate import validate_request
 
 QUESTIONS = {
     "q": {"type": "noul", "instructions": "The synthetic document is complete."}
@@ -29,17 +37,20 @@ def profile(request, tmp_path, monkeypatch):
     directory.mkdir(parents=True)
     if request.param == "second-test":
         (directory / "config.toml").write_text(
-            """
-provider = "second-test"
-[providers.second-test]
-api = "openai"
-base_url = "https://provider.invalid/v2"
-model = "another-requested-model"
-credential = "SYNTHETIC_KEY"
-request = {max_tokens = 64, temperature = 0.1, custom_option = {enabled = true}}
-thinking = {requested = "on", token_path = "completion_tokens_details.reasoning_tokens"}
-statuses = {409 = "rate_limited"}
-""",
+            (
+                "\n"
+                'provider = "second-test"\n'
+                "[providers.second-test]\n"
+                'api = "openai"\n'
+                'base_url = "https://provider.invalid/v2"\n'
+                'model = "another-requested-model"\n'
+                'credential = "SYNTHETIC_KEY"\n'
+                "request = {max_tokens = 64, temperature = 0.1, "
+                "custom_option = {enabled = true}}\n"
+                'thinking = {requested = "on", token_path = '
+                '"completion_tokens_details.reasoning_tokens"}\n'
+                'statuses = {409 = "rate_limited"}\n'
+            ),
             encoding="utf-8",
         )
     profile = load_profile()
@@ -368,7 +379,8 @@ def test_timeout_shrinks_and_unknown_fields_stay_in_json(profile, body):
                 transport=httpx2.MockTransport(respond)
             ),
         )
-        # A request field named timeout is body data, never an SDK timeout override.
+        # A request field named timeout is body data, never an SDK timeout
+        # override.
         profile["request"]["timeout"] = 999
         call = ProviderCall(asyncio.get_running_loop().time() + 2)
         token = provider_call.set(call)

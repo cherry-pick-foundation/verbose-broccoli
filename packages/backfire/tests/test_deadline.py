@@ -1,4 +1,4 @@
-"""Gate 8: real whole-call deadlines, provider cancellation and pattern cleanup."""
+"""Gate 8: deadlines, provider cancellation, and pattern cleanup."""
 
 import asyncio
 from contextlib import asynccontextmanager
@@ -9,9 +9,14 @@ import sys
 import time
 
 import anyio
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 import pytest
+from test_boundary_core import session as memory_session
 
 from backfire import patterns
 from backfire.boundary import ERRORS
@@ -19,8 +24,6 @@ from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.judge import judge
 from backfire.records import read_records
-from fake_provider import FakeProvider, Reply, completion
-from test_boundary_core import session as memory_session
 
 pytestmark = pytest.mark.slow
 
@@ -29,6 +32,7 @@ NOUL = {"propositions": ["A synthetic deadline check."]}
 
 @pytest.fixture(autouse=True)
 def configuration(isolated_xdg, monkeypatch):
+    del isolated_xdg  # Unused.
     for name in (
         "BACKFIRE_TEST_PROVIDER_BASE_URL",
         "BACKFIRE_TEST_REQUEST_LIMITS",
@@ -59,7 +63,7 @@ thinking = {requested = "on", token_path = "reasoning_tokens"}
 async def stdio_session(tmp_path, fake, *, overrun_provider=False):
     args = ["-m", "backfire", "serve-mcp"]
     if overrun_provider:
-        # Let the fake request outlive the unchanged 118 s boundary timer, so its
+        # Let the fake request outlive the unchanged 118 s boundary timer so its
         # cancellation cannot race the HTTP client's own read timeout.
         args = [
             "-c",
@@ -140,7 +144,8 @@ def test_extract_pattern_timeouts_and_stalled_provider_share_the_call_deadline(
                         )
                     )
                     assert await asyncio.to_thread(fake.received.wait, 115)
-                    # All 31 valid catastrophic patterns exhaust their real 1,000 ms budget.
+                    # All 31 valid catastrophic patterns exhaust their real
+                    # 1,000 ms budget.
                     assert time.monotonic() - started >= 31
                     (request,) = fake.requests
                     prompt = request["body"]["messages"][0]["content"]
@@ -228,7 +233,8 @@ def test_real_deadline_cancels_provider_socket_and_keeps_other_calls_alive(
                     result.is_error
                     and result.content[0].text == ERRORS["deadline_exceeded"]
                 )
-                # The fake is still stalled: EOF proves the real HTTP request was closed.
+                # The fake is still stalled: EOF proves the real HTTP request
+                # was closed.
                 assert not fake.release.is_set()
                 first_connection.settimeout(5)
                 assert await asyncio.to_thread(first_connection.recv, 1) == b""

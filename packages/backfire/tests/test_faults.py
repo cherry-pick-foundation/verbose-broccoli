@@ -2,12 +2,15 @@
 
 import asyncio
 
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 import pytest
 
-from backfire.config import load_profile, xdg_path
-from backfire.failures import JudgmentError, MESSAGES
+from backfire.config import load_profile
+from backfire.config import xdg_path
+from backfire.failures import JudgmentError
 from backfire.judge import judge
-from fake_provider import FakeProvider, Reply, completion
 
 PINNED_MODEL = "deepseek-ai/deepseek-v4.1-flash"
 PRIVATE = "synthetic-provider-diagnostic"
@@ -64,6 +67,7 @@ async def evaluate(*, questions=NOUL, seconds=10):
 def test_bad_requests_fail_before_the_provider(
     configured, monkeypatch, questions, expected
 ):
+    del configured  # Unused.
     with FakeProvider([]) as fake:
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
         with pytest.raises(JudgmentError) as caught:
@@ -86,6 +90,7 @@ def test_invalid_configuration_names_its_file_and_skips_the_provider(
     fault,
     filename,
 ):
+    del filename  # Unused.
     directory, credential = configured
     config = directory / "config.toml"
     if fault == "selection":
@@ -134,6 +139,7 @@ def test_http_faults_have_fixed_text_and_only_rate_limits_retry(
     expected,
     attempts,
 ):
+    del configured  # Unused.
     profile = load_profile()
     assert profile["name"] == "hive"
     assert profile["statuses"]["405"] == "balance_exhausted"
@@ -159,6 +165,7 @@ def test_http_faults_have_fixed_text_and_only_rate_limits_retry(
 def test_retry_after_that_exceeds_the_deadline_is_not_retried(
     configured, monkeypatch
 ):
+    del configured  # Unused.
     with FakeProvider(
         [Reply({"error": PRIVATE}, 429, {"Retry-After": "10"})]
     ) as fake:
@@ -189,6 +196,7 @@ def test_response_faults_fail_once_without_answer_or_diagnostics(
     fault,
     expected,
 ):
+    del configured  # Unused.
     body = completion({"q": {"yes": 0.0, "no": 1.0}})
     questions = CHOICE
     message = body["choices"][0]["message"]
@@ -229,6 +237,7 @@ def test_valid_negative_or_low_confidence_answer_is_returned_once(
     monkeypatch,
     probability,
 ):
+    del configured  # Unused.
     with FakeProvider([completion({"q": probability})]) as fake:
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
         result = asyncio.run(evaluate())

@@ -3,9 +3,12 @@ import json
 import sys
 
 import pytest
-from typesafe_sdk import Choice, Noul, Score
+from typesafe_sdk import Choice
+from typesafe_sdk import Noul
+from typesafe_sdk import Score
 
-from backfire.config import SHIPPED_CONFIG, xdg_path
+from backfire.config import SHIPPED_CONFIG
+from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire_education.pseudonymize import pseudonymize
 
@@ -32,6 +35,7 @@ def roster(tmp_path, monkeypatch):
 
 
 def test_replaces_nested_state_and_rebuilds_each_question_type(roster):
+    del roster  # Unused.
     state = {
         "summary": "가라온은 오늘 기록을 확인했다.",
         "nested": [{"다누리": "보호자", "school": "가상별학교에서 학습했다."}],
@@ -72,6 +76,7 @@ def test_replaces_nested_state_and_rebuilds_each_question_type(roster):
 def test_given_name_particles_shared_given_name_and_longest_school_match(
     roster,
 ):
+    del roster  # Unused.
     state = (
         "가라온은 라온이가 왔고, 하늘이는 나하늘과 다하늘을 봤다. 가상별학교."
     )
@@ -95,6 +100,7 @@ def test_given_name_particles_shared_given_name_and_longest_school_match(
 
 
 def test_phone_email_normalization_and_pseudonym_like_text(roster):
+    del roster  # Unused.
     source = (
         "+1 202-555-0123 and +12025550123; Synthetic.One+2@Example.test "
         "and synthetic.one+2@example.test; keep 학생10명."
@@ -112,21 +118,25 @@ def test_phone_email_normalization_and_pseudonym_like_text(roster):
 
 
 def test_longer_email_wins_roster_match_at_same_start(roster):
+    del roster  # Unused.
     masked, _, _ = pseudonymize("Ann@example.test", {})
     assert masked == "이메일01"
 
 
 def test_roster_overlap_masks_the_rest_of_an_email(roster):
+    del roster  # Unused.
     masked, _, _ = pseudonymize("Ann Lee.one@example.test", {})
     assert masked == "학생01"
 
 
 def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
+    del roster  # Unused.
     masked, _, _ = pseudonymize("Ann Lee.one@example.test Tail!", {})
     assert masked == "학생01!"
 
 
 def test_korean_phone_formats_and_non_phone_numbers(roster):
+    del roster  # Unused.
     phones = (
         "010-1234-5678",
         "01012345678",
@@ -144,6 +154,7 @@ def test_korean_phone_formats_and_non_phone_numbers(roster):
 
 
 def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
+    del roster  # Unused.
     questions = {
         "가라온의 선택": Choice(criteria={"가라온": None, "나하늘": None}),
         "다하늘의 점수": Score(criteria=["가라온", "나하늘의 진전"]),
@@ -200,6 +211,7 @@ def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
     ],
 )
 def test_key_and_option_collisions_fail_without_names(roster, questions, state):
+    del roster  # Unused.
     with pytest.raises(JudgmentError) as caught:
         pseudonymize(state, questions)
     assert caught.value.error_type == "pseudonym_conflict"
@@ -207,6 +219,7 @@ def test_key_and_option_collisions_fail_without_names(roster, questions, state):
 
 
 def test_missing_phone_library_names_only_shipped_profile(roster, monkeypatch):
+    del roster  # Unused.
     monkeypatch.setitem(sys.modules, "phonenumbers", None)
     with pytest.raises(JudgmentError) as caught:
         pseudonymize("synthetic record", {})

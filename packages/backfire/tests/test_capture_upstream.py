@@ -5,19 +5,18 @@ from contextlib import asynccontextmanager
 import hashlib
 import json
 from urllib.error import HTTPError
-from urllib.request import Request, urlopen
+from urllib.request import Request
+from urllib.request import urlopen
 
 import anyio
-import pytest
 from mcp import types
 from mcp.server.lowlevel import Server
 from mcp.shared.memory import create_client_server_memory_streams
+import pytest
 
 from backfire_tools.acceptance import capture_upstream as capture
-from backfire_tools.acceptance.scripted_endpoint import (
-    scripted_endpoint,
-    scripted_response,
-)
+from backfire_tools.acceptance.scripted_endpoint import scripted_endpoint
+from backfire_tools.acceptance.scripted_endpoint import scripted_response
 
 
 def post(url, body):
@@ -132,11 +131,13 @@ def test_capture_keeps_every_judgment_in_call_order_and_none_for_local_calls(
     tmp_path, monkeypatch
 ):
     async def list_tools(context, params):
+        del context, params  # Unused.
         return types.ListToolsResult(
             tools=[types.Tool(name="jev_noul", input_schema={"type": "object"})]
         )
 
     async def call_tool(context, params):
+        del context  # Unused.
         for index in range(params.arguments["count"]):
             assert (
                 post(
@@ -277,6 +278,7 @@ def test_capture_builds_temporary_pinned_source_and_writes_only_after_success(
     before = {path.name: path.read_bytes() for path in output.iterdir()}
 
     async def broken(*args):
+        del args  # Unused.
         raise RuntimeError("Capture interrupted")
 
     monkeypatch.setattr(capture.subprocess, "run", lambda *args, **kwargs: None)

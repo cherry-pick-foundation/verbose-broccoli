@@ -8,14 +8,12 @@ import json
 from pathlib import Path
 
 import pytest
+from scripted_judge import ScriptedJudge
 
 from backfire.tools import text
-from backfire.tools.answers import (
-    validate_choice_answer,
-    validate_noul_answer,
-    validate_score_answer,
-)
-from scripted_judge import ScriptedJudge
+from backfire.tools.answers import validate_choice_answer
+from backfire.tools.answers import validate_noul_answer
+from backfire.tools.answers import validate_score_answer
 
 
 def digest(value):
@@ -68,7 +66,9 @@ def test_published_tool_metadata(name, expected):
 
 def test_text_matches_ecmascript_numbers_indentation_keys_and_unicode():
     assert text({"b": [1.0, -0.0, 1e-7, 1e-6, 1e20, 1e21], "a": {}}) == (
-        '{\n  "b": [\n    1,\n    0,\n    1e-7,\n    0.000001,\n    100000000000000000000,\n'
+        '{\n  "b": [\n    1,\n    0,\n'
+        "    1e-7,\n    0.000001,\n"
+        "    100000000000000000000,\n"
         '    1e+21\n  ],\n  "a": {}\n}'
     )
     assert text({"10": "ten", "2": "two", "01": "한글 😀", "0": "zero"}) == (
@@ -77,7 +77,9 @@ def test_text_matches_ecmascript_numbers_indentation_keys_and_unicode():
     assert text(
         [True, False, None, float("nan"), float("inf"), "\ud83d", '\n\t"']
     ) == (
-        '[\n  true,\n  false,\n  null,\n  null,\n  null,\n  "\\ud83d",\n  "\\n\\t\\""\n]'
+        "[\n  true,\n  false,\n  null,\n"
+        '  null,\n  null,\n  "\\ud83d",\n'
+        '  "\\n\\t\\""\n]'
     )
     assert text([]) == "[]"
     assert text(9007199254740993) == "9007199254740992"
@@ -605,9 +607,11 @@ def test_judgment_failures_and_cancellation_propagate(module_name):
     module = importlib.import_module("backfire.tools." + module_name)
 
     async def fail(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise RuntimeError("malformed_output: fixed error")
 
     async def cancel(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise asyncio.CancelledError()
 
     with pytest.raises(RuntimeError, match="^malformed_output: fixed error$"):
@@ -637,57 +641,155 @@ def test_non_object_answers_follow_the_invalid_response_path(module_name):
 
 
 # SHA-256 of exact result text, error flag and ordered judgment requests from
-# the pinned Node build, captured on 2026-09-27 against a local scripted endpoint.
-# Recorded difference 5 replaces prototype-name artifacts with integer class counts.
+# the pinned Node build, captured on 2026-09-27 against a local scripted
+# endpoint.
+# Recorded difference 5 replaces prototype-name artifacts with integer class
+# counts.
 UPSTREAM_CASE_DIGESTS = {
-    "verify_verdicts": "0ad8aa58a1121195d4d1ad7c3a0ae20f03e1bb080840978822049c90a24c350a",
-    "verify_sources": "799a44088d07b4cf8b08643425f9bc2ad57ea7b83c696c62299de0aee1fcb33c",
-    "verify_missing_source": "9ec79125885d4c892bdb0d9c6e87c530504e8816244f3076e35d869083f6a634",
-    "verify_invalid_source": "3ae346b8db6d8d1f4257f64d8f3fc87890fcdae9d0fbc8ad949d39037a993447",
-    "verify_missing": "dbbbc553cb9a19d763f457c9d62847364d0413f85a7d3b794ac5a37465fb5120",
-    "screen_pass": "ee949e37b2a276d1609c0b6c6ca914fa0c4ac8ac860d5a982235123e607d199e",
-    "screen_block": "28165b5247bb899f147c11524a121d3ee0b2c4785ab978b8cc19382ca50a1c0e",
-    "screen_review": "b532462dce22a758df964a88ff2c812c92536c0f341ae6100a4a88b0d085d1ba",
-    "screen_skip": "a2f37681ceea244179016378ee9f98c3446f52301b4b48d5b46e2bfea4d3697a",
-    "screen_empty": "83dd82aaa84b97f135a9bbb97fb69dbe6e9bc70320df76bfb6d6683672a4d733",
-    "screen_malformed": "b865f2778548b1b3ca43124128c4cc494f56838eb774c3d18ac2b9d87e78a51f",
-    "screen_missing_relevance": "fef6fedea2cb5d9a1a4b2defad45c1a07dc60adbcc4f206eefb7e3df8199ab55",
-    "noul_boundaries": "bc808516e66c874fbaffc6c4a3483a95419778490a3bdad28e9189009b9178df",
-    "noul_missing": "7a3164667f4d792d940b364e777efb699bd2a1bb807da76f2417638fe4092e4a",
-    "noul_context_ids": "11ee1a7390c57aef7658d64e73bb1b45e5dd20ea1373e92026c81791d94b1d2e",
-    "noul_empty_context": "259cd698e1828a610a97604a04e39d76c14e1cf5703950de43cc9fecb6be526d",
-    "noul_blank": "7c6cdfc153721ac92c0612dcf86962d7f35675fad30d72da2e5dd1275650a53e",
-    "noul_non_js_whitespace": "95e7d62fef284ae664769a305cd83c86279fb6dd16c919c59401e9c26427e6c5",
-    "noul_budget": "6c4ad12ffcbff66c018de4b5ba97ba027746c3b0d2e90e4b85d4c7039c57354a",
-    "noul_budget_boundary": "b94e31a2868a2424541d5d1e343e33cece1595ccd1a3e02c4566cfe90aadc739",
-    "find_rounding": "03f1ffc59e4bc7d187bdce9f1414fe8dc5a686d418c78ed189372fc44aedc3ea",
-    "find_partial": "d19f10c0864e4979ab1d98597ce5baf0930e5bfd37386dc8d69390505cccb28a",
-    "find_absent": "14f7aaa2e603d8cc760af3f9eba9668163e474542723cd4205be67ea1490485e",
-    "find_tie": "b7ad3debf0e9d0c2aca7de9dd6a42dfaa16fe86b97ed46d434066b04fc13c493",
-    "find_missing": "988421bae4e31f7298a6c738c53f82a6110a9767eb60af5122c4518c0d9f783c",
-    "classify_mixed": "e98140409f0f51582e7e648ae6d2a55092bb32f8d64782a0c0caf8575484f62e",
-    "classify_duplicate_item": "9fd5604fdc23581ed8fc41194346efb98b73187a049854faa8b207551be53d9a",
-    "classify_duplicate_class": "65a40a1a48f012f14bd9f8b90b4dae3e7ca4d4ebe1426dc52597b27e4f4664bb",
-    "classify_default_collision": "7b27d1e852f304bde36d77610ae45484898439051f65dd2ea265bfb46822d21e",
-    "classify_budget": "9f5487df496fdd1ad9907589ab4591d6940115142b1ef251d7bfb305f47f1a61",
-    "classify___proto__": "cc285ec19fe6f700e36fde12a4f485c64f2767408b32f342ab755bbeb12053b8",
-    "classify_constructor": "f2b2e968e117d05206ec2a1b06c2bf13047366e63fea807199f93e930aa8c2c9",
-    "classify_toString": "4364f31dfbe970c031a3df52c0291ecb8aeea958defdd5b45a39af7fef033762",
-    "classify_valueOf": "3380b5c7f14e5d8bc59dbe07d2bb5d1544807377bb4c8af9836ffefa9a2a8128",
-    "classify___defineGetter__": "82e6225cd3400940029b61b34c8ca0ea76943d88e90da1fa48f0def3a78f1ba7",
-    "classify___defineSetter__": "ff690be92197751ff92adbbd01aa733e99bc062f43b0d1cacababf6453f6d9d0",
-    "classify_hasOwnProperty": "a7c3445dc658529dcab94d0b4a1cbc5eedb32cea5389a64439cd9c2e65972d4b",
-    "classify___lookupGetter__": "b63d552fe8a95e2aab6376afab338d12fd7076f08e411bef84e1760f8c223a82",
-    "classify___lookupSetter__": "a633e32a6a78d7c6387427851ce3d66a263eef36e5c3b2288f95b6f39313287b",
-    "classify_isPrototypeOf": "201a2bb0e72895c74977da792bd719f0e3cbf569e93da7440ea9a12aca95be2c",
-    "classify_propertyIsEnumerable": "46ab5e8f22c89abfd05ecaf62d421a52d0b7f11ff9580b8a9c594fb485bf25b1",
-    "classify_toLocaleString": "09bcfde85033f19ba5dc696f61332c4f5ae69e2fbf89a0a5aad6a965c06ee1b8",
-    "decide_checks": "0ee73b7bb225cc48456e5f5823c0de857b50db9a75b4c75fb2ad189dc8cc5148",
-    "decide_escaped": "47a892d90420066deb7fab61b12bb9196bf8c80f57d66b03ba285892ef199aea",
-    "decide_missing": "1dcc3140858fa2d56bd16f4866441b78db2f1489013ce5fad13abd497703d85b",
-    "decide_without_hatches": "966ce252223bc8800d3a280874b6cc43ef2471796b614732f9fd13d9fe643cae",
-    "decide_duplicate": "3b93bdede90048c4cecc5d2dda289bbeb8cf20955700cbf05ca4df1b9c77f31d",
-    "decide_collision": "4e5a1273af3c65ec9aa1cb85807bfc027de8df6995c14f414f726397705f4541",
+    "verify_verdicts": (
+        "0ad8aa58a1121195d4d1ad7c3a0ae20f03e1bb080840978822049c90a24c350a"
+    ),
+    "verify_sources": (
+        "799a44088d07b4cf8b08643425f9bc2ad57ea7b83c696c62299de0aee1fcb33c"
+    ),
+    "verify_missing_source": (
+        "9ec79125885d4c892bdb0d9c6e87c530504e8816244f3076e35d869083f6a634"
+    ),
+    "verify_invalid_source": (
+        "3ae346b8db6d8d1f4257f64d8f3fc87890fcdae9d0fbc8ad949d39037a993447"
+    ),
+    "verify_missing": (
+        "dbbbc553cb9a19d763f457c9d62847364d0413f85a7d3b794ac5a37465fb5120"
+    ),
+    "screen_pass": (
+        "ee949e37b2a276d1609c0b6c6ca914fa0c4ac8ac860d5a982235123e607d199e"
+    ),
+    "screen_block": (
+        "28165b5247bb899f147c11524a121d3ee0b2c4785ab978b8cc19382ca50a1c0e"
+    ),
+    "screen_review": (
+        "b532462dce22a758df964a88ff2c812c92536c0f341ae6100a4a88b0d085d1ba"
+    ),
+    "screen_skip": (
+        "a2f37681ceea244179016378ee9f98c3446f52301b4b48d5b46e2bfea4d3697a"
+    ),
+    "screen_empty": (
+        "83dd82aaa84b97f135a9bbb97fb69dbe6e9bc70320df76bfb6d6683672a4d733"
+    ),
+    "screen_malformed": (
+        "b865f2778548b1b3ca43124128c4cc494f56838eb774c3d18ac2b9d87e78a51f"
+    ),
+    "screen_missing_relevance": (
+        "fef6fedea2cb5d9a1a4b2defad45c1a07dc60adbcc4f206eefb7e3df8199ab55"
+    ),
+    "noul_boundaries": (
+        "bc808516e66c874fbaffc6c4a3483a95419778490a3bdad28e9189009b9178df"
+    ),
+    "noul_missing": (
+        "7a3164667f4d792d940b364e777efb699bd2a1bb807da76f2417638fe4092e4a"
+    ),
+    "noul_context_ids": (
+        "11ee1a7390c57aef7658d64e73bb1b45e5dd20ea1373e92026c81791d94b1d2e"
+    ),
+    "noul_empty_context": (
+        "259cd698e1828a610a97604a04e39d76c14e1cf5703950de43cc9fecb6be526d"
+    ),
+    "noul_blank": (
+        "7c6cdfc153721ac92c0612dcf86962d7f35675fad30d72da2e5dd1275650a53e"
+    ),
+    "noul_non_js_whitespace": (
+        "95e7d62fef284ae664769a305cd83c86279fb6dd16c919c59401e9c26427e6c5"
+    ),
+    "noul_budget": (
+        "6c4ad12ffcbff66c018de4b5ba97ba027746c3b0d2e90e4b85d4c7039c57354a"
+    ),
+    "noul_budget_boundary": (
+        "b94e31a2868a2424541d5d1e343e33cece1595ccd1a3e02c4566cfe90aadc739"
+    ),
+    "find_rounding": (
+        "03f1ffc59e4bc7d187bdce9f1414fe8dc5a686d418c78ed189372fc44aedc3ea"
+    ),
+    "find_partial": (
+        "d19f10c0864e4979ab1d98597ce5baf0930e5bfd37386dc8d69390505cccb28a"
+    ),
+    "find_absent": (
+        "14f7aaa2e603d8cc760af3f9eba9668163e474542723cd4205be67ea1490485e"
+    ),
+    "find_tie": (
+        "b7ad3debf0e9d0c2aca7de9dd6a42dfaa16fe86b97ed46d434066b04fc13c493"
+    ),
+    "find_missing": (
+        "988421bae4e31f7298a6c738c53f82a6110a9767eb60af5122c4518c0d9f783c"
+    ),
+    "classify_mixed": (
+        "e98140409f0f51582e7e648ae6d2a55092bb32f8d64782a0c0caf8575484f62e"
+    ),
+    "classify_duplicate_item": (
+        "9fd5604fdc23581ed8fc41194346efb98b73187a049854faa8b207551be53d9a"
+    ),
+    "classify_duplicate_class": (
+        "65a40a1a48f012f14bd9f8b90b4dae3e7ca4d4ebe1426dc52597b27e4f4664bb"
+    ),
+    "classify_default_collision": (
+        "7b27d1e852f304bde36d77610ae45484898439051f65dd2ea265bfb46822d21e"
+    ),
+    "classify_budget": (
+        "9f5487df496fdd1ad9907589ab4591d6940115142b1ef251d7bfb305f47f1a61"
+    ),
+    "classify___proto__": (
+        "cc285ec19fe6f700e36fde12a4f485c64f2767408b32f342ab755bbeb12053b8"
+    ),
+    "classify_constructor": (
+        "f2b2e968e117d05206ec2a1b06c2bf13047366e63fea807199f93e930aa8c2c9"
+    ),
+    "classify_toString": (
+        "4364f31dfbe970c031a3df52c0291ecb8aeea958defdd5b45a39af7fef033762"
+    ),
+    "classify_valueOf": (
+        "3380b5c7f14e5d8bc59dbe07d2bb5d1544807377bb4c8af9836ffefa9a2a8128"
+    ),
+    "classify___defineGetter__": (
+        "82e6225cd3400940029b61b34c8ca0ea76943d88e90da1fa48f0def3a78f1ba7"
+    ),
+    "classify___defineSetter__": (
+        "ff690be92197751ff92adbbd01aa733e99bc062f43b0d1cacababf6453f6d9d0"
+    ),
+    "classify_hasOwnProperty": (
+        "a7c3445dc658529dcab94d0b4a1cbc5eedb32cea5389a64439cd9c2e65972d4b"
+    ),
+    "classify___lookupGetter__": (
+        "b63d552fe8a95e2aab6376afab338d12fd7076f08e411bef84e1760f8c223a82"
+    ),
+    "classify___lookupSetter__": (
+        "a633e32a6a78d7c6387427851ce3d66a263eef36e5c3b2288f95b6f39313287b"
+    ),
+    "classify_isPrototypeOf": (
+        "201a2bb0e72895c74977da792bd719f0e3cbf569e93da7440ea9a12aca95be2c"
+    ),
+    "classify_propertyIsEnumerable": (
+        "46ab5e8f22c89abfd05ecaf62d421a52d0b7f11ff9580b8a9c594fb485bf25b1"
+    ),
+    "classify_toLocaleString": (
+        "09bcfde85033f19ba5dc696f61332c4f5ae69e2fbf89a0a5aad6a965c06ee1b8"
+    ),
+    "decide_checks": (
+        "0ee73b7bb225cc48456e5f5823c0de857b50db9a75b4c75fb2ad189dc8cc5148"
+    ),
+    "decide_escaped": (
+        "47a892d90420066deb7fab61b12bb9196bf8c80f57d66b03ba285892ef199aea"
+    ),
+    "decide_missing": (
+        "1dcc3140858fa2d56bd16f4866441b78db2f1489013ce5fad13abd497703d85b"
+    ),
+    "decide_without_hatches": (
+        "966ce252223bc8800d3a280874b6cc43ef2471796b614732f9fd13d9fe643cae"
+    ),
+    "decide_duplicate": (
+        "3b93bdede90048c4cecc5d2dda289bbeb8cf20955700cbf05ca4df1b9c77f31d"
+    ),
+    "decide_collision": (
+        "4e5a1273af3c65ec9aa1cb85807bfc027de8df6995c14f414f726397705f4541"
+    ),
 }
 
 
@@ -699,7 +801,8 @@ def test_handlers_match_upstream_capture(case):
 
 @pytest.mark.parametrize("name", ["__proto__", "constructor", "toString"])
 def test_classify_prototype_names_count_normally(name):
-    # Recorded difference 5: each supplied class ID is an ordinary dictionary key.
+    # Recorded difference 5: each supplied class ID is an ordinary dictionary
+    # key.
     case = next(
         case for case in fidelity_cases() if case["id"] == "classify_" + name
     )

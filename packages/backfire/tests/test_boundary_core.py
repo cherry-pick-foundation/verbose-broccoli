@@ -15,12 +15,17 @@ from mcp.client.session import ClientSession
 from mcp.shared.memory import create_client_server_memory_streams
 from mcp.shared.message import SessionMessage
 import pytest
-
-from backfire import boundary, patterns
-from backfire.records import RecordFile, RecordWriteError, digest, read_records
-from backfire.server import TOOLS, create_server
-from backfire.tools import extract
 from scripted_judge import ScriptedJudge
+
+from backfire import boundary
+from backfire import patterns
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.records import digest
+from backfire.records import read_records
+from backfire.server import TOOLS
+from backfire.server import create_server
+from backfire.tools import extract
 
 
 @asynccontextmanager
@@ -205,6 +210,7 @@ def test_shutdown_cancels_a_deadline_reply_waiting_for_output(
 
 def test_record_failure_replaces_result(tmp_path, monkeypatch):
     def fail(**kwargs):
+        del kwargs  # Unused.
         raise RecordWriteError("private diagnostic")
 
     async def run():
@@ -410,6 +416,7 @@ def test_stdio_shutdown_records_and_cancels_open_work(tmp_path, ending):
 
 @pytest.mark.parametrize("newline", [b"", b"\n"])
 def test_line_limit_counts_bytes_before_newline(tmp_path, monkeypatch, newline):
+    del tmp_path  # Unused.
     monkeypatch.setattr(boundary, "MAX_LINE_BYTES", 16)
 
     async def run():

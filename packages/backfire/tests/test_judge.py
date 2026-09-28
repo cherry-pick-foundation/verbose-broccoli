@@ -1,4 +1,4 @@
-"""Exercise the in-process judge through the real adapter and a local provider."""
+"""Exercise the judge through its adapter and a local provider."""
 
 import asyncio
 from copy import deepcopy
@@ -8,17 +8,26 @@ import sys
 import traceback
 
 import anyio
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 import pytest
 
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
-from backfire.validate import CELL_LIMIT, OPTION_LIMIT
 from backfire.judge import judge
-from backfire.provider import ProfileProvider, ProviderCall, provider_call
-from backfire.records import RecordFile, RecordWriteError, digest, read_records
-from fake_provider import FakeProvider, Reply, completion
+from backfire.provider import ProfileProvider
+from backfire.provider import ProviderCall
+from backfire.provider import provider_call
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.records import digest
+from backfire.records import read_records
+from backfire.validate import CELL_LIMIT
+from backfire.validate import OPTION_LIMIT
 
 PRIVATE = "synthetic-private-content"
 QUESTIONS = {"q": {"type": "noul", "instructions": PRIVATE}}

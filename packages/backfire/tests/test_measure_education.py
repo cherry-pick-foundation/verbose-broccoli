@@ -7,10 +7,11 @@ from pathlib import Path
 import tomllib
 
 import pytest
-
-from backfire.lib import DECIDE_ESCAPE_HATCHES, ensure_unique_ids
-from backfire_tools.acceptance import measure_education as measurement
 from scripted_judge import ScriptedJudge
+
+from backfire.lib import DECIDE_ESCAPE_HATCHES
+from backfire.lib import ensure_unique_ids
+from backfire_tools.acceptance import measure_education as measurement
 
 USAGE = {"input_tokens": 2, "output_tokens": 1}
 XDG_KEYS = (
@@ -261,6 +262,7 @@ def test_main_removes_temporary_directory_after_failure_or_interruption(
     temporary_roots = set()
 
     async def stop(cases, runs):
+        del cases, runs  # Unused.
         temporary_roots.add(check_temporary_config(credential))
         if interruption:
             raise KeyboardInterrupt

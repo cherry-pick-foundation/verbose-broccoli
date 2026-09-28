@@ -8,10 +8,11 @@ import sys
 import time
 
 import pytest
+from test_tools_part1 import pick
+from test_tools_part1 import probability
+from test_tools_part2 import strong_review
 
 from backfire.server import TOOLS
-from test_tools_part1 import pick, probability
-from test_tools_part2 import strong_review
 
 MESSAGE_BYTES = 10 * 1024 * 1024
 INTERVAL_SECONDS = 0.1
@@ -25,7 +26,7 @@ def encode(message):
 
 
 def bounded_case(tool):
-    """Keep inputs valid so the measurement reaches preparation and projection."""
+    """Keep inputs valid through preparation and projection."""
     name = tool.removeprefix("backfire_")
     padding = None
     if name == "verify":
@@ -212,7 +213,8 @@ def bounded_case(tool):
         container[key] += "x" * remaining
         payload = encode(message)
     else:
-        # Every decide argument is capped, so fill the wire limit with JSON whitespace.
+        # Every decide argument is capped, so fill the wire limit with JSON
+        # whitespace.
         payload = encode(message) + b" " * remaining
     assert (
         len(payload) == MESSAGE_BYTES
@@ -225,7 +227,7 @@ def bounded_case(tool):
 
 
 async def observe_loop(serve, judge, report):
-    """Arm before serving; sample after shutdown so a last synchronous stall counts."""
+    """Measure event-loop lag through shutdown."""
     loop = asyncio.get_running_loop()
     sampled = asyncio.Event()
     lags = []
@@ -350,7 +352,8 @@ def test_each_tool_keeps_event_loop_lag_below_one_second(
     result, timing = asyncio.run(call_server(tmp_path, payload, answer))
     lag = timing["worst_lag_seconds"]
     print(
-        f"{tool}: message_bytes={len(payload) - 1}, samples={timing['samples']}, worst_lag_ms={lag * 1000:.3f}"
+        f"{tool}: message_bytes={len(payload) - 1}, "
+        f"samples={timing['samples']}, worst_lag_ms={lag * 1000:.3f}"
     )
     record_property("message_bytes", len(payload) - 1)
     record_property("worst_lag_ms", lag * 1000)
@@ -392,6 +395,7 @@ def test_timer_captures_a_stall_even_when_server_returns_without_yielding(
     tmp_path,
 ):
     async def blocking_server(judge):
+        del judge  # Unused.
         time.sleep(1.2)
 
     report = tmp_path / "control.json"
@@ -402,8 +406,10 @@ def test_timer_captures_a_stall_even_when_server_returns_without_yielding(
 
 
 if __name__ == "__main__":
-    # Instrument the real CLI entry without changing the server, boundary or tools.
-    from backfire import __main__, server
+    # Instrument the real CLI entry without changing the server, boundary,
+    # or tools.
+    from backfire import __main__
+    from backfire import server
 
     report = Path(sys.argv[1])
     original_serve = server.serve

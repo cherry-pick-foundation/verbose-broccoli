@@ -7,10 +7,10 @@ import re
 import time
 
 import pytest
+from scripted_judge import ScriptedJudge
 
 from backfire import lib
 from backfire.judge import Judge
-from scripted_judge import ScriptedJudge
 
 
 def original_ensure_unique_ids(items, fallback_prefix):
@@ -164,7 +164,9 @@ def test_records_and_truncation():
             {"injection": 0.125, "review_at": 0.125},
             {
                 "action": "review",
-                "reason": "injection probability 0.13 >= review threshold 0.125",
+                "reason": (
+                    "injection probability 0.13 >= review threshold 0.125"
+                ),
             },
         ),
         (
@@ -408,7 +410,9 @@ def test_upstream_limits_and_criteria():
     assert lib.VERIFY_CLAIM_CRITERIA == {
         "verified": "The evidence clearly supports the claim",
         "contradicted": "The evidence contradicts the claim",
-        "unsupported": "The evidence neither supports nor contradicts the claim",
+        "unsupported": (
+            "The evidence neither supports nor contradicts the claim"
+        ),
     }
 
 

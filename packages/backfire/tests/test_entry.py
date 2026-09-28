@@ -1,7 +1,7 @@
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -19,6 +19,7 @@ def test_help_lists_subcommands(entry_point: list[str]) -> None:
         cwd=PACKAGE_ROOT,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 
@@ -38,6 +39,7 @@ def test_ready_runs_configuration_check(
         cwd=PACKAGE_ROOT,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 

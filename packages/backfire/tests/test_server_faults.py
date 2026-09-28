@@ -2,15 +2,19 @@
 
 import asyncio
 
+from fake_provider import FakeProvider
+from fake_provider import Reply
 import pytest
+from scripted_judge import ScriptedJudge
+from test_server import session
+from test_server import wire
 
-from backfire.config import load_profile, xdg_path
-from backfire.failures import JudgmentError, MESSAGES
+from backfire.config import load_profile
+from backfire.config import xdg_path
+from backfire.failures import MESSAGES
+from backfire.failures import JudgmentError
 from backfire.judge import judge
 from backfire.tools import verify
-from fake_provider import FakeProvider, Reply
-from scripted_judge import ScriptedJudge
-from test_server import session, wire
 
 PINNED_MODEL = "deepseek-ai/deepseek-v4.1-flash"
 ARGUMENTS = {"claims": ["synthetic claim"], "evidence": "synthetic evidence"}
@@ -21,6 +25,7 @@ def test_each_judgment_error_is_returned_as_a_tool_error(
     monkeypatch, error_type
 ):
     async def fail(*args, **kwargs):
+        del args, kwargs  # Unused.
         raise JudgmentError(error_type)
 
     monkeypatch.setattr(verify, "call", fail)

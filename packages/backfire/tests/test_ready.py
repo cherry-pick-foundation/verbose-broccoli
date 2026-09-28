@@ -5,26 +5,31 @@ import json
 import platform
 import subprocess
 
+from fake_provider import FakeProvider
+from fake_provider import completion
 import pytest
 
 from backfire import ready
-from fake_provider import FakeProvider, completion
 
 
 def configure(tmp_path, monkeypatch):
     directory = tmp_path / "config" / "verbose-broccoli" / "backfire"
     directory.mkdir(parents=True)
     (directory / "config.toml").write_text(
-        """
-provider = "readiness-test"
-[providers.readiness-test]
-api = "openai"
-base_url = "https://provider.invalid/v1"
-model = "ready-model"
-credential = "READY_KEY"
-request = {max_tokens = 64, response_format = {type = "json_object"}}
-thinking = {requested = "on", content_path = "reasoning_content", token_path = "reasoning_tokens"}
-""",
+        (
+            "\n"
+            'provider = "readiness-test"\n'
+            "[providers.readiness-test]\n"
+            'api = "openai"\n'
+            'base_url = "https://provider.invalid/v1"\n'
+            'model = "ready-model"\n'
+            'credential = "READY_KEY"\n'
+            "request = {max_tokens = 64, response_format = "
+            '{type = "json_object"}}\n'
+            'thinking = {requested = "on", content_path = '
+            '"reasoning_content", token_path = '
+            '"reasoning_tokens"}\n'
+        ),
         encoding="utf-8",
     )
     credential = directory / "readiness-test.env"
@@ -54,6 +59,7 @@ def test_installation_check_matches_project_extra(
     commands = []
 
     def sync(command, **kwargs):
+        del kwargs  # Unused.
         commands.append(command)
         installed_extra = "--extra" in command
         passed = "--no-dev" in command and installed_extra is education

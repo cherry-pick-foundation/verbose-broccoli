@@ -26,7 +26,10 @@ def write_profile(path, name="second-test", **changes):
         "base_url": '"https://example.test/v2"',
         "model": '"second-model"',
         "credential": '"TEST_KEY"',
-        "thinking": '{ requested = "on", token_path = "completion_tokens_details.reasoning_tokens" }',
+        "thinking": (
+            '{ requested = "on", token_path = "completion_tokens_details.'
+            'reasoning_tokens" }'
+        ),
         "request": "{ max_tokens = 64, temperature = 0.1 }",
         "statuses": '{ 409 = "rate_limited" }',
     }
@@ -207,7 +210,9 @@ def test_invalid_operator_file_type_does_not_fall_back_or_block(operator, kind):
         {"thinking": '{ requested = "on", content_path = "" }'},
         {"thinking": '{ requested = "on", token_path = true }'},
         {
-            "thinking": '{ requested = "on", token_path = "tokens", extra = true }'
+            "thinking": (
+                '{ requested = "on", token_path = "tokens", extra = true }'
+            )
         },
         {"request": "[]"},
         *(
@@ -256,7 +261,10 @@ def test_optional_values_and_both_thinking_paths(operator):
         statuses=None,
         credential='"lowercase_key"',
         rate_limit_per_second="1.5",
-        thinking='{ requested = "on", content_path = "reasoning", token_path = "usage.tokens" }',
+        thinking=(
+            '{ requested = "on", content_path = "reasoning", '
+            'token_path = "usage.tokens" }'
+        ),
     )
     profile = config.load_profile()
     assert profile["credential"] == "lowercase_key"
@@ -299,6 +307,7 @@ def test_invalid_test_endpoint_fails_configuration(
 def test_xdg_paths_without_reading_or_creating_them(
     operator, monkeypatch, kind, default
 ):
+    del operator  # Unused.
     variable = f"XDG_{kind.upper()}_HOME"
     assert (
         config.xdg_path(kind) == Path(os.environ[variable]) / "verbose-broccoli"

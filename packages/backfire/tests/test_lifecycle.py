@@ -14,10 +14,12 @@ import sys
 from tempfile import TemporaryDirectory
 import time
 
+from fake_provider import FakeProvider
+from fake_provider import Reply
+from fake_provider import completion
 import pytest
 
 from backfire.records import read_records
-from fake_provider import FakeProvider, Reply, completion
 
 pytestmark = pytest.mark.skipif(
     sys.platform != "linux", reason="Process-death checks use Linux pidfds."
@@ -29,17 +31,23 @@ for line in sys.stdin.buffer:
     sys.stdout.buffer.write(line)
     sys.stdout.buffer.flush()
 """
-PATTERN_OBSERVER = """
-import json, os, re, signal, socket
-original = re.finditer
-def observed(pattern, *args, **kwargs):
-    if pattern == "(a+)+$":
-        with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as ready:
-            message = [os.getpid(), signal.getitimer(signal.ITIMER_REAL), signal.getsignal(signal.SIGALRM)]
-            ready.sendto(json.dumps(message).encode(), os.environ["LIFECYCLE_PATTERN_READY"])
-    return original(pattern, *args, **kwargs)
-re.finditer = observed
-"""
+PATTERN_OBSERVER = (
+    "\n"
+    "import json, os, re, signal, socket\n"
+    "original = re.finditer\n"
+    "def observed(pattern, *args, **kwargs):\n"
+    '    if pattern == "(a+)+$":\n'
+    "        with socket.socket(socket.AF_UNIX, "
+    "socket.SOCK_DGRAM) as ready:\n"
+    "            message = [os.getpid(), "
+    "signal.getitimer(signal.ITIMER_REAL), "
+    "signal.getsignal(signal.SIGALRM)]\n"
+    "            "
+    "ready.sendto(json.dumps(message).encode(), "
+    'os.environ["LIFECYCLE_PATTERN_READY"])\n'
+    "    return original(pattern, *args, **kwargs)\n"
+    "re.finditer = observed\n"
+)
 NOUL = {
     "name": "backfire_noul",
     "arguments": {"propositions": ["synthetic claim"]},
@@ -127,7 +135,8 @@ thinking = {requested = "off"}
                 bufsize=0,
             )
             # The client owns the only writer after this block. The test can
-            # reap the server without keeping its input alive after client death.
+            # reap the server without keeping its input alive after client
+            # death.
             client = subprocess.Popen(
                 [sys.executable, "-c", CLIENT],
                 stdin=subprocess.PIPE,
@@ -412,7 +421,8 @@ def test_killed_server_leaves_pattern_child_to_its_own_timer(tmp_path):
                 server.kill()
                 assert server.wait(timeout=5) == -signal.SIGKILL
                 # pattern_process checks the one-shot 1000 ms OS timer. Allow
-                # scheduling/reaping time here; SIGALRM must still end the child.
+                # scheduling/reaping time here; SIGALRM must still end the
+                # child.
                 assert select.select(
                     [descriptor], [], [], max(0, started + 2 - time.monotonic())
                 )[0], "The orphan pattern child's 1000 ms timer did not end it."

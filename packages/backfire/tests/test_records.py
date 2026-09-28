@@ -16,7 +16,10 @@ from types import SimpleNamespace
 import pytest
 
 from backfire import records
-from backfire.records import RecordFile, RecordWriteError, digest, read_records
+from backfire.records import RecordFile
+from backfire.records import RecordWriteError
+from backfire.records import digest
+from backfire.records import read_records
 
 
 def total_bytes(directory):
@@ -322,22 +325,30 @@ def test_live_files_are_never_deleted_and_close_allows_oldest_cleanup(
 
 
 def test_two_processes_write_and_rotate_with_one_directory_budget(tmp_path):
-    script = """
-        import sys
-        from pathlib import Path
-        from backfire import records
-        records.ROTATE_BYTES = 1024
-        records.BUDGET_BYTES = 4096
-        with records.RecordFile(Path(sys.argv[1])) as writer:
-            print(writer.path, flush=True)
-            sys.stdin.readline()
-            for index in range(100):
-                writer._append({"session": writer.session, "index": index, "padding": "x" * 100})
-                with writer._locked():
-                    assert sum(p.stat().st_size for p in writer.directory.glob("*.jsonl")) <= 4096
-            print(writer.path, flush=True)
-            sys.stdin.readline()
-    """
+    script = (
+        "\n"
+        "        import sys\n"
+        "        from pathlib import Path\n"
+        "        from backfire import records\n"
+        "        records.ROTATE_BYTES = 1024\n"
+        "        records.BUDGET_BYTES = 4096\n"
+        "        with "
+        "records.RecordFile(Path(sys.argv[1])) as "
+        "writer:\n"
+        "            print(writer.path, flush=True)\n"
+        "            sys.stdin.readline()\n"
+        "            for index in range(100):\n"
+        '                writer._append({"session": '
+        'writer.session, "index": index, "padding": "x" * '
+        "100})\n"
+        "                with writer._locked():\n"
+        "                    assert sum(p.stat().st_size "
+        'for p in writer.directory.glob("*.jsonl")) <= '
+        "4096\n"
+        "            print(writer.path, flush=True)\n"
+        "            sys.stdin.readline()\n"
+        "    "
+    )
     with child(script, tmp_path) as first, child(script, tmp_path) as second:
         first_path, second_path = ready(first), ready(second)
         assert first_path != second_path

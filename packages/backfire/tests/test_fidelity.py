@@ -13,10 +13,11 @@ from pathlib import Path
 import sys
 
 import anyio
-import pytest
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 from mcp.shared.exceptions import MCPError
+import pytest
 
 FIXTURES = Path(__file__).resolve().parents[3] / "scripts/backfire/fixtures"
 CAPTURE = FIXTURES / "upstream-0.9.0"
@@ -39,8 +40,14 @@ VALIDATION_DIFFERENCES = {
     "noul-failure-en": "'' should be non-empty",
     "noul-failure-ko": "0.5 is less than or equal to the minimum of 0.5",
     "find-failure-ko": "0 is less than the minimum of 1",
-    "classify-failure-ko": "[{'id': 'test_success', 'description': '테스트가 성공한 결과.'}] is too short",
-    "decide-failure-ko": "[{'id': 'reuse-helper', 'description': '기존 헬퍼를 사용한다.'}] is too short",
+    "classify-failure-ko": (
+        "[{'id': 'test_success', 'description': '테스트가 성공한 결과.'}] "
+        "is too short"
+    ),
+    "decide-failure-ko": (
+        "[{'id': 'reuse-helper', 'description': '기존 헬퍼를 사용한다.'}] "
+        "is too short"
+    ),
     "rerank-failure-ko": "0 is less than the minimum of 1",
     "compare-failure-en": "'' should be non-empty",
     "compare-failure-ko": "1.1 is greater than the maximum of 1",
@@ -48,7 +55,8 @@ VALIDATION_DIFFERENCES = {
 JUDGMENT_DIFFERENCES = {
     # UPSTREAM.md difference 2: the singleton Choice fails the request schema.
     "find-failure-en-single-candidate": (
-        "invalid_request: The questions do not match the request schema; correct the questions."
+        "invalid_request: The questions do not match the request schema; "
+        "correct the questions."
     ),
 }
 PATTERN_DIFFERENCES = {
@@ -107,13 +115,17 @@ def replay(tmp_path_factory):
         for judgment in case["judgments"]:
             response = judgment["response"]
             if response["status"] == 200:
-                # The capture is the oracle; never synthesize answers from port requests.
+                # The capture is the oracle; never synthesize answers from
+                # port requests.
                 steps.append({"result": response["body"]})
             else:
                 assert response == {
                     "status": 400,
                     "body": {
-                        "error": "invalid_request: Choice requires at least two options.",
+                        "error": (
+                            "invalid_request: Choice requires at least two "
+                            "options."
+                        ),
                     },
                 }
                 steps.append({"error": JUDGMENT_DIFFERENCES[case["id"]]})
@@ -154,8 +166,10 @@ def replay(tmp_path_factory):
                             }
                         except MCPError as error:
                             outcome = {"error": wire(error.error)}
-                        # The judge closes its log append before returning the answer.
-                        # Awaiting the response gives a barrier; no sleeps or polling.
+                        # The judge closes its log append before returning the
+                        # answer.
+                        # Awaiting the response gives a barrier; no sleeps or
+                        # polling.
                         logged = [
                             json.loads(line)
                             for line in requests_file.read_text(
@@ -178,13 +192,17 @@ def test_tools_list_matches_capture(replay):
         "properties"
     ]["pattern"]
     assert pattern["description"] == (
-        "JavaScript regex source (without delimiters) that matches candidate values. "
+        "JavaScript regex source (without delimiters) that matches candidate "
+        "values. "
         "Runs in a sandboxed worker with a hard timeout."
     )
-    # UPSTREAM.md difference 1 changes this field only, not the rest of the schema.
+    # UPSTREAM.md difference 1 changes this field only, not the rest of the
+    # schema.
     pattern["description"] = (
-        "Python regular expression source (without delimiters) that matches candidate values, "
-        "in Python re syntax: for example (?P<name>...) for a named group, not JavaScript's "
+        "Python regular expression source (without delimiters) that matches "
+        "candidate values, "
+        "in Python re syntax: for example (?P<name>...) for a named group, "
+        "not JavaScript's "
         "(?<name>...). Runs in a child process with a hard timeout."
     )
     assert replay[0] == expected
@@ -201,7 +219,8 @@ def test_judgment_requests_match_capture_in_order(replay, case):
 
 @pytest.mark.parametrize("case", CASES, ids=lambda case: case["id"])
 def test_result_and_error_text_match_capture(replay, case):
-    # Keep text opaque: parsing result JSON could hide ordering/formatting drift.
+    # Keep text opaque: parsing result JSON could hide ordering/formatting
+    # drift.
     assert replay[1][case["id"]][0] == expected_outcome(case)
 
 

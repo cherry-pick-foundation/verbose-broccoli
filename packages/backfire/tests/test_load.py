@@ -8,11 +8,13 @@ from tempfile import TemporaryDirectory
 
 import anyio
 from mcp.client.session import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 
 from backfire.config import load_profile
 from backfire.failures import JudgmentError
-from backfire_tools.build import ROOT, build
+from backfire_tools.build import ROOT
+from backfire_tools.build import build
 
 TOOL_NAMES = {
     "backfire_gate",
@@ -60,6 +62,7 @@ def assert_own_import(plugin: Path):
         cwd=plugin.parent,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
     assert result.returncode == 0, result.stderr
@@ -133,11 +136,12 @@ def test_built_copies_install_offline_serve_and_remain_independent():
                 env={**os.environ, "UV_OFFLINE": "1"},
                 capture_output=True,
                 text=True,
+                check=False,
                 timeout=60,
             )
-            assert result.returncode == 0, (
-                result.stderr
-                + "\nRun deno task backfire:install to prepare the offline caches."
+            assert result.returncode == 0, result.stderr + (
+                "\nRun deno task backfire:install to prepare "
+                "the offline caches."
             )
             assert_own_import(plugin)
         asyncio.run(served_session(copies[0], uv))

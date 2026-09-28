@@ -1,10 +1,14 @@
-"""In-process HTTP provider for synthetic adapter and subprocess server tests."""
+"""Synthetic in-process HTTP provider for adapter and subprocess tests."""
 
 from collections import deque
-from dataclasses import dataclass, field
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from dataclasses import dataclass
+from dataclasses import field
+from http.server import BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer
 import json
-from threading import Event, Lock, Thread
+from threading import Event
+from threading import Lock
+from threading import Thread
 
 
 def completion(answers=None, *, model="reported-model"):
@@ -39,6 +43,8 @@ def completion(answers=None, *, model="reported-model"):
 
 @dataclass
 class Reply:
+    """One scripted HTTP response, optionally delayed or stalled."""
+
     body: object
     status: int = 200
     headers: dict[str, str] = field(default_factory=dict)
@@ -47,10 +53,11 @@ class Reply:
 
 
 class FakeProvider:
-    """Serve one scripted Reply (or JSON object) per request on loopback only.
+    """Serve scripted replies over loopback.
 
-    requests contains synthetic request bodies, paths and headers for assertions.
-    received signals the first request; close releases stalled or delayed replies.
+    Each script item is a ``Reply`` or JSON value. ``requests`` records request
+    data; ``received`` and ``release`` signal the first request and stalled
+    replies.
     """
 
     def __init__(self, script):
