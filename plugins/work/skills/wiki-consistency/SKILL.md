@@ -7,10 +7,11 @@ description: Keep a verbose-broccoli Wiki instance's pages consistent with their
 
 A Wiki page is made of mechanical regions, which a generator rebuilds from
 named files, and agent-written text, which backfire judges against the raw
-evidence the page cites. Agent-written text is in English, with student names
-in the roster's spelling so that step 3 can replace them, and schools as their
-domain IDs. The instance's `AGENTS.md` states this rule, the page metadata,
-the special pages and these steps.
+evidence the page cites. Agent-written text is in English, apart from short
+direct quotes kept next to their translation. Student names keep the
+roster's spelling so that step 3 can replace them, and schools are written
+as their domain IDs. The instance's `AGENTS.md` states these rules, the page
+metadata, the special pages and these steps.
 
 `DATA` and `CACHE` below are the `verbose-broccoli` folders under the XDG data
 and cache roots (by default `~/.local/share` and `~/.cache`). The Wiki lives
