@@ -11,8 +11,9 @@ evidence the page cites. The instance's `AGENTS.md` states the page metadata,
 the special pages and these steps.
 
 `DATA` and `CACHE` below are the `verbose-broccoli` folders under the XDG data
-and cache roots (by default `~/.local/share` and `~/.cache`). The default
-instance is `DATA/wikis/default/`.
+and cache roots (by default `~/.local/share` and `~/.cache`). The Wiki lives
+in vaults, `DATA/vaults/<name>/`; this skill uses the `work` vault unless the
+user selects another with `--wiki <name>`.
 
 ## Commands
 
@@ -52,7 +53,10 @@ details on stderr only.
 1. Run `update`, then `check`. Fix every failure `check` names; it gives page
    and line.
 2. Run `convert`, `index` and `prepare --scope changed`. Read `calls` first:
-   it counts the requests per backfire tool.
+   it counts the requests per backfire tool. If `index` reports a
+   `semantic_error`, or `prepare`'s `search.not_searched` is not empty, tell
+   the user that other pages and cross-references were not searched, because
+   the embedding model is missing; `index` downloads it once.
 3. Send each request's `arguments` to the backfire tool it names, on the
    **work plugin's** backfire server. Before the provider sees them, its judge
    replaces the student, guardian and school names in the operator's roster,

@@ -197,7 +197,10 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   claims resting only on them as unverifiable. `index` builds qmd 2.8.3
   collections of the pages and the converted evidence under
   `~/.cache/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
-  Qwen3 embedding model, a 610 MB download on first use. `prepare` prints
+  Qwen3 embedding model, a 610 MB download on first use. Without the model,
+  keyword search alone finds no other page for a whole paragraph, so
+  `prepare` then checks units only against their evidence and says that it
+  searched no other pages. `prepare` prints
   `backfire_verify` requests (units against their cited evidence, and against
   candidate units of other pages), `backfire_find` cross-reference requests
   in a lint, and `backfire_classify` requests for new units. qmd only finds

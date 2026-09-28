@@ -3,8 +3,9 @@
 The package's console command is `wiki-consistency`. The skill runs it as
 `uv run --project <plugin>/wiki-consistency --frozen --offline --no-sync
 wiki-consistency <command> [--wiki <wiki-id>]`; in the repository,
-`--project packages/wiki-consistency`. `--wiki` defaults to `default` and
-selects `$XDG_DATA_HOME/verbose-broccoli/wikis/<wiki-id>/`.
+`--project packages/wiki-consistency`. `--wiki` defaults to `work`, the work
+plugin's vault (feature 012), and selects
+`$XDG_DATA_HOME/verbose-broccoli/vaults/<wiki-id>/`.
 
 | Command | Network | Writes |
 | --- | --- | --- |
@@ -53,8 +54,10 @@ unreadable list with reasons.
 Creates or updates the qmd collections `pages` and `evidence` for the
 instance and runs `qmd embed` with the Qwen3 embedding model of
 [data-model.md](../data-model.md) when it is present or may be downloaded,
-within the 3 GiB budget. Output: counts, and whether semantic
-search is available.
+within the 3 GiB budget. Output: counts, whether semantic search is
+available, and `semantic_error`, the reason in one line when the model could
+not be downloaded or embedding failed (the keyword index is kept and the
+command still exits 0), otherwise `null`.
 
 ## `prepare`
 
@@ -67,7 +70,7 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
   "head": "<instance HEAD commit or null>",
   "units": [{"id": "wiki/concepts/quad.md:8-9", "page": "wiki/concepts/quad.md", "heading_path": ["Quadratic formula"], "kind": "paragraph", "first_line": 8, "last_line": 9, "added": true, "outcome": "requested"}],
   "unverifiable": [{"unit": "...", "sources": ["<source-id>/<revision>"]}],
-  "search": {"keyword": true, "semantic": false},
+  "search": {"keyword": true, "semantic": false, "not_searched": ["crossref", "pages"]},
   "calls": {"backfire_verify": 3, "backfire_find": 0, "backfire_classify": 1},
   "requests": [
     {"kind": "evidence", "tool": "backfire_verify", "units": ["wiki/concepts/quad.md:8-9"], "arguments": {"claims": ["..."], "evidence": [{"id": "<source-id>/<revision>", "text": "..."}]}},
@@ -86,10 +89,13 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
   `--max-evidence-chars`, otherwise the passages qmd's `evidence` collection
   returns for the unit's text, limited to those revisions' files.
 - Page requests: for each unit, up to `--candidates` (default 3) units of
-  other pages from `qmd search` and, when available, `qmd vsearch`, deduplicated
-  and sorted by page and line.
+  other pages from `qmd search` and `qmd vsearch`, deduplicated and sorted by
+  page and line.
 - Crossref requests (lint only): per page, candidate pages it does not link
   to, at least two, at most 20.
+- Without the embedding model, keyword search alone finds no other page for
+  a whole unit, so `prepare` makes no page or crossref requests and lists
+  them in `search.not_searched`; with the model the list is empty.
 - Each request stays within backfire's limits (research.md R6); every
   in-scope unit is in exactly one evidence request or in `unverifiable`.
   Output is sorted, so the same instance and cache give

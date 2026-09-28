@@ -3,7 +3,7 @@
 Nothing is stored in the repository. `DATA` and `CACHE` stand for
 `$XDG_DATA_HOME/verbose-broccoli` (default `~/.local/share/verbose-broccoli`)
 and `$XDG_CACHE_HOME/verbose-broccoli`. `INSTANCE` is
-`DATA/wikis/<wiki-id>/`, `default` for feature 009's instance. Feature 008's
+`DATA/vaults/<wiki-id>/`, `work` by default (feature 012). Feature 008's
 entities (mechanical region, agent region, unit, judgment request, drift
 finding; `specs/008-doc-consistency/data-model.md` on `feature/doc-consistency`)
 apply with the differences below.
@@ -126,7 +126,7 @@ in results are POSIX strings relative to `INSTANCE` unless named otherwise.
 | Module | Function | Contract |
 | --- | --- | --- |
 | `instance` | `roots(env)` | `{"data": Path, "cache": Path}`: `DATA` and `CACHE`, with feature 009's XDG rules (unset, empty or relative means the default under `HOME`) |
-| `instance` | `instance_path(wiki_id, env)` | `DATA/wikis/<wiki-id>/`; `ValueError` for feature 009's invalid names |
+| `instance` | `instance_path(wiki_id, env)` | `DATA/vaults/<wiki-id>/`; `ValueError` for feature 009's invalid names |
 | `instance` | `pages(instance)` | pages sorted by path: `{"path", "title", "summary", "sources": [{"id", "revision"}], "special": bool, "problems": [...]}`; front matter read with PyYAML |
 | `instance` | `mask_front_matter(text)` | the text with each front-matter line replaced by an empty line, so line numbers stay |
 | `instance` | `revisions(instance)` | `{source_id: [{"kind", "id", "revision", "path"}]}`, each list sorted by revision name; the last is the latest |

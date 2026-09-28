@@ -43,7 +43,7 @@ npm (R4); lychee 0.24.2 as a host tool (feature 008); backfire's
 called by the agent (R6).
 
 **Storage**: Nothing added to the repository. Reads the instance under
-`$XDG_DATA_HOME/verbose-broccoli/wikis/<wiki-id>/`; writes Wiki pages only
+`$XDG_DATA_HOME/verbose-broccoli/vaults/<wiki-id>/`; writes Wiki pages only
 through `update` (mechanical regions) and the agent; writes the cache folders
 `wiki-evidence/` (1 GiB budget) and `qmd/` (3 GiB budget) under
 `$XDG_CACHE_HOME/verbose-broccoli/` ([data-model.md](data-model.md)).

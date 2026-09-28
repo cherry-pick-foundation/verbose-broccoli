@@ -105,8 +105,8 @@ affects.
 
 The actors are the coding agents (Claude Code or Codex) that maintain the Wiki
 through the work plugin, and the user, who owns the Wiki and its raw evidence
-and reads the reports. The Wiki is feature 009's default instance at
-`$XDG_DATA_HOME/verbose-broccoli/wikis/default/`: the schema `AGENTS.md`,
+and reads the reports. The Wiki is one of feature 012's vaults, by default
+`work` at `$XDG_DATA_HOME/verbose-broccoli/vaults/work/`: the schema `AGENTS.md`,
 `raw/` with one BagIt bag per source revision, and `wiki/` with `index.md`,
 `overview.md` and `log.md`, versioned by the instance's own Git repository with
 `raw/` excluded.
@@ -314,8 +314,11 @@ run the offline check against a temporary instance from that copy.
   preparation command refuses and names the indexing step, which rebuilds it
   from `wiki/` and the converted evidence; the offline check and direct page
   reading never need it (principle VI).
-- The embedding model for semantic search is not downloaded: keyword search
-  still gives candidates, and the report says semantic search was skipped.
+- The embedding model for semantic search is not downloaded: qmd's keyword
+  search requires every word of the query, so a whole unit finds no other
+  page. The preparation command still checks units against their cited
+  evidence, searches no other pages and makes no cross-reference
+  suggestions, and says so in its output (the user's 2026-09-28 decision).
 - A page quotes the region marker syntax: as in feature 008, Cog would treat
   it as a region, so pages do not quote markers and the check reports such a
   quote as a malformed region.
