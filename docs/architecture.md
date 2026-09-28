@@ -180,6 +180,10 @@ with the instance as its root; the work plugin's build ships both projects,
 and the plugin's `wiki-consistency` skill runs the commands. The instance's
 `AGENTS.md`, from the `wiki-raw-import` skill's template, states the rules.
 
+- Pages are written in English, whatever the language of the raw evidence,
+  which stays unchanged; student names keep the roster's spelling so backfire
+  still replaces them, a school is written as its domain ID, and a short
+  direct quote may stay next to its translation.
 - Pages carry YAML front matter with a title, a one-line summary and the
   source revisions they cite. `index.md` is one mechanical region,
   `page_catalog`, built from that metadata; a source page may hold a
