@@ -304,7 +304,8 @@ the code plugin; the schema and the skill describe the procedure.
     (`default`, `chat`, `code`) and to leave `work`, whose pages still need
     metadata and whose owner has uncommitted edits, to a separate issue. Each
     of the three got the template, the `index.md` region, one `log.md` entry
-    and a second commit; `check` passed with 0 pages and 0 problems.
+    and a second commit; `check` passed with 0 pages and 0 problems. A
+    third commit in each brought the schema to the final wording.
 - [x] T029 [US5] Document the feature in `docs/architecture.md` (the Wiki
   consistency section: generators, the check before each instance commit,
   the judgment step, lint, cache budgets, what stays manual; the skill table,
@@ -339,7 +340,8 @@ the code plugin; the schema and the skill describe the procedure.
     pages that link in a ring, after `update` and a commit; `deno task
     verify` passed on that tree. SC-005's `prepare --scope changed` requests
     on the same synthetic instance, with the cached model, were identical to
-    those judged at `19681f0` above, so that result stands. The finish
+    those judged in T031's rerun below (at `19681f0`), so that result
+    stands. The finish
     reruns `deno task verify` on the final commit.
 - [x] T031 SC-005: on a synthetic instance with one paragraph contradicting
   its source and one pair of contradicting pages, run `prepare` and send the
@@ -356,8 +358,8 @@ the code plugin; the schema and the skill describe the procedure.
     1.0), and `backfire_compare` gave `contradicts` (0.98 to 1.0) each time.
     Hive returned `provider_error` on 5 of 25 calls, retried; in one run
     only one side of the pair came back, `contradicted`.
-  - 2026-09-28, rerun on the final code after the merge review fixes and
-    the vault rename: all three runs returned `contradicted` (auto, 1.0) for
+  - 2026-09-28, rerun at `19681f0`, after the first merge review's fixes
+    and the vault rename: all three runs returned `contradicted` (auto, 1.0) for
     the paragraph and for both pages, and `backfire_compare` gave
     `contradicts` (0.98 to 1.0); no provider errors.
 - [ ] T032 Run feature 008's judgment step on this feature's repository
@@ -366,6 +368,21 @@ the code plugin; the schema and the skill describe the procedure.
   given only the scope and requirements; resolve findings; add the
   review-record commit and finish with `git flow feature finish
   wiki-consistency` from the `develop` worktree.
+  - 2026-09-28, judgment step at `571975c` against `develop` `a5ce40f`: 225
+    units; nothing `contradicted`; 8 units of feature 008's own section kept
+    returning `malformed_output` and were not judged. Again at `faa671f`
+    against `136866a`: all 228 units judged, nothing `contradicted`; the
+    `review` flags are low-confidence `verified` or text this feature does
+    not change, so they stand; the new units classify as agent regions.
+    MemoryLint gave the same 19 warnings as on `develop`, reported to the
+    user unchanged.
+  - Merge review in five rounds, each by a Claude Code reviewer (Opus,
+    xhigh) on the Codex code and a Codex reviewer (gpt-6-luna, max) on
+    main's prose. Code: 5 major and 25 minor findings; prose and records: 4
+    major and 11 minor. All were fixed except qmd's exact-ranking limit of
+    20,000 chunks, recorded in contracts/commands.md; for keyword search
+    without the model the user chose option A. The last round reviewed
+    `751eada`, and its three small code findings were fixed after it.
 
 ---
 
@@ -447,3 +464,9 @@ T019 to T023; Codex D takes T025.
   `develop` (`a5ce40f`), restart the ranking fix on gpt-6-luna max with the
   partial files checked against the spec, verify, commit wave 2, then T029
   to T032.
+- 2026-09-28 (resumed after the laptop restart, under the develop
+  session): merged `develop` twice (the second brought CHE-19's vaults),
+  finished the ranking fix and T028 to T032 through Codex workers on
+  gpt-6-luna at max, and ran five merge-review rounds. Codex terminals
+  failed Orca's readiness check all day, so their tasks were injected
+  with `dispatch --inject`. Next: the review record and the finish.
