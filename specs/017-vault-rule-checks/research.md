@@ -140,7 +140,7 @@
 ## R8. Failure messages
 
 - **Decision**: Each problem names the page, the line and a rule name with
-  a short instruction, for example `page rule date-format: write dates as
+  a short instruction, for example `page rule date: write dates as
   YYYY-MM-DD`. No message holds the matched text. The student-page rule
   names the page path, which holds the student's name, because it is the
   page to fix. One problem per rule and line.

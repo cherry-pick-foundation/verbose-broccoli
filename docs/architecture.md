@@ -209,11 +209,13 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   topic that list does not declare, a cited bag that fails BagIt's fast
   validation, or a changed earlier `log.md` entry, and it lists orphan pages
   and citations of non-latest revisions. It also tests the page rules that a
-  pattern can tell, outside mechanical regions and `log.md`: phone numbers,
-  email and postal addresses and registration numbers; a student page
-  (`wiki/students/<name>.md`) whose name is not in backfire's roster; Hangul,
-  Chinese or Japanese text other than roster names and one short quote
-  beside its translation; Hangul or romanized school names instead of domain
+  pattern can tell, outside mechanical regions, the front matter's `sources`
+  field and `log.md`: phone numbers, email and postal addresses and
+  registration numbers; a student page (`wiki/students/<name>.md`) whose
+  name is not in backfire's roster; Hangul, Chinese or Japanese text other
+  than roster names and one short quote beside its translation; roster
+  school names in Hangul outside such a quote and romanized names ending in
+  `Elementary School`, `Middle School` or `High School`, instead of domain
   IDs; and dates not written as YYYY-MM-DD or times without a zone.
   Roster names, phone numbers and email addresses are found with the work
   build's own `backfire_education` code, so the check sees them as backfire

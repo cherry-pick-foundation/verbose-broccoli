@@ -53,13 +53,16 @@ execution failure exits 1 and invalid arguments exit 2; both print their
 details on stderr only.
 `check` needs Git and lychee; `index` and `prepare` need Node 22 or later.
 
-The page rules that `check` tests, in every page except `log.md` and
-outside mechanical regions: no phone numbers, email or postal addresses,
-or registration numbers; each page directly in `wiki/students/` is named
-after a student in the roster; no Hangul, Chinese or Japanese text except
-roster names and one quote of at most 100 characters beside its English
-translation on the same line; schools as domain IDs; dates as YYYY-MM-DD
-and times with `Z`, an offset or a UTC form. A failure names the page, line
+The page rules that `check` tests, in every page except `log.md`, outside
+mechanical regions and outside the front matter's `sources` field: no
+phone numbers, email or postal addresses, or registration numbers; each
+page directly in `wiki/students/` is named after a student in the roster;
+no Hangul, Chinese or Japanese text except roster names and one quote of at
+most 100 characters with its English translation on the same line, as
+`"<original>" (<translation>)` or `"<translation>" ("<original>")`; no
+roster school name in Hangul outside such a quote and no romanized name
+ending in `Elementary School`, `Middle School` or `High School`; dates as
+YYYY-MM-DD and times with `Z`, an offset or a UTC form. A failure names the page, line
 and rule but not the matched text. `check` reads the roster through
 backfire's `education.toml` only when a student page or such text exists;
 it then fails if the file is missing. The instance's `AGENTS.md` lists the
