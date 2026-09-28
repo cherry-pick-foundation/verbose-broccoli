@@ -61,6 +61,9 @@ Rules:
   ID that names its folders in the user's documents, not by its Korean name.
   A short direct quote may keep its original language next to an English
   translation.
+- When sources disagree, student information follows the user's student
+  information system (EduOK) first, and school information follows the
+  school's official homepage first.
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
   synthesis. Both start empty; `index.md` gets its region lines (below)
   before the first `update`.
