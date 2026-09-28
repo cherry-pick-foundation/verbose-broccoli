@@ -55,11 +55,13 @@ repository or into Orca or Linear messages.
   `docs/architecture.md` and regenerate `docs/reference/` with
   `deno task docs:generate` (FR-009).
 
-- [ ] T012 [US1] Use `extend-exclude` in `ruff.toml` so Ruff keeps its
+- [x] T012 [US1] Use `extend-exclude` in `ruff.toml` so Ruff keeps its
   default excludes; make `scripts/ruff_test.ts` also show that a
   non-vendored file is still checked, so an over-broad exclusion fails the
   test; and give `scripts/doc_sources_test.py` the same target version as
   `scripts/doc_sources.py` (FR-005, FR-008, SC-002).
+  - 2026-09-29: Done in `08f45d8`; the coordinator's review then asked to
+    keep all Markdown out of the formatter, done in `70dc0da`.
 
 Commit Phase 1 before T007.
 
@@ -80,13 +82,28 @@ Commit Phase 1 before T007.
 
 ## Phase 3: Hand fixes (US1)
 
-- [ ] T008 [P] [US1] Fix the remaining findings in `packages/backfire/`
+- [x] T008 [P] [US1] Fix the remaining findings in `packages/backfire/`
   without changing behavior (FR-006, FR-007). Two workers split it:
   `src/` (370 findings) and `tests/` (253).
-- [ ] T009 [P] [US1] Fix the remaining findings in `packages/doc-regions/`,
+  - 2026-09-29: Two Codex workers (`gpt-6-luna`, max effort, dispatches
+    `ctx_400d0b8760ed` and `ctx_e07adde9441e`) committed `ab7fbbd` (src)
+    and `c9af5ac` (tests). The coordinator compared each file's syntax tree
+    without docstrings, imports and `del … # Unused.` lines: the remaining
+    differences are explicit `check=False`, a `None` environment default
+    that became `""` before the same falsy check, `_ = endpoint.port`, one
+    extracted test variable, two shortened test names and one unused test
+    import. backfire kept 1,345 passed and 3 deselected. Each `noqa` names
+    its reason, including `N818` on `MessageTooLarge`, a public name kept
+    under FR-007.
+- [x] T009 [P] [US1] Fix the remaining findings in `packages/doc-regions/`,
   `packages/wiki-consistency/`, `scripts/*.py` and
   `plugins/work/skills/wiki-raw-import/scripts/raw_import.py` without
   changing behavior (FR-006, FR-007). 190 findings.
+  - 2026-09-29: A Codex worker (dispatch `ctx_ba2ca398cb9c`) committed
+    `13e5b0a`; the same review found only explicit `check=False`, two
+    private helpers imported by name instead of through their module, and
+    two shortened test names. doc-regions 107, wiki-consistency 118 and
+    wiki-raw-import 43 passed as before.
 
 ## Phase 4: Verification and review
 
@@ -96,3 +113,13 @@ Commit Phase 1 before T007.
   Review, run the merge review, resolve findings, commit the review record
   and run `git flow feature finish python-ruff` in the `develop` worktree;
   then move CHE-29 to Done with one completion comment (SC-001).
+  - 2026-09-29: `develop` moved twice. The coordinator merged `3627cb2`
+    (ShellCheck and others) in `42f59c2` and `07ebf47` (vault rule checks)
+    in `a316dcb`, resolving Python conflicts by merging each file three
+    ways with the base and `develop` versions run through the formatter,
+    and keeping both tools in `deno.json`, `doctor`, `orca.yaml` and
+    `docs/architecture.md`. `0c55984` fixed five findings in the first
+    merge's new code; a Codex worker (dispatch `ctx_5432ee23678d`) fixes the
+    second merge's. wiki-consistency now depends on backfire, so its
+    environment needs `deno task wiki-consistency:install`; it then passed
+    263 tests.
