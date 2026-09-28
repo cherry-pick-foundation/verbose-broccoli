@@ -284,8 +284,9 @@ decision on the task line (decision and date only). Findings come from
   a reason stay out. The ten grammar-book PDF originals come from
   `~/ownCloud`, and byte-identical files at different paths are separate
   sources, both by the user's decision. In `~/projects/work/sources` seven
-  originals were copied; the eighth entry is derived from a list of selected
-  students and stays out. No item was refused or failed.
+  originals were copied; the approved list left the eighth entry, one of the
+  two marked operational-looking, among the user's-call files, which revises
+  T020's decision. No item was refused or failed.
 - [x] T032 [US6] Run `verify` over the whole instance, append the import's
   entry to `wiki/log.md` and commit it in the instance, remove the finished
   selections, and record in this file per location only the counts admitted,
@@ -314,10 +315,14 @@ decision on the task line (decision and date only). Findings come from
   and fix any packaging finding for the new skill's `assets/` and lock file.
 - [x] T035 Run `deno task workflow`, then `deno task verify`, and repeat
   diagnosis, repair and verification until it passes.
-- [ ] T036 Merge review for `develop` (fresh Claude Code reviewer for the
+- [x] T036 Merge review for `develop` (fresh Claude Code reviewer for the
   script and tests, fresh Codex reviewer for the prose), resolve findings,
   add the review-record commit, and finish with `git flow feature finish
   wiki-storage` from the `develop` worktree.
+  - 2026-09-28: a new orchestrator session replaced the first one. Fresh
+    reviewers checked the branch at `ae97c51` and again after the fixes;
+    findings were fixed or answered in the review record. CHE-7 is In
+    Review; the finish from the `develop` worktree follows the record.
 
 ---
 
