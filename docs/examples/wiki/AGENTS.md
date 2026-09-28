@@ -28,7 +28,9 @@ Cite raw evidence by the source ID and revision recorded in each bag's
 - Write pages in English, whatever the language of the raw evidence, which
   stays unchanged. Student names keep the roster's spelling, a school is
   written as its domain ID, and a short direct quote may keep its original
-  language next to an English translation.
+  language next to an English translation. A student's page is
+  `wiki/students/<name>.md`, named with the student's name in the roster's
+  spelling.
 - Maintain ordinary Markdown pages under `wiki/sources/`, `wiki/entities/`,
   `wiki/concepts/`, `wiki/comparisons/` or `wiki/synthesis/`. Each page needs safe
   YAML metadata with a stable ID, type, title, nonempty `sources` and one or
