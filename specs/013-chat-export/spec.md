@@ -33,9 +33,10 @@ vault holds conversations about students.
   on the web later. It has no skills (constitution IX). The user has ChatGPT
   Plus or Pro without developer mode, so ChatGPT on the web cannot reach a
   local tool (CHE-10, `.specify/assessments/backfire-chat/decision.md`).
-- The work vault's student pages were written from ChatGPT conversations that
-  an agent read through the desktop app; their source ledger is the work
-  vault's `wiki/sources/chat-session-records.md`.
+- According to the develop session's brief, the work vault's student pages
+  were written from ChatGPT conversations, and a source page in that vault's
+  `wiki/sources/` lists them. This feature does not read the vault to check
+  it.
 
 OpenAI's help center, read on 2026-09-29 ("Exporting your ChatGPT history and
 data", updated last month; "Transfer exported conversations between ChatGPT
@@ -279,8 +280,10 @@ phrases from the synthetic conversations.
   architecture document state the same rule: exported conversations are raw
   evidence in the `chat` and `work` vaults only.
 - **SC-005**: No repository file, commit, Linear comment or Orca message from
-  this feature contains a real conversation, a student name or a private file
-  name.
+  this feature contains a real conversation, a student name or the name of a
+  file in the user's vaults or workspace. The one exception is the fixed
+  export file's path, which the user chose so that the procedure can name it
+  (FR-004).
 
 ## Assumptions
 
