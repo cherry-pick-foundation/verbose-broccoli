@@ -32,9 +32,9 @@ assembly and pseudonymization", written from the user's decisions of
 6. The education profile uses the same provider and model as the development
    profile: DeepSeek V4.1 Flash on Hive (user's answer, 2026-09-28).
 7. The roster is an existing export that backfire reads in place. For now, its
-   data is the student list another agent read from EduOK on 2026-09-28: each
-   student's name, school and grade, for ten students. It lists no guardian
-   names or contact details (user's answer, 2026-09-28).
+   data is EduOK's list of all enrolled students of the academy, read on
+   2026-09-28: each student's name, school and grade. It lists no guardian
+   names or contact details (user's answers, 2026-09-28).
 
 Out of scope: the chat plugin's variant (CHE-10), the wording of constitution
 principle III (CHE-11), and feature 005 itself. Before real student records are

@@ -184,8 +184,10 @@ student's pseudonym; one that several students share gets its own pseudonym.
 (2026-09-28). Korean surnames are almost always one syllable; the listed
 two-syllable surnames cover the common exceptions. A one-syllable given name
 would match inside countless ordinary words, so it is not matched; the
-operator guide says so. All ten students in the EduOK list of 2026-09-28 have
-three-syllable names with one-syllable surnames.
+operator guide says so. In the roster saved from EduOK on 2026-09-28, 43 of
+44 students have three-syllable names with one-syllable surnames; one has a
+two-syllable name, from which no given name is derived, and one given name is
+shared by two students.
 
 **Alternatives considered**: A Korean name-splitting library (none is needed
 for this rule, and none was found worth a dependency); given names only as the
@@ -347,6 +349,28 @@ servers get distinct names (`mcp__plugin_code_backfire__backfire_classify` and
 observed, because only an installation would show it. Codex's plugin
 documentation does not say how it names or separates same-named servers from
 two plugins; unverified until the client-installation feature installs both.
+
+### Student-name scan
+
+On 2026-09-28 the coordinator read EduOK's list of enrolled students in Orca's
+browser, with the user's login and without changing anything, and saved it,
+with the user's approval, as the operator's roster outside the repository
+(`$XDG_DATA_HOME/verbose-broccoli/backfire/roster.csv`, mode `0600`, named in
+`education.toml`): 44 students and 18 schools, with name, school and grade.
+Four of EduOK's 48 rows are teacher accounts and were left out, because teacher
+names are not identifiers under this feature. The roster holds no guardian
+names or contact details, so the scan had no real contact detail to look for.
+
+The scan matched every roster value (full names, derived given names and
+schools) against the tracked files, in memory, and wrote no value anywhere.
+It first found one real student's full and given name used as the documents'
+running example, two real schools as examples and one real given name as the
+ordinary-word example, all written by this feature. They were replaced with
+synthetic examples. The rescan finds only the compound surname in the
+given-name rule (`roster.py`, its test, the pseudonymization contract and this
+file), which equals one student's given name by coincidence and names no one.
+`develop` and `main` hold none of the values; the Linear issue CHE-9 holds
+none either.
 
 ### Education measurement
 
