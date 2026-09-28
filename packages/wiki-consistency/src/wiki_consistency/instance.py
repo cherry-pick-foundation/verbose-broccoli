@@ -61,6 +61,31 @@ def _metadata(text):
         if not isinstance(value, str) or not value.strip() or "\n" in value or "\r" in value:
             problems.append({"line": 1, "message": f"{field} must be a non-empty single line"})
 
+    topic_values = metadata.get("topics")
+    topics = []
+    valid_topics = True
+    if not isinstance(topic_values, list) or not topic_values:
+        problems.append({"line": 1, "message": "topics must be a non-empty list"})
+        valid_topics = False
+    else:
+        seen_topics = set()
+        for topic in topic_values:
+            if (not isinstance(topic, str) or not topic.strip()
+                    or "\n" in topic or "\r" in topic):
+                problems.append({
+                    "line": 1,
+                    "message": "topics must contain non-empty single-line names",
+                })
+                valid_topics = False
+            elif topic in seen_topics:
+                problems.append({"line": 1, "message": "topics must not contain duplicates"})
+                valid_topics = False
+            else:
+                seen_topics.add(topic)
+                topics.append(topic)
+    if not valid_topics:
+        topics = []
+
     citations = metadata.get("sources")
     sources = []
     if not isinstance(citations, list) or not citations:
@@ -78,8 +103,49 @@ def _metadata(text):
     return {
         "title": metadata.get("title"),
         "summary": metadata.get("summary"),
+        "topics": topics,
         "sources": sources,
     }, problems
+
+
+def declared_topics(root):
+    path = Path(root) / "AGENTS.md"
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        return [], [{"line": 1, "message": str(error)}]
+
+    source, _, error = _front_matter(text)
+    if error:
+        return [], [{"line": 1, "message": error}]
+    try:
+        metadata = yaml.safe_load(source)
+    except yaml.YAMLError as error:
+        mark = getattr(error, "problem_mark", None)
+        line = 2 + mark.line if mark is not None else 1
+        return [], [{"line": line, "message": f"invalid YAML front matter: {error}"}]
+    if not isinstance(metadata, dict):
+        return [], [{"line": 2, "message": "front matter must be a mapping"}]
+
+    topics = metadata.get("topics")
+    if not isinstance(topics, list):
+        return [], [{"line": 1, "message": "topics must be a list"}]
+
+    problems = []
+    seen_topics = set()
+    for topic in topics:
+        if (not isinstance(topic, str) or not topic.strip()
+                or "\n" in topic or "\r" in topic):
+            problems.append({
+                "line": 1,
+                "message": "topics must contain non-empty single-line names",
+            })
+        elif topic in seen_topics:
+            problems.append({"line": 1, "message": "topics must not contain duplicates"})
+        else:
+            seen_topics.add(topic)
+
+    return (topics if not problems else []), problems
 
 
 def pages(instance):
@@ -96,7 +162,7 @@ def pages(instance):
         relative = path.relative_to(root).as_posix()
         special = relative in SPECIAL_PAGES
         page = {"path": relative, "title": None, "summary": None, "sources": [],
-                "special": special, "problems": []}
+                "topics": [], "special": special, "problems": []}
         if not special:
             try:
                 metadata, problems = _metadata(path.read_text(encoding="utf-8"))
