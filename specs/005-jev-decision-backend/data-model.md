@@ -65,9 +65,12 @@ Success: `{model, answers, usage}` where `model` is the model name in the
 provider's response for this request, passed through even when it differs from
 the requested one, and `usage` holds integer `input_tokens` and
 `output_tokens` from the provider's `prompt_tokens` and `completion_tokens`
-(for Hive, completion includes reasoning). A provider response without a
-non-empty `model` is `model_not_confirmed`; one without usage is
-`malformed_output`.
+(for Hive, completion includes reasoning). A provider response that carries
+an answer but no non-empty `model` is `model_not_confirmed`, and one that
+carries an answer but no usage is `malformed_output`. A response that is not a
+JSON object, has no non-empty `choices` list, or, for the Responses API, has
+no `output` list is `provider_error`
+([judgment.md](contracts/judgment.md#errors)).
 
 Failure: an error whose text is `<type>: <message>`, with the types of
 [judgment.md](contracts/judgment.md#errors). A message is fixed per type, names
