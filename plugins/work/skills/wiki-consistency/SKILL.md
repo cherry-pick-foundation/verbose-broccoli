@@ -59,10 +59,12 @@ phone numbers, email or postal addresses, or registration numbers; each
 page directly in `wiki/students/` is named after a student in the roster;
 no Hangul, Chinese or Japanese text except roster names and one quote of at
 most 100 characters with its English translation on the same line, as
-`"<original>" (<translation>)` or `"<translation>" ("<original>")`; no
-roster school name in Hangul outside such a quote and no romanized name
-ending in `Elementary School`, `Middle School` or `High School`; dates as
-YYYY-MM-DD and times with `Z`, an offset or a UTC form. A failure names the page, line
+`"<original>" (<translation>)` or `"<translation>" ("<original>")`, with
+`"…"`, `“…”`, `‘…’`, `「…」` or `『…』` as quotation marks; no roster school
+name in Hangul outside such a quote and no romanized name ending in
+`Elementary School`, `Middle School` or `High School`; dates as YYYY-MM-DD
+and times with `Z`, an offset from `-14:00` to `+14:00` (a minus offset
+only in an ISO date-time), or a UTC form. A failure names the page, line
 and rule but not the matched text. `check` reads the roster through
 backfire's `education.toml` only when a student page or such text exists;
 it then fails if the file is missing. The instance's `AGENTS.md` lists the

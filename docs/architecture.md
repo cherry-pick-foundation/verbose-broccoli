@@ -213,7 +213,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   field and `log.md`: phone numbers, email and postal addresses and
   registration numbers; a student page (`wiki/students/<name>.md`) whose
   name is not in backfire's roster; Hangul, Chinese or Japanese text other
-  than roster names and one short quote beside its translation; roster
+  than roster names and one quote of at most 100 characters in quotation
+  marks with its English translation in parentheses beside it; roster
   school names in Hangul outside such a quote and romanized names ending in
   `Elementary School`, `Middle School` or `High School`, instead of domain
   IDs; and dates not written as YYYY-MM-DD or times without a zone.

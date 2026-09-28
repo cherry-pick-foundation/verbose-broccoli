@@ -322,8 +322,10 @@ documents that describe the check.
   optional seconds or with `AM` or `PM` (`a.m.`, `p.m.`), that is not
   followed by a time zone. A time range such as `14:00–15:30` counts as
   zoned when a zone follows its end. The accepted zones are `Z`, a numeric
-  offset such as `+09:00`, `UTC`, and `UTC` with an offset such as `UTC+9`,
-  with or without parentheses; abbreviations such as `KST` are not.
+  offset from `-14:00` to `+14:00` such as `+09:00`, `UTC`, and `UTC` with
+  an offset such as `UTC+9`, with or without parentheses; abbreviations
+  such as `KST` are not. A minus offset counts only directly after the time
+  of an ISO date-time; elsewhere a minus before a time joins a range.
 
 **Documents (User Story 4)**
 

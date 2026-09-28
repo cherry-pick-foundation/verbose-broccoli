@@ -167,12 +167,15 @@ front matter's `sources` field:
 - no Hangul, Chinese or Japanese text except roster names and one quote of
   at most 100 characters with its English translation on the same line,
   written as `"<original>" (<translation>)` or
-  `"<translation>" ("<original>")`;
+  `"<translation>" ("<original>")`, with `"…"`, `“…”`, `‘…’`, `「…」` or
+  `『…』` as quotation marks;
 - no roster school name in Hangul outside such a quote, and no romanized
   school name ending in `Elementary School`, `Middle School` or `High
   School`;
-- dates as YYYY-MM-DD, and times followed by `Z`, an offset such as
-  `+09:00`, or a UTC form such as `(UTC+9)`.
+- dates as YYYY-MM-DD, and times followed by `Z`, an offset from `-14:00`
+  to `+14:00` such as `+09:00`, or a UTC form such as `(UTC+9)`. A minus
+  offset counts only in an ISO date-time such as `2026-09-29T14:30-05:00`;
+  elsewhere a minus before a time makes a range, as in `14:00 - 15:30`.
 
 It reads the roster through backfire's `education.toml` only when a student
 page or such text exists. A passing `check` does not prove the rest, which

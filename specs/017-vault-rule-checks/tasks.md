@@ -152,6 +152,26 @@ merge review.
   reviewer for the documents), resolve findings, commit the review record,
   check that `develop` has not moved, and run
   `git flow feature finish vault-rule-checks` in the `develop` worktree.
+  - 2026-09-29: Backfire rated the code review difficult (0.81) and the
+    document review medium (0.65). A fresh Claude Code reviewer
+    (`claude-opus-5-5`, high effort; Orca dispatch `ctx_753a93c3abc8`)
+    reviewed the code at `03a33b8` and found 5 minor issues and 3 nits: a
+    roster name touching an email hid it, `14:00 -15:30` passed without a
+    zone, the date rule skipped any text in angle brackets, regions with
+    malformed markers were skipped, many contract forms had no test, a stray
+    quotation mark could open a quote, and the spec and contract disagreed on
+    a Korean year and month; its ponytail pass listed about 19 lines to cut.
+    Main tightened the contract and FR-012 in `b634d4c`; the Codex worker
+    (`ctx_f61d32e7ba89`) added tests in `917b8a0`, 13 of which failed, and
+    fixed the code in `3f1c472`. A follow-up Claude Code review
+    (`ctx_b5975c6b85d6`) found every finding resolved and one nit in
+    research R7, which main fixed. A fresh Codex reviewer (`gpt-6-luna`,
+    `max`; `ctx_e8f24b0a5e9d`) reviewed the documents and found 1 major
+    issue (the summaries did not say that `sources` is skipped), 2 minor
+    and 1 nit; main fixed them in `b3beb20`. Its follow-up
+    (`ctx_5c11bd0b75f9`) found them resolved and 2 new minor gaps (the
+    summaries lacked the quote-mark pairs and the offset limits), which
+    main added. Next: verify, the review record and the finish.
 - [ ] T011 Move CHE-26 to Done with one completion comment giving the merge
   commit, the review-record commit and the record location.
 

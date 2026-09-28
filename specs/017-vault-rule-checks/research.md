@@ -128,7 +128,7 @@
 - **Decision**: Local regular expressions and `datetime.date.fromisoformat`
   from the standard library, with the exact forms in the
   [contract](contracts/page-rules.md). Dates are not checked inside link
-  destinations and bare URLs.
+  destinations, CommonMark autolinks and bare URLs.
 - **Rationale**: No dependency answers "is this date written in the vault's
   form"; date finders such as `dateparser` search for any date and would
   need the same form rules on top. The forms come from the spec (FR-005,
