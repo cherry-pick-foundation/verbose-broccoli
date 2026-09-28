@@ -47,9 +47,9 @@ counts; a new Deno test for the configuration.
 `.ruff_cache/` left behind); no preview rules; vendored upstream code
 excluded, not edited.
 
-**Scale/Scope**: 120 tracked Python files, 115 outside `.specify/`. About
-99 files reformatted once; a few hundred hand fixes, mostly docstrings for
-public API and lines over 80 columns.
+**Scale/Scope**: 120 tracked Python files, 115 outside `.specify/`. 106
+files reformatted once (`d2c4e58`); a few hundred hand fixes, mostly
+docstrings for public API and lines over 80 columns.
 
 ## Constitution Check
 

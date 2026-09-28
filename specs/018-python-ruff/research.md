@@ -68,14 +68,17 @@ Measurements below were taken on `develop` at `df912f4` on 2026-09-29 with Ruff
 With a trial configuration (the settings above plus broad rule groups, tests
 exempt from `D1`):
 
-- The formatter would reformat 99 of the 120 tracked Python files. After that
-  reformat, 251 lines remain over 80 columns, mostly strings and comments.
+- The formatter reported 99 files to reformat. After that reformat, 251
+  lines remained over 80 columns, mostly strings and comments.
 - Outside tests, 137 public modules, classes and functions lack a docstring,
   including 102 functions.
 - Without the formatter, 2,164 lines are over 80 columns.
 
-The trial selected more rule groups than this research allows, so the final
-counts will be lower for the lint rules; the formatter and line counts hold.
+The trial selected more rule groups than this research allows and did not yet
+give each package its own Python version, so its counts differ from the final
+configuration's. With the final configuration, the format-only commit
+`d2c4e58` changed 106 of the 115 Python files outside `.specify/`, and 394
+lines remained over 80 columns among 813 lint findings.
 
 ## Scope of checked files
 

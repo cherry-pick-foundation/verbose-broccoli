@@ -150,3 +150,23 @@ Commit Phase 1 before T007.
     feature changes only in style, so they stand. `doc-regions:audit`
     reported the same 19 MemoryLint `boundary` warnings on the constitution
     as earlier features.
+  - 2026-09-29: Merge review, first round, on `a84f604`. A fresh Claude
+    Code reviewer (`claude-sonnet-5-5`, high effort, chosen with
+    `backfire_decide`; dispatch `ctx_e0dde344f4eb`) reviewed the Codex-written
+    code: approve after fixes, 1 major and 8 minor findings. The major one:
+    several enabled `pylintrc` messages have stable Ruff rules that the rule
+    table called missing. A fresh Codex reviewer (`gpt-6-luna`, max effort;
+    dispatch `ctx_46ecca59b9ee`) reviewed the records and both merges: approve
+    after one minor fix, the formatter count of 99 files where `d2c4e58`
+    changed 106, corrected by the coordinator in research.md and plan.md.
+  - 2026-09-29: A Codex worker (dispatch `ctx_7bc70898ce85`) resolved the
+    code findings in `5fdb5aa` and `e855b62`: 28 more stable rules traced to
+    the `pylintrc` (A002 to A006, ARG002 to ARG005, E711, E713, E714, S113,
+    T100, TRY203, UP031, UP032 and others), `Q000` dropped, the `pylintrc`'s
+    dummy-variable names set, two unused `E501` exemptions removed, every
+    exemption's reason moved to the line above so lines stay within 80
+    columns, the private search helpers called through their module again,
+    the exclusion narrowed to `.specify/extensions/`, and import-order and
+    80-column format cases added to `scripts/ruff_test.ts`. The
+    coordinator's syntax-tree comparison found only renamed unused
+    arguments and loop variables.
