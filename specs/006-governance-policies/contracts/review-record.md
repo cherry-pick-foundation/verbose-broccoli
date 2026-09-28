@@ -32,9 +32,12 @@ New checks, before verification:
 8. The tip has exactly one `Reviewed-commit` trailer, and its value resolves to
    a commit equal to the tip's parent.
 
-Then, unchanged:
+Then:
 
-9. `deno task --quiet verify` passes in the feature worktree.
+9. Every non-merge feature commit that changes the constitution passes the
+   version rule against its parent and its own tree. Commitlint's default
+   ignores are disabled for this check.
+10. `deno task --quiet verify` passes in the feature worktree.
 
 ## Refusal output
 
@@ -47,7 +50,9 @@ Feature finish refused: <condition>; <what to do next>.
 The messages for checks 5 to 8 name the feature branch and tell the agent to
 run the merge review on the current tip and add a review-record commit whose
 `Reviewed-commit` is that tip. A refusal changes no ref, worktree, index or
-file.
+file. A failure at check 9 names the commit and branch, and asks the agent to
+rewrite the commit so it raises the version once for its type, then review and
+record again.
 
 ## Success
 
