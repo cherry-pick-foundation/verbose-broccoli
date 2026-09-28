@@ -264,19 +264,39 @@ decision on the task line (decision and date only). Findings come from
   `~/projects/work/{datasets,rules,deprecated}` (first judgment: out of
   scope). Decision (2026-09-28): `~/Documents/ChatGPT` and `~/Documents/Codex`
   excluded as conversation records; the others left out, no exclusion.
-- [ ] T029 [US6] After the user approves the list, write the exclusions from
+- [x] T029 [US6] After the user approves the list, write the exclusions from
   T018 to T028 to `~/.config/verbose-broccoli/config.toml` under
   `[wiki.raw_import]`.
-- [ ] T030 [US6] Run `init` on the real default instance and make its first
+  Done (2026-09-28): six exclusions, those of T024, T027 and T028 plus two
+  the user added (the student-Wiki intake entry and ownCloud's personal
+  folder).
+- [x] T030 [US6] Run `init` on the real default instance and make its first
   commit (schema, `.gitignore`, empty `wiki/` files) in the instance's own
   Git repository.
-- [ ] T031 [US6] For each location admitted in T018 to T028, show the user the
+  Done (2026-09-28): the instance already held `wiki/` pages the user had
+  asked another session to write; `init` kept them, and by the user's
+  decision the first commit includes all of `wiki/`.
+- [x] T031 [US6] For each location admitted in T018 to T028, show the user the
   file list (outside the repository), write the approved selection and run
   `admit`; resolve or report every `refused` and `failed` item.
-- [ ] T032 [US6] Run `verify` over the whole instance, append the import's
+  Done (2026-09-28): the user approved the proposed lists as shown: 104
+  files copied; 185 files offered for the user's call and 605 left out with
+  a reason stay out. The ten grammar-book PDF originals come from
+  `~/ownCloud`, and byte-identical files at different paths are separate
+  sources, both by the user's decision. In `~/projects/work/sources` seven
+  originals were copied; the eighth entry is derived from a list of selected
+  students and stays out. No item was refused or failed.
+- [x] T032 [US6] Run `verify` over the whole instance, append the import's
   entry to `wiki/log.md` and commit it in the instance, remove the finished
   selections, and record in this file per location only the counts admitted,
   already admitted, refused and failed.
+  Done (2026-09-28): `verify` passed for all 104 revisions, the originals'
+  digests and modification times are unchanged, a rerun reported every item
+  as already admitted, and the selections are removed. Counts (admitted,
+  already admitted, refused, failed): `~/Documents/20_reference` 48, 0, 0,
+  0; `~/Documents/10_midterm` 2, 0, 0, 0; `~/Documents/11_final` and the
+  loose files in `~/Documents` nothing selected; `~/projects/work/sources` 7,
+  0, 0, 0; `~/projects/work/intake` 37, 0, 0, 0; `~/ownCloud` 10, 0, 0, 0.
 
 ---
 
@@ -292,7 +312,7 @@ decision on the task line (decision and date only). Findings come from
   2026-09-28 at the develop session's request instead of a separate issue.
 - [x] T034 Run `deno task docs:generate`, then `deno task test:plugin-skills`
   and fix any packaging finding for the new skill's `assets/` and lock file.
-- [ ] T035 Run `deno task workflow`, then `deno task verify`, and repeat
+- [x] T035 Run `deno task workflow`, then `deno task verify`, and repeat
   diagnosis, repair and verification until it passes.
 - [ ] T036 Merge review for `develop` (fresh Claude Code reviewer for the
   script and tests, fresh Codex reviewer for the prose), resolve findings,
