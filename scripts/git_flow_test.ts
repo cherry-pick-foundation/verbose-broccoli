@@ -7,19 +7,35 @@ const sharedHook = join(root, 'scripts/git-flow-hooks/pre-flow-feature-finish');
 const featureName = 'flow-test';
 const featureBranch = `feature/${featureName}`;
 const decoder = new TextDecoder();
+const home = Deno.env.get('HOME') ?? '/tmp';
+const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');
 
-async function git(cwd: string, ...args: string[]) {
-  const result = await new Deno.Command('git', {
+async function runGit(
+  cwd: string,
+  args: string[],
+  extraEnv: Record<string, string> = {},
+) {
+  return await new Deno.Command('git', {
     args,
     cwd,
     env: {
+      DENO_DIR: denoDir,
       GIT_CONFIG_GLOBAL: join(dirname(cwd), '.gitconfig'),
       GIT_CONFIG_NOSYSTEM: '1',
       HOME: dirname(cwd),
+      ...extraEnv,
     },
     stdout: 'piped',
     stderr: 'piped',
   }).output();
+}
+
+function output(result: Deno.CommandOutput) {
+  return decoder.decode(result.stdout) + decoder.decode(result.stderr);
+}
+
+async function git(cwd: string, ...args: string[]) {
+  const result = await runGit(cwd, args);
   const stdout = decoder.decode(result.stdout).trim();
   const stderr = decoder.decode(result.stderr).trim();
   assert(result.success, `git ${args.join(' ')} failed: ${stderr}`);
@@ -27,17 +43,7 @@ async function git(cwd: string, ...args: string[]) {
 }
 
 async function attemptFinish(cwd: string) {
-  const result = await new Deno.Command('git', {
-    args: ['flow', 'feature', 'finish', featureName],
-    cwd,
-    env: {
-      GIT_CONFIG_GLOBAL: join(dirname(cwd), '.gitconfig'),
-      GIT_CONFIG_NOSYSTEM: '1',
-      HOME: dirname(cwd),
-    },
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  const result = await runGit(cwd, ['flow', 'feature', 'finish', featureName]);
   return {
     code: result.code,
     output: `${decoder.decode(result.stdout)}\n${decoder.decode(
@@ -74,13 +80,27 @@ async function addReviewRecord(
   return await git(feature, 'rev-parse', 'HEAD');
 }
 
+async function addConstitutionCommit(
+  feature: string,
+  version: string,
+  message: string,
+) {
+  await Deno.writeTextFile(
+    join(feature, '.specify/memory/constitution.md'),
+    `Policy text updated.\n\n**Version**: ${version}\n`,
+  );
+  await git(feature, 'add', '.specify/memory/constitution.md');
+  await git(feature, 'commit', '-m', message);
+  return await git(feature, 'rev-parse', 'HEAD');
+}
+
 async function temporary(
   run: (root: string, develop: string, feature: string) => Promise<void>,
   verifyExit = 0,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'git-flow-test-'});
-  const repo = join(root, 'develop');
-  const feature = join(root, 'feature');
+  const tempRoot = await Deno.makeTempDir({prefix: 'git-flow-test-'});
+  const repo = join(tempRoot, 'develop');
+  const feature = join(tempRoot, 'feature');
   try {
     await Deno.mkdir(repo);
     await git(repo, 'init', '--initial-branch=develop');
@@ -91,14 +111,37 @@ async function temporary(
     const hook = join(repo, 'scripts/git-flow-hooks/pre-flow-feature-finish');
     await Deno.copyFile(sharedHook, hook);
     await Deno.chmod(hook, 0o755);
+    const denoConfig = JSON.parse(
+      await Deno.readTextFile(join(root, 'deno.json')),
+    ) as {tasks: Record<string, unknown>};
+    denoConfig.tasks.verify = `deno eval 'Deno.exit(${verifyExit})'`;
     await Deno.writeTextFile(
       join(repo, 'deno.json'),
-      JSON.stringify({
-        tasks: {verify: `deno eval 'Deno.exit(${verifyExit})'`},
-      }),
+      JSON.stringify(denoConfig),
+    );
+    await Deno.copyFile(join(root, 'deno.lock'), join(repo, 'deno.lock'));
+    for (const file of ['commitlint.config.mjs', 'constitution_version.ts']) {
+      await Deno.copyFile(
+        join(root, 'scripts', file),
+        join(repo, 'scripts', file),
+      );
+    }
+    await Deno.mkdir(join(repo, '.specify/memory'), {recursive: true});
+    await Deno.writeTextFile(
+      join(repo, '.specify/memory/constitution.md'),
+      'Policy text.\n\n**Version**: 1.0.0\n',
     );
     await Deno.writeTextFile(join(repo, 'seed.txt'), 'seed\n');
-    await git(repo, 'add', '.gitflow', 'deno.json', 'scripts', 'seed.txt');
+    await git(
+      repo,
+      'add',
+      '.gitflow',
+      'deno.json',
+      'deno.lock',
+      'scripts',
+      '.specify/memory/constitution.md',
+      'seed.txt',
+    );
     await git(repo, 'commit', '-m', 'initial');
     await git(repo, 'branch', 'main');
     await git(repo, 'worktree', 'add', '-b', featureBranch, feature, 'develop');
@@ -108,9 +151,9 @@ async function temporary(
     await git(repo, 'config', 'gitflow.shared.trustHooks', 'true');
     await git(repo, 'flow', 'config', 'sync');
     await git(repo, 'flow', 'config', 'status');
-    await run(root, repo, feature);
+    await run(tempRoot, repo, feature);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await Deno.remove(tempRoot, {recursive: true});
   }
 }
 
@@ -398,5 +441,96 @@ Deno.test('git-flow: finish from develop creates the default no-ff merge and kee
     );
     assertEquals(await git(develop, 'status', '--porcelain'), '');
     assertEquals(await git(feature, 'status', '--porcelain'), '');
+  });
+});
+
+async function assertRebasedBumpsRefused(action: 'fixup' | 'squash') {
+  await temporary(async (_root, develop, feature) => {
+    await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
+    await addConstitutionCommit(feature, '1.0.2', 'docs: second wording');
+    const rebase = await runGit(feature, ['rebase', '-i', 'develop'], {
+      GIT_EDITOR: 'true',
+      GIT_SEQUENCE_EDITOR: `sed -i '/docs: second wording/s/^pick /${action} /'`,
+    });
+    assert(rebase.success, output(rebase));
+    const combined = await git(feature, 'rev-parse', 'HEAD');
+    assertEquals(
+      await git(
+        feature,
+        'rev-list',
+        '--count',
+        'develop..HEAD',
+        '--',
+        '.specify/memory/constitution.md',
+      ),
+      '1',
+    );
+    assertMatch(
+      await git(
+        feature,
+        'show',
+        `${combined}^:.specify/memory/constitution.md`,
+      ),
+      /\*\*Version\*\*: 1\.0\.0/,
+    );
+    assertMatch(
+      await git(feature, 'show', `${combined}:.specify/memory/constitution.md`),
+      /\*\*Version\*\*: 1\.0\.2/,
+    );
+    await addReviewRecord(feature);
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      new RegExp(
+        `${combined}.*${featureBranch}.*rewrite that commit so it raises the version once for its type`,
+        'i',
+      ),
+    );
+  });
+}
+
+Deno.test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
+  await assertRebasedBumpsRefused('fixup');
+});
+
+Deno.test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
+  await assertRebasedBumpsRefused('squash');
+});
+
+Deno.test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const first = await addConstitutionCommit(
+      feature,
+      '1.0.1',
+      'docs: first wording',
+    );
+    await Deno.writeTextFile(
+      join(feature, '.specify/memory/constitution.md'),
+      'Policy text updated again.\n\n**Version**: 1.0.2\n',
+    );
+    await git(feature, 'add', '.specify/memory/constitution.md');
+    const fixup = await runGit(feature, ['commit', '--fixup', first], {
+      GIT_EDITOR: 'true',
+    });
+    assert(fixup.success, output(fixup));
+    const fixupCommit = await git(feature, 'rev-parse', 'HEAD');
+    await addReviewRecord(feature);
+    await assertRefusedUnchanged(
+      develop,
+      feature,
+      new RegExp(
+        `${fixupCommit}.*${featureBranch}.*rewrite that commit so it raises the version once for its type`,
+        'i',
+      ),
+    );
+  });
+});
+
+Deno.test('git-flow: one correct constitution bump still finishes', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
+    await addReviewRecord(feature);
+    const result = await attemptFinish(develop);
+    assertEquals(result.code, 0, result.output);
   });
 });

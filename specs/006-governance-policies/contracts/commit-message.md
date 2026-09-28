@@ -50,6 +50,12 @@ constitution.
 
 ## Known limit
 
+`git rebase -i` does not run `commit-msg` for `fixup` or `squash`. Commitlint's
+default ignores also skip other messages at commit time, such as `fixup!`,
+`squash!`, `amend!`, `Revert` and `Reapply` messages. Before feature finish, the hook checks every non-merge feature
+commit that changes the constitution against its parent and its own tree, with
+default ignores disabled and only the version rule enabled.
+
 A `commit-msg` hook is not told about `--amend` (research R3). Since CHE-15,
 the hook reads `--amend` from the arguments of the `git` process that runs it,
 and an amend is compared with the parent of the commit being replaced.

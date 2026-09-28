@@ -9,7 +9,7 @@
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",
-    "test:git-flow": "deno test --frozen --cached-only --no-prompt --allow-read=.gitflow,scripts/git-flow-hooks/pre-flow-feature-finish --allow-write=/tmp --allow-run=git scripts/git_flow_test.ts",
+    "test:git-flow": "deno test --frozen --cached-only --no-prompt --allow-read=.gitflow,deno.json,deno.lock,scripts/commitlint.config.mjs,scripts/constitution_version.ts,scripts/git-flow-hooks/pre-flow-feature-finish --allow-write=/tmp --allow-env=HOME,DENO_DIR --allow-run=git scripts/git_flow_test.ts",
     "test:worktree-branch": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write=/tmp --allow-run=git,sh scripts/worktree_branch_test.ts",
     "commitlint": "deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-sys --allow-run=git npm:@commitlint/cli@21.2.3 --config scripts/commitlint.config.mjs",
     "test:commit-msg": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/commit_msg_test.ts",

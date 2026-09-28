@@ -1,4 +1,5 @@
 #!/bin/sh
+unset CONSTITUTION_VERSION_COMMIT
 
 # Git does not tell a commit-msg hook about --amend, so read the arguments of
 # the git process that runs this hook, split on NUL bytes, and match --amend and

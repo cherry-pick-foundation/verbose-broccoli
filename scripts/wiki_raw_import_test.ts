@@ -93,7 +93,15 @@ class Fixture {
 
   command(...args: string[]) {
     return new Deno.Command('uv', {
-      args: ['run', '--locked', '--offline', '--script', script, ...args],
+      args: [
+        'run',
+        '--quiet',
+        '--locked',
+        '--offline',
+        '--script',
+        script,
+        ...args,
+      ],
       cwd: this.home,
       env: this.env,
       stdout: 'piped',

@@ -400,6 +400,30 @@ Deno.test('commit-msg hook: amendments use the parent constitution version', asy
   });
 });
 
+Deno.test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
+  await withRepo(async repo => {
+    await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
+    const first = await commit(repo, 'docs!: break');
+    assert(first.success, output(first));
+    const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
+    const firstCommit = before.trim();
+
+    await writeConstitution(repo, constitution('1.0.1', 'Follow-up text.'));
+    const refused = await commit(repo, 'docs!: follow up', [], {
+      CONSTITUTION_VERSION_COMMIT: firstCommit,
+    });
+    assert(!refused.success);
+    assertMatch(output(refused), /requires 2\.0\.0; found 1\.0\.1/);
+    assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
+
+    await writeConstitution(repo, constitution('2.0.0', 'Follow-up text.'));
+    const accepted = await commit(repo, 'docs!: follow up', [], {
+      CONSTITUTION_VERSION_COMMIT: firstCommit,
+    });
+    assert(accepted.success, output(accepted));
+  });
+});
+
 Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {
   await withRepo(async repo => {
     await Deno.writeTextFile(join(repo.root, 'invalid.txt'), 'change\n');

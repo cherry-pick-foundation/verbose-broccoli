@@ -1,12 +1,18 @@
 <!--
 Sync Impact Report
-- Version: 1.0.0 -> 1.0.1 (docs commit, so a patch bump).
-- Input: the user's 2026-09-28 choice, for feature 010 (Wiki consistency),
-  that each Wiki instance's `index.md` is one mechanical region generated from
-  page metadata.
+- Version: 1.0.0 -> 1.0.1. Two `docs` commits on parallel feature branches
+  each raised 1.0.0 to 1.0.1, and merge commits do not change the version.
+- Inputs: Linear CHE-17 (the user approved the wording on 2026-09-28):
+  `git rebase -i` fixup and squash skip the commit-message hook, so the
+  feature finish hook now checks each non-merge feature commit that changes
+  this constitution. The user's 2026-09-28 choice, for feature 010 (Wiki
+  consistency), that each Wiki instance's `index.md` is one mechanical region
+  generated from page metadata.
 - Modified principles: VI, point 2: `index.md` is regenerated from page
   metadata instead of maintained by the LLM.
-- Modified sections: Governance (the decision record and the version).
+- Modified sections: Development Workflow and Quality Gates (what the feature
+  finish hook refuses) and Governance (how the version rule is enforced, the
+  decision records and the version).
 - Added sections: none. Removed sections: none.
 - Follow-up (outside this document): feature 010 adds the page metadata, the
   `index.md` generator and the Wiki schema template's text for them.
@@ -181,10 +187,11 @@ Plugin versions may move together; there is no new per-module release framework.
   feature finish <name>`, run in the `develop` worktree: the committed
   `.gitflow` settings and the `scripts/git-flow-hooks/pre-flow-feature-finish`
   hook refuse the finish unless `develop` is an ancestor of the feature, the
-  feature tip is such a review record, and the feature passes `deno task
-  verify`, so the merge commit's tree is the reviewed and verified feature
-  tree. Finish a release or hotfix by hand: first have a fresh reviewer from
-  the other provider, given only the scope and requirements, review the source
+  feature tip is such a review record, each non-merge feature commit that
+  changes this constitution passes the version rule in Governance, and the
+  feature passes `deno task verify`, so the merge commit's tree is the reviewed
+  and verified feature tree. Finish a release or hotfix by hand: first have a fresh reviewer
+  from the other provider, given only the scope and requirements, review the source
   branch, favoring accuracy, and resolve its findings; then recheck that the
   target and the source still point at their reviewed and verified commits,
   and stage the merge with `git merge --no-ff --no-commit`. A staged tree that
@@ -207,8 +214,10 @@ commit's Conventional Commits type: a breaking change (`!` or a `BREAKING
 CHANGE` footer) raises the first digit and needs the user's approval, `feat`
 the middle digit, and `docs` or `fix` the last digit; commits of other types
 do not change this document. The repository's commit-message hook enforces
-this rule. Compliance review follows the root AGENTS.md workflow,
-verification and review requirements. Product, plugin, document, and constitution versions remain
+this rule, and the feature finish hook checks it again for each non-merge commit
+on the feature that changes this constitution. Compliance review follows the
+root AGENTS.md workflow, verification and review requirements. Product, plugin,
+document, and constitution versions remain
 independent. The latest user direction governs conflicts. The user's 2026-09-22
 plugin layout supersedes the earlier `apps/` and root `deno.jsonc` requirement,
 and the user's 2026-09-22 Raw/Wiki/Schema and XDG layout governs Wiki storage.

@@ -106,9 +106,9 @@ export async function constitutionVersionRule(
   parsed: ParsedCommit,
 ): Promise<VersionResult> {
   try {
-    const headRef = Deno.env.get('CONSTITUTION_VERSION_AMEND')
-      ? 'HEAD^'
-      : 'HEAD';
+    const commit = Deno.env.get('CONSTITUTION_VERSION_COMMIT');
+    const amend = Deno.env.get('CONSTITUTION_VERSION_AMEND');
+    const headRef = commit ? `${commit}^` : amend ? 'HEAD^' : 'HEAD';
     const head = await git(['rev-parse', '--verify', '--quiet', headRef]);
     if (head.code === 1) {
       return [true, 'Constitution version check does not apply.'];
@@ -117,24 +117,32 @@ export async function constitutionVersionRule(
 
     const [headPath, indexPath] = await Promise.all([
       git(['ls-tree', '-r', '--name-only', headRef, '--', constitutionPath]),
-      git(['ls-files', '--error-unmatch', '--', constitutionPath]),
+      commit
+        ? git(['ls-tree', '-r', '--name-only', commit, '--', constitutionPath])
+        : git(['ls-files', '--error-unmatch', '--', constitutionPath]),
     ]);
     if (!headPath.success)
       return gitFailure(`check the constitution in ${headRef}`, headPath.code);
-    if (headPath.stdout.length === 0 || indexPath.code === 1) {
+    if (!indexPath.success && indexPath.code !== 1)
+      return gitFailure(
+        `check the constitution in ${commit ?? 'the index'}`,
+        indexPath.code,
+      );
+    if (headPath.stdout.length === 0 || indexPath.stdout.length === 0) {
       return [true, 'Constitution version check does not apply.'];
     }
-    if (!indexPath.success)
-      return gitFailure('check the constitution in the index', indexPath.code);
 
     const [before, after] = await Promise.all([
       git(['show', `${headRef}:${constitutionPath}`]),
-      git(['show', `:${constitutionPath}`]),
+      git(['show', `${commit ?? ''}:${constitutionPath}`]),
     ]);
     if (!before.success)
       return gitFailure(`read the constitution from ${headRef}`, before.code);
     if (!after.success)
-      return gitFailure('read the constitution from the index', after.code);
+      return gitFailure(
+        `read the constitution from ${commit ?? 'the index'}`,
+        after.code,
+      );
 
     return constitutionVersion(
       parsed.type,

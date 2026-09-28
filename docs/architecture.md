@@ -362,13 +362,14 @@ flow rule.
   `scripts/git-flow-hooks/pre-flow-feature-finish` refuses the finish unless
   that worktree is on `develop` with no uncommitted changes, `develop` is an
   ancestor of the feature, the feature is checked out in a clean worktree, its
-  tip is a review record, and `deno task verify` passes there. A review record
-  has one parent and the same tree as that parent, exactly one non-empty
-  `Reviewed-by` trailer, and exactly one `Reviewed-commit` trailer that
-  resolves to the parent. The merge then has Git's default message, its
-  parents are `develop` and then the review record, and its tree is the
-  reviewed and verified feature tree. `deno task test:git-flow` checks these
-  cases with the real binary.
+  tip is a review record, every non-merge feature commit that changes the
+  constitution passes the version rule against its parent, and `deno task
+  verify` passes there. A review record has one parent and the same tree as
+  that parent, exactly one non-empty `Reviewed-by` trailer, and exactly one
+  `Reviewed-commit` trailer that resolves to the parent. The merge then has
+  Git's default message, its parents are `develop` and then the review record,
+  and its tree is the reviewed and verified feature tree. `deno task
+  test:git-flow` checks these cases with the real binary.
 - Orca's setup script gives a new worktree's branch its git flow name, because
   `orca worktree create` has no branch option and turns a `/` in `--name` into
   `-`. `scripts/worktree-branch.sh` maps the worktree's folder name:
@@ -397,7 +398,9 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   defines it. Any trailer is accepted, including `Spec-Kit-Task`,
   `Reviewed-by`, `Reviewed-commit` and `Co-Authored-By`. commitlint's default
   ignores skip Git's default merge messages, so git-flow finishes and
-  hand-finished merges pass.
+  hand-finished merges pass. At commit time, commitlint's default ignores also
+  skip other messages, such as those starting with `fixup!`, `squash!`,
+  `amend!`, `Revert ` or `Reapply `.
 - One local rule, in `scripts/constitution_version.ts`, compares
   `.specify/memory/constitution.md` in `HEAD` with the index being committed.
   A commit that changes the file must raise its version exactly one step: a
@@ -417,6 +420,12 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   know which options take a value, so a value such as the message in
   `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
   and a value `--no-amend` hides a real amend.
+- `git rebase -i` does not run `commit-msg` for `fixup` or `squash`. Before a
+  feature finish, the hook checks each non-merge feature commit that changes
+  the constitution against its parent and its own tree. This check disables
+  commitlint's default ignores and applies only the version rule, so combined
+  commits and `fixup!` messages are checked. A refusal names the commit and
+  branch; rewrite it, then review and record again.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,
