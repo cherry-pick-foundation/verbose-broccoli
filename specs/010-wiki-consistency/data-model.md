@@ -113,7 +113,10 @@ Candidates are not stored; `prepare` computes them from the index.
 ## Unit outcome
 
 Every in-scope unit ends in exactly one of: `requested` (in one evidence
-request) or `unverifiable` (all cited sources unreadable).
+request) or `unverifiable`: all cited sources are unreadable, or no evidence
+is left to send (an `overview.md` unit whose page links to no page, or a unit
+for which no passage fits `--max-evidence-chars`); its `sources` list the
+cited revisions or linked pages, possibly none.
 
 ## Module interfaces
 

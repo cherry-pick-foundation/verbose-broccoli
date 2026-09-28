@@ -210,7 +210,7 @@ split backfire requests.
   script `src/wiki_consistency/search.mjs` it runs for batched `searchLex`
   and `searchVector` queries (research.md R4), and the `index` command.
   T017 passes.
-- [ ] T019 [US2] Write `tests/test_prepare.py`: scope `changed` selects
+- [x] T019 [US2] Write `tests/test_prepare.py`: scope `changed` selects
   units differing from the instance's `HEAD` and every unit of pages with a
   stale citation, whose evidence includes the latest revision; evidence is
   whole under `--max-evidence-chars` and matching passages above it; page
@@ -225,10 +225,14 @@ split backfire requests.
   two runs give byte-identical output; without `convert` or `index` it
   refuses and names the step; no file changes and no socket opens. Fails
   before T020.
-- [ ] T020 [US2] Implement `src/wiki_consistency/requests.py` and the
+- [x] T020 [US2] Implement `src/wiki_consistency/requests.py` and the
   `prepare` command per [contracts/commands.md](contracts/commands.md), using
   `doc_regions` for units and request splitting. T019 passes (depends on
   T009, T016, T018).
+  - 2026-09-28: main's review found that candidates and passages were cut
+    after sorting by path, losing qmd's ranking; a restarted Codex worker
+    (`ctx_e4e292824124`) now keeps the best per-mode search positions
+    before sorting, with three regression tests (71 package tests).
 
 **Checkpoint**: The agent can run the per-change judgment step.
 
@@ -241,11 +245,11 @@ suggestions.
 
 **Independent Test**: The quickstart's "Judgment step" step 5.
 
-- [ ] T021 [US3] Extend `tests/test_prepare.py`: lint scope covers every
+- [x] T021 [US3] Extend `tests/test_prepare.py`: lint scope covers every
   unit except `log.md` exactly once; for two related pages that do not link
   to each other, each page's `crossref` request lists the other; a page with
   fewer than two candidates gets no `crossref` request. Fails before T022.
-- [ ] T022 [US3] Implement lint scope and `crossref` requests in
+- [x] T022 [US3] Implement lint scope and `crossref` requests in
   `requests.py`. T021 passes.
 
 ---
@@ -258,7 +262,7 @@ to the work plugin's backfire server.
 **Independent Test**: `deno task test:wiki-consistency` (the data-boundary
 tests).
 
-- [ ] T023 [US4] Write `tests/test_boundary.py`: with synthetic
+- [x] T023 [US4] Write `tests/test_boundary.py`: with synthetic
   configuration, state and credential files containing a marker string, no
   request contains the marker (depends on T020).
 - T024 Removed on 2026-09-28: feature 011 withholds no data, and the user
@@ -391,3 +395,14 @@ T019 to T023; Codex D takes T025.
   then T025; main wrote T026, T027 and a first T029 draft. Main reviewed and
   accepted each result; `deno task verify` passed with 47 package tests.
   Next: Codex C on T019 to T023 and the remaining `__main__.py` entries.
+- 2026-09-28 (paused at the develop session's request, last commit
+  `cdc211f`): Codex C implemented T019 to T023 and the convert, index and
+  prepare subcommands (68 tests passed; uncommitted). Main's review found one
+  defect: `requests.py` truncates page candidates, crossref candidates and
+  passages after sorting by path, losing qmd's ranking. C's fix
+  (`ctx_46927fbbae90`) was stopped mid-edit; its partial files are
+  uncommitted. Open: T028 waits for the user's choice (skip, or apply after
+  the default instance's uncommitted edits are committed). Next: merge
+  `develop` (`a5ce40f`), restart the ranking fix on gpt-6-luna max with the
+  partial files checked against the spec, verify, commit wave 2, then T029
+  to T032.
