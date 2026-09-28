@@ -96,6 +96,17 @@ owns the records, T005 and integration.
     was moved aside and passed with `shellCheck` in sync once it was back.
     After the fix, a probe named `scripts/shellcheck probe.sh` failed the
     same way and the task passed after its removal.
+  - 2026-09-29: `develop` moved to `8f1de1e` (CHE-27's vault topics
+    merge) and was merged in at `e26dda5` without conflicts. There
+    `deno task verify` passed, and its log shows the `lint:shell` step. The
+    document judgment step, rerun there, sent 229 units in five
+    `backfire_verify` requests: none was contradicted, and the changed
+    `docs/architecture.md` unit (27-54) was verified. Nine units flagged
+    for review are unchanged `docs/architecture.md` text (365-481 and
+    571-574) with weak partial matches to the diff; they stand. Two
+    requests failed at the provider and succeeded on retry; the judgments
+    used 201,696 input and 64,218 output tokens. Next: the review record
+    and the finish.
 
 ## Phase 4: After the finish
 
