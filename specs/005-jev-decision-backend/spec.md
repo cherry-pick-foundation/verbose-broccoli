@@ -437,7 +437,9 @@ check reports either success or the specific failure.
   send to the external service, and no instruction may direct agents to send
   credentials or private personal records to the tools.
 - **FR-015**: The work and chat plugins MUST NOT gain these tools or depend on
-  the backend.
+  the backend. (Superseded for the work plugin on 2026-09-28 by feature 011,
+  [Backfire for education work](../011-backfire-education/spec.md), whose
+  FR-015 lifts this rule; the chat plugin is CHE-10's question.)
 - **FR-016**: The backend MUST record each verdict locally with a digest of
   exactly the input it judged, including patches with uncommitted changes, the
   claims, the evidence and the test text; the record MUST NOT contain the input
@@ -565,7 +567,9 @@ check reports either success or the specific failure.
   the same measurement.
 - Tool inputs are code, patches, test output and documentation. Private
   personal records such as student data stay out; the work plugin, which owns
-  them, is out of scope.
+  them, is out of scope. (Superseded on 2026-09-28 by feature 011: the work
+  plugin's own backfire build receives student records with identifiers
+  pseudonymized; the code build still receives none.)
 - Agents decide when to call the tools, and nothing enforces their verdicts.
   Enforcement, for example making verification-before-completion require the
   gate, and recording real test runs (commands, exit codes, log identifiers,

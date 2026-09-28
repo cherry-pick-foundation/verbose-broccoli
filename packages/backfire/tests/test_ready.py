@@ -2,6 +2,10 @@
 
 import asyncio
 import json
+import platform
+import subprocess
+
+import pytest
 
 from backfire import ready
 from fake_provider import FakeProvider, completion
@@ -26,6 +30,60 @@ thinking = {requested = "on", content_path = "reasoning_content", token_path = "
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path / "state"))
     monkeypatch.delenv("BACKFIRE_TEST_PROVIDER_BASE_URL", raising=False)
+
+
+@pytest.mark.parametrize("education", [False, True])
+def test_installation_check_matches_project_extra(tmp_path, monkeypatch, education):
+    root = tmp_path / "component"
+    (root / "src/backfire").mkdir(parents=True)
+    if education:
+        (root / "src/backfire_education").mkdir()
+    (root / ".python-version").write_text(platform.python_version(), encoding="utf-8")
+    monkeypatch.setattr(ready, "_ROOT", root)
+    monkeypatch.setattr(ready.sys, "prefix", str(root / ".venv"))
+    monkeypatch.setattr(ready.backfire, "__file__", str(root / "src/backfire/__init__.py"))
+    commands = []
+
+    def sync(command, **kwargs):
+        commands.append(command)
+        installed_extra = "--extra" in command
+        passed = "--no-dev" in command and installed_extra is education
+        return subprocess.CompletedProcess(command, int(not passed), "", "")
+
+    monkeypatch.setattr(ready.subprocess, "run", sync)
+    versions = {
+        key: "synthetic" for key in (
+            "jev_mcp_port", "mcp", "rfc8785", "system_one_adapter", "typesafe_sdk",
+            "openai", "python", "uv", "prompt_sha256",
+        )
+    }
+
+    assert ready._installation_problem(versions) is None
+    assert len(commands) == 2
+    assert all(("--extra" in command) is education for command in commands)
+
+
+@pytest.mark.parametrize("education", [False, True])
+def test_installation_failure_prints_matching_sync_command(tmp_path, monkeypatch, capsys, education):
+    root = tmp_path / "component"
+    (root / "src/backfire").mkdir(parents=True)
+    if education:
+        (root / "src/backfire_education").mkdir()
+    (root / ".python-version").write_text(platform.python_version(), encoding="utf-8")
+    monkeypatch.setattr(ready, "_ROOT", root)
+    monkeypatch.setattr(ready.sys, "prefix", str(root / ".venv"))
+    monkeypatch.setattr(ready.backfire, "__file__", str(root / "src/backfire/__init__.py"))
+    monkeypatch.setattr(ready, "_versions", lambda: {
+        key: "synthetic" for key in (
+            "jev_mcp_port", "mcp", "rfc8785", "system_one_adapter", "typesafe_sdk",
+            "openai", "python", "uv", "prompt_sha256",
+        )
+    })
+    monkeypatch.setattr(ready.subprocess, "run", lambda command, **kwargs: subprocess.CompletedProcess(command, 1, "", ""))
+
+    assert ready.main() == 1
+    install = "uv sync --frozen --no-dev --extra education" if education else "uv sync --frozen --no-dev"
+    assert capsys.readouterr().err == f"Readiness failed: run `{install}` in this component, then retry.\n"
 
 
 def test_direct_noul_uses_118_second_deadline_without_records(monkeypatch):

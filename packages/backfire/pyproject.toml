@@ -13,6 +13,9 @@ dependencies = [
   "system-one-adapter[openai]==0.2.1",
 ]
 
+[project.optional-dependencies]
+education = ["phonenumbers==9.0.40"]
+
 [project.scripts]
 backfire = "backfire.__main__:main"
 
@@ -32,10 +35,11 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["backfire", "backfire.*", "backfire_tools", "backfire_tools.*"]
+include = ["backfire", "backfire.*", "backfire_tools", "backfire_tools.*", "backfire_education", "backfire_education.*"]
 
 [tool.setuptools.package-data]
 backfire = ["config.toml", "UPSTREAM.md"]
+backfire_education = ["config.toml"]
 
 [tool.pytest.ini_options]
 addopts = ["-p", "no:cacheprovider"]

@@ -13,14 +13,14 @@ PACKAGE_FILES = ("pyproject.toml", ".python-version", "uv.lock")
 MAX_BYTES = 16 * 1024 * 1024
 
 
-def run_build(output: Path, source: Path = ROOT, *, budget: str = str(MAX_BYTES)):
+def run_build(output: Path, source: Path = ROOT, *, plugin: str = "code", budget: str = str(MAX_BYTES)):
     entry = (
         ["-m", "backfire_tools.build"]
         if source == ROOT
         else [str(source / "packages/backfire/src/backfire_tools/build.py")]
     )
     return subprocess.run(
-        [sys.executable, *entry, "--", str(output)],
+        [sys.executable, *entry, "--", plugin, str(output)],
         env={**os.environ, "BACKFIRE_TEST_BUILD_MAX_BYTES": budget},
         capture_output=True,
         text=True,
@@ -46,7 +46,7 @@ def no_output(output: Path) -> None:
 @pytest.fixture
 def source_repository(tmp_path: Path) -> Path:
     source = tmp_path / "repository"
-    for path in ("plugins/code", "packages/backfire/src"):
+    for path in ("plugins/code", "plugins/work", "packages/backfire/src"):
         shutil.copytree(
             ROOT / path,
             source / path,
@@ -57,35 +57,61 @@ def source_repository(tmp_path: Path) -> Path:
     return source
 
 
-def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path) -> None:
-    output = tmp_path / "code"
-    result = run_build(output)
+@pytest.mark.parametrize("plugin", ["code", "work"])
+def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: str) -> None:
+    output = tmp_path / plugin
+    result = run_build(output, plugin=plugin)
     assert result.returncode == 0, result.stderr
     assert result.stdout == f"{output}\n"
     assert result.stderr == ""
-    plugin = {
+    plugin_files = {
         path: contents
         for path, contents in tree(output).items()
         if path != "backfire" and not path.startswith("backfire/")
     }
-    assert plugin == tree(ROOT / "plugins/code")
+    assert plugin_files == tree(ROOT / "plugins" / plugin)
 
     package = ROOT / "packages/backfire"
     expected = {"": None, "src": None}
     for path in PACKAGE_FILES:
         expected[path] = (package / path).read_bytes()
-    for path, contents in tree(package / "src/backfire").items():
-        if "__pycache__" not in Path(path).parts:
-            expected[(Path("src/backfire") / path).as_posix()] = contents
+    packages = ("backfire",) if plugin == "code" else ("backfire", "backfire_education")
+    for name in packages:
+        for path, contents in tree(package / "src" / name).items():
+            if "__pycache__" not in Path(path).parts and path != "config.toml":
+                expected[(Path("src") / name / path).as_posix()] = contents
+    profile = package / "src" / packages[-1] / "config.toml"
+    expected["src/backfire/config.toml"] = profile.read_bytes()
     assert tree(output / "backfire") == expected
     assert "src/backfire/__main__.py" in expected
     for path, contents in expected.items():
         if contents is not None:
             assert (output / "backfire" / path).stat().st_mode == (
-                package / path
+                profile if path == "src/backfire/config.toml" else package / path
             ).stat().st_mode
-    assert not os.path.lexists(ROOT / "plugins/code/backfire")
+    assert not os.path.lexists(ROOT / "plugins" / plugin / "backfire")
     assert list(tmp_path.iterdir()) == [output]
+
+
+@pytest.mark.parametrize("plugin", ["chat", "unknown", "../code"])
+def test_unknown_plugin_writes_nothing(tmp_path: Path, plugin: str) -> None:
+    output = tmp_path / "output"
+    result = run_build(output, plugin=plugin)
+    assert result.returncode == 1
+    assert f"Unknown plugin: {plugin}; known plugins: code, work" in result.stderr
+    no_output(output)
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("args", [[], ["code"], ["output"], ["code", "output", "extra"], ["", "output"]])
+def test_build_requires_plugin_and_output(tmp_path: Path, args: list[str]) -> None:
+    result = subprocess.run(
+        [sys.executable, "-m", "backfire_tools.build", *args],
+        cwd=tmp_path, capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 1
+    assert result.stderr == "Usage: deno task backfire:build -- <plugin> <output>\n"
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_build_excludes_development_files_and_caches(
@@ -235,7 +261,7 @@ build.shutil.copy2 = pause_copy
 raise SystemExit(build.main())
 """
     with subprocess.Popen(
-        [sys.executable, "-c", script, str(output)],
+        [sys.executable, "-c", script, "code", str(output)],
         env={**os.environ, "BACKFIRE_TEST_BUILD_MAX_BYTES": str(MAX_BYTES)},
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

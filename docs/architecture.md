@@ -13,9 +13,11 @@ the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
-The `work` package contains the `quarto-authoring` and
-`session-migrate` skills and an MCP declaration without servers; its business
-capabilities have no implementation until new features specify them.
+The `work` package contains the `quarto-authoring`, `session-migrate`,
+`wiki-raw-import` and `backfire` skills and an MCP declaration for its own
+`backfire` server, which
+pseudonymizes student identifiers; its other business capabilities have no
+implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
 has no skills, Deno configuration, MCP declaration, scripts or persistent state.
 No release has occurred, and actual client installation
@@ -153,19 +155,27 @@ one-run lock live under the cache and state roots.
 
 ### Backfire server
 
-`plugins/code/mcp.json` declares the `backfire` stdio server and starts it with
-`uv --directory ${PLUGIN_ROOT}/backfire run --frozen --offline --no-sync
-backfire serve-mcp`. Its Python runtime package lives in
-`packages/backfire/src/backfire/`, outside the root Deno workspace.
-`deno task backfire:build -- <output>` copies the code plugin and runtime
-package into a complete plugin at an output path outside `plugins/` and
-`packages/`. The development and release programs in
+`plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
+stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
+--frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
+package lives in `packages/backfire/src/backfire/`, outside the root Deno
+workspace. The work plugin's additions, the pseudonymization module and the
+education profile, live in `packages/backfire/src/backfire_education/`.
+`deno task backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
+the packages that plugin needs into a complete plugin at an output path outside
+`plugins/` and `packages/`; one table in `backfire_tools/build.py` lists them
+per plugin. The development and release programs in
 `packages/backfire/src/backfire_tools/` are not shipped; they include the build,
-probes, and upstream capture.
+probes, upstream capture and the education measurement.
 
-`packages/backfire/src/backfire/config.toml` contains the shipped provider
-profiles and selects Hive by default. An operator can select or replace
-profiles in the optional
+Each build's `backfire/src/backfire/config.toml` is its shipped provider
+profile: the development profile `hive` from
+`packages/backfire/src/backfire/config.toml` for code, and the education
+profile from `packages/backfire/src/backfire_education/config.toml` for work.
+The work build's file also sets `pseudonymize = true`, which makes the shared
+judge replace roster names, schools and contact details with stable
+pseudonyms before a server or readiness judgment leaves the process. An
+operator can select or replace profiles in the optional
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
 Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
 recorded differences are in
@@ -205,13 +215,16 @@ global skill migration remain separate.
 ### Skill source ownership — 2026-09-14
 
 Maintain each skill only in its owning package, without discovery links or
-duplicate source trees elsewhere in the repository.
+duplicate source trees elsewhere in the repository. The one exception is the
+`backfire` skill: the code and work plugins each carry a vendored copy of the
+same upstream skill, because a plugin may not link to another plugin's files,
+and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
 | `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
+| `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
