@@ -14,7 +14,7 @@ The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
-`wiki-raw-import` and `backfire` skills and an MCP declaration for its own
+`wiki-raw-import`, `wiki-consistency` and `backfire` skills and an MCP declaration for its own
 `backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
@@ -153,6 +153,50 @@ are the only record of sources and revisions. The user's exclusions live in
 `$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
 one-run lock live under the cache and state roots.
 
+### Wiki consistency
+
+Wiki pages follow the region model of repository documents (below): each part
+is a mechanical region that a generator rebuilds from named instance files, or
+agent-written text that backfire judges. The engine is the uv project
+`packages/wiki-consistency/`, which calls `packages/doc-regions/` as a library
+with the instance as its root; the work plugin's build ships both projects,
+and the plugin's `wiki-consistency` skill runs the commands. The instance's
+`AGENTS.md`, from the `wiki-raw-import` skill's template, states the rules.
+
+- Pages carry YAML front matter with a title, a one-line summary and the
+  source revisions they cite. `index.md` is one mechanical region,
+  `page_catalog`, built from that metadata; a source page may hold a
+  `source_provenance` region built from its bags. `overview.md` is written by
+  the agent, and `log.md` is append-only and never judged.
+- `check` runs before every commit of the instance. It fails on a stale or
+  malformed region, a broken link (lychee, offline), missing or unresolvable
+  page metadata, a cited bag that fails BagIt's fast validation, or a changed
+  earlier `log.md` entry, and it lists orphan pages and citations of
+  non-latest revisions. It writes nothing, uses no network and needs no
+  cache. `update` regenerates stale regions.
+- The judgment step runs at the end of an operation that changed pages, and
+  over the whole Wiki in a lint. `convert` turns cited revisions into
+  Markdown with markitdown 0.1.8 under `~/.cache/verbose-broccoli/wiki-evidence/`
+  (1 GiB budget); HWP files and scanned PDFs are reported as unreadable, and
+  claims resting only on them as unverifiable. `index` builds qmd 2.8.3
+  collections of the pages and the converted evidence under
+  `~/.cache/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
+  Qwen3 embedding model, a 610 MB download on first use. `prepare` prints
+  `backfire_verify` requests (units against their cited evidence, and against
+  candidate units of other pages), `backfire_find` cross-reference requests
+  in a lint, and `backfire_classify` requests for new units. qmd only finds
+  candidates; backfire judges.
+- The agent sends the requests to the work plugin's backfire server, whose
+  judge replaces personal identifiers before the provider call, and confirms
+  a contradiction between two pages with `backfire_compare`.
+- `deno task wiki-consistency:install` installs both environments, Orca's
+  setup script runs the same installs, and `deno task doctor` checks them and
+  Node 22. `deno task test:wiki-consistency` runs the package's tests.
+- Not automated: sending the requests and acting on the results, accepting
+  suggestions, updating stale citations, writing `log.md` entries, applying a
+  new schema template to an existing instance, and converting HWP files or
+  scanned PDFs.
+
 ### Backfire server
 
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
@@ -224,7 +268,7 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 | Package | Owned skills |
 | --- | --- |
 | `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-raw-import` |
+| `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current

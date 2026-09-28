@@ -183,6 +183,35 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2022 The lychee maintainers. MIT or Apache-2.0, at the user's
   choice.
 
+## microsoft/markitdown — Wiki evidence conversion
+
+- Source: <https://github.com/microsoft/markitdown>, published on PyPI as
+  `markitdown` 0.1.8 with the `docx`, `pdf` and `pptx` extras.
+- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
+  in its `uv.lock`, to convert cited raw revisions to Markdown in the cache.
+  No source is copied into the repository.
+- Copyright (c) Microsoft Corporation. MIT license.
+
+## tobi/qmd — Wiki candidate search
+
+- Source: <https://github.com/tobi/qmd>, published on npm as `@tobilu/qmd`
+  2.8.3.
+- Used as a pinned npm dependency of `packages/wiki-consistency/`, locked in
+  its `package-lock.json` and installed with `npm ci --ignore-scripts`, to
+  index Wiki pages and converted evidence in the cache and find candidate
+  passages. No source is copied into the repository.
+- Copyright (c) 2024-2026 Tobi Lutke. MIT license.
+
+## yaml/pyyaml — Wiki page metadata
+
+- Source: <https://github.com/yaml/pyyaml>, published on PyPI as `PyYAML`
+  6.0.3.
+- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
+  in its `uv.lock`, to read the front matter of Wiki pages. No source is
+  copied into the repository.
+- Copyright (c) 2017-2021 Ingy döt Net and Copyright (c) 2006-2016 Kirill
+  Simonov. MIT license.
+
 ## RbBtSn0w/spec-kit-extensions — MemoryLint audit
 
 - Source:
