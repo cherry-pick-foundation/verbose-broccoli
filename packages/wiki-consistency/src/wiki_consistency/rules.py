@@ -83,6 +83,10 @@ _OFFSET_PREFIX = re.compile(
     r"(?:[ ]*(?:AM|PM|a\.m\.|p\.m\.))?)(?P<spaces>[ ]*)(?P<sign>[+-])$"
 )
 _UTC_ZONE = re.compile(r"(?:UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?|\(UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?\))(?![A-Za-z0-9])")
+_UTC_OFFSET_TIME = re.compile(
+    r"(?<![A-Za-z0-9])(?:UTC[+-]([0-9]{1,2}:[0-9]{2})"
+    r"|\(UTC[+-]([0-9]{1,2}:[0-9]{2})\))(?![A-Za-z0-9])"
+)
 _RANGE_JOINER = re.compile(r"[ ]*(?:-|–|—|to)[ ]*")
 
 
@@ -253,7 +257,11 @@ def _dates(text):
 
 
 def _time_tokens(text):
+    utc_offsets = {match.span(1 if match[1] else 2)
+                   for match in _UTC_OFFSET_TIME.finditer(text)}
     for match in _TIME.finditer(text):
+        if match.span() in utc_offsets:
+            continue
         prefix_text = text[max(0, match.start() - 32):match.start()]
         prefix = _OFFSET_PREFIX.search(prefix_text)
         if prefix:
@@ -384,7 +392,6 @@ def check(root):
                 if (_is_cjk(character) and not name_marks[index]
                         and not quote_marks[index]):
                     _add(problems, seen, document, _line_number(starts, index), "english")
-                    break
 
             for start, stop in school_ranges:
                 if any(_is_cjk(text[index]) and not quote_marks[index]
