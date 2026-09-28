@@ -28,7 +28,8 @@ repository or into Orca or Linear messages.
 ## Phase 1: Documents (US1)
 
 - [x] T001 [US1] In `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
-  add the rule to the Wiki section (FR-001, FR-002).
+  add the rule to the Wiki section (FR-001, FR-002), and the source
+  precedence sentence next to it (FR-006).
 - [x] T002 [P] [US1] In `plugins/work/skills/wiki-consistency/SKILL.md`,
   state the rule in one sentence (FR-003).
 - [x] T003 [P] [US1] In `docs/architecture.md`'s Wiki consistency section,

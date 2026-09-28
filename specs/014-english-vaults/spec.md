@@ -29,6 +29,10 @@ review.
   name. Student names still keep the roster's spelling. Real school IDs and
   names stay out of the repository, so the rule names only the folder
   convention.
+- Q: Which source wins when sources disagree? → A: Student information
+  follows the user's student information system (EduOK) first, and school
+  information follows the school's official homepage first. The schema
+  template states it in one sentence next to the naming rule.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -107,8 +111,12 @@ template, its Git log has one new commit, and the offline `check` passes.
   `chat` and `code` vaults MUST get the template's new wording, one vault
   commit each, with the offline `check` passing.
 - **FR-005**: The `work` vault, every raw revision, the constitution and the
-  tools' code MUST NOT change. The wording MUST stay short and add no other
-  rule.
+  tools' code MUST NOT change. The wording MUST stay short and add no rule
+  the user did not decide.
+- **FR-006**: The template MUST say in one sentence that, when sources
+  disagree, student information follows the user's student information
+  system (EduOK) first and school information the school's official homepage
+  first.
 
 ## Success Criteria *(mandatory)*
 
