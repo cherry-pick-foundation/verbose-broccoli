@@ -14,7 +14,7 @@ pipes each such commit's message to commitlint with
 `CONSTITUTION_VERSION_COMMIT` set to the commit. In that mode the version rule
 compares the commit with its parent, and the commitlint configuration applies
 only that rule, with default ignores off. The constitution names the new check,
-as the user approved.
+in wording the user chose (see Deviations from Assessment).
 
 ## Changes
 
@@ -67,10 +67,14 @@ The first three and the `commit-msg` case fail without the fix; see
 
 ## Deviations from Assessment
 
-- The assessment left the constitution text open. The user chose to add one
-  clause to the feature-finish sentence and one to the Governance sentence
-  about enforcement, in a `docs` commit that raises the version to 1.0.1, and
-  to rewrite the Sync Impact Report for that change.
+- The assessment left the constitution text open. Asked through Orca from
+  the coordinator's dispatch `ctx_e697a91bb25f` on 2026-09-28, the user chose,
+  through the develop session, to add one clause to the feature-finish
+  sentence and one to the Governance sentence about enforcement, in a `docs`
+  commit that raises the version to 1.0.1. A follow-up asked about the Sync
+  Impact Report; the develop session answered from the Spec Kit procedure,
+  which produces a new report with each update
+  (`plugins/code/skills/speckit-constitution/SKILL.md:110`).
 - The rule now checks for a git failure on the commit's side before it decides
   that the check does not apply, so a failed `git ls-tree` refuses instead of
   passing. For the index the result is the same as before.
