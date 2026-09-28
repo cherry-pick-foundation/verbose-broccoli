@@ -58,8 +58,20 @@ owns the records, T005 and integration.
 
 ## Phase 3: Verification and review
 
-- [ ] T006 Run `deno task verify` (SC-001) and the acceptance runs of SC-002
+- [x] T006 Run `deno task verify` (SC-001) and the acceptance runs of SC-002
   to SC-004.
+  - 2026-09-29: `develop` at `7e4c92b` (CHE-27's merge) was merged in at
+    `66c4a78` without conflicts, and `deno task verify` passed there. The
+    document judgment step (`doc-regions:prepare -- --base develop
+    --max-evidence-chars 20000`) sent 229 units in five `backfire_verify`
+    requests: none was contradicted, the changed `docs/architecture.md`
+    unit (27-54) was verified, and the three units flagged for review
+    (`AGENTS.md` 51-52, `README.md` 1 and 8-10, all unchanged) are weak
+    partial matches with the diff and stand. Two requests failed at the
+    provider twice each and succeeded on the third try; the judgments used
+    201,397 input and 71,089 output tokens. `doc-regions:audit` reported
+    the same 19 MemoryLint `boundary` warnings on the constitution as
+    earlier features; they are reported, not acted on.
 - [ ] T007 Merge `develop`, verify, move CHE-30 to In Review, run the merge
   review, resolve findings, commit the review record, check that `develop`
   has not moved, and run `git flow feature finish shellcheck` in the
