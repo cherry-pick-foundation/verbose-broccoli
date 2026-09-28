@@ -36,14 +36,15 @@ through a scratch MCP client, because this session has no backfire MCP tools.
 `deno task backfire:ready` reached the provider and passed its tool checks, but
 its calibration sample answered 0.5. Two requests first failed with
 `provider_error` and passed on a retry. Backfire's own session records hold
-each call's outcome and input digest, not its verdicts:
+each call's outcome, input digest and per-unit decisions (`verdict` and
+`action`), but not the full tool responses:
 `~/.local/state/verbose-broccoli/backfire/records/2026-09-28T01:36:20.945608Z-ec08fdfd57804688b1e6861fabf035cc.jsonl`
 (two `backfire_verify` calls `ok`, then one `backfire_verify` and the
 `backfire_classify` call `tool_error` after `provider_error` judgments) and
 `2026-09-28T01:38:41.962123Z-c9f98bb056bc4e42962126a8b304bafa.jsonl` in the
-same folder (the retry: both `ok`, with the same input digests). The verdicts
-below come from the tool results; see Output Excerpts. Line numbers are at
-`fa2c2d1`.
+same folder (the retry: both `ok`, with the same input digests). The counts
+in Output Excerpts come from the tool results and match those decisions. Line
+numbers are at `fa2c2d1`.
 
 - No unit was `contradicted`.
 - Target units flagged `review`, all standing: `docs/architecture.md:304-315`

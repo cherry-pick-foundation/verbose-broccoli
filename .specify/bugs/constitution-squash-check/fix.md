@@ -67,14 +67,18 @@ The first three and the `commit-msg` case fail without the fix; see
 
 ## Deviations from Assessment
 
-- The assessment left the constitution text open. Asked through Orca from
-  the coordinator's dispatch `ctx_e697a91bb25f` on 2026-09-28, the user chose,
-  through the develop session, to add one clause to the feature-finish
-  sentence and one to the Governance sentence about enforcement, in a `docs`
-  commit that raises the version to 1.0.1. A follow-up asked about the Sync
-  Impact Report; the develop session answered from the Spec Kit procedure,
-  which produces a new report with each update
-  (`plugins/code/skills/speckit-constitution/SKILL.md:110`).
+- The assessment left the constitution text open. The coordinator asked
+  through Orca (`ask` messages `msg_2368ad3398ae` and `msg_54068ebb5116` in
+  the develop session's Run `run_8b222073b123`), and the develop session
+  relayed the answers to the coordinator on 2026-09-28. The user's answer to
+  the first, verbatim: "(A) add one short clause in each of the two places
+  (the finish hook's refusal list under Development Workflow, and the
+  enforcement sentence under Governance) in a docs commit, raising the version
+  1.0.0 to 1.0.1. Keep the wording to what the new check does; add nothing
+  else." The second asked about the Sync Impact Report; the develop session
+  answered from the Spec Kit procedure, which produces a new report with each
+  update (`plugins/code/skills/speckit-constitution/SKILL.md:110`), so the
+  report was rewritten for this change.
 - The rule now checks for a git failure on the commit's side before it decides
   that the check does not apply, so a failed `git ls-tree` refuses instead of
   passing. For the index the result is the same as before.
