@@ -41,9 +41,10 @@ also ships macOS and Windows wheels.
 **Performance Goals**: None.
 
 **Constraints**: `.specify/` stays in its upstream form. CHE-29 (Ruff, on
-`feature/python-ruff`) also adds a check to `deno task check`, and CHE-27 is
-changing code; whichever feature finishes later merges `develop` and keeps
-every change. Spec number 015 is taken by `feature/vault-topics`.
+`feature/python-ruff`) also adds a check to `deno task check`, and CHE-27
+was changing code when this plan was written; whichever feature finishes
+later merges `develop` and keeps every change. CHE-27's merge into `develop`
+(`7e4c92b`) was merged into this branch at `66c4a78` (tasks.md, T006). Spec number 015 is taken by `feature/vault-topics`.
 
 **Scale/Scope**: About ten files.
 

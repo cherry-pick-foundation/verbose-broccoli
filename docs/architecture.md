@@ -39,7 +39,7 @@ shell scripts: `deno task lint:shell` runs it on every `*.sh` file and on the
 hooks in `scripts/git-hooks/` and `scripts/git-flow-hooks/`, but not on Spec
 Kit's vendored scripts under `.specify/`. The root `.shellcheckrc` turns on
 four optional checks for guide rules: `${var}` braces, quoted variables,
-explicit `-z` or `-n` tests, and `[[ … ]]` in Bash scripts. The scripts stay
+explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts stay
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the

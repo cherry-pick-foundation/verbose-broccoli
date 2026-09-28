@@ -76,6 +76,26 @@ owns the records, T005 and integration.
   review, resolve findings, commit the review record, check that `develop`
   has not moved, and run `git flow feature finish shellcheck` in the
   `develop` worktree.
+  - 2026-09-29: Backfire rated the code review medium, so a fresh Claude
+    Code reviewer (`claude-sonnet-5`, high effort; Orca dispatch
+    `ctx_03135c503913`) reviewed T001 to T004 at `08492d0` and approved,
+    with one should-fix and one nit. A fresh Codex reviewer (`gpt-6-luna`,
+    `max`; `ctx_e81551855653`) reviewed the documents and found one
+    must-fix, two should-fix and one nit. Both reports are in the ignored
+    `.local/reviews/016-develop-merge/`.
+  - Fixes: `lint:shell` now passes NUL-delimited paths, so a script path
+    with a space reaches ShellCheck whole (both reviews; Codex implementer
+    `ctx_3b7b5f5d4271`, reviewed by main). The spec now records the guide's
+    "When to use Shell" advice as left out, marks planning-time statements
+    as such, and says `require-double-brackets` applies to Bash and Ksh.
+    The code review's should-fix asked for evidence of SC-002 and SC-003 on
+    the reviewed tip: main ran both at `08492d0`. The probe
+    `scripts/shellcheck_probe.sh` failed `lint:shell` with SC2086 and the
+    task passed after its removal; `deno task doctor` failed with "run uv
+    sync --locked --project tools/shellcheck" while `tools/shellcheck/.venv`
+    was moved aside and passed with `shellCheck` in sync once it was back.
+    After the fix, a probe named `scripts/shellcheck probe.sh` failed the
+    same way and the task passed after its removal.
 
 ## Phase 4: After the finish
 

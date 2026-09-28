@@ -9,13 +9,13 @@
 **Linear issue**: CHE-30
 
 **Input**: Linear issue CHE-30, "Check shell scripts with ShellCheck (Google
-shell style guide)", and the develop session's task brief of 2026-09-29. The
-user decided on 2026-09-29 that the repository checks run ShellCheck, which
+shell style guide)", and the brief with which the orchestrator of the
+`develop` worktree started this feature on 2026-09-29. The user decided on 2026-09-29 that the repository checks run ShellCheck, which
 the Google shell style guide
 (<https://google.github.io/styleguide/shellguide.html>) recommends "for all
 scripts, large or small". The git flow finish hook, the commit-msg hook and
 `scripts/worktree-branch.sh` guard every feature finish, commit and new
-worktree, and nothing lints them today.
+worktree, and before this feature nothing linted them.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -93,7 +93,7 @@ environment.
   `"${var}"` over `"$var"`"), `quote-safe-variables` ("Always quote strings
   containing variables"), `avoid-nullary-conditions` ("explicitly use `-z` or
   `-n`") and `require-double-brackets` ("`[[ … ]]` is preferred over
-  `[ … ]`", which ShellCheck applies to Bash scripts only).
+  `[ … ]`", which ShellCheck applies to Bash and Ksh scripts only).
 - **FR-006**: Every finding in the repository-owned scripts MUST be fixed
   without changing their behavior, and the existing tests of those scripts
   MUST pass.
@@ -123,6 +123,11 @@ environment.
   and Orca's setup run them as such), two-space indentation, the 80-character
   line limit, file naming, function comments and `main`. The indentation rule
   needs a formatter such as shfmt, which the issue does not ask for.
+- The guide's "When to use Shell" advice, to rewrite a script of more than
+  100 lines or with non-straightforward control flow in a more structured
+  language, is also left out. ShellCheck cannot check it, and moving the Git
+  and git-flow hooks out of shell would rewrite them, which is outside this
+  feature.
 - Shell snippets inside `deno.json`, `orca.yaml` and `.github/workflows/` stay
   unchecked: ShellCheck reads script files, and extracting the snippets would
   need new glue code.
