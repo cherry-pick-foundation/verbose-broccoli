@@ -53,12 +53,12 @@ details on stderr only.
 1. Run `update`, then `check`. Fix every failure `check` names; it gives page
    and line.
 2. Run `convert`, `index` and `prepare --scope changed`. Read `calls` first:
-   it counts the requests per backfire tool. If `index` reports a
-   `semantic_error`, tell the user what it says. If `prepare`'s
-   `search.not_searched` is not empty, tell the user that other pages and
-   cross-references were not searched because semantic search was not ready:
-   the embedding model is missing (`index` downloads it once) or embedding
-   failed (see `semantic_error`).
+   it counts the requests per backfire tool. If `prepare`'s
+   `search.not_searched` is not empty, semantic search was not ready: tell
+   the user that other pages and cross-references were not searched. The
+   cause is a missing embedding model (`index` downloads it once) or
+   documents qmd has not embedded yet; when `index` gave a `semantic_error`,
+   pass it on as it is.
 3. Send each request's `arguments` to the backfire tool it names, on the
    **work plugin's** backfire server. Before the provider sees them, its judge
    replaces the student, guardian and school names in the operator's roster,
@@ -70,9 +70,11 @@ details on stderr only.
    `backfire_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.
 5. Fix `evidence` units that come back `contradicted` or `review`, or tell the
-   user why they stand. Report the units listed as `unverifiable`: all their
-   cited sources were unreadable (for example HWP or scanned PDF files), or
-   no passage of a long source matched them within `--max-evidence-chars`.
+   user why they stand. Report every unit listed as `unverifiable`, with its
+   cause: for example, its cited sources were unreadable (HWP or scanned PDF
+   files), no passage of a long source matched it within
+   `--max-evidence-chars`, or an `overview.md` unit has no linked page to
+   check against.
 6. Treat `crossref` and `classify` results as suggestions. Accept or reject
    each one; none is final.
 7. Run `check` again, append one entry to `wiki/log.md` in the form

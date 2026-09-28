@@ -333,6 +333,10 @@ the code plugin; the schema and the skill describe the procedure.
     vaults; the rerun found that the model check missed qmd's stored file
     name (`hf_Qwen_...gguf`), fixed with a regression test. `deno task
     verify` passed.
+  - 2026-09-28, final code after the third review's fixes: SC-002 held,
+    `check` on 502 synthetic pages in 4.9 s in each of three runs; `deno
+    task verify` passed; SC-005's `prepare` output was byte-identical to the
+    run judged above, so that result stands.
 - [x] T031 SC-005: on a synthetic instance with one paragraph contradicting
   its source and one pair of contradicting pages, run `prepare` and send the
   requests three times; both must come back `contradicted` or `review` every

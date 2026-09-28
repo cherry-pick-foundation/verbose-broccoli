@@ -133,7 +133,7 @@ in results are POSIX strings relative to `INSTANCE` unless named otherwise.
 | `evidence` | `convert(instance, wiki_id, cache, revisions)` | converts the given revisions (items of `revisions(instance)`); returns `{"converted", "present", "unreadable": [{"id", "revision", "reason", "detail"}]}` |
 | `evidence` | `read(cache, wiki_id, source_id, revision)` | `{"text": str}` or `{"unreadable": reason}`; `LookupError` when `convert` has not run for it |
 | `search` | `index(instance, wiki_id, cache, *, download)` | builds or updates the `pages` and `evidence` collections; returns counts, `"semantic": bool` (true when the model is cached and no document needs embeddings) and `"semantic_error"` (the one-line reason when embedding failed, otherwise null) |
-| `search` | `search(wiki_id, cache, queries)` | one Node process for all queries; each query `{"id", "text", "collection", "limit"}`; each hit `{"query", "collection", "path", "line", "score", "mode": "lex" or "vec"}`, `path` relative to the collection's folder; `LookupError` when the index is missing |
+| `search` | `search(wiki_id, cache, queries)` | one Node process for all queries; each query `{"id", "text", "collection", "limit"}`, and for `evidence` queries an optional `"allowed_paths"` list that keeps only hits in those files; each hit `{"query", "collection", "path", "line", "score", "mode": "lex" or "vec"}`, `path` relative to the collection's folder; `LookupError` when the index is missing |
 | `requests` | `prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates)` | the `prepare` output object of [contracts/commands.md](contracts/commands.md) |
 
 ## Drift finding (additions)

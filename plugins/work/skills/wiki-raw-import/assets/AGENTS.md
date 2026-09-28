@@ -121,8 +121,9 @@ steps; its commands are `check`, `update`, `convert`, `index` and `prepare`.
    result between two pages with `backfire_compare`. Fix units that backfire
    finds contradicted or flags for review, or tell the user why they stand.
    Report contradictions between pages and every unit that `prepare` lists
-   as unverifiable: its sources could not be read, or no passage of a long
-   source matched it within the evidence limit.
+   as unverifiable, with its cause (for example, sources that could not be
+   read, no passage of a long source within the evidence limit, or an
+   `overview.md` unit without linked pages).
 3. Run `check` again, append one `log.md` entry and commit.
 
 A lint operation reviews the whole Wiki: the same steps with `prepare --scope
