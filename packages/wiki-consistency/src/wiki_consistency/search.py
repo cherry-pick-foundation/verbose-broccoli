@@ -127,7 +127,7 @@ def _remove_index(index_path: Path) -> None:
 def _model_is_cached(cache: Path) -> bool:
     model_dir = Path(cache) / "qmd" / "models"
     filename = EMBED_MODEL.rsplit("/", 1)[-1]
-    return (model_dir / filename).is_file()
+    return any(path.is_file() for path in model_dir.glob(f"*{filename}"))
 
 
 def _markdown_count(root: Path) -> int:

@@ -128,16 +128,24 @@ def test_search_refuses_unembedded_documents_when_semantic_model_is_cached(tmp_p
         )
 
 
-def test_model_cache_requires_exact_final_filename(tmp_path):
+def test_model_cache_accepts_qmd_filename_and_rejects_partial_or_directory(tmp_path):
     model_dir = tmp_path / "qmd" / "models"
     model_dir.mkdir(parents=True)
-    partial = model_dir / f"{MODEL.rsplit('/', 1)[-1]}.ipull"
+
+    model = model_dir / f"hf_Qwen_{MODEL.rsplit('/', 1)[-1]}"
+    model.touch()
+
+    assert search._model_is_cached(tmp_path)
+
+    model.unlink()
+    partial = model_dir / f"{model.name}.ipull"
     partial.touch()
 
     assert not search._model_is_cached(tmp_path)
 
-    partial.rename(model_dir / MODEL.rsplit("/", 1)[-1])
-    assert search._model_is_cached(tmp_path)
+    partial.unlink()
+    model.mkdir()
+    assert not search._model_is_cached(tmp_path)
 
 
 def test_qmd_budget_refuses_before_running_commands(tmp_path, monkeypatch):
