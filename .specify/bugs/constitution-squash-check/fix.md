@@ -70,7 +70,8 @@ The first three and the `commit-msg` case fail without the fix; see
 - The assessment left the constitution text open. The coordinator asked
   through Orca (`ask` messages `msg_2368ad3398ae` and `msg_54068ebb5116` in
   the develop session's Run `run_8b222073b123`), and the develop session
-  relayed the answers to the coordinator on 2026-09-28. The user's answer to
+  relayed the answers to the coordinator on 2026-09-28 (status messages
+  `msg_26464522f733` and `msg_f82b4ad41489` in the same Run). The user's answer to
   the first, verbatim: "(A) add one short clause in each of the two places
   (the finish hook's refusal list under Development Workflow, and the
   enforcement sentence under Governance) in a docs commit, raising the version

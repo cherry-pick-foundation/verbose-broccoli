@@ -36,8 +36,10 @@ through a scratch MCP client, because this session has no backfire MCP tools.
 `deno task backfire:ready` reached the provider and passed its tool checks, but
 its calibration sample answered 0.5. Two requests first failed with
 `provider_error` and passed on a retry. Backfire's own session records hold
-each call's outcome, input digest and per-unit decisions (`verdict` and
-`action`), but not the full tool responses:
+each call's outcome and input digest; a successful `backfire_verify` call also
+has per-unit `verdict` and `action` fields, and a successful
+`backfire_classify` call a `decision` field. They do not hold the full tool
+responses:
 `~/.local/state/verbose-broccoli/backfire/records/2026-09-28T01:36:20.945608Z-ec08fdfd57804688b1e6861fabf035cc.jsonl`
 (two `backfire_verify` calls `ok`, then one `backfire_verify` and the
 `backfire_classify` call `tool_error` after `provider_error` judgments) and
