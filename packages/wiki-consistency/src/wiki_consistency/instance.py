@@ -88,7 +88,9 @@ def _topic_names(values):
             problems.append(
                 {
                     "line": 1,
-                    "message": "topics must contain non-empty single-line names",
+                    "message": (
+                        "topics must contain non-empty single-line names"
+                    ),
                 }
             )
         elif topic in seen_topics:
@@ -165,6 +167,14 @@ def _metadata(text):
 
 
 def declared_topics(root):
+    """Read the topic names that a Wiki instance's schema declares.
+
+    Args:
+        root: The Wiki instance root, which holds the schema `AGENTS.md`.
+
+    Returns:
+        A pair of the declared topic names and the validation problems found.
+    """
     path = Path(root) / "AGENTS.md"
     try:
         text = path.read_text(encoding="utf-8")

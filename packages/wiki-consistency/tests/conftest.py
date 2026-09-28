@@ -70,6 +70,7 @@ def _page(title, summary, revision, body="", topics=("Algebra",)):
 
 
 def replace_page_topics(page, field):
+    """Replace a synthetic page's topics field with the given text."""
     text = page.read_text(encoding="utf-8")
     start = text.index("topics:\n")
     end = text.index("sources:\n", start)

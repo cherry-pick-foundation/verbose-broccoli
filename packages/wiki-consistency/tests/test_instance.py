@@ -5,6 +5,7 @@ from conftest import replace_page_topics
 import pytest
 
 from wiki_consistency.instance import _metadata
+from wiki_consistency.instance import declared_topics
 from wiki_consistency.instance import instance_path
 from wiki_consistency.instance import mask_front_matter
 from wiki_consistency.instance import pages
@@ -117,8 +118,6 @@ def test_metadata_rejects_invalid_topics(tmp_path, field):
 
 
 def test_declared_topics_returns_names_and_accepts_empty_list(tmp_path):
-    from wiki_consistency.instance import declared_topics
-
     instance, _ = make_instance(tmp_path)
 
     assert declared_topics(instance) == (["Algebra", "Reference", "Unused"], [])
@@ -159,8 +158,6 @@ def test_declared_topics_returns_names_and_accepts_empty_list(tmp_path):
     ],
 )
 def test_declared_topics_reports_bad_schema(tmp_path, schema, problem):
-    from wiki_consistency.instance import declared_topics
-
     instance, _ = make_instance(tmp_path)
     path = instance / "AGENTS.md"
     if schema is None:
