@@ -30,7 +30,7 @@ def _positive_int(value):
 
 def _parser():
     parser = argparse.ArgumentParser(prog="wiki-consistency")
-    parser.add_argument("--wiki", dest="wiki_id", type=_wiki_id, default="default")
+    parser.add_argument("--wiki", dest="wiki_id", type=_wiki_id, default="work")
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("check", "update"):
         command = commands.add_parser(name)

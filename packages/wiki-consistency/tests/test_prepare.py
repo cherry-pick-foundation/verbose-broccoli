@@ -17,7 +17,7 @@ SCHEMAS = {
 }
 
 
-def _ready(tmp_path, *, commit=False, wiki_id="default"):
+def _ready(tmp_path, *, commit=False, wiki_id="work"):
     instance, env = make_instance(tmp_path, commit=commit, wiki_id=wiki_id)
     assert update_regions(instance) == []
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
@@ -91,7 +91,7 @@ def test_changed_scope_uses_line_diff_and_classifies_added_units(tmp_path):
     _assert_schemas(result)
 
 
-def test_changed_page_request_can_use_unchanged_candidate_units(tmp_path):
+def test_changed_page_request_can_use_unchanged_candidate_units(tmp_path, monkeypatch):
     instance, env = make_instance(tmp_path)
     beta = instance / "wiki" / "concepts" / "beta.md"
     beta.write_text(
@@ -108,10 +108,21 @@ def test_changed_page_request_can_use_unchanged_candidate_units(tmp_path):
     evidence.convert(instance, instance.name, cache, revisions(instance))
     search.index(instance, instance.name, cache, download=False)
 
+    alpha_unit = next(unit for unit in requests._collect(instance, "changed")[2]
+                      if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
+
+    def semantic_search(wiki_id, cache, queries):
+        page_query = next(query for query in queries if query["collection"] == "pages")
+        return [{
+            "query": page_query["id"], "collection": "pages", "path": "concepts/beta.md",
+            "line": _line_of(beta, "Quadratic equations have roots."), "score": 0.0, "mode": "vec",
+        }]
+
+    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(requests.search, "search", semantic_search)
+
     result = _prepare(instance, cache)
 
-    alpha_unit = next(unit for unit in result["units"]
-                      if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
     request = next(request for request in result["requests"]
                    if request["kind"] == "pages" and alpha_unit["id"] in request["units"])
     assert request["arguments"]["evidence"][0]["id"].startswith("wiki/concepts/beta.md:")
@@ -153,6 +164,33 @@ def test_changed_scope_without_head_selects_every_agent_unit(tmp_path):
     _assert_schemas(result)
 
 
+def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    source = (instance / "raw" / "files" / SOURCE_ID / REVISIONS[-1]
+              / "data" / "document.txt")
+    source.write_text("Synthetic supporting evidence. " * 100, encoding="utf-8")
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
+    captured = []
+
+    def capture_queries(wiki_id, cache, queries):
+        captured.extend(queries)
+        return []
+
+    monkeypatch.setattr(requests.search, "search", capture_queries)
+
+    result = _prepare(instance, cache, scope="lint", max_evidence_chars=32)
+
+    assert any(query["collection"] == "evidence" for query in captured)
+    assert all(query["collection"] == "evidence" for query in captured)
+    assert result["search"] == {
+        "keyword": True, "semantic": False, "not_searched": ["crossref", "pages"],
+    }
+    assert not any(request["kind"] in {"pages", "crossref"} for request in result["requests"])
+
+
 def test_large_evidence_uses_matching_converted_passages(tmp_path):
     instance, env = make_instance(tmp_path, commit=True)
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
@@ -187,6 +225,7 @@ def test_page_candidates_keep_best_search_rank_before_sorting(tmp_path, monkeypa
     evidence.convert(instance, instance.name, cache, revisions(instance))
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
+    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
 
     def stub_search(wiki_id, cache, queries):
         return [
@@ -225,6 +264,7 @@ def test_crossref_candidates_keep_best_search_rank_before_sorting(tmp_path, monk
          "score": float(21 - index), "mode": "lex"}
         for index, path in enumerate([best, *paths])
     ]
+    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
     monkeypatch.setattr(requests.search, "search", lambda wiki_id, cache, queries: hits)
 
     result = requests.prepare(instance, instance.name, cache, scope="lint",
@@ -405,6 +445,7 @@ def test_collection_query_ids_keep_page_candidate_ranks_independent(tmp_path, mo
     target = next(unit for unit in requests._collect(instance, "changed")[2]
                   if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
     captured = []
+    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
 
     def stub_search(wiki_id, cache, queries):
         captured.extend(queries)
@@ -528,7 +569,7 @@ def test_unreadable_sources_are_listed_and_never_sent(tmp_path, monkeypatch):
     _assert_schemas(result)
 
 
-def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(tmp_path):
+def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(tmp_path, monkeypatch):
     instance, cache, _ = _ready(tmp_path)
     shared = "Synthetic quadratic formula roots"
     alpha = instance / "wiki" / "concepts" / "alpha.md"
@@ -549,8 +590,29 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(tmp_path):
         "# Solo\n\nA unique nebula observation.\n", encoding="utf-8")
     search.index(instance, instance.name, cache, download=False)
 
+    def semantic_search(wiki_id, cache, queries):
+        hits = []
+        for query in queries:
+            if not query["id"].startswith("crossref:"):
+                continue
+            page = query["id"].rsplit("/", 1)[-1].removesuffix(".md")
+            if page == "solo":
+                continue
+            for candidate in ("alpha", "beta", "gamma"):
+                if candidate != page:
+                    hits.append({
+                        "query": query["id"], "collection": "pages",
+                        "path": f"concepts/{candidate}.md", "line": 1,
+                        "score": 1.0, "mode": "vec",
+                    })
+        return hits
+
+    monkeypatch.setattr(search, "_model_is_cached", lambda cache: True)
+    monkeypatch.setattr(requests.search, "search", semantic_search)
+
     result = _prepare(instance, cache, scope="lint")
 
+    assert result["search"] == {"keyword": True, "semantic": True, "not_searched": []}
     expected_units = [unit["id"] for unit in result["units"]]
     accounted = _evidence_units(result) + [item["unit"] for item in result["unverifiable"]]
     assert sorted(accounted) == sorted(expected_units)

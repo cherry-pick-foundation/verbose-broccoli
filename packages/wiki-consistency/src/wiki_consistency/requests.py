@@ -338,16 +338,18 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
                 "id": f"evidence:{unit['id']}", "text": unit["text"], "collection": "evidence",
                 "limit": evidence_limit,
             })
+    semantic = search._model_is_cached(cache)
     page_query_ids = {}
     for unit in units:
         page_query_ids[unit["id"]] = f"pages:{unit['id']}"
-        queries.append({
-            "id": page_query_ids[unit["id"]], "text": unit["text"], "collection": "pages",
-            "limit": min(249, max(20, candidates * 4)),
-        })
+        if semantic:
+            queries.append({
+                "id": page_query_ids[unit["id"]], "text": unit["text"], "collection": "pages",
+                "limit": min(249, max(20, candidates * 4)),
+            })
 
     crossref_query_ids = {}
-    if scope == "lint":
+    if scope == "lint" and semantic:
         for path, info in sorted(page_info.items()):
             page = info["page"]
             if page["special"] or not page["title"] or not page["summary"]:
@@ -470,7 +472,11 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
             "id", "page", "heading_path", "kind", "first_line", "last_line", "added", "outcome",
         )} for unit in units],
         "unverifiable": unverifiable,
-        "search": {"keyword": True, "semantic": search._model_is_cached(cache)},
+        "search": {
+            "keyword": True,
+            "semantic": semantic,
+            "not_searched": [] if semantic else ["crossref", "pages"],
+        },
         "calls": calls,
         "requests": request_list,
     }

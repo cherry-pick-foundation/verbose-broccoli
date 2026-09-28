@@ -28,7 +28,7 @@ def instance_path(wiki_id, env=None):
     if (not isinstance(wiki_id, str) or wiki_id in ("", ".", "..")
             or "/" in wiki_id or "\0" in wiki_id):
         raise ValueError("wiki must be a single folder name")
-    return roots(env)["data"] / "wikis" / wiki_id
+    return roots(env)["data"] / "vaults" / wiki_id
 
 
 def _front_matter(text):

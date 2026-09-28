@@ -167,15 +167,23 @@ def index(
         raise
 
     semantic = _model_is_cached(cache)
+    semantic_error = None
     if semantic or download:
-        with _clean_on_signals():
-            _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
-        semantic = True
+        try:
+            with _clean_on_signals():
+                _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
+        except subprocess.CalledProcessError as error:
+            semantic = False
+            detail = error.stderr or error.stdout or str(error)
+            semantic_error = " ".join(str(detail).split()) or str(error)
+        else:
+            semantic = True
 
     return {
         "pages": _markdown_count(wiki_root),
         "evidence": _markdown_count(evidence_root),
         "semantic": semantic,
+        "semantic_error": semantic_error,
     }
 
 

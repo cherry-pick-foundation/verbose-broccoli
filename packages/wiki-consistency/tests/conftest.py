@@ -51,7 +51,7 @@ def _page(title, summary, revision, body=""):
             f"  - id: {SOURCE_ID}\n    revision: {revision}\n---\n{body}")
 
 
-def make_instance(tmp_path, *, wiki_id="default", commit=False):
+def make_instance(tmp_path, *, wiki_id="work", commit=False):
     home = tmp_path / "home"
     data_home = tmp_path / "xdg-data"
     cache_home = tmp_path / "xdg-cache"
@@ -60,7 +60,7 @@ def make_instance(tmp_path, *, wiki_id="default", commit=False):
         "XDG_DATA_HOME": str(data_home),
         "XDG_CACHE_HOME": str(cache_home),
     }
-    instance = data_home / "verbose-broccoli" / "wikis" / wiki_id
+    instance = data_home / "verbose-broccoli" / "vaults" / wiki_id
     (instance / "wiki" / "concepts").mkdir(parents=True)
     (instance / "wiki" / "sources").mkdir(parents=True)
     (instance / "raw").mkdir()
