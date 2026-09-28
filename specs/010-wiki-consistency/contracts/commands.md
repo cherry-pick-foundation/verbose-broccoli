@@ -88,6 +88,10 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
   for a stale citation, of the latest revision; whole when it fits
   `--max-evidence-chars`, otherwise the passages qmd's `evidence` collection
   returns for the unit's text, limited to those revisions' files.
+  Known limit: qmd 2.8.3 ranks a collection's vectors exactly only up to
+  20,000 chunks and approximately above that, so in a larger `evidence`
+  collection a cited passage can be missed and its unit listed as
+  unverifiable.
 - Page requests: for each unit, up to `--candidates` (default 3) units of
   other pages from `qmd search` and `qmd vsearch`, deduplicated and sorted by
   page and line.

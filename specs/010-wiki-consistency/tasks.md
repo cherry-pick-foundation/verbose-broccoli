@@ -333,10 +333,14 @@ the code plugin; the schema and the skill describe the procedure.
     vaults; the rerun found that the model check missed qmd's stored file
     name (`hf_Qwen_...gguf`), fixed with a regression test. `deno task
     verify` passed.
-  - 2026-09-28, final code after the third review's fixes: SC-002 held,
-    `check` on 502 synthetic pages in 4.9 s in each of three runs; `deno
-    task verify` passed; SC-005's `prepare` output was byte-identical to the
-    run judged above, so that result stands.
+  - 2026-09-28, code of `a2a851b` (third review's fixes): SC-002 held,
+    `check` took 4.9 s in each of three runs on 502 synthetic pages, built
+    with `tests/conftest.py`'s `make_instance` plus 497 generated concept
+    pages that link in a ring, after `update` and a commit; `deno task
+    verify` passed on that tree. SC-005's `prepare --scope changed` requests
+    on the same synthetic instance, with the cached model, were identical to
+    those judged at `19681f0` above, so that result stands. The finish
+    reruns `deno task verify` on the final commit.
 - [x] T031 SC-005: on a synthetic instance with one paragraph contradicting
   its source and one pair of contradicting pages, run `prepare` and send the
   requests three times; both must come back `contradicted` or `review` every

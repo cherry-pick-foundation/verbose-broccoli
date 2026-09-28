@@ -202,6 +202,16 @@ with the already approved Ajv dependency. Sources:
   passages. No source is copied into the repository.
 - Copyright (c) 2024-2026 Tobi Lutke. MIT license.
 
+## mrmlnc/fast-glob — Wiki document scan
+
+- Source: <https://github.com/mrmlnc/fast-glob>, published on npm as
+  `fast-glob` 3.3.3.
+- Used as a pinned npm dependency of `packages/wiki-consistency/`, locked in
+  its `package-lock.json`, to list a vault's pages and converted evidence
+  with the same options qmd uses, so the search index can be checked for
+  staleness. No source is copied into the repository.
+- Copyright (c) Denis Malinochkin. MIT license.
+
 ## yaml/pyyaml — Wiki page metadata
 
 - Source: <https://github.com/yaml/pyyaml>, published on PyPI as `PyYAML`
