@@ -27,13 +27,20 @@ _MESSAGES = {
     "time": "write the time with its time zone",
 }
 _CJK_PREFIXES = (
-    "HANGUL", "CJK UNIFIED IDEOGRAPH", "CJK COMPATIBILITY IDEOGRAPH",
-    "HIRAGANA", "KATAKANA", "HALFWIDTH HANGUL", "HALFWIDTH KATAKANA",
+    "HANGUL",
+    "CJK UNIFIED IDEOGRAPH",
+    "CJK COMPATIBILITY IDEOGRAPH",
+    "HIRAGANA",
+    "KATAKANA",
+    "HALFWIDTH HANGUL",
+    "HALFWIDTH KATAKANA",
 )
-_QUOTES = (("\"", "\""), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "』"))
+_QUOTES = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "』"))
 _QUOTE_OPENERS = frozenset(opening for opening, _ in _QUOTES)
 _ID_NUMBER = re.compile(r"(?<![0-9])([0-9]{6})-?([1-8])([0-9]{6})(?![0-9])")
-_HANGUL_ADDRESS = re.compile(r"(?<![가-힣])[가-힣]+(?:대로|로|길)[ ]*[0-9]+(?:-[0-9]+)?(?![0-9])")
+_HANGUL_ADDRESS = re.compile(
+    r"(?<![가-힣])[가-힣]+(?:대로|로|길)[ ]*[0-9]+(?:-[0-9]+)?(?![0-9])"
+)
 _NUMBER = r"[0-9]+(?:-[0-9]+)?"
 _ROAD = r"[A-Z][A-Za-z]*(?:-[A-Z][A-Za-z]*)*-(?:ro|daero|gil)"
 _ROAD_ADDRESS = (
@@ -62,15 +69,19 @@ _DATE_PATTERNS = (
         r"October|November|December|Sept|Sep|Jan|Feb|Mar|Apr|Jun|Jul|Aug|"
         r"Oct|Nov|Dec)\.?(?:,?[ ]+[0-9]{4})?(?![A-Za-z0-9])"
     ),
-    re.compile(r"(?<![0-9])[0-9]{1,4}[ ]*년[ ]*[0-9]{1,2}[ ]*월(?:[ ]*[0-9]{1,2}[ ]*일)?(?![0-9])"),
+    re.compile(
+        r"(?<![0-9])[0-9]{1,4}[ ]*년[ ]*[0-9]{1,2}[ ]*월(?:[ ]*[0-9]{1,2}[ ]*일)?(?![0-9])"
+    ),
     re.compile(r"(?<![0-9])[0-9]{1,2}[ ]*월[ ]*[0-9]{1,2}[ ]*일(?![0-9])"),
 )
 _DATE_SKIP = (
     re.compile(r"https?://\S+"),
-    re.compile(r"<(?:[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\s]*|"
-               r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
-               r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
-               r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"),
+    re.compile(
+        r"<(?:[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\s]*|"
+        r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+        r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
+        r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"
+    ),
     re.compile(r"\]\((?P<destination>(?:\\.|[^)\n])*)\)"),
 )
 _TIME = re.compile(
@@ -87,7 +98,9 @@ _OFFSET_PREFIX = re.compile(
     r"|[0-9]{1,2}[ ]*(?:AM|PM|a\.m\.|p\.m\.))"
     r"(?:[ ]*(?:AM|PM|a\.m\.|p\.m\.))?)[ ]*(?P<sign>[+-])$"
 )
-_UTC_ZONE = re.compile(r"(?:UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?|\(UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?\))(?![A-Za-z0-9])")
+_UTC_ZONE = re.compile(
+    r"(?:UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?|\(UTC(?:[+-][0-9]{1,2}(?::[0-9]{2})?)?\))(?![A-Za-z0-9])"
+)
 _UTC_OFFSET_TIME = re.compile(
     r"(?<![A-Za-z0-9])(?:UTC[+-]([0-9]{1,2}:[0-9]{2})"
     r"|\(UTC[+-]([0-9]{1,2}:[0-9]{2})\))(?![A-Za-z0-9])"
@@ -96,19 +109,29 @@ _RANGE_JOINER = re.compile(r"[ ]*(?:-|–|—|to)[ ]*")
 
 
 def _is_cjk(character):
-    return character.isalpha() and unicodedata.name(character, "").startswith(_CJK_PREFIXES)
+    return character.isalpha() and unicodedata.name(character, "").startswith(
+        _CJK_PREFIXES
+    )
 
 
 def _is_latin(character):
-    return character.isalpha() and unicodedata.name(character, "").startswith("LATIN ")
+    return character.isalpha() and unicodedata.name(character, "").startswith(
+        "LATIN "
+    )
 
 
 def _sources_lines(text):
     lines = text.split("\n")
     if not lines or lines[0].removesuffix("\r") != "---":
         return None
-    end = next((index for index in range(1, len(lines))
-                if lines[index].removesuffix("\r") == "---"), None)
+    end = next(
+        (
+            index
+            for index in range(1, len(lines))
+            if lines[index].removesuffix("\r") == "---"
+        ),
+        None,
+    )
     if end is None:
         return None
     try:
@@ -136,9 +159,12 @@ def _blank_lines(text, ranges):
 def _checked_text(document, text):
     spans, _ = scan(document, text)
     lines = text.split("\n")
-    ranges = [(span["start"], span["end"]) for span in spans
-              if START.fullmatch(lines[span["start"]].removesuffix("\r"))
-              and END.fullmatch(lines[span["end"] - 1].removesuffix("\r"))]
+    ranges = [
+        (span["start"], span["end"])
+        for span in spans
+        if START.fullmatch(lines[span["start"]].removesuffix("\r"))
+        and END.fullmatch(lines[span["end"] - 1].removesuffix("\r"))
+    ]
     source_lines = _sources_lines(text)
     if source_lines is not None:
         ranges.append(source_lines)
@@ -146,7 +172,14 @@ def _checked_text(document, text):
 
 
 def _line_starts(text):
-    return [0, *(index + 1 for index, character in enumerate(text) if character == "\n")]
+    return [
+        0,
+        *(
+            index + 1
+            for index, character in enumerate(text)
+            if character == "\n"
+        ),
+    ]
 
 
 def _line_number(starts, offset):
@@ -166,7 +199,12 @@ def _quoted_at(line, start):
             content_start = start + len(opening)
             content_end = line.find(closing, content_start)
             if content_end >= 0:
-                return start, content_end + len(closing), content_start, content_end
+                return (
+                    start,
+                    content_end + len(closing),
+                    content_start,
+                    content_end,
+                )
     return None
 
 
@@ -178,15 +216,17 @@ def _space_end(line, position):
 
 def _translation_ok(text, start, stop, name_marks):
     value = text[start:stop]
-    return (any(_is_latin(character) for character in value)
-            and not any(_is_cjk(character) and not name_marks[index]
-                        for index, character in enumerate(value, start)))
+    return any(_is_latin(character) for character in value) and not any(
+        _is_cjk(character) and not name_marks[index]
+        for index, character in enumerate(value, start)
+    )
 
 
 def _quote_origin(line, base, first, name_marks):
-    first_content = line[first[2]:first[3]]
-    is_original = (len(first_content) <= 100
-                   and any(_is_cjk(character) for character in first_content))
+    first_content = line[first[2] : first[3]]
+    is_original = len(first_content) <= 100 and any(
+        _is_cjk(character) for character in first_content
+    )
     position = _space_end(line, first[1])
     if position >= len(line) or line[position] != "(":
         return None
@@ -201,7 +241,10 @@ def _quote_origin(line, base, first, name_marks):
                 return None
             translation_start = inside
             translation_stop = close
-            while translation_stop > translation_start and line[translation_stop - 1] == " ":
+            while (
+                translation_stop > translation_start
+                and line[translation_stop - 1] == " "
+            ):
                 translation_stop -= 1
     else:
         if not quoted:
@@ -211,13 +254,19 @@ def _quote_origin(line, base, first, name_marks):
         after = _space_end(line, quoted[1])
         if after >= len(line) or line[after] != ")":
             return None
-    if not _translation_ok(line, translation_start, translation_stop,
-                           name_marks[base:base + len(line)]):
+    if not _translation_ok(
+        line,
+        translation_start,
+        translation_stop,
+        name_marks[base : base + len(line)],
+    ):
         return None
     if is_original:
         return base + first[2], base + first[3]
-    original = line[quoted[2]:quoted[3]]
-    if len(original) <= 100 and any(_is_cjk(character) for character in original):
+    original = line[quoted[2] : quoted[3]]
+    if len(original) <= 100 and any(
+        _is_cjk(character) for character in original
+    ):
         return base + quoted[2], base + quoted[3]
     return None
 
@@ -266,16 +315,20 @@ def _dates(text):
 
 
 def _time_tokens(text):
-    utc_offsets = {match.span(1 if match[1] else 2)
-                   for match in _UTC_OFFSET_TIME.finditer(text)}
+    utc_offsets = {
+        match.span(1 if match[1] else 2)
+        for match in _UTC_OFFSET_TIME.finditer(text)
+    }
     for match in _TIME.finditer(text):
         if match.span() in utc_offsets:
             continue
-        prefix_text = text[max(0, match.start() - 32):match.start()]
+        prefix_text = text[max(0, match.start() - 32) : match.start()]
         prefix = _OFFSET_PREFIX.search(prefix_text)
         if prefix:
-            follows_t = (prefix.start("clock") > 0
-                         and prefix_text[prefix.start("clock") - 1] == "T")
+            follows_t = (
+                prefix.start("clock") > 0
+                and prefix_text[prefix.start("clock") - 1] == "T"
+            )
             if prefix["sign"] == "+" or follows_t:
                 continue
         hour = int(match["clock_hour"] or match["meridiem_hour"])
@@ -294,13 +347,19 @@ def _has_zone(text, start, stop):
     spaces = len(suffix) - len(suffix.lstrip(" "))
     tail = suffix[spaces:]
     direct = spaces == 0
-    if direct and tail.startswith("Z") and (len(tail) == 1 or not tail[1].isalnum()):
+    if (
+        direct
+        and tail.startswith("Z")
+        and (len(tail) == 1 or not tail[1].isalnum())
+    ):
         return True
     numeric = _NUMERIC_ZONE.match(tail)
-    if (numeric and int(numeric["hour"]) <= 14
-            and int(numeric["minute"]) <= 59
-            and (numeric.end() == len(tail)
-                 or not tail[numeric.end()].isalnum())):
+    if (
+        numeric
+        and int(numeric["hour"]) <= 14
+        and int(numeric["minute"]) <= 59
+        and (numeric.end() == len(tail) or not tail[numeric.end()].isalnum())
+    ):
         follows_t = start > 0 and text[start - 1] == "T"
         if numeric["sign"] == "+" or (direct and follows_t):
             return True
@@ -313,13 +372,18 @@ def _range_end_is_zoned(text, tokens, index):
         return False
     _, stop = tokens[index]
     start, end = tokens[index + 1]
-    return (_RANGE_JOINER.fullmatch(text[stop:start]) is not None
-            and _has_zone(text, start, end))
+    return _RANGE_JOINER.fullmatch(text[stop:start]) is not None and _has_zone(
+        text, start, end
+    )
 
 
 def _is_student_page(document):
     parts = Path(document).parts
-    return len(parts) == 3 and parts[:2] == ("wiki", "students") and parts[2].endswith(".md")
+    return (
+        len(parts) == 3
+        and parts[:2] == ("wiki", "students")
+        and parts[2].endswith(".md")
+    )
 
 
 def check(root):
@@ -336,14 +400,15 @@ def check(root):
             continue
         try:
             text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
+        except OSError, UnicodeError:
             continue
         checked = _checked_text(document, text)
         pages.append((path, document, checked))
 
     student_pages = [page for page in pages if _is_student_page(page[1])]
     roster_needed = bool(student_pages) or any(
-        _is_cjk(character) for _, _, text in pages for character in text)
+        _is_cjk(character) for _, _, text in pages for character in text
+    )
     identifiers = {}
     roster_error = None
     if roster_needed:
@@ -355,13 +420,18 @@ def check(root):
     problems = []
     seen = set()
     if roster_error is not None:
-        problems.append({
-            "document": "wiki",
-            "line": 1,
-            "message": f"page rule roster: cannot read the roster: {roster_error}",
-        })
-    student_names = {key for key, (kind, value) in identifiers.items()
-                     if kind == "student" and key == value}
+        problems.append(
+            {
+                "document": "wiki",
+                "line": 1,
+                "message": f"page rule roster: cannot read the roster: {roster_error}",
+            }
+        )
+    student_names = {
+        key
+        for key, (kind, value) in identifiers.items()
+        if kind == "student" and key == value
+    }
     if roster_error is None:
         for _, document, _ in student_pages:
             if Path(document).name[:-3] not in student_names:
@@ -370,16 +440,25 @@ def check(root):
     for _, document, text in pages:
         starts = _line_starts(text)
         spans = find_spans(text, identifiers, pattern)
-        name_ranges = [(start, stop) for start, stop, (kind, _) in spans
-                       if kind in {"student", "given", "guardian"}]
-        school_ranges = [(start, stop) for start, stop, (kind, _) in spans if kind == "school"]
+        name_ranges = [
+            (start, stop)
+            for start, stop, (kind, _) in spans
+            if kind in {"student", "given", "guardian"}
+        ]
+        school_ranges = [
+            (start, stop)
+            for start, stop, (kind, _) in spans
+            if kind == "school"
+        ]
         name_marks = _mark(len(text), name_ranges)
         quote_ranges = _allowed_originals(text, name_marks)
         quote_marks = _mark(len(text), quote_ranges)
 
         for start, _, (kind, _) in find_spans(text, {}, None):
             if kind in {"phone", "email"}:
-                _add(problems, seen, document, _line_number(starts, start), kind)
+                _add(
+                    problems, seen, document, _line_number(starts, start), kind
+                )
 
         for match in _ID_NUMBER.finditer(text):
             birth, gender = match[1], match[2]
@@ -388,24 +467,59 @@ def check(root):
                 date(year, int(birth[2:4]), int(birth[4:]))
             except ValueError:
                 continue
-            _add(problems, seen, document, _line_number(starts, match.start()), "id-number")
+            _add(
+                problems,
+                seen,
+                document,
+                _line_number(starts, match.start()),
+                "id-number",
+            )
 
         for regex in (_HANGUL_ADDRESS, *_ROAD_ADDRESS, _LOT_ADDRESS):
             for match in regex.finditer(text):
-                _add(problems, seen, document, _line_number(starts, match.start()), "address")
+                _add(
+                    problems,
+                    seen,
+                    document,
+                    _line_number(starts, match.start()),
+                    "address",
+                )
 
         if roster_error is None:
             for index, character in enumerate(text):
-                if (_is_cjk(character) and not name_marks[index]
-                        and not quote_marks[index]):
-                    _add(problems, seen, document, _line_number(starts, index), "english")
+                if (
+                    _is_cjk(character)
+                    and not name_marks[index]
+                    and not quote_marks[index]
+                ):
+                    _add(
+                        problems,
+                        seen,
+                        document,
+                        _line_number(starts, index),
+                        "english",
+                    )
 
             for start, stop in school_ranges:
-                if any(_is_cjk(text[index]) and not quote_marks[index]
-                       for index in range(start, stop)):
-                    _add(problems, seen, document, _line_number(starts, start), "school")
+                if any(
+                    _is_cjk(text[index]) and not quote_marks[index]
+                    for index in range(start, stop)
+                ):
+                    _add(
+                        problems,
+                        seen,
+                        document,
+                        _line_number(starts, start),
+                        "school",
+                    )
         for match in _ROMANIZED_SCHOOL.finditer(text):
-            _add(problems, seen, document, _line_number(starts, match.start()), "school")
+            _add(
+                problems,
+                seen,
+                document,
+                _line_number(starts, match.start()),
+                "school",
+            )
 
         for offset in _dates(text):
             _add(problems, seen, document, _line_number(starts, offset), "date")
@@ -413,8 +527,16 @@ def check(root):
         tokens = list(_time_tokens(text))
         zoned = [_has_zone(text, start, stop) for start, stop in tokens]
         for index, (start, _) in enumerate(tokens):
-            if not zoned[index] and not _range_end_is_zoned(text, tokens, index):
-                _add(problems, seen, document, _line_number(starts, start), "time")
+            if not zoned[index] and not _range_end_is_zoned(
+                text, tokens, index
+            ):
+                _add(
+                    problems,
+                    seen,
+                    document,
+                    _line_number(starts, start),
+                    "time",
+                )
 
     return problems
 
@@ -424,8 +546,10 @@ def _add(problems, seen, document, line, rule):
     if key in seen:
         return
     seen.add(key)
-    problems.append({
-        "document": document,
-        "line": line,
-        "message": f"page rule {rule}: {_MESSAGES[rule]}",
-    })
+    problems.append(
+        {
+            "document": document,
+            "line": line,
+            "message": f"page rule {rule}: {_MESSAGES[rule]}",
+        }
+    )

@@ -11,7 +11,11 @@ from backfire.config import SHIPPED_CONFIG
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire_education.roster import load_roster
-from backfire_education.pseudonymize import compile_roster_pattern, find_spans, pseudonymize
+from backfire_education.pseudonymize import (
+    compile_roster_pattern,
+    find_spans,
+    pseudonymize,
+)
 
 
 @pytest.fixture
@@ -136,12 +140,15 @@ def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
     assert masked == "학생01!"
 
 
-@pytest.mark.parametrize(("text", "identifier"), [
-    ("가라온", ("student", "가라온")),
-    ("하늘", ("given", "하늘")),
-    ("다누리", ("guardian", "다누리")),
-    ("가상별학교", ("school", "가상별학교")),
-])
+@pytest.mark.parametrize(
+    ("text", "identifier"),
+    [
+        ("가라온", ("student", "가라온")),
+        ("하늘", ("given", "하늘")),
+        ("다누리", ("guardian", "다누리")),
+        ("가상별학교", ("school", "가상별학교")),
+    ],
+)
 def test_find_spans_keeps_roster_identifier_kinds(roster, text, identifier):
     identifiers = load_roster()
     pattern = compile_roster_pattern(identifiers)
@@ -188,7 +195,11 @@ def test_find_spans_checks_contacts_with_an_empty_identifier_map(roster):
 
     assert find_spans(text, {}, None) == [
         (0, len("010-1234-5678"), ("phone", "+821012345678")),
-        (text.index("Synthetic"), len(text), ("email", "synthetic.one+2@example.test")),
+        (
+            text.index("Synthetic"),
+            len(text),
+            ("email", "synthetic.one+2@example.test"),
+        ),
     ]
 
 
