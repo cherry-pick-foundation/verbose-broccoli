@@ -3,7 +3,7 @@
 **Branch**: `feature/python-ruff` | **Date**: 2026-09-29 | **Spec**:
 [spec.md](spec.md)
 
-**Input**: Feature specification from `specs/016-python-ruff/spec.md`
+**Input**: Feature specification from `specs/018-python-ruff/spec.md`
 
 ## Summary
 
@@ -77,7 +77,7 @@ Post-design re-check: no change.
 ### Documentation (this feature)
 
 ```text
-specs/016-python-ruff/
+specs/018-python-ruff/
 ├── spec.md
 ├── plan.md
 ├── research.md

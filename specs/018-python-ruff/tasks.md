@@ -5,7 +5,7 @@ description: "Task list for the Python Ruff check"
 
 # Tasks: Python Ruff Check
 
-**Input**: Design documents from `specs/016-python-ruff/`
+**Input**: Design documents from `specs/018-python-ruff/`
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md),
 [research.md](research.md)
