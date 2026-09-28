@@ -15,14 +15,16 @@ restores them in the results, so tool results use the text you supplied:
 
 - student names listed in the operator's roster, also with particles attached
   (`가라온은`);
-- each student's given name alone (`라온이가`), derived from the roster name
-  when it has at least two syllables; a given name that several students share
+- each student's given name alone (`라온이가`), derived only from an
+  all-Hangul roster name of at least three syllables, and only when the given
+  name has at least two syllables; a given name that several students share
   gets its own pseudonym;
 - guardian names and schools listed in the roster;
 - phone numbers and email addresses, whether or not the roster lists them.
 
 The backend cannot detect other identifiers. Names, schools or guardians that
-the roster does not list, nicknames, one-syllable given names, shortened
+the roster does not list, nicknames, one-syllable given names, given names of
+roster names that are not all Hangul or shorter than three syllables, shortened
 school names such as `별빛고` for `가상별빛고`, addresses, and Hangul written
 in decomposed form (NFD), as some file names and PDF copies are, reach the
 provider as written. Leave them out of tool inputs, or ask the operator to add
