@@ -59,8 +59,9 @@ merge review.
   roster. In a new `TESTS/test_rules.py`, add cases for every rule of the
   [contract](contracts/page-rules.md) through `lint.check`: for each rule,
   failing pages with the page, line and rule named and no matched text in
-  the message, and close passing cases; mechanical regions and the
-  `sources` field ignored; the roster read only when the contract says,
+  the message, and close passing cases; mechanical regions, the `sources`
+  field and `log.md` ignored; student pages found only directly in
+  `wiki/students/`; the roster read only when the contract says,
   and a missing, malformed or relative-path roster configuration failing
   with its file named; the roster and vault unchanged after the check
   (SC-004). Commit the cases and record in this file how many fail per

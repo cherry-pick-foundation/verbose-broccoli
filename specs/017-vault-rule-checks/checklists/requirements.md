@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,10 +31,8 @@
 
 ## Notes
 
-- Five points are pending the user's answers, asked through the develop
-  session on 2026-09-29: how student pages are identified, what an allowed
-  quote is, whether `log.md` is checked, which time zone forms count, and
-  when the roster is read.
+- The user answered the five open points on 2026-09-29 through the develop
+  session, taking the recommended option for each (spec Clarifications).
 - `education.toml`, the roster and the rule that names match the way
   backfire matches them are the brief's own terms, not implementation
   choices: backfire's matching is what the English rule protects.

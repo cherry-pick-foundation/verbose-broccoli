@@ -18,7 +18,9 @@
 
 ## R2. Which text is checked
 
-- **Decision**: For each page, the page text with two parts blanked out
+- **Decision**: For each page except `wiki/log.md` (the user's answer: it
+  is append-only, so a bad earlier entry could never be fixed), the page
+  text with two parts blanked out
   (replaced by empty lines, so line numbers stay): every well-formed
   mechanical region, found with `doc_regions.regions.scan`, and the lines of
   the front matter's `sources` field, found from PyYAML's node positions.
@@ -151,10 +153,27 @@
 - **Decision**: Tests in `packages/wiki-consistency/tests/test_rules.py`
   build synthetic vaults with the existing `conftest.py` helpers and a
   synthetic roster CSV named by an `education.toml` in a temporary
-  `XDG_CONFIG_HOME`, set with `monkeypatch`. Synthetic names follow the
-  style of backfire's fixtures (made-up Hangul names that no real student
-  has been checked to have). Each rule's cases are written and seen failing
-  before the rule is implemented.
+  `XDG_CONFIG_HOME`, set with `monkeypatch`. Synthetic names come from
+  `scripts/backfire/fixtures/education-roster-v1.csv` and backfire's tests;
+  on 2026-09-29 main compared those names with the real roster by count
+  only and found none of them in it. Each rule's cases are written and
+  seen failing before the rule is implemented.
 - **Rationale**: Constitution V asks for positive, negative and boundary
   cases with synthetic fixtures; the brief asks for failing-then-passing
   tests per check.
+
+## R10. Student pages
+
+- **Decision**: A student page is a `.md` file directly in
+  `wiki/students/`, and its file name without `.md` is the student's name
+  in the roster's spelling. The check compares that name with the roster's
+  `name` values exactly, and reads the roster only when a student page
+  exists or checked text holds a CJK letter.
+- **Rationale**: The user's answer (spec Clarifications). It matches the
+  `work` vault's layout on 2026-09-29, needs no new page field, and keeps
+  the student's name where backfire can replace it. Reading the roster only
+  when needed keeps the `default`, `chat` and `code` vaults, which have no
+  student data, free of a roster requirement.
+- **Alternatives considered**: A `student` field in page front matter,
+  which the user did not choose; matching given names or other forms,
+  rejected because the schema asks for the roster's spelling.

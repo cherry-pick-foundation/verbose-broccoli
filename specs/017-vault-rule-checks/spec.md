@@ -59,14 +59,32 @@ which. Tests use their own fixtures and never real student data.
 
 ### Session 2026-09-29
 
-These questions went to the user through the develop session.
+Five questions went to the user through the develop session, which
+relayed the answers the same day; the user took the recommended option for
+each.
 
-- Q: Which pages are student pages, and which roster name belongs to each?
-  → A: [pending]
-- Q: What is a short quote next to a translation? → A: [pending]
-- Q: Is `log.md` checked? → A: [pending]
-- Q: Which time zone forms count? → A: [pending]
-- Q: When must the roster be configured? → A: [pending]
+- Q: The schema template does not say which pages are student pages. How
+  does the check find them and their student? → A: A student page is a
+  page directly in `wiki/students/`, whose file name without `.md` is the
+  student's name in the roster's spelling, as in the `work` vault today.
+  The template gains one line saying so. Affects FR-007 and FR-014.
+- Q: What counts as a short quote next to a translation? → A: Hangul,
+  Chinese or Japanese text is allowed only as a roster name (a student,
+  given or guardian name) or as one quoted passage of at most 100
+  characters with its English translation right beside it, in parentheses
+  or quotation marks, on the same line. Everything else fails, code spans
+  and link text included. Affects FR-009 and FR-010.
+- Q: Is `log.md` checked? → A: No. It is append-only, so a bad earlier
+  entry could never be fixed, and its entries hold counts, not contents.
+  Affects FR-001.
+- Q: Which time zone forms count? → A: `Z`, a numeric offset such as
+  `+09:00`, `UTC`, or `UTC+9` with or without parentheses, as CHE-24's
+  planned `(UTC+9)` form; abbreviations such as `KST` fail. Affects FR-013.
+- Q: When must the roster be configured? → A: The check reads it only when
+  a page needs it: when there is a student page or checked text holds a
+  Hangul, Chinese or Japanese letter. A missing or unreadable
+  `education.toml` then fails the check and names the file; the `default`,
+  `chat` and `code` vaults need no roster. Affects FR-008.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -211,6 +229,10 @@ documents that describe the check.
 - Front matter: every field is checked like body text except `sources`,
   which holds source IDs and revision names that can look like phone or ID
   numbers.
+- `log.md`: not checked, because it is append-only and a bad earlier entry
+  could never be corrected; its entries hold counts, not contents.
+- A page in a subfolder of `wiki/students/`: not a student page; its text
+  is still checked like any other page.
 - A roster name directly followed by Korean text, such as a particle: the
   name passes and the rest fails, since an English page has no particles.
 - A Hangul school name inside an allowed quote: passes, because backfire
@@ -235,9 +257,9 @@ documents that describe the check.
 **Scope of the rule checks**
 
 - **FR-001**: The offline check MUST apply the rule checks below to the
-  agent-written text of every page in `wiki/`: everything outside
-  mechanical regions and outside the front matter's `sources` field.
-  [`log.md`: pending]
+  agent-written text of every page in `wiki/` except `log.md`: everything
+  outside mechanical regions and outside the front matter's `sources`
+  field.
 - **FR-002**: Each rule failure MUST fail the check and name the page, the
   line and the rule, and MUST NOT repeat the matched text, so reports passed
   on carry no personal data. Only the student-page rule names a page whose
@@ -258,13 +280,17 @@ documents that describe the check.
   can tell: a road-name address, in Hangul or romanized, that is a name
   ending in 로, 길, `-ro`, `-daero` or `-gil` followed by a building number;
   and a lot-number address ending in 번지.
-- **FR-007**: Student pages MUST be identified as [pending], and the check
-  MUST fail on a student page whose student is not a `name` in the roster.
+- **FR-007**: A student page is a page directly in `wiki/students/`, and
+  its file name without `.md` is the student's name. The check MUST fail on
+  a student page whose name is not a `name` in the roster, compared
+  exactly.
 - **FR-008**: The check MUST read the roster through
   `$XDG_CONFIG_HOME/verbose-broccoli/backfire/education.toml` (default
   `~/.config`) and the roster file it names, with feature 011's format
-  rules, only for reading. [When: pending] A missing, unreadable or
-  malformed file MUST fail the check and name that file.
+  rules, only for reading, and only when a page needs it: when a student
+  page exists or checked text holds a Hangul, Chinese or Japanese letter.
+  Then a missing, unreadable or malformed file MUST fail the check and name
+  that file.
 
 **Language, names and schools (User Story 2)**
 
@@ -272,7 +298,10 @@ documents that describe the check.
   letters except where they are part of a roster student name, a given name
   that backfire derives from the roster, or a roster guardian name, matched
   exactly as backfire matches them; or part of an allowed quote.
-- **FR-010**: An allowed quote MUST be [pending].
+- **FR-010**: An allowed quote MUST be one passage in quotation marks, of
+  at most 100 characters inside the marks, with its English translation
+  right beside it on the same line, one of the two in parentheses. Link
+  text and code spans get no other exception.
 - **FR-011**: The check MUST fail on a roster `school` value that contains
   Hangul, Chinese or Japanese letters when it appears outside an allowed
   quote, and on a romanized school name, one or more capitalized words
@@ -291,7 +320,9 @@ documents that describe the check.
 - **FR-013**: The check MUST fail on a time of day, written as `HH:MM` with
   optional seconds or with `AM` or `PM` (`a.m.`, `p.m.`), that is not
   followed by a time zone. A time range such as `14:00–15:30` counts as
-  zoned when a zone follows its end. The accepted zones are [pending].
+  zoned when a zone follows its end. The accepted zones are `Z`, a numeric
+  offset such as `+09:00`, `UTC`, and `UTC` with an offset such as `UTC+9`,
+  with or without parentheses; abbreviations such as `KST` are not.
 
 **Documents (User Story 4)**
 
@@ -338,7 +369,8 @@ agent's own review, and a passing offline check does not prove them:
   failure message that names it.
 - **Roster**: The operator's student list that `education.toml` names:
   student names, optional schools and guardian names. Read, never changed.
-- **Student page**: A page about one student, identified as FR-007 says.
+- **Student page**: A page directly in `wiki/students/`, named after its
+  student in the roster's spelling.
 - **Allowed quote**: Original-language text that FR-010 lets stay in an
   English page.
 

@@ -7,7 +7,7 @@ line, and never with the matched text.
 
 ## Checked text
 
-For every Markdown page under `wiki/` [`log.md`: pending], the page text
+For every Markdown page under `wiki/` except `wiki/log.md`, the page text
 with these parts replaced by empty lines:
 
 - each well-formed mechanical region, from its start marker to its end
@@ -22,7 +22,8 @@ Everything else, other front matter fields included, is checked text.
 - Read with `backfire_education.roster.load_roster()`: the file
   `$XDG_CONFIG_HOME/verbose-broccoli/backfire/education.toml` (default
   `~/.config/...`) and the roster CSV it names, read only.
-- [When it is read: pending.] If reading fails, the check reports one
+- Read only when a page needs it: when a student page exists, or when the
+  checked text of any page holds a CJK letter. If reading fails, the check reports one
   problem on document `wiki` line 1, `page rule roster: cannot read the
   roster: <detail>`, where `<detail>` is the `JudgmentError`'s detail (a path
   or variable name), and skips the rules that need the roster.
@@ -67,7 +68,9 @@ digits, with no digit directly before or after. It counts only when
 
 ### Student page
 
-[pending]
+A `.md` file directly in `wiki/students/` (not in a subfolder). Its file
+name without `.md` must equal a roster `name` exactly; otherwise the page
+fails `student-roster` on line 1.
 
 ### CJK letter
 
@@ -77,7 +80,20 @@ starts with `HANGUL`, `CJK UNIFIED IDEOGRAPH`, `CJK COMPATIBILITY IDEOGRAPH`,
 
 ### Allowed quote
 
-[pending]
+Quotation marks are the pairs `"…"`, `“…”`, `‘…’`, `「…」` and `『…』` (the
+ASCII apostrophe is not one, because it also marks possessives). On one
+line, an allowed quote is either of:
+
+- an original in quotation marks, then optional spaces, then a translation
+  in parentheses: `"원문" (translation)` or `"원문" ("translation")`;
+- a translation in quotation marks, then optional spaces, then the original
+  in quotation marks inside parentheses: `"translation" ("원문")`.
+
+The original holds at most 100 characters between its marks and at least
+one CJK letter. The translation holds at least one Latin letter and no CJK
+letter outside name spans. Only the original's characters are exempt from
+`english` and from the Hangul part of `school`; the contact rules still
+apply inside it. Link text and code spans get no other exception.
 
 ### Romanized school name
 
@@ -114,7 +130,17 @@ A time is `H:MM` or `HH:MM` with hour 0 to 23 and minute 0 to 59, optional
 12 followed by one of those four. A digit or `:` directly before or after
 prevents the match; a `T` before it (as in `2026-09-29T14:30`) does not.
 
-A time passes when an accepted zone follows it: directly (for `Z` and
-numeric offsets) or after spaces. A range, two times joined by `-`, `–`,
-`—` or `to` with optional spaces, passes when a zone follows its second
-time. Accepted zones: [pending].
+A time passes when an accepted zone follows it. A range, two times joined
+by `-`, `–`, `—` or `to` with optional spaces, passes when a zone follows
+its second time; its first time needs none. Accepted zones:
+
+- `Z`, directly after the time;
+- a numeric offset `+HH:MM`, `+HHMM`, `-HH:MM` or `-HHMM`, directly after
+  the time or after spaces. A `-` offset directly after the time counts
+  only when the time follows a `T` (an ISO 8601 date-time such as
+  `2026-09-29T14:30:00-05:00`); elsewhere `14:00-15:30` is a range;
+- `UTC`, alone or followed by `+` or `-`, an hour of one or two digits and
+  optional `:MM`, as in `UTC+9` or `UTC+09:00`, after optional spaces and
+  optionally wrapped in parentheses, as in `(UTC+9)`.
+
+Abbreviations such as `KST` or `GMT` are not accepted.
