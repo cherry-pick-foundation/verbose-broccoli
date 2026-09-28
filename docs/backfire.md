@@ -232,7 +232,7 @@ The messages omit the provider's raw response and credentials.
 | `request_rejected` | The provider rejected the model or request settings. Check the profile's model and request fields. |
 | `rate_limited` | The provider rate limit blocked completion within the retry budget. Wait before trying again. |
 | `provider_unavailable` | The provider could not be reached, or its response could not be read. Check network access and provider status. |
-| `provider_error` | The provider returned another failure status. Check provider status and the selected profile. |
+| `provider_error` | The provider returned another failure status, or a success status with no answer in the reply. Check provider status and the selected profile. |
 | `truncated_output` | Output did not complete or reached the profile's `max_tokens`. Reduce the request or review the profile's output limit. |
 | `malformed_output` | The response lacks required data or has invalid answers. Check the profile and model compatibility. |
 | `refused` | The provider refused the judgment. Review the request against the provider's usage rules. |
