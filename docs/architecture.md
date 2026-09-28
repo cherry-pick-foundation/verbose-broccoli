@@ -25,17 +25,27 @@ No release has occurred, and actual client installation
 remains open.
 
 Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins
-schemas. `deno task check` runs the runtime doctor, formatting, lint, type
-checks, plugin schema validation, Clean Code, architecture checks, the test
+schemas. `deno task check` runs the runtime doctor, formatting, lint, the
+shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
 suites, the reference drift check and the document region check (see
 [Document consistency](#document-consistency--2026-09-28)). Biome formats and lints code and JSON with
 one root `biome.json`, which keeps the Google TypeScript style settings, turns
 on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
-The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
+The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
+which the Google shell style guide recommends, checks the repository's own
+shell scripts: `deno task lint:shell` runs it on every `*.sh` file and on the
+hooks in `scripts/git-hooks/` and `scripts/git-flow-hooks/`, but not on Spec
+Kit's vendored scripts under `.specify/`. The root `.shellcheckrc` turns on
+four optional checks for guide rules: `${var}` braces, quoted variables,
+explicit `-z` or `-n` tests, and `[[ … ]]` in Bash scripts. The scripts stay
+POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
+formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
+project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
+official binary; Orca's setup script syncs it. `doctor` checks the
 selected standalone Deno/Quarto executables, uv, git-flow and lychee from
-`PATH`, the Spec Kit and doc-regions environments, the git-flow configuration
+`PATH`, the Spec Kit, ShellCheck and doc-regions environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. In REVIEW mode it asks the implementer or the orchestrator to review the

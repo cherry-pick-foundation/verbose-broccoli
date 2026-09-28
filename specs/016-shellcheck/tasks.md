@@ -26,25 +26,35 @@ owns the records, T005 and integration.
 
 ## Phase 1: Pinned tool (US2)
 
-- [ ] T001 [US2] Create `tools/shellcheck/` as a uv project like
+- [x] T001 [US2] Create `tools/shellcheck/` as a uv project like
   `tools/spec-kit/` that pins `shellcheck-py` 0.11.0.1 in `uv.lock`; sync it
   in `orca.yaml`'s setup script (FR-001).
-- [ ] T002 [US2] In `scripts/doctor.ts`, check the `tools/shellcheck`
+- [x] T002 [US2] In `scripts/doctor.ts`, check the `tools/shellcheck`
   environment the way it checks `tools/spec-kit`, with a case in
   `scripts/doctor_test.ts`; name ShellCheck in the `doctor` task description
   in `deno.json` (FR-001, SC-003).
 
 ## Phase 2: Check (US1)
 
-- [ ] T003 [US1] Add the root `.shellcheckrc` (FR-005) and a `lint:shell`
+- [x] T003 [US1] Add the root `.shellcheckrc` (FR-005) and a `lint:shell`
   task that runs the pinned ShellCheck on the scripts of FR-002 and not on
   `.specify/` (FR-004); add it to `check` (FR-003) and regenerate
   `docs/reference/commands.md`.
-- [ ] T004 [US1] Fix every finding in `scripts/worktree-branch.sh`,
+- [x] T004 [US1] Fix every finding in `scripts/worktree-branch.sh`,
   `scripts/git-flow-hooks/pre-flow-feature-finish` and
   `scripts/git-hooks/commit-msg` without changing behavior (FR-006).
-- [ ] T005 [P] [US1] In `docs/architecture.md`, name the shell check in the
+- [x] T005 [P] [US1] In `docs/architecture.md`, name the shell check in the
   list of checks and describe the pinned tool next to `tools/spec-kit/`.
+  - 2026-09-29: A Codex implementer (`gpt-6-luna`, max effort; Orca
+    dispatch `ctx_74165f78c106`) did T001 to T004, committed after review
+    as `91b4a35` (T004) and `d80dbdd` (T001 to T003). The owned scripts had
+    one default finding, the finish hook's intended word splitting, now
+    kept with a scoped directive, and 80 `require-variable-braces`
+    findings. It reported `deno task check` and `deno task verify` passing,
+    the SC-002 probe failing and then passing, and the doctor failing with
+    the repair command without the environment. Main reran `lint:shell` and
+    the SC-002 probe with the same results; `.specify/` is unchanged since
+    `df912f4`. T005 is main's.
 
 ## Phase 3: Verification and review
 
