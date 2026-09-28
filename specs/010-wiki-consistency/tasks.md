@@ -294,12 +294,18 @@ the code plugin; the schema and the skill describe the procedure.
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md` with
   [contracts/pages.md](contracts/pages.md), keeping its raw rules; update
   feature 009's template test if it checks the text.
-- [ ] T028 [US5] Ask the user to approve applying the extended schema to the
+- [x] T028 [US5] Ask the user to approve applying the extended schema to the
   default instance (a write outside the repository). After approval, update
   the instance's `AGENTS.md`, run `update` (the first `index.md` region),
   `check`, append one `log.md` entry and commit the instance; record only
   counts in this file.
-- [ ] T029 [US5] Document the feature in `docs/architecture.md` (the Wiki
+  - 2026-09-28: feature 012 (CHE-19) turned the instance into four vaults
+    first. The user chose to apply the schema to the three new, empty vaults
+    (`default`, `chat`, `code`) and to leave `work`, whose pages still need
+    metadata and whose owner has uncommitted edits, to a separate issue. Each
+    of the three got the template, the `index.md` region, one `log.md` entry
+    and a second commit; `check` passed with 0 pages and 0 problems.
+- [x] T029 [US5] Document the feature in `docs/architecture.md` (the Wiki
   consistency section: generators, the check before each instance commit,
   the judgment step, lint, cache budgets, what stays manual; the skill table,
   regenerated with `deno task doc-regions:update` if feature 008 made it a
@@ -322,6 +328,11 @@ the code plugin; the schema and the skill describe the procedure.
     markitdown makes onnxruntime write a device ID under the XDG cache root,
     so even `check` wrote a file; a Codex worker is fixing it. Still to do:
     rerun after CHE-19's `vaults/` layout merges.
+  - 2026-09-28, after merging `develop` with CHE-19: the quickstart's
+    offline check, judgment steps 4 and 5 and build passed again on scratch
+    vaults; the rerun found that the model check missed qmd's stored file
+    name (`hf_Qwen_...gguf`), fixed with a regression test. `deno task
+    verify` passed.
 - [x] T031 SC-005: on a synthetic instance with one paragraph contradicting
   its source and one pair of contradicting pages, run `prepare` and send the
   requests three times; both must come back `contradicted` or `review` every
@@ -337,6 +348,10 @@ the code plugin; the schema and the skill describe the procedure.
     1.0), and `backfire_compare` gave `contradicts` (0.98 to 1.0) each time.
     Hive returned `provider_error` on 5 of 25 calls, retried; in one run
     only one side of the pair came back, `contradicted`.
+  - 2026-09-28, rerun on the final code after the merge review fixes and
+    the vault rename: all three runs returned `contradicted` (auto, 1.0) for
+    the paragraph and for both pages, and `backfire_compare` gave
+    `contradicts` (0.98 to 1.0); no provider errors.
 - [ ] T032 Run feature 008's judgment step on this feature's repository
   changes, then the merge review for `develop`, favoring speed: fresh
   reviewers from the other provider for the Codex code and for main's prose,
