@@ -114,10 +114,19 @@ merge review.
 
 ## Phase 4: Verification and review
 
-- [ ] T008 Run `deno task test:wiki-consistency`, `deno task test:backfire`
+- [x] T008 Run `deno task test:wiki-consistency`, `deno task test:backfire`
   and `deno task verify`; check the feature's files against the real roster
   by count only (no overlap) and confirm that no vault, roster or
   configuration file changed (FR-016, FR-017, SC-005).
+  - 2026-09-29: Main merged `develop` at `3627cb2` (CHE-30's ShellCheck)
+    cleanly in `3df9a79`, synced the environments that Orca's setup lists,
+    and `deno task verify --task CHE26-vault-rule-checks --base 8f1de1e`
+    passed (VERIFIED, REVIEW mode), with Node 24.19.0 first on `PATH`. The
+    feature diff's added lines hold no roster name, given name, school or
+    guardian and no ASCII roster value, compared by count only. The `work`,
+    `default` and `chat` vaults have no uncommitted changes; the `code`
+    vault has another session's new pages, which this feature did not
+    touch.
 - [x] T009 Run the document judgment step as feature 015's T009 did for
   the changed template, skill and documents; correct or record each
   contradicted or flagged unit.
