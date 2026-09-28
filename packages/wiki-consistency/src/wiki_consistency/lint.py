@@ -235,9 +235,8 @@ def update(instance):
     topic_problems.extend(
         _problem(page["path"], item["line"], item["message"])
         for page in page_list
-        if not page["special"]
+        if not page["special"] and not page["topics"]
         for item in page["problems"]
-        if item["message"].startswith("topics ")
     )
     if topic_problems:
         return {"problems": topic_problems}

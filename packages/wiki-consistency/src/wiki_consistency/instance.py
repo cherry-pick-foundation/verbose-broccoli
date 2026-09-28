@@ -42,7 +42,7 @@ def _front_matter(text):
     return "\n".join(line.removesuffix("\r") for line in lines[1:end]), end, None
 
 
-def _metadata(text):
+def _front_matter_mapping(text):
     source, _, error = _front_matter(text)
     if error:
         return {}, [{"line": 1, "message": error}]
@@ -54,8 +54,33 @@ def _metadata(text):
         return {}, [{"line": line, "message": f"invalid YAML front matter: {error}"}]
     if not isinstance(metadata, dict):
         return {}, [{"line": 2, "message": "front matter must be a mapping"}]
+    return metadata, []
 
+
+def _topic_names(values):
     problems = []
+    topics = []
+    seen_topics = set()
+    for topic in values:
+        if (not isinstance(topic, str) or not topic.strip()
+                or "\n" in topic or "\r" in topic):
+            problems.append({
+                "line": 1,
+                "message": "topics must contain non-empty single-line names",
+            })
+        elif topic in seen_topics:
+            problems.append({"line": 1, "message": "topics must not contain duplicates"})
+        else:
+            seen_topics.add(topic)
+            topics.append(topic)
+    return (topics if not problems else []), problems
+
+
+def _metadata(text):
+    metadata, problems = _front_matter_mapping(text)
+    if problems:
+        return {}, problems
+
     for field in ("title", "summary"):
         value = metadata.get(field)
         if not isinstance(value, str) or not value.strip() or "\n" in value or "\r" in value:
@@ -63,28 +88,11 @@ def _metadata(text):
 
     topic_values = metadata.get("topics")
     topics = []
-    valid_topics = True
     if not isinstance(topic_values, list) or not topic_values:
         problems.append({"line": 1, "message": "topics must be a non-empty list"})
-        valid_topics = False
     else:
-        seen_topics = set()
-        for topic in topic_values:
-            if (not isinstance(topic, str) or not topic.strip()
-                    or "\n" in topic or "\r" in topic):
-                problems.append({
-                    "line": 1,
-                    "message": "topics must contain non-empty single-line names",
-                })
-                valid_topics = False
-            elif topic in seen_topics:
-                problems.append({"line": 1, "message": "topics must not contain duplicates"})
-                valid_topics = False
-            else:
-                seen_topics.add(topic)
-                topics.append(topic)
-    if not valid_topics:
-        topics = []
+        topics, topic_problems = _topic_names(topic_values)
+        problems.extend(topic_problems)
 
     citations = metadata.get("sources")
     sources = []
@@ -115,37 +123,14 @@ def declared_topics(root):
     except (OSError, UnicodeError) as error:
         return [], [{"line": 1, "message": str(error)}]
 
-    source, _, error = _front_matter(text)
-    if error:
-        return [], [{"line": 1, "message": error}]
-    try:
-        metadata = yaml.safe_load(source)
-    except yaml.YAMLError as error:
-        mark = getattr(error, "problem_mark", None)
-        line = 2 + mark.line if mark is not None else 1
-        return [], [{"line": line, "message": f"invalid YAML front matter: {error}"}]
-    if not isinstance(metadata, dict):
-        return [], [{"line": 2, "message": "front matter must be a mapping"}]
+    metadata, problems = _front_matter_mapping(text)
+    if problems:
+        return [], problems
 
     topics = metadata.get("topics")
     if not isinstance(topics, list):
         return [], [{"line": 1, "message": "topics must be a list"}]
-
-    problems = []
-    seen_topics = set()
-    for topic in topics:
-        if (not isinstance(topic, str) or not topic.strip()
-                or "\n" in topic or "\r" in topic):
-            problems.append({
-                "line": 1,
-                "message": "topics must contain non-empty single-line names",
-            })
-        elif topic in seen_topics:
-            problems.append({"line": 1, "message": "topics must not contain duplicates"})
-        else:
-            seen_topics.add(topic)
-
-    return (topics if not problems else []), problems
+    return _topic_names(topics)
 
 
 def pages(instance):
