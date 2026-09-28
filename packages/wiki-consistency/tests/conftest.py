@@ -21,23 +21,24 @@ INDEX = (
 
 
 @pytest.fixture(autouse=True)
-def offline(monkeypatch):
+def offline(monkeypatch, tmp_path):
     def blocked(*args, **kwargs):
         raise AssertionError("network access is forbidden")
 
     monkeypatch.setattr(socket, "socket", blocked)
     monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", "1")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg-config"))
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=DeprecationWarning, module=r"bagit")
         yield
 
 
-def add_revision(instance, revision, content):
-    path = instance / "raw" / "files" / SOURCE_ID / revision
+def add_revision(instance, revision, content, *, source_id=SOURCE_ID):
+    path = instance / "raw" / "files" / source_id / revision
     path.mkdir(parents=True)
     (path / "document.txt").write_text(content, encoding="utf-8")
     bagit.make_bag(str(path), bag_info={
-        "External-Identifier": SOURCE_ID,
+        "External-Identifier": source_id,
         "Internal-Sender-Identifier": "/synthetic/document.txt",
         "Source-Modified": "2026-09-26T12:34:56+00:00",
         "Admission-Time": revision,
@@ -68,6 +69,7 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
         "HOME": str(home),
         "XDG_DATA_HOME": str(data_home),
         "XDG_CACHE_HOME": str(cache_home),
+        "XDG_CONFIG_HOME": str(tmp_path / "xdg-config"),
     }
     instance = data_home / "verbose-broccoli" / "vaults" / wiki_id
     (instance / "wiki" / "concepts").mkdir(parents=True)
