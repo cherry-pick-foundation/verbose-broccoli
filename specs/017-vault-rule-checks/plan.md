@@ -2,7 +2,7 @@
 
 **Branch**: `feature/vault-rule-checks` | **Date**: 2026-09-29 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `specs/016-vault-rule-checks/spec.md`
+**Input**: Feature specification from `specs/017-vault-rule-checks/spec.md`
 
 ## Summary
 
@@ -80,7 +80,7 @@ Post-design recheck: the design below keeps every row as it is.
 ### Documentation (this feature)
 
 ```text
-specs/016-vault-rule-checks/
+specs/017-vault-rule-checks/
 ├── plan.md
 ├── research.md
 ├── quickstart.md

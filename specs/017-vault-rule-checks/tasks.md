@@ -5,7 +5,7 @@ description: "Task list for vault page rule checks"
 
 # Tasks: Vault Page Rule Checks
 
-**Input**: Design documents from `specs/016-vault-rule-checks/`
+**Input**: Design documents from `specs/017-vault-rule-checks/`
 
 **Prerequisites**: [plan.md](plan.md), [spec.md](spec.md),
 [research.md](research.md), [contracts/page-rules.md](contracts/page-rules.md),
