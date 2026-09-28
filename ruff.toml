@@ -10,8 +10,8 @@ src = [
 ]
 
 [format]
-# Markdown is not Python; these Clean Code references are vendored upstream.
-exclude = ["plugins/code/skills/clean-code/references/*.md"]
+# Markdown is not Python source; several copies are vendored.
+exclude = ["*.md"]
 
 [per-file-target-version]
 # scripts/doc_sources.py runs in the doc-regions Python 3.13 environment.
