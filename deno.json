@@ -48,7 +48,7 @@
       "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
       "command": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --no-sync doc-regions audit scripts/doc_regions.toml"
     },
-    "wiki-consistency:install": "uv sync --locked --project packages/wiki-consistency && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
+    "wiki-consistency:install": "uv sync --locked --project packages/backfire --extra education && uv sync --locked --project packages/wiki-consistency && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
     "test:wiki-consistency": "(test -f packages/wiki-consistency/.venv/bin/pytest || (echo 'Missing wiki-consistency environment. Run deno task wiki-consistency:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/wiki-consistency --frozen --offline --no-sync pytest packages/wiki-consistency/tests",
     "test:doc-regions": "(test -f packages/doc-regions/.venv/bin/pytest || (echo 'Missing doc-regions environment. Run uv sync --locked --project packages/doc-regions.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
     "check": {

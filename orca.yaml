@@ -41,6 +41,7 @@ scripts:
     "$uv_bin" sync --locked --project tools/shellcheck
     "$uv_bin" sync --locked --project tools/ruff
     "$uv_bin" sync --locked --project packages/doc-regions
+    "$uv_bin" sync --locked --project packages/backfire --extra education
     "$uv_bin" sync --locked --project packages/wiki-consistency
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
     "$uv_bin" sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
