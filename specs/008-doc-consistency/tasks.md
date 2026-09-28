@@ -321,11 +321,19 @@ following it.
     confidence 1.0, 0.91 and 0.925; every other unit was `unsupported`, with
     at most four `review` flags in a run. Each run used 61,895 input tokens.
     SC-002: `deno task doc-regions:check` takes about 0.26 s.
-- [ ] T026 Merge review for `develop`, favoring speed: fresh reviewers from
+- [x] T026 Merge review for `develop`, favoring speed: fresh reviewers from
   the other provider for the Codex code and for main's prose, given only the
   scope and requirements; resolve findings; add the review-record commit and
   finish with `git flow feature finish doc-consistency` from the `develop`
   worktree.
+  - 2026-09-28: fresh Claude reviewer (claude-opus-5-5, high) for the
+    Codex-written code found one blocking defect (MemoryLint conflict and
+    duplicate findings dropped) and two non-blocking ones (line splitting on
+    non-newline separators, Python floor 3.11 below `full_match`'s 3.13);
+    fresh Codex reviewer (gpt-6-luna, max) for main's records, docs and
+    configuration found only the Python floor. Codex worker D fixed all
+    three in `ea23d0d`; a fresh Claude reviewer (claude-sonnet-5, high)
+    confirmed the fixes and noted one contract wording gap, fixed after it.
 
 ---
 

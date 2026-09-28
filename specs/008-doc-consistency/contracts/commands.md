@@ -60,7 +60,9 @@ or execution failure, with each problem on stderr.
 ```
 
 It keeps only findings whose source is a report-only document, unchanged
-otherwise. A hash mismatch fails without running the script. The cache
+otherwise. A conflict or duplicate finding joins two sources with ` + `
+(`AGENTS.md:10-12 + .specify/memory/constitution.md:40-41`); it is kept when
+either source is a report-only document. A hash mismatch fails without running the script. The cache
 directory stays within 1 MiB, checked before each write; the download and
 extraction go to a temporary sibling directory that is renamed into place
 only after the hash check and removed on failure, SIGINT or SIGTERM; a run
