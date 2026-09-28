@@ -33,6 +33,12 @@ review.
   follows the user's student information system (EduOK) first, and school
   information follows the school's official homepage first. The schema
   template states it in one sentence next to the naming rule.
+- Q: Which other page rules belong to this feature? → A: The user's last
+  batch: dates are written as YYYY-MM-DD and times with their time zone; a
+  student who has a page stays in backfire's roster after leaving EduOK, so
+  the name keeps its alias; and pages hold no contact details or ID numbers
+  (phone numbers, email or postal addresses, guardian contacts, resident
+  registration numbers). Later rules go to CHE-24 or a follow-up issue.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -117,6 +123,10 @@ template, its Git log has one new commit, and the offline `check` passes.
   disagree, student information follows the user's student information
   system (EduOK) first and school information the school's official homepage
   first.
+- **FR-007**: The template MUST state, one short bullet each, that dates are
+  written as YYYY-MM-DD and times with their time zone; that a student who
+  has a page stays in backfire's roster after leaving EduOK; and that pages
+  hold no contact details or ID numbers.
 
 ## Success Criteria *(mandatory)*
 
