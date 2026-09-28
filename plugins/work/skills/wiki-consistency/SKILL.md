@@ -54,9 +54,11 @@ details on stderr only.
    and line.
 2. Run `convert`, `index` and `prepare --scope changed`. Read `calls` first:
    it counts the requests per backfire tool. If `index` reports a
-   `semantic_error`, or `prepare`'s `search.not_searched` is not empty, tell
-   the user that other pages and cross-references were not searched, because
-   the embedding model is missing; `index` downloads it once.
+   `semantic_error`, tell the user what it says. If `prepare`'s
+   `search.not_searched` is not empty, tell the user that other pages and
+   cross-references were not searched because semantic search was not ready:
+   the embedding model is missing (`index` downloads it once) or embedding
+   failed (see `semantic_error`).
 3. Send each request's `arguments` to the backfire tool it names, on the
    **work plugin's** backfire server. Before the provider sees them, its judge
    replaces the student, guardian and school names in the operator's roster,

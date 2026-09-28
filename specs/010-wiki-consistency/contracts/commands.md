@@ -65,7 +65,7 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
 
 ```json
 {
-  "wiki": "default",
+  "wiki": "work",
   "scope": "changed",
   "head": "<instance HEAD commit or null>",
   "units": [{"id": "wiki/concepts/quad.md:8-9", "page": "wiki/concepts/quad.md", "heading_path": ["Quadratic formula"], "kind": "paragraph", "first_line": 8, "last_line": 9, "added": true, "outcome": "requested"}],
@@ -93,9 +93,11 @@ Needs `convert` and `index` to have run; refuses with a named step otherwise.
   page and line.
 - Crossref requests (lint only): per page, candidate pages it does not link
   to, at least two, at most 20.
-- Without the embedding model, keyword search alone finds no other page for
-  a whole unit, so `prepare` makes no page or crossref requests and lists
-  them in `search.not_searched`; with the model the list is empty.
+- Semantic search is ready when the embedding model is cached and qmd
+  reports no document that still needs embeddings. When it is not ready,
+  keyword search alone finds no other page for a whole unit, so `prepare`
+  makes no page or crossref requests and lists them in
+  `search.not_searched`; otherwise the list is empty.
 - Each request stays within backfire's limits (research.md R6); every
   in-scope unit is in exactly one evidence request or in `unverifiable`.
   Output is sorted, so the same instance and cache give

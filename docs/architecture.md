@@ -192,11 +192,12 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
-  Markdown with markitdown 0.1.8 under `~/.cache/verbose-broccoli/wiki-evidence/`
+  Markdown with markitdown 0.1.8 under
+  `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default `~/.cache`)
   (1 GiB budget); HWP files and scanned PDFs are reported as unreadable, and
   claims resting only on them as unverifiable. `index` builds qmd 2.8.3
   collections of the pages and the converted evidence under
-  `~/.cache/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
+  `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
   Qwen3 embedding model, a 610 MB download on first use. Without the model,
   keyword search alone finds no other page for a whole paragraph, so
   `prepare` then checks units only against their evidence and says that it

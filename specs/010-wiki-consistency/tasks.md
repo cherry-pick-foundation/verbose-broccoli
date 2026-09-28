@@ -316,7 +316,7 @@ the code plugin; the schema and the skill describe the procedure.
 
 ## Phase 8: Polish and Integration
 
-- [ ] T030 Run the quickstart, `deno task verify` and `deno task docs:check`
+- [x] T030 Run the quickstart, `deno task verify` and `deno task docs:check`
   on the combined result; rerun `deno task workflow` with the same task and
   base; repair until they pass. Check SC-002 on a synthetic instance of 500
   pages.
