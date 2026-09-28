@@ -41,3 +41,6 @@ wiki_consistency = ["search.mjs"]
 
 [tool.pytest.ini_options]
 addopts = ["-p", "no:cacheprovider"]
+
+[tool.ruff]
+extend = "../../ruff.toml"

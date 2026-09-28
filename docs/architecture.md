@@ -33,12 +33,14 @@ one root `biome.json`, which keeps the Google TypeScript style settings, turns
 on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
 and its package ships a platform-specific native binary that `deno.lock` pins.
+Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
 The Clean Code skill keeps its own ESLint-based checker. `doctor` checks the
 selected standalone Deno/Quarto executables, uv, git-flow and lychee from
-`PATH`, the Spec Kit and doc-regions environments, the git-flow configuration
-and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
-verification evidence and three additive skill triggers; `verify` uses that same
-loop. In REVIEW mode it asks the implementer or the orchestrator to review the
+`PATH`, the Spec Kit, Ruff, doc-regions and wiki-consistency environments, the
+git-flow configuration and locked dependencies without writing by default.
+`workflow` supplies execution mode, graph queries, verification evidence and
+three additive skill triggers; `verify` uses that same loop. In REVIEW mode it
+asks the implementer or the orchestrator to review the
 diff before each commit and leaves the independent review to the merge into `develop` or
 `main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later
 feature work.
