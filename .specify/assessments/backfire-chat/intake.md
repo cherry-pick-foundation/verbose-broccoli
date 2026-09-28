@@ -34,10 +34,14 @@ and work plugins. If one can, add a chat build of it.
   (`packages/backfire/src/backfire_tools/build.py:13-16`); a `chat` build is
   refused (`specs/011-backfire-education/contracts/build.md:42`).
 - **Handover**: CHE-9's orchestrator created this worktree and handed CHE-10
-  over on 2026-09-28. Earlier that day the user had chosen a chat build for
-  Claude Desktop plus ChatGPT through OpenAI's Secure MCP Tunnel. The user's
-  answers recorded in [research.md](research.md) replaced that choice before
-  any implementation.
+  over on 2026-09-28. The handover task, sent through Orca by the develop
+  session, recorded the user's choice from earlier that day: "A chat build for
+  Claude Desktop: a chat row in CHE-9's per-plugin build table (backfire core
+  plus pseudonymization, with its own chat profile), backfire declared in
+  plugins/chat/mcp.json, and constitution IX amended; plus ChatGPT through
+  OpenAI's Secure MCP Tunnel as an operator setup." The user's answers
+  recorded in [research.md](research.md) replaced that choice before any
+  implementation.
 
 ## First-Glance Unknowns
 

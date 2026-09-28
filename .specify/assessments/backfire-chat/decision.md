@@ -13,7 +13,7 @@
 | Evidence strength | strong | OpenAI's pages were quoted as read on 2026-09-28, and the account was checked directly. |
 | Value vs. inaction | weak | No route works on this account, and inaction breaks nothing. |
 | Feasibility / appetite | weak | Every route from ChatGPT on the web to a custom MCP server needs developer mode, which this account lacks; no concept was shaped. |
-| Strategic fit | adequate | A chat build would need a constitution IX amendment, which the user had already accepted for the earlier Claude Desktop choice. |
+| Strategic fit | adequate | A chat build would need a constitution IX amendment; the user's earlier Claude Desktop choice included one ([intake.md](intake.md#origin--context)). |
 | Risk posture | adequate | The risks are known: developer mode's elevated risk, a key-spending public endpoint (rejected), and data passing through OpenAI's tunnel service. None was tested. |
 
 ## Verdict & Rationale
@@ -41,12 +41,14 @@ manifest or constitution text changes.
 Reopen CHE-10, or open a new issue, when one of these holds:
 
 1. **Developer mode appears** under ChatGPT **Settings > Security and login**
-   for the user's account, after a plan change or OpenAI's rollout. Then shape
-   the chat build: a `chat` row in the build table with its own `chat` profile,
-   the `backfire` declaration in `plugins/chat/mcp.json`, a constitution IX
-   amendment, and operator steps for Secure MCP Tunnel. First check whether the
-   account allows only read/fetch tools; if so, backfire's eleven tools would
-   need `readOnlyHint`, a recorded upstream deviation.
+   for the user's account, after a plan change or OpenAI's rollout. Then first
+   recheck the open points in [research.md](research.md#gaps--open-questions):
+   whether the account can list a tunnel, and what a tunnel costs. If both
+   allow it, shape the chat build: a `chat` row in the build table with its
+   own `chat` profile, the `backfire` declaration in `plugins/chat/mcp.json`, a
+   constitution IX amendment, and operator steps for Secure MCP Tunnel. Also
+   check whether the account allows only read/fetch tools; if so, backfire's
+   eleven tools would need `readOnlyHint`, a recorded upstream deviation.
 2. **The user starts working in a client that runs local stdio servers**: the
    ChatGPT desktop app's local chats, or Claude Desktop on macOS.
 3. **claude.ai on the web comes into scope.** It has not been assessed.
