@@ -27,6 +27,10 @@ const versions = {
   lychee: '0.24.2',
 };
 type Tool = keyof typeof versions;
+interface NpmLock {
+  lockfileVersion?: number;
+  packages?: Record<string, {version?: string}>;
+}
 interface Options {
   deno?: string;
   quarto?: string;
@@ -130,18 +134,40 @@ async function probeNodeVersion(path: string) {
   return output.replace(/^v/, '');
 }
 
-async function checkNpmEnvironment(npm: string, project: string) {
+export async function checkNpmEnvironment(npm: string, project: string) {
+  const root = fromFileUrl(new URL('../', import.meta.url));
   const result = await new Deno.Command(npm, {
     args: ['ls', '--all', '--prefix', project],
-    cwd: fromFileUrl(new URL('../', import.meta.url)),
+    cwd: root,
     signal: AbortSignal.timeout(30_000),
     stdout: 'null',
     stderr: 'null',
   }).output();
-  if (!result.success)
-    throw new Error(
-      `${project} node_modules is missing or out of sync with package-lock.json; run deno task wiki-consistency:install.`,
-    );
+  const message = `${project} node_modules is missing or out of sync with package-lock.json; run deno task wiki-consistency:install.`;
+  if (!result.success) throw new Error(message);
+  try {
+    const [lockText, installedText] = await Promise.all([
+      Deno.readTextFile(resolve(root, project, 'package-lock.json')),
+      Deno.readTextFile(
+        resolve(root, project, 'node_modules', '.package-lock.json'),
+      ),
+    ]);
+    const lock = JSON.parse(lockText) as NpmLock;
+    const installed = JSON.parse(installedText) as NpmLock;
+    if (
+      lock.lockfileVersion !== installed.lockfileVersion ||
+      !lock.packages ||
+      !installed.packages ||
+      Object.entries(installed.packages).some(
+        ([path, pkg]) =>
+          pkg.version !== undefined &&
+          lock.packages?.[path]?.version !== pkg.version,
+      )
+    )
+      throw new Error(message);
+  } catch {
+    throw new Error(message);
+  }
   return {
     project,
     nodeModules: `${project}/node_modules`,

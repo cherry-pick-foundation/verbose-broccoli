@@ -5,7 +5,7 @@
   "tasks": {
     "doctor": {
       "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, doc-regions and wiki-consistency environments and locked dependencies",
-      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts"
+      "command": "doctor_deno=$(realpath \"$(which deno)\") && \"$doctor_deno\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\"$doctor_deno\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts"
     },
     "test:plugin-skills": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts",
     "test:doctor": "deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts",

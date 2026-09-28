@@ -1,6 +1,6 @@
 import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
-import {probeVersion, runDoctor} from './doctor.ts';
+import {checkNpmEnvironment, probeVersion, runDoctor} from './doctor.ts';
 import {sha256} from './hash.ts';
 
 const executable = Deno.execPath();
@@ -355,6 +355,48 @@ Deno.test('doctor: a missing or stale wiki-consistency Node environment fails wi
       () => runDoctor(options),
       Error,
       'run deno task wiki-consistency:install',
+    );
+  });
+});
+
+Deno.test('doctor: npm ls success does not hide npm package-lock drift', async () => {
+  await temporary(async root => {
+    const project = join(root, 'wiki-consistency');
+    const nodeModules = join(project, 'node_modules');
+    await Deno.mkdir(nodeModules, {recursive: true});
+    await Deno.writeTextFile(
+      join(project, 'package-lock.json'),
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {'node_modules/qmd': {version: '2.0.0'}},
+      }),
+    );
+    const installedLock = join(nodeModules, '.package-lock.json');
+    await Deno.writeTextFile(
+      installedLock,
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: {'node_modules/qmd': {version: '2.5.0'}},
+      }),
+    );
+    const npm = await fixture(root, 'npm', 'Deno.exit(0);');
+
+    await assertRejects(
+      () => checkNpmEnvironment(npm, project),
+      Error,
+      'node_modules is missing or out of sync',
+    );
+    await Deno.writeTextFile(installedLock, '{');
+    await assertRejects(
+      () => checkNpmEnvironment(npm, project),
+      Error,
+      'node_modules is missing or out of sync',
+    );
+    await Deno.remove(installedLock);
+    await assertRejects(
+      () => checkNpmEnvironment(npm, project),
+      Error,
+      'node_modules is missing or out of sync',
     );
   });
 });
