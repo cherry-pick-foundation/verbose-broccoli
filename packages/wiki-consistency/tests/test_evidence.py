@@ -1,8 +1,10 @@
+import io
 import json
 import os
 import signal
 import socket
 import zipfile
+from importlib.metadata import version
 
 import pytest
 from pptx import Presentation
@@ -85,6 +87,67 @@ def _revisions(*items):
     return {item["id"]: [item] for item in items}
 
 
+def _evidence_root(cache, wiki_id):
+    return cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
+
+
+def _chatgpt_conversation(number=1):
+    user_id = f"synthetic-user-{number}"
+    assistant_id = f"synthetic-assistant-{number}"
+    return {
+        "title": f"Synthetic conversation {number}",
+        "mapping": {
+            user_id: {
+                "id": user_id,
+                "message": {
+                    "id": user_id,
+                    "author": {"role": "user"},
+                    "content": {
+                        "content_type": "text",
+                        "parts": [f"합성 질문 {number}: Where is a library?"],
+                    },
+                },
+                "parent": None,
+                "children": [assistant_id],
+            },
+            assistant_id: {
+                "id": assistant_id,
+                "message": {
+                    "id": assistant_id,
+                    "author": {"role": "assistant"},
+                    "content": {
+                        "content_type": "text",
+                        "parts": [f"합성 답변 {number}: It is a place to read."],
+                    },
+                },
+                "parent": user_id,
+                "children": [],
+            },
+        },
+        "current_node": assistant_id,
+    }
+
+
+def _chatgpt_export_bytes(*, ensure_ascii=True, numbered=False):
+    conversations = [_chatgpt_conversation(number) for number in ([1, 2] if numbered else [1])]
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        if numbered:
+            for number, conversation in enumerate(conversations, start=1):
+                archive.writestr(
+                    f"conversation_{number}.json",
+                    json.dumps(conversation, ensure_ascii=ensure_ascii),
+                )
+        else:
+            archive.writestr(
+                "conversations.json",
+                json.dumps(conversations, ensure_ascii=ensure_ascii),
+            )
+        archive.writestr("chat.html", "<html><body>Synthetic export</body></html>")
+        archive.writestr("user.json", '{"display_name":"Synthetic user"}')
+    return output.getvalue()
+
+
 def _no_socket(*args, **kwargs):
     raise AssertionError("evidence conversion must not open a socket")
 
@@ -154,7 +217,7 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
         "damaged": "conversion_failed",
     }
     for source_id, reason in reasons.items():
-        mark = cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / source_id / "r1.unreadable.json"
+        mark = _evidence_root(cache, "wiki-a") / source_id / "r1.unreadable.json"
         stored = json.loads(mark.read_text())
         assert stored["reason"] == reason
         assert isinstance(stored["detail"], str)
@@ -169,7 +232,7 @@ def test_convert_never_rewrites_and_reads_unconverted_as_missing(tmp_path):
     revisions = _revisions(item)
 
     assert evidence.convert(instance, "wiki-a", cache, revisions)["converted"] == 1
-    target = cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / "source" / "r1.md"
+    target = _evidence_root(cache, "wiki-a") / "source" / "r1.md"
     original = target.read_bytes()
     item_path = instance / item["path"] / "data" / "source.txt"
     item_path.write_text("changed content")
@@ -195,8 +258,8 @@ def test_budget_is_checked_before_each_write(tmp_path):
     with pytest.raises(ValueError, match="wiki-evidence.*budget"):
         evidence.convert(instance, "wiki-a", cache, _revisions(*items), budget_bytes=7)
 
-    assert (cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / "a" / "r1.md").exists()
-    assert not (cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / "b" / "r1.md").exists()
+    assert (_evidence_root(cache, "wiki-a") / "a" / "r1.md").exists()
+    assert not (_evidence_root(cache, "wiki-a") / "b" / "r1.md").exists()
     assert not list(cache.rglob("*.wiki-consistency-tmp"))
 
 
@@ -215,7 +278,7 @@ def test_interrupted_write_cleans_temporary_files(tmp_path, monkeypatch, signum)
         evidence.convert(instance, "wiki-a", cache, _revisions(item))
 
     assert not list(cache.rglob("*.wiki-consistency-tmp"))
-    assert not (cache / "wiki-evidence" / "wiki-a" / "markitdown-0.1.8" / "source" / "r1.md").exists()
+    assert not (_evidence_root(cache, "wiki-a") / "source" / "r1.md").exists()
 
 
 def test_failed_rename_cleans_temporary_files(tmp_path, monkeypatch):
@@ -245,3 +308,92 @@ def test_next_convert_removes_abandoned_temporary_files(tmp_path):
     evidence.convert(instance, "wiki-a", cache, {})
 
     assert not stale.exists()
+
+
+def test_chatgpt_export_unescapes_korean_and_english_messages(tmp_path):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+    payload = _chatgpt_export_bytes(ensure_ascii=True)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        assert b"\\u" in archive.read("conversations.json")
+        assert {"chat.html", "user.json", "conversations.json"} <= set(archive.namelist())
+    item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+
+    assert result["unreadable"] == []
+    assert "합성 질문 1: Where is a library?" in text
+    assert "합성 답변 1: It is a place to read." in text
+
+
+def test_chatgpt_export_with_direct_characters_keeps_messages(tmp_path):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+    payload = _chatgpt_export_bytes(ensure_ascii=False)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        assert "합성 질문 1".encode() in archive.read("conversations.json")
+    item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+
+    assert result["unreadable"] == []
+    assert "합성 질문 1: Where is a library?" in text
+    assert "합성 답변 1: It is a place to read." in text
+
+
+def test_chatgpt_export_with_numbered_conversation_json_files(tmp_path):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+    payload = _chatgpt_export_bytes(ensure_ascii=True, numbered=True)
+    with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+        assert "conversations.json" not in archive.namelist()
+        assert {"conversation_1.json", "conversation_2.json"} <= set(archive.namelist())
+    item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+
+    assert result["unreadable"] == []
+    for number in (1, 2):
+        assert f"합성 질문 {number}: Where is a library?" in text
+        assert f"합성 답변 {number}: It is a place to read." in text
+
+
+def test_jsonl_unescapes_records_and_keeps_blank_lines(tmp_path):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+    payload = b'{"text":"\\ud55c\\uad6d Alpha"}\n\n{"text":"\\uc601\\uc5b4 Bravo"}\n'
+    item = _revision(instance, "jsonl", "r1", "source.jsonl", payload)
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    text = evidence.read(cache, "wiki-a", "jsonl", "r1")["text"]
+
+    assert result["unreadable"] == []
+    assert text == '{"text": "한국 Alpha"}\n\n{"text": "영어 Bravo"}\n'
+
+
+def test_invalid_json_returns_plain_text_converter_output(tmp_path):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+    payload = b'{"text":"\\uac00", invalid}\n'
+    item = _revision(instance, "invalid-json", "r1", "source.json", payload)
+    payload_path = instance / item["path"] / "data" / "source.json"
+    plain_text = evidence.MarkItDown().convert(payload_path).text_content or ""
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+
+    assert result["unreadable"] == []
+    assert evidence.read(cache, "wiki-a", "invalid-json", "r1")["text"] == plain_text
+
+
+def test_evidence_cache_path_uses_a_local_converter_revision(tmp_path):
+    path = _evidence_root(tmp_path, "wiki-a")
+
+    assert path.name != f"markitdown-{version('markitdown')}"

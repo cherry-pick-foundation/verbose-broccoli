@@ -1048,37 +1048,146 @@ Deno.test('raw import US5: named Wiki and all four kinds use their own roots', a
   });
 });
 
-Deno.test('raw import US5: a synthetic conversation export is admitted to chat', async () => {
+Deno.test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
   await fixture(async f => {
-    const initialized = await f.run('--wiki', 'chat', 'init');
-    assertEquals(initialized.code, 0, initialized.stderr);
-    f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults/chat');
-    f.raw = join(f.instance, 'raw');
-    const path = await f.file(
-      'synthetic-chat-export.json',
-      `${JSON.stringify({
-        conversation_id: 'synthetic-1',
-        messages: [
-          {speaker: 'speaker_1', text: 'Group the blue cards by shape.'},
-          {speaker: 'speaker_2', text: 'I will sort the circles first.'},
-        ],
-      })}\n`,
-    );
-    const selection = await f.selection([{path, kind: 'files'}]);
-    const [item] = report(
-      await f.run('admit', '--wiki', 'chat', '--selection', selection),
-    );
-    assertEquals(item.outcome, 'admitted');
-    const verified = await f.run('verify', '--wiki', 'chat');
-    assertEquals(verified.code, 0, verified.stderr);
-    assertEquals(JSON.parse(verified.stdout), {count: 1, invalid: []});
-    assertEquals(
-      Array.from(
-        Deno.readDirSync(dirname(revisionPath(f, item))),
-        entry => entry.name,
+    const path = join(f.home, 'Documents/chatgpt/chatgpt-export.zip');
+    await f.fileAt(path, '');
+    const conversation = (id: string, question: string, answer: string) => ({
+      conversation_id: id,
+      title: `Synthetic conversation ${id}`,
+      mapping: {
+        [`${id}-user`]: {
+          message: {
+            author: {role: 'user'},
+            content: {content_type: 'text', parts: [question]},
+          },
+        },
+        [`${id}-assistant`]: {
+          message: {
+            author: {role: 'assistant'},
+            content: {content_type: 'text', parts: [answer]},
+          },
+        },
+      },
+    });
+    const python = (...args: string[]) =>
+      output(new Deno.Command('python3', {args, cwd: f.home, env: f.env}));
+    const saveExport = async (conversations: unknown[]) => {
+      const result = await python(
+        '-c',
+        `
+import sys, zipfile
+
+path, conversations = sys.argv[1:]
+with zipfile.ZipFile(path, "w") as archive:
+    archive.writestr("conversations.json", conversations)
+    archive.writestr("chat.html", "<!doctype html><title>Synthetic export</title>")
+    archive.writestr("user.json", '{"id":"synthetic-user"}')
+`,
+        path,
+        JSON.stringify(conversations),
+      );
+      assertEquals(result.code, 0, result.stderr);
+      const bytes = await Deno.readFile(path);
+      f.originals.set(path, {
+        bytes,
+        mtime: (await Deno.stat(path)).mtime?.getTime(),
+      });
+      return bytes;
+    };
+    const zipTest = (candidate: string) =>
+      python('-m', 'zipfile', '-t', candidate);
+    const firstBytes = await saveExport([
+      conversation(
+        'synthetic-conversation-1',
+        'Synthetic first question.',
+        'Synthetic first answer.',
       ),
-      [item.revision],
+    ]);
+    const firstZipTest = await zipTest(path);
+    assertEquals(firstZipTest.code, 0, firstZipTest.stderr);
+    const truncatedPath = join(
+      f.home,
+      'Documents/chatgpt/chatgpt-export-truncated.zip',
     );
+    await Deno.writeFile(
+      truncatedPath,
+      firstBytes.slice(0, Math.floor(firstBytes.length / 2)),
+    );
+    const truncatedZipTest = await zipTest(truncatedPath);
+    assert(truncatedZipTest.code !== 0);
+
+    for (const wiki of ['chat', 'work']) {
+      const initialized = await f.run('init', '--wiki', wiki);
+      assertEquals(initialized.code, 0, initialized.stderr);
+      assertEquals(initialized.stderr, '');
+    }
+    const selection = await f.selection([{path, kind: 'files'}]);
+    const admit = async (wiki: 'chat' | 'work') =>
+      report(await f.run('admit', '--wiki', wiki, '--selection', selection));
+    const [chatFirst] = await admit('chat');
+    const [workFirst] = await admit('work');
+    assertEquals(chatFirst.outcome, 'admitted');
+    assertEquals(workFirst.outcome, 'admitted');
+    assert(chatFirst.source_id !== workFirst.source_id);
+
+    const secondBytes = await saveExport([
+      conversation(
+        'synthetic-conversation-1',
+        'Synthetic first question.',
+        'Synthetic first answer.',
+      ),
+      conversation(
+        'synthetic-conversation-2',
+        'Synthetic follow-up question.',
+        'Synthetic follow-up answer.',
+      ),
+    ]);
+    const secondZipTest = await zipTest(path);
+    assertEquals(secondZipTest.code, 0, secondZipTest.stderr);
+    const [chatSecond] = await admit('chat');
+    const [workSecond] = await admit('work');
+    for (const [first, second] of [
+      [chatFirst, chatSecond],
+      [workFirst, workSecond],
+    ] as const) {
+      assertEquals(second.outcome, 'admitted');
+      assertEquals(second.source_id, first.source_id);
+    }
+
+    const unchangedZipTest = await zipTest(path);
+    assertEquals(unchangedZipTest.code, 0, unchangedZipTest.stderr);
+    const [chatUnchanged] = await admit('chat');
+    const [workUnchanged] = await admit('work');
+    assertEquals(chatUnchanged, {...chatSecond, outcome: 'already_admitted'});
+    assertEquals(workUnchanged, {...workSecond, outcome: 'already_admitted'});
+
+    for (const [wiki, first, second] of [
+      ['chat', chatFirst, chatSecond],
+      ['work', workFirst, workSecond],
+    ] as const) {
+      f.raw = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults', wiki, 'raw');
+      const source = dirname(revisionPath(f, first));
+      assertEquals(
+        Array.from(Deno.readDirSync(source), entry => entry.name).sort(),
+        [first.revision, second.revision].sort(),
+      );
+      for (const [item, bytes] of [
+        [first, firstBytes],
+        [second, secondBytes],
+      ] as const) {
+        assertEquals(
+          await Deno.readFile(
+            join(revisionPath(f, item), 'data', basename(path)),
+          ),
+          bytes,
+        );
+      }
+      const verified = await f.run('verify', '--wiki', wiki);
+      assertEquals(verified.code, 0, verified.stderr);
+      assertEquals(JSON.parse(verified.stdout), {count: 2, invalid: []});
+    }
+    assertEquals(await Deno.readFile(path), secondBytes);
   });
 });
 
