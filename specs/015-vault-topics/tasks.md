@@ -91,15 +91,37 @@ into Orca or Linear messages; tests use synthetic vaults only.
 
 ## Phase 3: Verification and review
 
-- [ ] T008 Run `deno task test:wiki-consistency`,
+- [x] T008 Run `deno task test:wiki-consistency`,
   `deno task test:wiki-raw-import` and `deno task verify`; confirm that the
   layer folders, the region line in `index.md` and the judgment step are
   unchanged (FR-006) and that no student name or vault content entered the
   feature's files (SC-005).
-- [ ] T009 Run the document judgment step as feature 013's T009 did:
+  - 2026-09-29: The first `deno task verify` failed in one test outside the
+    plan: `packages/backfire/tests/test_build.py` runs the built work
+    plugin's `check` on a synthetic vault whose `AGENTS.md` had no topic
+    list. Main gave it an empty list in `f93eee3`. After merging `develop`
+    at `7e4c92b` (the answerless provider reply fix), `deno task verify`
+    passed at `d2682e2`. The feature leaves the constitution, the region
+    line in `index.md` and the judgment step's modules unchanged, and its
+    added lines hold no Hangul text.
+- [x] T009 Run the document judgment step as feature 013's T009 did:
   `deno task doc-regions:prepare -- --base develop --max-evidence-chars 20000`
   plus one `backfire_verify` for the changed units of the template and the
   skill; correct or record each contradicted or flagged unit.
+  - 2026-09-29: Prepare gave four `backfire_verify` requests (229 units of
+    the constitution, `AGENTS.md`, `README.md`, `docs/architecture.md` and
+    `docs/backfire.md`, with the feature diff as evidence) and one
+    `backfire_classify` request; one more `backfire_verify` covered the six
+    changed units of the template and the skill, with the spec's
+    clarifications and requirements, the research and the new code as
+    evidence. No unit was contradicted. Both changed `docs/architecture.md`
+    units (187-195, 196-202) were verified, and 187-195 was classified as an
+    agent region. All six template and skill units were verified; the index
+    sentence was flagged for review at 0.85 support and stands. Five
+    unchanged constitution units (58-59, 61-67, 68-73, 122-144, 146-148)
+    were flagged for review; this feature does not change them. Three
+    requests failed twice at the provider and succeeded on the third try;
+    the judgments used 190,810 input and 64,240 output tokens.
 - [ ] T010 Merge `develop`, verify, move CHE-27 to In Review, run the merge
   review (a fresh Claude Code reviewer for T001 to T004, a fresh Codex
   reviewer for the documents), resolve findings, commit the review record,
