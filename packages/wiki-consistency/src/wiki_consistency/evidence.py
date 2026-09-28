@@ -9,17 +9,43 @@ import uuid
 from contextlib import contextmanager
 from importlib.metadata import version
 from pathlib import Path
-from typing import Iterator, Mapping
+from typing import Any, BinaryIO, Iterator, Mapping
 
 # Prevent ONNX Runtime from writing telemetry files during import.
 os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
-from markitdown import MarkItDown, UnsupportedFormatException
+from markitdown import MarkItDown, StreamInfo, UnsupportedFormatException
+from markitdown.converters import PlainTextConverter
 
 
-CONVERTER_VERSION = version("markitdown")
+CONVERTER_VERSION = f"{version('markitdown')}-json-1"
 EVIDENCE_BUDGET_BYTES = 1024**3
 TEMP_SUFFIX = ".wiki-consistency-tmp"
+
+
+class JsonConverter(PlainTextConverter):
+    def accepts(self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any) -> bool:
+        extension = (stream_info.extension or "").lower()
+        mimetype = (stream_info.mimetype or "").split(";", 1)[0].strip().lower()
+        return extension in {".json", ".jsonl"} or mimetype == "application/json"
+
+    def convert(self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any):
+        result = super().convert(file_stream, stream_info, **kwargs)
+        try:
+            if (stream_info.extension or "").lower() == ".jsonl":
+                lines = []
+                for line in result.markdown.splitlines(keepends=True):
+                    content = line.rstrip("\r\n")
+                    if content.strip():
+                        lines.append(json.dumps(json.loads(content), ensure_ascii=False) + line[len(content) :])
+                    else:
+                        lines.append(line)
+                result.markdown = "".join(lines)
+            else:
+                result.markdown = json.dumps(json.loads(result.markdown), ensure_ascii=False)
+        except json.JSONDecodeError:
+            pass
+        return result
 
 
 def _component(value: str) -> str:
@@ -141,6 +167,7 @@ def convert(
     present = 0
     unreadable: list[dict[str, str]] = []
     converter = MarkItDown()
+    converter.register_converter(JsonConverter())
 
     with _clean_on_signals():
         try:
