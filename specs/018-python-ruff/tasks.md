@@ -107,8 +107,17 @@ Commit Phase 1 before T007.
 
 ## Phase 4: Verification and review
 
-- [ ] T010 Run `deno task verify`; compare the Python suites' test counts
+- [x] T010 Run `deno task verify`; compare the Python suites' test counts
   with `develop` (SC-001 to SC-004).
+  - 2026-09-29: On `4d44d3a`, after both `develop` merges, `deno task
+    verify` passed (workflow phase VERIFIED, task `che-29`, base
+    `07ebf47`): Ruff's lint step reported no findings, its format check found
+    117 files formatted, `test:ruff` and the 17 `test:doctor` cases passed,
+    and the suites passed with backfire 1,360 (3 deselected), doc-regions
+    107, wiki-consistency 263 and wiki-raw-import 43. The rise from 1,345
+    and 118 comes from tests that `develop` added; before the merges the
+    counts matched the branch point. One Codex worker saw a backfire
+    bounded-work test fail once and pass on retry; it did not recur here.
 - [ ] T011 Merge `develop`, fix new findings, verify, move CHE-29 to In
   Review, run the merge review, resolve findings, commit the review record
   and run `git flow feature finish python-ruff` in the `develop` worktree;
@@ -123,3 +132,21 @@ Commit Phase 1 before T007.
     second merge's. wiki-consistency now depends on backfire, so its
     environment needs `deno task wiki-consistency:install`; it then passed
     263 tests.
+  - 2026-09-29: The Codex worker committed `6a4e5ea` (format only, which
+    the coordinator reproduced) and `d3d5361`; the coordinator's review
+    asked to keep the optional `phonenumbers` imports explicit with their
+    reasons, done in `4d44d3a` (dispatch `ctx_227c6c45196b`).
+  - 2026-09-29: The document judgment step (`doc-regions:prepare -- --base
+    develop --max-evidence-chars 20000`) sent 229 units in 26
+    `backfire_verify` requests; each carried the whole code diff, so they
+    used 4,822,484 input and 486,268 output tokens. One request failed at
+    the provider and succeeded on retry. The changed `docs/architecture.md`
+    unit (27-56) was verified. The only contradicted unit is the
+    constitution's principle IV, a report-only document, matched against
+    an unchanged line in `packages/backfire/src/backfire/lib.py` that names
+    backfire's upstream port of jev-mcp, which is not an earlier project of
+    the user's; it is reported, not acted on. The 45 units flagged for
+    review describe backfire, the Wiki tools and the workflow, which this
+    feature changes only in style, so they stand. `doc-regions:audit`
+    reported the same 19 MemoryLint `boundary` warnings on the constitution
+    as earlier features.
