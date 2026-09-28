@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from wiki_consistency import search
+from wiki_consistency import evidence, search
 
 
 MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
@@ -89,6 +89,55 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
 def test_search_refuses_a_missing_index(tmp_path):
     with pytest.raises(LookupError, match="index.*missing|missing.*index"):
         search.search("wiki-a", tmp_path / "cache", [])
+
+
+@pytest.mark.parametrize("change", ["modified", "added", "deleted"])
+def test_search_refuses_stale_document_paths_and_content_hashes(tmp_path, change):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+    page = instance / "wiki" / "concepts" / "quad.md"
+    if change == "modified":
+        page.write_text(page.read_text() + "A changed synthetic line.\n")
+    elif change == "added":
+        (instance / "wiki" / "concepts" / "new.md").write_text("# New page\n")
+    else:
+        page.unlink()
+
+    with pytest.raises(LookupError, match="wiki-consistency index"):
+        search.search(
+            "wiki-a",
+            cache,
+            [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
+        )
+
+
+def test_search_refuses_unembedded_documents_when_semantic_model_is_cached(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+    model_dir = cache / "qmd" / "models"
+    model_dir.mkdir(parents=True)
+    model = model_dir / "synthetic-model.gguf"
+    model.touch()
+    monkeypatch.setattr(search, "EMBED_MODEL", str(model))
+
+    with pytest.raises(LookupError, match="wiki-consistency index"):
+        search.search(
+            "wiki-a",
+            cache,
+            [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
+        )
+
+
+def test_model_cache_requires_exact_final_filename(tmp_path):
+    model_dir = tmp_path / "qmd" / "models"
+    model_dir.mkdir(parents=True)
+    partial = model_dir / f"{MODEL.rsplit('/', 1)[-1]}.ipull"
+    partial.touch()
+
+    assert not search._model_is_cached(tmp_path)
+
+    partial.rename(model_dir / MODEL.rsplit("/", 1)[-1])
+    assert search._model_is_cached(tmp_path)
 
 
 def test_qmd_budget_refuses_before_running_commands(tmp_path, monkeypatch):
@@ -205,3 +254,21 @@ def test_batched_search_uses_one_node_process_and_matches_qmd_cli(tmp_path, monk
         assert api_paths
         assert api_paths == cli_paths
         assert api_lines == cli_lines
+
+
+def test_search_uses_converter_version_from_evidence(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    monkeypatch.setattr(evidence, "CONVERTER_VERSION", "synthetic-version")
+
+    search.index(instance, "wiki-a", cache, download=False)
+
+    config = yaml.safe_load((cache / "qmd" / "config" / "wiki-a.yml").read_text())
+    assert config["collections"]["evidence"]["path"] == str(
+        (cache / "wiki-evidence" / "wiki-a" / "markitdown-synthetic-version").resolve()
+    )
+
+
+def test_search_reuses_evidence_helpers():
+    assert search._component is evidence._component
+    assert search._tree_size is evidence._tree_size
+    assert search._clean_on_signals is evidence._clean_on_signals

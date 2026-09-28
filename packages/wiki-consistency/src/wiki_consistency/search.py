@@ -2,25 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import signal
 import subprocess
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator, Mapping, Sequence
+from typing import Mapping, Sequence
 
 import yaml
+
+from wiki_consistency import evidence
+from wiki_consistency.evidence import _clean_on_signals, _component, _tree_size
 
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
-
-
-def _component(value: str) -> str:
-    if not value or value in {".", ".."} or "/" in value or "\\" in value or "\0" in value:
-        raise ValueError(f"invalid Wiki id: {value!r}")
-    return value
 
 
 def _paths(wiki_id: str, cache: Path) -> tuple[Path, Path, Path]:
@@ -35,12 +31,6 @@ def _paths(wiki_id: str, cache: Path) -> tuple[Path, Path, Path]:
 
 def _qmd_path() -> Path:
     return Path(__file__).resolve().parents[2] / "node_modules" / ".bin" / "qmd"
-
-
-def _tree_size(root: Path) -> int:
-    if not root.exists():
-        return 0
-    return sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
 
 
 def _check_budget(root: Path, action: str) -> None:
@@ -134,32 +124,10 @@ def _remove_index(index_path: Path) -> None:
         path.unlink(missing_ok=True)
 
 
-@contextmanager
-def _clean_on_signals() -> Iterator[None]:
-    previous: dict[signal.Signals, object] = {}
-
-    def exit_on_signal(signum: int, frame: object) -> None:
-        raise SystemExit(128 + signum)
-
-    for signum in (signal.SIGINT, signal.SIGTERM):
-        try:
-            previous[signum] = signal.signal(signum, exit_on_signal)
-        except ValueError:
-            pass
-    try:
-        yield
-    finally:
-        for signum, handler in previous.items():
-            signal.signal(signum, handler)
-
-
 def _model_is_cached(cache: Path) -> bool:
     model_dir = Path(cache) / "qmd" / "models"
     filename = EMBED_MODEL.rsplit("/", 1)[-1]
-    return model_dir.is_dir() and any(
-        model_dir_entry.is_file() and filename in model_dir_entry.name
-        for model_dir_entry in model_dir.iterdir()
-    )
+    return (model_dir / filename).is_file()
 
 
 def _markdown_count(root: Path) -> int:
@@ -178,7 +146,7 @@ def index(
     instance = Path(instance)
     cache = Path(cache)
     wiki_root = instance / "wiki"
-    evidence_root = cache / "wiki-evidence" / wiki_id / "markitdown-0.1.8"
+    evidence_root = cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
     if not wiki_root.is_dir():
         raise ValueError(f"Wiki pages directory is missing: {wiki_root}")
     evidence_root.mkdir(parents=True, exist_ok=True)
@@ -221,6 +189,19 @@ def _relative_path(filepath: str, collection: str, root: Path) -> str:
     return path.as_posix()
 
 
+def _current_documents(root: Path) -> list[dict[str, str]]:
+    if not root.is_dir():
+        return []
+    return [
+        {
+            "path": path.relative_to(root).as_posix(),
+            "hash": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+        for path in sorted(root.rglob("*.md"))
+        if path.is_file()
+    ]
+
+
 def search(
     wiki_id: str,
     cache: Path,
@@ -229,40 +210,45 @@ def search(
     """Search all queries in one qmd library process and map hits to lines."""
     wiki_id = _component(wiki_id)
     cache = Path(cache)
-    _, index_path, _ = _paths(wiki_id, cache)
+    _, index_path, config_path = _paths(wiki_id, cache)
     if not index_path.is_file():
         raise LookupError(f"qmd index is missing; run wiki-consistency index for {wiki_id}")
-    if not queries:
-        return []
     for query in queries:
         if query.get("collection") not in {"pages", "evidence"}:
             raise ValueError("search collection must be pages or evidence")
         if not isinstance(query.get("text"), str) or not query["text"].strip():
             raise ValueError("search query text must be non-empty")
 
-    qmd_root = cache / "qmd"
+    configured = _collections(config_path)
+    try:
+        roots = {
+            name: Path(str(configured[name]["path"]))
+            for name in ("pages", "evidence")
+        }
+    except (KeyError, TypeError) as error:
+        raise LookupError(
+            f"qmd collection config is missing; run wiki-consistency index for {wiki_id}"
+        ) from error
+
+    expected_documents = {
+        name: _current_documents(root)
+        for name, root in roots.items()
+    }
     environment = _environment(cache)
     environment["QMD_SEMANTIC_AVAILABLE"] = "1" if _model_is_cached(cache) else "0"
     process = subprocess.run(
         ["node", str(Path(__file__).with_name("search.mjs")), str(index_path.resolve())],
         cwd=Path(__file__).resolve().parents[2],
         env=environment,
-        input=json.dumps(queries, ensure_ascii=False),
+        input=json.dumps({"queries": queries, "documents": expected_documents}, ensure_ascii=False),
         check=True,
         capture_output=True,
         text=True,
     )
-    raw_hits = json.loads(process.stdout)
-    config_path = qmd_root / "config" / f"{wiki_id}.yml"
-    collections = _collections(config_path)
-    try:
-        roots = {
-            name: Path(str(collections[name]["path"]))
-            for name in ("pages", "evidence")
-        }
-    except (KeyError, TypeError) as error:
-        raise LookupError(f"qmd collection config is missing; run wiki-consistency index for {wiki_id}") from error
-
+    result = json.loads(process.stdout)
+    if "error" in result:
+        raise LookupError(result["error"])
+    raw_hits = result["hits"]
     hits: list[dict[str, object]] = []
     for hit in raw_hits:
         collection = str(hit["collection"])

@@ -162,14 +162,16 @@ def _passages_for_group(job, hits, max_evidence_chars):
     }
     passage_units = {}
     units_by_file = {}
-    unit_passages = {unit["id"]: [] for unit in job["units"]}
-    passage_ranks = {unit["id"]: {} for unit in job["units"]}
+    query_units = {f"evidence:{unit['id']}": unit["id"] for unit in job["units"]}
+    unit_passages = {unit["id"]: {} for unit in job["units"]}
     for hit, position in _ranked_hits(hits):
         path = Path(str(hit["path"])).as_posix()
         source_key = path_keys.get(path)
         if source_key is None:
             continue
-        units = units_by_file.setdefault(path, split(path, allowed[source_key]))
+        if path not in units_by_file:
+            units_by_file[path] = split(path, allowed[source_key])
+        units = units_by_file[path]
         unit = next((item for item in units
                      if item["first_line"] <= int(hit["line"]) <= item["last_line"]), None)
         if unit is None:
@@ -180,38 +182,93 @@ def _passages_for_group(job, hits, max_evidence_chars):
             "source": source_key,
             "first_line": unit["first_line"],
         }
-        query = str(hit["query"])
-        if key not in unit_passages[query]:
-            unit_passages[query].append(key)
+        query_unit = query_units.get(str(hit["query"]))
+        if query_unit is None:
+            continue
         rank = (position, path, int(hit["line"]))
-        if key not in passage_ranks[query] or rank < passage_ranks[query][key]:
-            passage_ranks[query][key] = rank
+        if key not in unit_passages[query_unit] or rank < unit_passages[query_unit][key]:
+            unit_passages[query_unit][key] = rank
 
-    selected = {}
+    ranked_passages = {
+        unit_id: sorted(passages, key=passages.get)[:249]
+        for unit_id, passages in unit_passages.items()
+    }
+    selected_by_unit = {unit["id"]: set() for unit in job["units"]}
+    selected = set()
     selected_chars = 0
-    assigned = set()
     for unit in job["units"]:
-        for key in sorted(unit_passages[unit["id"]], key=passage_ranks[unit["id"]].get):
-            passage = passage_units[key]
+        unit_id = unit["id"]
+        for key in ranked_passages[unit_id]:
+            if key not in selected and selected_chars + len(passage_units[key]["text"]) > max_evidence_chars:
+                continue
             if key not in selected:
-                if selected_chars + len(passage["text"]) > max_evidence_chars:
-                    continue
-                selected_chars += len(passage["text"])
-            selected[key] = passage
-            assigned.add(unit["id"])
+                selected.add(key)
+                selected_chars += len(passage_units[key]["text"])
+            selected_by_unit[unit_id].add(key)
             break
 
-    ordered = sorted(selected.values(), key=lambda item: (item["source"], item["first_line"], item["text"]))
+    cursors = {
+        unit_id: next((index + 1 for index, key in enumerate(ranked_passages[unit_id])
+                       if key in selected_by_unit[unit_id]), 0)
+        for unit_id in ranked_passages
+    }
+    while True:
+        progressed = False
+        for unit in job["units"]:
+            unit_id = unit["id"]
+            while cursors[unit_id] < len(ranked_passages[unit_id]):
+                key = ranked_passages[unit_id][cursors[unit_id]]
+                cursors[unit_id] += 1
+                if key in selected_by_unit[unit_id]:
+                    continue
+                if key not in selected and selected_chars + len(passage_units[key]["text"]) > max_evidence_chars:
+                    continue
+                if key not in selected:
+                    selected.add(key)
+                    selected_chars += len(passage_units[key]["text"])
+                selected_by_unit[unit_id].add(key)
+                progressed = True
+                break
+        if not progressed:
+            break
+
+    assigned = {unit_id for unit_id, keys in selected_by_unit.items() if keys}
+    ordered_keys = sorted(selected, key=lambda key: (
+        key[0], passage_units[key]["first_line"], passage_units[key]["text"],
+    ))
     counts = {}
-    result = []
-    for item in ordered:
+    evidence_by_key = {}
+    for key in ordered_keys:
+        item = passage_units[key]
         source_id, revision = item["source"]
         counts[(source_id, revision)] = counts.get((source_id, revision), 0) + 1
-        result.append({
+        evidence_by_key[key] = {
             "id": f"{source_id}/{revision}#{counts[(source_id, revision)]}",
             "text": item["text"],
-        })
-    return result, assigned
+        }
+
+    packed = []
+    group_units = []
+    group_keys = set()
+    for unit in job["units"]:
+        unit_id = unit["id"]
+        keys = set(selected_by_unit[unit_id])
+        if not keys:
+            continue
+        if group_units and len(group_keys | keys) > 249:
+            packed.append((group_units, group_keys))
+            group_units = []
+            group_keys = set()
+        group_units.append(unit)
+        group_keys.update(keys)
+    if group_units:
+        packed.append((group_units, group_keys))
+    order = {key: index for index, key in enumerate(ordered_keys)}
+    groups = [
+        (units, [evidence_by_key[key] for key in sorted(keys, key=order.__getitem__)])
+        for units, keys in packed
+    ]
+    return groups, assigned
 
 
 def _request(kind, request):
@@ -268,17 +325,24 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
             })
 
     queries = []
+    evidence_limit = max(
+        20,
+        candidates * 4,
+        search._markdown_count(
+            cache / "wiki-evidence" / wiki_id / f"markitdown-{evidence.CONVERTER_VERSION}"
+        ),
+    )
     for job in passage_jobs:
         for unit in job["units"]:
             queries.append({
-                "id": unit["id"], "text": unit["text"], "collection": "evidence",
-                "limit": min(249, max(20, candidates * 4)),
+                "id": f"evidence:{unit['id']}", "text": unit["text"], "collection": "evidence",
+                "limit": evidence_limit,
             })
     page_query_ids = {}
     for unit in units:
-        page_query_ids[unit["id"]] = unit["id"]
+        page_query_ids[unit["id"]] = f"pages:{unit['id']}"
         queries.append({
-            "id": unit["id"], "text": unit["text"], "collection": "pages",
+            "id": page_query_ids[unit["id"]], "text": unit["text"], "collection": "pages",
             "limit": min(249, max(20, candidates * 4)),
         })
 
@@ -306,15 +370,14 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
         hits_by_query.setdefault(str(hit["query"]), []).append(hit)
 
     for job in passage_jobs:
-        selected, assigned = _passages_for_group(
-            job, [hit for unit in job["units"] for hit in hits_by_query.get(unit["id"], [])],
+        passage_groups, assigned = _passages_for_group(
+            job, [hit for unit in job["units"]
+                  for hit in hits_by_query.get(f"evidence:{unit['id']}", [])],
             max_evidence_chars,
         )
-        requested = [unit for unit in job["units"] if unit["id"] in assigned]
         unverifiable.extend({"unit": unit["id"], "sources": sorted(job["sources"])}
                             for unit in job["units"] if unit["id"] not in assigned)
-        if requested and selected:
-            evidence_groups.append((requested, selected))
+        evidence_groups.extend(passage_groups)
 
     request_list = [_request("evidence", item) for item in verify_requests(evidence_groups)]
     requestable = {unit_id for request in request_list for unit_id in request["units"]}

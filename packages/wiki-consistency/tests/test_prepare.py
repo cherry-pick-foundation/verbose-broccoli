@@ -190,11 +190,11 @@ def test_page_candidates_keep_best_search_rank_before_sorting(tmp_path, monkeypa
 
     def stub_search(wiki_id, cache, queries):
         return [
-            {"query": target["id"], "collection": "pages", "path": "concepts/alpha.md",
+            {"query": f"pages:{target['id']}", "collection": "pages", "path": "concepts/alpha.md",
              "line": target["first_line"], "score": 0.0, "mode": "lex"},
-            {"query": target["id"], "collection": "pages", "path": "concepts/aaa-lexical.md",
+            {"query": f"pages:{target['id']}", "collection": "pages", "path": "concepts/aaa-lexical.md",
              "line": _line_of(lexical, "Synthetic candidate content."), "score": 10.0, "mode": "lex"},
-            {"query": target["id"], "collection": "pages", "path": "concepts/zzz-vector.md",
+            {"query": f"pages:{target['id']}", "collection": "pages", "path": "concepts/zzz-vector.md",
              "line": _line_of(vector, "Synthetic candidate content."), "score": 0.01, "mode": "vec"},
         ]
 
@@ -254,11 +254,11 @@ def test_passage_selection_uses_best_ranked_fitting_passage(tmp_path, monkeypatc
 
     def stub_search(wiki_id, cache, queries):
         return [
-            {"query": target["id"], "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
+            {"query": f"evidence:{target['id']}", "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
              "line": 1, "score": 100.0, "mode": "lex"},
-            {"query": target["id"], "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
+            {"query": f"evidence:{target['id']}", "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
              "line": 3, "score": 100.0, "mode": "lex"},
-            {"query": target["id"], "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
+            {"query": f"evidence:{target['id']}", "collection": "evidence", "path": f"{SOURCE_ID}/{latest}.md",
              "line": 5, "score": 0.01, "mode": "vec"},
         ]
 
@@ -271,6 +271,208 @@ def test_passage_selection_uses_best_ranked_fitting_passage(tmp_path, monkeypatc
                    if request["kind"] == "evidence" and target["id"] in request["units"])
     passage = request["arguments"]["evidence"][0]
     assert passage["text"].strip() == "Best ranked passage."
+
+
+def test_passage_selection_adds_more_ranked_passages_within_budget():
+    passages = [
+        "Oversized passage " + "padding " * 20,
+        "Second ranked passage.",
+        "Best ranked passage.",
+    ]
+    text = "\n\n".join(passages)
+    job = {"texts": {(SOURCE_ID, "r1"): text},
+           "units": [{"id": "unit", "text": "synthetic claim"}]}
+    hits = [
+        {"query": "evidence:unit", "path": f"{SOURCE_ID}/r1.md", "line": line,
+         "mode": "lex"}
+        for line in (1, 3, 5)
+    ]
+
+    groups, assigned = requests._passages_for_group(job, hits, 60)
+
+    assert assigned == {"unit"}
+    assert [item["text"].strip() for item in groups[0][1]] == [
+        "Second ranked passage.", "Best ranked passage."
+    ]
+
+
+def test_passage_groups_pack_units_at_249_evidence_items_without_loss():
+    passages = [f"Synthetic evidence passage {index:03}." for index in range(250)]
+    text = "\n\n".join(passages)
+    units = [{"id": f"unit-{index:03}", "text": f"synthetic claim {index}"}
+             for index in range(250)]
+    job = {"texts": {(SOURCE_ID, "r1"): text}, "units": units}
+    hits = [
+        {"query": f"evidence:unit-{index:03}", "path": f"{SOURCE_ID}/r1.md",
+         "line": index * 2 + 1, "mode": "lex"}
+        for index in range(250)
+    ]
+
+    groups, assigned = requests._passages_for_group(job, hits, 20000)
+
+    assert [len(evidence_items) for _, evidence_items in groups] == [249, 1]
+    assert all(len(evidence_items) <= 249 for _, evidence_items in groups)
+    grouped_units = [unit["id"] for group_units, _ in groups for unit in group_units]
+    assert grouped_units == [unit["id"] for unit in units]
+    assert len(grouped_units) == len(set(grouped_units))
+    assert assigned == {unit["id"] for unit in units}
+
+
+def test_one_unit_keeps_its_249_best_ranked_passages():
+    passages = [f"Synthetic evidence passage {index:03}." for index in range(250)]
+    text = "\n\n".join(passages)
+    job = {"texts": {(SOURCE_ID, "r1"): text},
+           "units": [{"id": "unit", "text": "synthetic claim"}]}
+    hits = [
+        {"query": "evidence:unit", "path": f"{SOURCE_ID}/r1.md", "line": index * 2 + 1,
+         "mode": "lex"}
+        for index in reversed(range(250))
+    ]
+
+    groups, assigned = requests._passages_for_group(job, hits, 20000)
+
+    assert len(groups) == 1
+    assert len(groups[0][1]) == 249
+    assert [unit["id"] for unit in groups[0][0]] == ["unit"]
+    assert assigned == {"unit"}
+    assert "Synthetic evidence passage 000." not in [item["text"] for item in groups[0][1]]
+    assert "Synthetic evidence passage 249." in [item["text"] for item in groups[0][1]]
+
+
+def test_shared_passage_is_in_each_batch_that_uses_it():
+    passages = ["Shared passage.", "Unique first passage."]
+    passages.extend(f"Filler passage {index:03}." for index in range(247))
+    passages.append("New passage for final unit.")
+    text = "\n\n".join(passages)
+    units = [{"id": f"unit-{index:03}", "text": f"synthetic claim {index}"}
+             for index in range(1, 250)]
+    hits = [
+        {"query": "evidence:unit-001", "path": f"{SOURCE_ID}/r1.md", "line": 1, "mode": "lex"},
+        {"query": "evidence:unit-001", "path": f"{SOURCE_ID}/r1.md", "line": 3, "mode": "lex"},
+    ]
+    hits.extend(
+        {"query": f"evidence:unit-{index:03}", "path": f"{SOURCE_ID}/r1.md",
+         "line": index * 2 + 1, "mode": "lex"}
+        for index in range(2, 249)
+    )
+    hits.extend([
+        {"query": "evidence:unit-249", "path": f"{SOURCE_ID}/r1.md", "line": 1, "mode": "lex"},
+        {"query": "evidence:unit-249", "path": f"{SOURCE_ID}/r1.md", "line": 499, "mode": "lex"},
+    ])
+    job = {"texts": {(SOURCE_ID, "r1"): text}, "units": units}
+
+    groups, assigned = requests._passages_for_group(job, hits, 20000)
+
+    assert [len(evidence_items) for _, evidence_items in groups] == [249, 2]
+    assert [len(group_units) for group_units, _ in groups] == [248, 1]
+    assert all(any(item["text"].strip() == "Shared passage." for item in evidence_items)
+               for _, evidence_items in groups)
+    assert assigned == {unit["id"] for unit in units}
+
+
+def test_passage_search_splits_each_evidence_file_once(monkeypatch):
+    job = {"texts": {(SOURCE_ID, "r1"): "First passage.\n\nSecond passage."},
+           "units": [{"id": "unit", "text": "synthetic claim"}]}
+    real_split = requests.split
+    calls = []
+
+    def count_split(*args, **kwargs):
+        calls.append(args[0])
+        return real_split(*args, **kwargs)
+
+    monkeypatch.setattr(requests, "split", count_split)
+    requests._passages_for_group(job, [
+        {"query": "evidence:unit", "path": f"{SOURCE_ID}/r1.md", "line": 1, "mode": "lex"},
+        {"query": "evidence:unit", "path": f"{SOURCE_ID}/r1.md", "line": 3, "mode": "lex"},
+    ], 100)
+
+    assert calls == [f"{SOURCE_ID}/r1.md"]
+
+
+def test_collection_query_ids_keep_page_candidate_ranks_independent(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    lexical = _add_candidate_page(instance, "aaa-lexical")
+    vector = _add_candidate_page(instance, "zzz-vector")
+    source = (instance / "raw" / "files" / SOURCE_ID / REVISIONS[-1]
+              / "data" / "document.txt")
+    source.write_text("Oversized " + "padding " * 30
+                      + "\n\nFirst supporting passage.\n\nSecond supporting passage.\n",
+                      encoding="utf-8")
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
+    target = next(unit for unit in requests._collect(instance, "changed")[2]
+                  if unit["page"] == "wiki/concepts/alpha.md" and unit["kind"] == "paragraph")
+    captured = []
+
+    def stub_search(wiki_id, cache, queries):
+        captured.extend(queries)
+        evidence_id = f"evidence:{target['id']}"
+        page_id = f"pages:{target['id']}"
+        evidence_query = next(query for query in queries if query["id"] == evidence_id)
+        page_query = next(query for query in queries if query["id"] == page_id)
+        assert evidence_query["collection"] == "evidence"
+        assert page_query["collection"] == "pages"
+        return [
+            {"query": query["id"], "collection": "evidence",
+             "path": f"{SOURCE_ID}/{REVISIONS[-1]}.md", "line": line, "mode": "lex"}
+            for query in queries if query["collection"] == "evidence"
+            for line in (1, 3, 5)
+        ] + [
+            {"query": page_id, "collection": "pages", "path": "concepts/aaa-lexical.md",
+             "line": _line_of(lexical, "Synthetic candidate content."), "mode": "lex"},
+            {"query": page_id, "collection": "pages", "path": "concepts/zzz-vector.md",
+             "line": _line_of(vector, "Synthetic candidate content."), "mode": "vec"},
+        ]
+
+    monkeypatch.setattr(requests.search, "search", stub_search)
+    result = requests.prepare(instance, instance.name, cache, scope="changed",
+                              max_evidence_chars=100, candidates=1)
+
+    request = next(request for request in result["requests"]
+                   if request["kind"] == "pages" and target["id"] in request["units"])
+    expected = next(unit["id"] for unit in result["units"]
+                    if unit["page"] == "wiki/concepts/aaa-lexical.md" and unit["kind"] == "paragraph")
+    assert request["arguments"]["evidence"][0]["id"] == expected
+    assert any(query["id"] == f"evidence:{target['id']}" for query in captured)
+    assert any(query["id"] == f"pages:{target['id']}" for query in captured)
+
+
+def test_evidence_queries_cover_the_full_collection_limit(tmp_path, monkeypatch):
+    instance, env = make_instance(tmp_path)
+    source = (instance / "raw" / "files" / SOURCE_ID / REVISIONS[-1]
+              / "data" / "document.txt")
+    source.write_text("Oversized " + "padding " * 30 + "\n\nCited supporting passage.\n",
+                      encoding="utf-8")
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    evidence_root = cache / "wiki-evidence" / instance.name / f"markitdown-{evidence.CONVERTER_VERSION}"
+    decoys = evidence_root / "unrelated"
+    decoys.mkdir(parents=True)
+    for index in range(25):
+        (decoys / f"decoy-{index:02}.md").write_text(
+            f"Synthetic unrelated evidence {index}.\n", encoding="utf-8")
+    search.index(instance, instance.name, cache, download=False)
+    document_count = sum(path.is_file() for path in evidence_root.rglob("*.md"))
+    captured = []
+
+    def stub_search(wiki_id, cache, queries):
+        captured.extend(queries)
+        return [
+            {"query": query["id"], "collection": "evidence", "path": f"{SOURCE_ID}/{REVISIONS[-1]}.md",
+             "line": 3, "mode": "lex"}
+            for query in queries if query["collection"] == "evidence"
+        ]
+
+    monkeypatch.setattr(requests.search, "search", stub_search)
+    requests.prepare(instance, instance.name, cache, scope="changed",
+                     max_evidence_chars=100, candidates=3)
+
+    evidence_queries = [query for query in captured if query["collection"] == "evidence"]
+    assert evidence_queries
+    assert all(query["limit"] >= document_count for query in evidence_queries)
 
 
 def test_overview_evidence_uses_linked_pages_and_path_ids(tmp_path):

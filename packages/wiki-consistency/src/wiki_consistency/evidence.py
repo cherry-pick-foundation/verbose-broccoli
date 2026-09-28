@@ -7,6 +7,7 @@ import os
 import signal
 import uuid
 from contextlib import contextmanager
+from importlib.metadata import version
 from pathlib import Path
 from typing import Iterator, Mapping
 
@@ -16,14 +17,14 @@ os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 from markitdown import MarkItDown, UnsupportedFormatException
 
 
-CONVERTER_VERSION = "0.1.8"
+CONVERTER_VERSION = version("markitdown")
 EVIDENCE_BUDGET_BYTES = 1024**3
 TEMP_SUFFIX = ".wiki-consistency-tmp"
 
 
 def _component(value: str) -> str:
     if not value or value in {".", ".."} or "/" in value or "\\" in value or "\0" in value:
-        raise ValueError(f"invalid evidence path component: {value!r}")
+        raise ValueError(f"invalid path component: {value!r}")
     return value
 
 
