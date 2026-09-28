@@ -394,7 +394,8 @@ batches of six claims.
 
 - Contradicted: one unit, the skill-ownership rule in `docs/architecture.md`,
   because this feature vendors a second copy of the `backfire` skill. The rule
-  now names that exception and the test that keeps the copies identical.
+  now names that exception and the test that keeps the copies' shared files
+  identical.
 - Flagged for review: 26 units of `README.md`, `docs/architecture.md` and
   `docs/backfire.md`. Checked against the code, two needed changes: the work
   package's skill list lacked `wiki-raw-import`, and the operator guide's list
