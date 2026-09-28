@@ -81,6 +81,18 @@ specification was first committed with those answers marked provisional.
   project-written Backfire operator guide. Is it a target? → A: Yes. It joins
   `README.md` and `docs/architecture.md` in the target list. Affects FR-004
   and tasks T006 and T023.
+- Q: With the whole feature diff as evidence, this feature's own judgment
+  step had 42 evidence items and 237,000 characters. Each of 15
+  `backfire_verify` requests used about 106,000 input tokens, and backfire
+  answered every claim alike (`unsupported`, `review`). The judged documents'
+  own diffs also made new paragraphs verify themselves. Narrow the evidence?
+  → A: Yes. `prepare` leaves out of the evidence the judged documents
+  themselves and files matching an `evidence_exclude` glob list in
+  `scripts/doc_regions.toml`, initially `**/*.lock`, `specs/**`,
+  `**/tests/**`, `scripts/*_test.*` and `docs/reference/**`. Affects FR-008,
+  the commands contract and tasks T016, T017 and T023.
+- Q: May the audit create `~/.cache/verbose-broccoli/memorylint/1.5.1/`
+  outside the repository, as research R7 plans? → A: Yes.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -293,8 +305,10 @@ interface, and add a mechanical region to a scratch document by following them.
   report-only documents into agent-region units (heading path, block text,
   first and last line) and print ready-to-send arguments for
   `backfire_verify` (units as claims, the feature's changes against its merge
-  base with `develop` as evidence, one evidence item per changed file) and for
-  `backfire_classify` (units the feature added, as items).
+  base with `develop` as evidence, one evidence item per changed file,
+  leaving out the judged documents and files matching the configured
+  `evidence_exclude` globs) and for `backfire_classify` (units the feature
+  added to target documents, as items).
 - **FR-009**: The command MUST split requests to stay within backfire's input
   limits and MUST keep every unit in exactly one request.
 - **FR-010**: The judgment step MUST run before each `develop` merge review

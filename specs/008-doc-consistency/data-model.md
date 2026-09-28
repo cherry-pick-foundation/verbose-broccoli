@@ -12,11 +12,14 @@ Feature 010 uses the same model with its own configuration.
 | `report_only` | list of paths or globs | judged and audited, never changed by the tooling |
 | `generators` | module name | the one module whose functions mechanical regions may call (`doc_sources`) |
 | `generator_path` | directory, relative to the root or absolute | added to Cog's import path (`scripts`) |
+| `evidence_exclude` | optional list of globs relative to the root | changed files `prepare` leaves out of the evidence; default none |
 
 A file may be matched by only one list. The root is the repository for this
 feature's commands and a Wiki instance for feature 010. For this repository, `targets` is
 `README.md`, `docs/architecture.md` and `docs/backfire.md` plus project-written plugin documents,
 and `report_only` is `AGENTS.md` and `.specify/memory/constitution.md`.
+`evidence_exclude` is `**/*.lock`, `specs/**`, `**/tests/**`,
+`scripts/*_test.*` and `docs/reference/**`.
 
 ## Document
 

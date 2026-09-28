@@ -194,6 +194,14 @@ unit; the workflow tool prints the step.
 - [x] T017 [US2] Implement `packages/doc-regions/src/doc_regions/requests.py`
   and the `prepare` command (`git merge-base`, `git diff` through
   `subprocess`, splitting and sorting). T016 passes.
+- [ ] T027 [US2] Per the 2026-09-28 clarification: `config.load` accepts an
+  optional `evidence_exclude` list of glob strings (default empty), and
+  `prepare` leaves out of the evidence the target and report-only documents
+  and changed files matching those globs (matched with
+  `PurePosixPath.full_match`). Add `evidence_exclude` to
+  `scripts/doc_regions.toml` with `**/*.lock`, `specs/**`, `**/tests/**`,
+  `scripts/*_test.*` and `docs/reference/**`. Tests first in
+  `tests/test_config.py` and `tests/test_requests.py`.
 - [x] T018 [P] [US2] Extend the REVIEW text in `scripts/workflow.ts`
   (`actions.REVIEW`) and `scripts/workflow_test.ts` (and help snapshots if
   they change): before the `develop` merge review, run `deno task

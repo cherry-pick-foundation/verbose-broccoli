@@ -33,7 +33,11 @@ or execution failure, with each problem on stderr.
 ```
 
 - `base` is `git merge-base <ref> HEAD`; the evidence is `git diff <base>`
-  of the working tree, one item per changed file.
+  of the working tree, one item per changed file. It leaves out the target
+  and report-only documents, whose own diffs would support their own new
+  text, and files matching the configuration's `evidence_exclude` globs,
+  which cannot make a document statement wrong on their own (lock files,
+  tests, `specs/` records and generated references).
 - Units of every target and report-only document are included; the output is
   sorted by document, then line, so the same inputs give byte-identical output.
 - A `backfire_verify` request stays within backfire's fixed limits
@@ -92,7 +96,8 @@ repository as root. No function uses the network, and only `update` writes.
   match at least one file, and a file matched by both lists fails. It returns
   both lists as sorted, root-relative paths, the generator module name, and
   `generator_path` resolved against `root` when relative (it may lie outside
-  `root`).
+  `root`). The optional `evidence_exclude` must be a list of glob strings; it
+  defaults to an empty list and is used only by `prepare`.
 - `regions.check(root, targets, generators, generator_path)` returns the
   problems of the check in [regions.md](regions.md), each with document and
   line; `regions.update(...)`, with the same arguments, regenerates regions.
