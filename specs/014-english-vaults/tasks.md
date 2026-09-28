@@ -38,7 +38,18 @@ repository or into Orca or Linear messages.
 
 ## Phase 2: Verification and review
 
-- [ ] T005 Run `deno task verify` (SC-003).
+- [x] T005 Run `deno task verify` (SC-003).
+  - 2026-09-29: `deno task verify` passed with the Phase 1 changes. The
+    document judgment step (`doc-regions:prepare -- --base develop
+    --max-evidence-chars 20000`) sent 229 units in three `backfire_verify`
+    requests and one `backfire_classify` request: no unit was contradicted,
+    the new `docs/architecture.md` unit (182-185) was verified and classified
+    as an agent region, and the three units flagged for review (constitution
+    74-79 and 85-95, `docs/architecture.md` 10-25) were judged supported and
+    stand unchanged. Two requests failed at the provider and succeeded on
+    retry; 8 judgments used 146,057 input and 36,335 output tokens.
+    `doc-regions:audit` reported the same 19 MemoryLint `boundary` warnings
+    on the constitution as feature 012; they are reported, not acted on.
 - [ ] T006 Merge `develop`, verify, move CHE-25 to In Review, run the merge
   review with a fresh Codex reviewer, resolve findings, commit the review
   record and run `git flow feature finish english-vaults` in the `develop`
