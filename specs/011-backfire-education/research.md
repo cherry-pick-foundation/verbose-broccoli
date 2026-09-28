@@ -312,8 +312,63 @@ cases to the unit tests.
 
 ### Client check
 
-Pending the user's go-ahead (T020).
+On 2026-09-28, with the user's go-ahead, the coordinator built the work plugin
+at `92d5d67` into a scratch directory outside the repository, installed it
+with `--extra education`, and registered it for one run in each client as
+feature 005's client registration does. The temporary `education.toml` named
+`scripts/backfire/fixtures/education-roster-v1.csv`, `education.env` was a link
+to the operator's `hive.env`, and the data directory started empty. The prompt
+asked for the tool list and one `backfire_classify` call on a synthetic
+observation that names a roster student.
+
+- Codex CLI 0.157.1 (`gpt-6-luna`, `codex exec --json --ephemeral
+  --skip-git-repo-check --ignore-user-config`, with
+  `--dangerously-bypass-approvals-and-sandbox` so that the MCP call is not held
+  for approval): passed. It listed the eleven tools, and the call returned
+  `developing` with probability 0.9 from DeepSeek V4.1 Flash; the record shows
+  the judgment and the tool call as `ok`, and the mapping table gained the
+  student's entry.
+- Claude Code 2.1.283 (`claude -p --output-format stream-json --verbose
+  --no-session-persistence --strict-mcp-config --mcp-config <file>
+  --allowedTools mcp__backfire__backfire_classify`, prompt before
+  `--mcp-config`): it listed the eleven tools, but the call failed with
+  `Handler returned an invalid result`. The judgment succeeded and the tool
+  call was recorded as `protocol_error`. Cause: Claude Code negotiates MCP
+  protocol `2026-07-28`, whose `CallToolResult` requires `resultType`, and
+  feature 005's server returns tool results without it
+  (`packages/backfire/src/backfire/server.py`), so the `mcp` 2.2.0 runner
+  rejects every tool result for such clients. This affects the code build too.
+
+How each client names two servers called `backfire` from two plugins: Claude
+Code's plugin documentation names a plugin's server `plugin:<plugin>:<server>`
+and its tools `mcp__plugin_<plugin>_<server>__<tool>`, so the code and work
+servers get distinct names (`mcp__plugin_code_backfire__backfire_classify` and
+`mcp__plugin_work_backfire__backfire_classify`); this is documented, not
+observed, because only an installation would show it. Codex's plugin
+documentation does not say how it names or separates same-named servers from
+two plugins; unverified until the client-installation feature installs both.
 
 ### Education measurement
 
-Pending the user's go-ahead (T014).
+On 2026-09-28, with the user's go-ahead, the coordinator ran
+`measure_education --runs 3` at `92d5d67` against DeepSeek V4.1 Flash on Hive:
+24 synthetic cases, 3 runs, 2 arms, 144 outcomes. The runner removed its
+temporary directory.
+
+| Tool | Plain | Pseudonymized |
+| --- | --- | --- |
+| `backfire_classify` | 9/9 | 9/9 |
+| `backfire_verify` | 9/9 | 9/9 |
+| `backfire_compare` | 9/9 | 9/9 |
+| `backfire_noul` | 7/9 | 6/9 |
+| `backfire_find` | 8/9 | 8/9 |
+| `backfire_rerank` | 9/9 | 9/9 |
+| `backfire_decide` | 9/9 | 9/9 |
+| `backfire_extract` | 9/9 | 9/9 |
+
+The one case whose outcome differs between the arms is
+`noul-boundary-independent-work`: correct in run 1 of the plain arm and wrong
+in the other five runs. `find-boundary-no-results-note` failed with
+`provider_error` in run 1 of both arms and was correct in runs 2 and 3. So the
+pseudonyms changed one outcome of one boundary case out of 72 per arm; the
+measurement is evidence, not a pass/fail gate.

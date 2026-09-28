@@ -110,8 +110,8 @@ profile-selection tests.
 - [x] T012 [P] [US3] Write `scripts/backfire/fixtures/education-v1.jsonl` and `scripts/backfire/fixtures/education-roster-v1.csv` as [contracts/measurement.md](contracts/measurement.md#set) defines: synthetic Korean education cases with one clear expected result each, meeting every coverage rule there. The writer does not implement T006.
 - [x] T013 [P] [US3] Implement `packages/backfire/src/backfire_tools/acceptance/measure_education.py` as [contracts/measurement.md](contracts/measurement.md#runner) defines, and test it offline in `packages/backfire/tests/test_measure_education.py` with a scripted judge: output lines, per-tool and per-arm accuracy, failed calls counted as wrong, differing cases listed, the temporary directory removed on success, failure and interruption, and the key only ever linked, never copied (depends on T003).
   - 2026-09-28: done by Codex worker C (gpt-6-luna max), committed in c92577f with T012: 24 cases, 3 per tool, and an 8-student synthetic roster.
-- [ ] T014 [US3] On demand, after the user's go-ahead and after T012 is committed: run the measurement with `--runs 3` and return its output to the coordinator, who records the summary in [research.md](research.md#results) (depends on T006, T012, T013).
-  - 2026-09-28: waiting for the user's go-ahead for the billed runs.
+- [x] T014 [US3] On demand, after the user's go-ahead and after T012 is committed: run the measurement with `--runs 3` and return its output to the coordinator, who records the summary in [research.md](research.md#results) (depends on T006, T012, T013).
+  - 2026-09-28: run by the coordinator after the user's go-ahead, at 92d5d67; results in research.md (one boundary noul case differs between the arms).
 
 **Checkpoint**: The measurement is recorded.
 
@@ -125,7 +125,7 @@ profile-selection tests.
 - [x] T018 [P] Coordinator: mark FR-015 and the student-data assumption in `specs/005-jev-decision-backend/spec.md` as superseded by feature 011 (FR-015 of 011).
 - [x] T019 Run `deno task docs:generate` and commit the regenerated `docs/reference/` files (depends on T009).
 - [ ] T020 On demand, after the user's go-ahead: the client check of [quickstart.md](quickstart.md#5-client-check-live-with-the-users-go-ahead) in Codex CLI and Claude Code (SC-006). Also find out, from each client's documentation or a per-invocation run, how it names two servers called `backfire` from two plugins, and record it as unverified if only an installation could show it; return the outcomes to the coordinator for [research.md](research.md#results) (depends on T008, T009, T011).
-  - 2026-09-28: T008 is done; waiting for the user's go-ahead for the live client calls.
+  - 2026-09-28: run after the user's go-ahead. Codex CLI passed; Claude Code listed the tools but its call failed because feature 005's server omits the `resultType` that MCP protocol 2026-07-28 requires (research.md). Asked the develop session whether to fix it in this branch; the Claude Code run repeats after the fix.
 - [ ] T021 Coordinator: scan the repository for the ten names and schools of the operator's EduOK list without writing them anywhere, and record only the outcome in [research.md](research.md#results) (SC-008).
   - 2026-09-28: waiting for the user to say where the EduOK list is saved (Orca question msg_40b030e48503, asked with T014's and T020's go-ahead); none of the operator's files names it yet.
 - [ ] T022 Run quickstart steps 1 to 4, `deno task test:backfire-slow`, `deno task check` and `deno task verify`, and report the results (depends on every task above except T014 and T020).
