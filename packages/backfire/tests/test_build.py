@@ -108,7 +108,13 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
         built = output / name
         assert tree(built) == tree(
             source,
-            exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache"),
+            exclude=(
+                ".venv",
+                "node_modules",
+                "__pycache__",
+                ".pytest_cache",
+                "tests",
+            ),
         )
         for path in ("pyproject.toml", "uv.lock", "src"):
             assert (built / path).exists()

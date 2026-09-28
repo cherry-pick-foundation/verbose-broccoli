@@ -113,7 +113,13 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
             copy_tree(
                 ROOT / "packages" / name,
                 partial / name,
-                exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache"),
+                exclude=(
+                    ".venv",
+                    "node_modules",
+                    "__pycache__",
+                    ".pytest_cache",
+                    "tests",
+                ),
             )
         if interrupted:
             raise InterruptedError("Build interrupted")
