@@ -22,8 +22,33 @@ the fix (`aae7784`, on `develop` `2262815`).
 | Wiki check end to end              | A scratch pytest file using `packages/wiki-consistency/tests`' own `ready_instance` and `run_check`: `wiki/concepts/alpha.md` links by absolute path to an existing `original document.pdf` or to a missing `missing.pdf` under pytest's temporary directory | pass    | With the fix: exit 0 and `{"orphans": [], "problems": [], "stale_citations": []}` for the existing file; exit 1 and `wiki/concepts/alpha.md:12: …/missing.pdf: File not found` for the missing one. |
 | Wiki check end to end, without fix | The same scratch test with `regions.py` from `d40d458`                                                                                                                                                                                                       | fail    | Exit 1 for the existing file: `wiki/concepts/alpha.md:12: … Cannot resolve root-relative link`. `regions.py` was restored afterwards.                                                               |
 | New test                           | `PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync pytest -p no:cacheprovider packages/doc-regions/tests/test_regions.py`                                                                                         | pass    | 38 passed with the fix; with `regions.py` from `d40d458`, `test_lychee_absolute_local_links` fails its two existing-target cases.                                                                   |
-| Regression suite and checks        | `deno task verify --task che-23 --base 2262815 --plan <plan>` at `aae7784`                                                                                                                                                                                   | pass    | Exit 0, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:doc-regions`, `test:wiki-consistency`, and `doc-regions:check` on the repository's own documents.                |
+| Regression suite and checks        | `deno task verify --task che-23 --base 2262815 --plan plan.json` at `aae7784`, with `plan.json` as shown below the table                                                                                                                                     | pass    | Exit 0, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:doc-regions`, `test:wiki-consistency`, and `doc-regions:check` on the repository's own documents.                |
 | The work vault's 294 links         | Not run                                                                                                                                                                                                                                                      | not-run | This task does not touch the real vaults; CHE-21 runs the Wiki check on the work vault before its commit.                                                                                           |
+
+`plan.json`, a temporary file outside the repository that lists each task's
+files for `deno task workflow` and `deno task verify`:
+
+```json
+{
+  "tasks": [
+    {
+      "id": "che-23-root-dir",
+      "files": [
+        "packages/doc-regions/src/doc_regions/regions.py",
+        "packages/doc-regions/tests/test_regions.py"
+      ]
+    },
+    {
+      "id": "che-23-records",
+      "files": [
+        ".specify/bugs/wiki-check-absolute-links/assessment.md",
+        ".specify/bugs/wiki-check-absolute-links/fix.md",
+        ".specify/bugs/wiki-check-absolute-links/test.md"
+      ]
+    }
+  ]
+}
+```
 
 ## Output Excerpts
 
