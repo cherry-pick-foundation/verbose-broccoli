@@ -63,7 +63,7 @@ merge review.
 
 ## Phase 2: The rules (US1 to US3)
 
-- [ ] T003 [US1] [US2] [US3] In `TESTS/conftest.py`, set `XDG_CONFIG_HOME`
+- [x] T003 [US1] [US2] [US3] In `TESTS/conftest.py`, set `XDG_CONFIG_HOME`
   to a temporary folder for every test, so no test can read the user's
   roster. In a new `TESTS/test_rules.py`, add cases for every rule of the
   [contract](contracts/page-rules.md) through `lint.check`: for each rule,
@@ -75,13 +75,26 @@ merge review.
   with its file named; the roster and vault unchanged after the check
   (SC-004). Commit the cases and record in this file how many fail per
   rule before T004.
-- [ ] T004 [US1] [US2] [US3] Implement `SRC/rules.py` as the contract says,
+- [x] T004 [US1] [US2] [US3] Implement `SRC/rules.py` as the contract says,
   using `load_roster`, T001's span finder, `doc_regions.regions.scan`,
   PyYAML node positions, `unicodedata` and `datetime`, and add its problems
   in `SRC/lint.py`'s `check` (research R1, R2, R5 to R8). T003's cases and
   the rest of `deno task test:wiki-consistency` and `deno task
   test:backfire` pass. Measure `check` on a synthetic vault of 500 pages
   and a 100-row synthetic roster and record the time here (SC-003).
+  - 2026-09-29: The same worker (`ctx_276b91ba0ade`) committed T003's cases
+    in `5d1c8e6`: 18 of them failed before T004 (phone 2, email 1,
+    id-number 1, address 1, student-roster 1, english 4, school 2, date 2,
+    time 1, roster configuration 4; the Hangul school case counts for both
+    english and school). T004 is `6a17e1a`. Afterwards 213 wiki-consistency
+    and 1,360 backfire tests passed, and `check` of 500 synthetic pages with
+    a 100-row roster took 4.6 seconds with all files unchanged. Main's
+    review found two defects: `english` named only the first offending line
+    of a page, and a zone such as `(UTC+09:00)` failed `time` because its
+    minutes read as a second time. The worker fixed both, test first
+    (`ctx_b920c283f91f`): `007859f` holds four cases that failed, and
+    `eec5d4b` the fix. Then 217 wiki-consistency tests passed and
+    `deno task verify` passed. Main reran the review cases. Next: T008.
 
 ## Phase 3: Documents and environments (US4)
 
@@ -105,9 +118,26 @@ merge review.
   and `deno task verify`; check the feature's files against the real roster
   by count only (no overlap) and confirm that no vault, roster or
   configuration file changed (FR-016, FR-017, SC-005).
-- [ ] T009 Run the document judgment step as feature 015's T009 did for
+- [x] T009 Run the document judgment step as feature 015's T009 did for
   the changed template, skill and documents; correct or record each
   contradicted or flagged unit.
+  - 2026-09-29: Prepare gave five `backfire_verify` requests (229 units of
+    the constitution, `AGENTS.md`, `README.md`, `docs/architecture.md` and
+    `docs/backfire.md`, with the feature diff as evidence) and one
+    `backfire_classify` request; one more `backfire_verify` covered the
+    seven changed units of the template, the skill and the example schema,
+    with the spec's clarifications and requirements, the contract, the new
+    code and the install task as evidence. Main ran them through the
+    develop worktree's backfire package. No unit was contradicted. The
+    changed architecture install bullet (234-238) was verified and
+    classified as an agent region. Five of the seven template, skill and
+    example units were verified; the skill's install commands and its
+    `check` row were unsupported, since the evidence did not include the
+    built plugin's layout or the unchanged checks, and stand. 24 units
+    across the requests were flagged for review, each with a
+    contradiction probability of 0.05 or less; this feature changes none
+    but the install bullet. The judgments used 263,839 input and 111,836
+    output tokens.
 - [ ] T010 Merge `develop`, verify, move CHE-26 to In Review, run the merge
   review (a fresh Claude Code reviewer for T001 to T004, a fresh Codex
   reviewer for the documents), resolve findings, commit the review record,
