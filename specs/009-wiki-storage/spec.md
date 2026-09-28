@@ -15,7 +15,7 @@ this feature by `briefs/2026-09-27-linear-and-documents.md`, "Overview and
 order". The user decided on 2026-09-27:
 
 - Use constitution principle VI's layout as is: the default Wiki instance is
-  `~/.local/share/verbose-broccoli/wikis/default/` with the schema `AGENTS.md`,
+  `~/.local/share/verbose-broccoli/vaults/default/` with the schema `AGENTS.md`,
   `raw/{web,files,notes,assets}/` and `wiki/`; configuration, state and cache
   go in the matching XDG (freedesktop.org base directory) roots. Raw files in a
   hidden folder are fine because people do not browse them.
@@ -194,7 +194,7 @@ finished revision is published), then inspect `raw/` and rerun.
 ### User Story 5 - The default Wiki instance exists in the constitution's layout (Priority: P2)
 
 After this feature, the default Wiki instance exists at
-`~/.local/share/verbose-broccoli/wikis/default/` in principle VI's layout, so
+`~/.local/share/verbose-broccoli/vaults/default/` in principle VI's layout, so
 later features (Wiki ingest, Wiki document consistency) find it where the
 constitution says. Its layers are exactly those decided in the Clarifications
 section.
@@ -279,8 +279,8 @@ unchanged.
 **Wiki instance**
 
 - **FR-001**: The capability MUST create the default Wiki instance at
-  `$XDG_DATA_HOME/verbose-broccoli/wikis/default/` (by default
-  `~/.local/share/verbose-broccoli/wikis/default/`) with the layers decided in
+  `$XDG_DATA_HOME/verbose-broccoli/vaults/default/` (by default
+  `~/.local/share/verbose-broccoli/vaults/default/`) with the layers decided in
   the Clarifications section, including `raw/web/`, `raw/files/`, `raw/notes/`
   and `raw/assets/`, and no folder for conversation records.
 - **FR-002**: Creating the instance again MUST change nothing that exists.
