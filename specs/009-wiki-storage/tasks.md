@@ -319,10 +319,8 @@ decision on the task line (decision and date only). Findings come from
   script and tests, fresh Codex reviewer for the prose), resolve findings,
   add the review-record commit, and finish with `git flow feature finish
   wiki-storage` from the `develop` worktree.
-  - 2026-09-28: a new orchestrator session replaced the first one. Fresh
-    reviewers checked the branch at `ae97c51` and again after the fixes;
-    findings were fixed or answered in the review record. CHE-7 is In
-    Review; the finish from the `develop` worktree follows the record.
+  - 2026-09-28: reviewed twice by fresh reviewers, findings fixed or answered
+    in the review record; the finish merges this record into `develop`.
 
 ---
 
