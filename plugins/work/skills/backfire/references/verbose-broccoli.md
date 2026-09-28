@@ -15,10 +15,12 @@ restores them in the results, so tool results use the text you supplied:
 
 - student names listed in the operator's roster, also with particles attached
   (`가라온은`);
-- each student's given name alone (`라온이가`), derived only from an
-  all-Hangul roster name of at least three syllables, and only when the given
-  name has at least two syllables; a given name that several students share
-  gets its own pseudonym;
+- each student's given name alone (`라온이가`): the roster name without its
+  surname, which is the first syllable, or the first two when the name has at
+  least four syllables and starts with 남궁, 황보, 제갈, 선우, 서문, 독고 or
+  사공. It is derived only from an all-Hangul roster name of at least three
+  syllables, and only when the given name has at least two syllables; a given
+  name that several students share gets its own pseudonym;
 - guardian names and schools listed in the roster;
 - phone numbers and email addresses, whether or not the roster lists them.
 

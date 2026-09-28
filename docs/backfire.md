@@ -135,8 +135,11 @@ the next judgment.
 | A phone number, such as `010-1234-5678` or `+82 10-1234-5678` | `연락처01` |
 | An email address | `이메일01` |
 
-Given names are derived only from all-Hangul names of at least three
-syllables, and only when they have at least two syllables. Scores, dates,
+A given name is the roster name without its surname: the first syllable, or
+the first two when the name has at least four syllables and starts with 남궁,
+황보, 제갈, 선우, 서문, 독고 or 사공. Given names are derived only from
+all-Hangul names of at least three syllables, and only when they have at least
+two syllables. Scores, dates,
 grades, observations and other learning content are sent as is.
 
 The work build cannot detect names, schools or guardians missing from the

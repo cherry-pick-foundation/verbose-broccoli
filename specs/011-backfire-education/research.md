@@ -372,9 +372,10 @@ schools) against the tracked files, in memory, and wrote no value anywhere.
 It first found one real student's full and given name used as the documents'
 running example, two real schools as examples and one real given name as the
 ordinary-word example, all written by this feature. They were replaced with
-synthetic examples. The rescan finds only the compound surname in the
-given-name rule (`roster.py`, its test, the pseudonymization contract and this
-file), which equals one student's given name by coincidence and names no one.
+synthetic examples. The rescan finds only one of the compound surnames in the
+given-name rule, wherever the rule lists them (the code, its test, the
+contract, the operator guide, the work skill and this file), which equals one
+student's given name by coincidence and names no one.
 `develop` and `main` hold none of the values; the Linear issue CHE-9 holds
 none either. With the user's approval, the feature branch's own commits since
 `develop`, never pushed, were rewritten with the same replacements, and a
