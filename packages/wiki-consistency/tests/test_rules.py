@@ -348,3 +348,194 @@ def test_time_rule_allows_utc_offsets_with_minutes(tmp_path, body):
     problems = checked(instance, tmp_path)
 
     assert not has_rule(problems, "time", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize(("student", "body", "rule", "matched"), [
+    pytest.param("Ann Lee", "Ann Lee.one@example.test", "email",
+                 "Lee.one@example.test", id="email-overlap"),
+    pytest.param("A 010", "A 010-1234-5678", "phone",
+                 "010-1234-5678", id="phone-overlap"),
+])
+def test_roster_spans_do_not_hide_contact_rules(tmp_path, student, body, rule, matched):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path, [(student, "", ""), (STUDENTS[0], "", "")])
+    body = f"{body} {STUDENTS[0]}"
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
+
+
+@pytest.mark.parametrize(("rule", "body", "matched"), [
+    pytest.param("address", "Meet at 무지개길 12.", "무지개길 12", id="hangul-road"),
+    pytest.param("address", "Meet at 12, Fiction-ro.", "12, Fiction-ro",
+                 id="number-first-road"),
+    pytest.param("address", "Meet at 12-3번지.", "12-3번지", id="lot-number"),
+    pytest.param("id-number", "Record 000229-3000000.", "000229-3000000",
+                 id="century-2000-3"),
+    pytest.param("id-number", "Record 000229-4000000.", "000229-4000000",
+                 id="century-2000-4"),
+    pytest.param("id-number", "Record 000229-7000000.", "000229-7000000",
+                 id="century-2000-7"),
+    pytest.param("id-number", "Record 000229-8000000.", "000229-8000000",
+                 id="century-2000-8"),
+    pytest.param("date", "Recorded 2026-02-30.", "2026-02-30", id="invalid-iso"),
+    pytest.param("date", "Recorded 2026-9-29.", "2026-9-29", id="unpadded-iso"),
+    pytest.param("date", "Recorded 29.09.2026.", "29.09.2026", id="day-first"),
+    pytest.param("date", "Recorded 9/29/26.", "9/29/26", id="two-digit-year"),
+    pytest.param("date", "Recorded September 29, 2026.", "September 29, 2026",
+                 id="month-first"),
+    pytest.param("date", "Recorded 29th of September.", "29th of September",
+                 id="day-month-name"),
+    pytest.param("date", "Recorded 2026년 9월 29일.", "2026년 9월 29일",
+                 id="korean-year-month-day"),
+    pytest.param("date", "Recorded 9월 29일.", "9월 29일", id="korean-month-day"),
+])
+def test_page_rules_report_additional_contract_forms(tmp_path, rule, body, matched):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
+
+
+@pytest.mark.parametrize("body", [
+    "Record 000229-1000000.",
+    "Record 000229-2000000.",
+    "Record 000229-5000000.",
+    "Record 000229-6000000.",
+])
+def test_registration_number_century_digits_use_the_1900s(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "id-number", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize("body", [
+    "At 14:30 +99:99.",
+    "At 14:30 +15:00.",
+    "At 14:30 +14:60.",
+    "At 14:30 -05:00.",
+    "At 14:00 -15:30.",
+    "From 9:00 -10:00 today.",
+    "At 14:30 KST.",
+    "At 3 PM.",
+])
+def test_page_rules_reject_unzoned_or_invalid_time_forms(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert has_rule(problems, "time", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize("body", [
+    "At 14:30Z.",
+    "At 14:30 +09:00.",
+    "At 14:30 +0900.",
+    "At 14:30 +14:59.",
+    "At 3 PM UTC.",
+    "At 2026-09-29T14:30:00-05:00.",
+])
+def test_page_rules_allow_more_zoned_time_forms(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "time", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize("body", [
+    "<!-- 2026.09.29 -->",
+    "x < 2026.09.29 > y",
+])
+def test_non_autolink_angle_text_does_not_hide_dates(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "date", "2026.09.29")
+
+
+@pytest.mark.parametrize("body", [
+    "<https://example.com/2026/09/29>",
+    "<urn:synthetic:2026.09.29>",
+    "[synthetic date](https://example.invalid/2026/09/29)",
+])
+def test_page_rules_skip_autolinks_and_link_destinations_for_dates(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "date", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize(("start", "end"), [
+    ("<!-- [[[cog malformed -->", "<!-- [[[end]]] -->"),
+    ("<!-- [[[cog synthetic ]]] -->", "<!-- [[[end] ] -->"),
+])
+def test_malformed_mechanical_region_markers_do_not_hide_page_rules(
+        tmp_path, start, end):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(f"# Overview\n{start}\n010-1234-5678\n{end}\n", encoding="utf-8")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 3, "phone", "010-1234-5678")
+
+
+def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"{STUDENTS[0]}은 good.")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "english", "은")
+
+
+def test_hangul_school_inside_an_allowed_quote_passes_school(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"“{SCHOOL}” (fiction)")
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "school", "wiki/overview.md"), problems
+
+
+def test_original_quote_of_100_characters_passes_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"“{'學' * 100}” (meaning)")
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "english", "wiki/overview.md"), problems
+
+
+def test_closing_quote_does_not_open_a_quote(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, 'The word "x" 한국어 " (meaning)')
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "english", "한국어")
