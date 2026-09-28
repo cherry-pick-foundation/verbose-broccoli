@@ -35,6 +35,16 @@ def test_current_region_is_read_only_and_root_relative(workspace, unchanged):
         assert check(*workspace) == []
 
 
+@pytest.mark.parametrize('separator', ['\u2028', '\x0b', '\x0c', '\x1c', '\x1d', '\x1e', '\x85'])
+def test_cog_marker_line_counts_only_lf_breaks(workspace, separator, unchanged):
+    root = workspace[0]
+    (root / 'doc.md').write_text(
+        f'Paragraph{separator}continues.\n<!-- [[[end]]] -->\n')
+    with unchanged(root.parent):
+        problems = check(*workspace)
+    assert problems[0]['line'] == 2
+
+
 def test_stale_has_cog_diff_line_and_update_command(workspace, unchanged):
     root = workspace[0]
     (root / 'source.txt').write_text('new\n')

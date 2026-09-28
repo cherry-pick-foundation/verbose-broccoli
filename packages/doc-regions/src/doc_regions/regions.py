@@ -19,11 +19,16 @@ def problem(document, line, message):
     return dict(document=document, line=line, message=message)
 
 
+def _split_lf_lines(text):
+    parts = text.split('\n')
+    return [part + '\n' for part in parts[:-1]] + ([parts[-1]] if parts[-1] else [])
+
+
 def scan(document, text):
     """Return zero-based, end-exclusive region spans and marker problems."""
     spans, problems = [], []
     opened = None
-    for index, line in enumerate(text.splitlines()):
+    for index, line in enumerate(_split_lf_lines(text)):
         if '[[[cog' in line:
             match = START.fullmatch(line)
             if not match:
@@ -127,7 +132,7 @@ def cog(root, document, generator_path, update):
 
 def changed_regions(diff, spans):
     changed, line = set(), None
-    for text in diff.splitlines():
+    for text in diff.split('\n'):
         match = re.match(r'^@@ -(\d+)', text)
         if match:
             line = int(match[1]) - 1
@@ -144,8 +149,8 @@ def changed_regions(diff, spans):
 
 
 def replace_outputs(document, original, updated, spans):
-    old_lines = original.decode('utf-8').splitlines(keepends=True)
-    new_lines = updated.decode('utf-8').splitlines(keepends=True)
+    old_lines = _split_lf_lines(original.decode('utf-8'))
+    new_lines = _split_lf_lines(updated.decode('utf-8'))
     new_spans, errors = scan(document, updated.decode('utf-8'))
     if errors or len(new_spans) != len(spans):
         raise ValueError('Cog output changed the region markers')

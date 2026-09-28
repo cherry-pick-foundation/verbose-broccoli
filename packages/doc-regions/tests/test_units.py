@@ -59,6 +59,14 @@ def test_top_level_blocks_and_line_maps():
             assert covered[line] == 1
 
 
+@pytest.mark.parametrize('separator', ['\u2028', '\x0b', '\x0c', '\x1c', '\x1d', '\x1e', '\x85'])
+def test_non_lf_separators_stay_in_their_source_line(separator):
+    text = f'# Title\n\nFirst{separator}second.\n'
+    paragraph, = [unit for unit in split('doc.md', text) if unit['kind'] == 'paragraph']
+    assert paragraph['id'] == 'doc.md:3-3'
+    assert paragraph['text'] == f'First{separator}second.\n'
+
+
 def test_heading_path_resets_at_same_and_higher_level():
     units = split('doc.md', '# A\n\n### Deep\n\nx\n\n## B\n\ny\n\n# C\n\nz\n')
     assert [u['heading_path'] for u in units if u['kind'] == 'paragraph'] == [

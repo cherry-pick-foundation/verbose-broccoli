@@ -68,6 +68,24 @@ def test_hash_extract_run_filter_and_cache(root, cache, tmp_path, unchanged):
     assert not list(cache.parent.glob('.1.5.1-*'))
 
 
+def test_combined_sources_keep_finding_if_any_source_is_report_only(
+        root, cache, tmp_path, unchanged):
+    findings = [
+        dict(id='ML-025', drift_type='boundary',
+             source='AGENTS.md:10-12 + .specify/memory/constitution.md:40-41',
+             evidence='conflict', suggested_action='review'),
+        dict(id='ML-026', drift_type='redundancy',
+             source='docs/other.md:1-2 + docs/third.md:3-4',
+             evidence='duplicate', suggested_action='merge'),
+    ]
+    script = 'import json\n' + f'print({json.dumps({"findings": findings})!r})\n'
+    url, digest = archive(tmp_path, script=script)
+    with unchanged(root):
+        result = audit(root, ['AGENTS.md', '.specify/memory/constitution.md'],
+                       url=url, sha256=digest)
+    assert result['memorylint']['findings'] == findings[:1]
+
+
 def test_wrong_hash_never_executes_and_cleans(root, cache, tmp_path, monkeypatch, unchanged):
     url, _ = archive(tmp_path)
     monkeypatch.setattr(subprocess, 'run', lambda *a, **k: pytest.fail('must not execute'))

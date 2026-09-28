@@ -4,7 +4,7 @@ from difflib import SequenceMatcher
 
 from markdown_it import MarkdownIt
 
-from doc_regions.regions import scan
+from doc_regions.regions import _split_lf_lines, scan
 
 
 KINDS = {
@@ -19,7 +19,7 @@ KINDS = {
 
 
 def split(document, text, base_text=None):
-    lines = text.splitlines(keepends=True)
+    lines = _split_lf_lines(text)
     spans, problems = scan(document, text)
     if problems:
         raise ValueError('\n'.join(
@@ -30,7 +30,7 @@ def split(document, text, base_text=None):
     added = set()
     if base_text is not None:
         for tag, _, _, first, end in SequenceMatcher(
-                None, base_text.splitlines(keepends=True), lines, autojunk=False).get_opcodes():
+                None, _split_lf_lines(base_text), lines, autojunk=False).get_opcodes():
             if tag in ('insert', 'replace'):
                 added.update(range(first, end))
 

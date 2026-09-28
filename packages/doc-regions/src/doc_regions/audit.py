@@ -89,6 +89,7 @@ def audit(root, report_only, *, url=URL, sha256=SHA256):
         cwd=root, text=True, capture_output=True, check=True,
     )
     findings = json.loads(result.stdout)['findings']
-    selected = [finding for finding in findings
-                if finding['source'].rsplit(':', 1)[0] in report_only]
+    selected = [finding for finding in findings if any(
+        source.rsplit(':', 1)[0] in report_only
+        for source in finding['source'].split(' + '))]
     return {'memorylint': {'version': VERSION, 'sha256': sha256, 'findings': selected}}
