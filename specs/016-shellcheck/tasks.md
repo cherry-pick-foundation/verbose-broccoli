@@ -1,0 +1,77 @@
+---
+
+description: "Task list for ShellCheck"
+---
+
+# Tasks: ShellCheck
+
+**Input**: Design documents from `specs/016-shellcheck/`
+
+**Prerequisites**: [plan.md](plan.md), [spec.md](spec.md)
+
+**Tests**: `scripts/doctor_test.ts` covers the new environment check. The
+script fixes keep behavior, which the existing `test:git-flow`,
+`test:worktree-branch` and `test:commit-msg` suites check. The shell check
+itself is accepted by a clean run and a failing synthetic script (SC-002).
+
+**Organization**: A Codex implementer owns T001 to T004; main (Claude Code)
+owns the records, T005 and integration.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (US1, US2)
+
+---
+
+## Phase 1: Pinned tool (US2)
+
+- [ ] T001 [US2] Create `tools/shellcheck/` as a uv project like
+  `tools/spec-kit/` that pins `shellcheck-py` 0.11.0.1 in `uv.lock`; sync it
+  in `orca.yaml`'s setup script (FR-001).
+- [ ] T002 [US2] In `scripts/doctor.ts`, check the `tools/shellcheck`
+  environment the way it checks `tools/spec-kit`, with a case in
+  `scripts/doctor_test.ts`; name ShellCheck in the `doctor` task description
+  in `deno.json` (FR-001, SC-003).
+
+## Phase 2: Check (US1)
+
+- [ ] T003 [US1] Add the root `.shellcheckrc` (FR-005) and a `lint:shell`
+  task that runs the pinned ShellCheck on the scripts of FR-002 and not on
+  `.specify/` (FR-004); add it to `check` (FR-003) and regenerate
+  `docs/reference/commands.md`.
+- [ ] T004 [US1] Fix every finding in `scripts/worktree-branch.sh`,
+  `scripts/git-flow-hooks/pre-flow-feature-finish` and
+  `scripts/git-hooks/commit-msg` without changing behavior (FR-006).
+- [ ] T005 [P] [US1] In `docs/architecture.md`, name the shell check in the
+  list of checks and describe the pinned tool next to `tools/spec-kit/`.
+
+## Phase 3: Verification and review
+
+- [ ] T006 Run `deno task verify` (SC-001) and the acceptance runs of SC-002
+  to SC-004.
+- [ ] T007 Merge `develop`, verify, move CHE-30 to In Review, run the merge
+  review, resolve findings, commit the review record, check that `develop`
+  has not moved, and run `git flow feature finish shellcheck` in the
+  `develop` worktree.
+
+## Phase 4: After the finish
+
+These run after the merge, so their evidence goes into CHE-30's completion
+comment, not into this file.
+
+- [ ] T008 Move CHE-30 to Done with one completion comment giving the merge
+  commit, the review record and the record location.
+
+## Dependencies
+
+- T002 needs T001; T003 needs T001; T004 needs T003's configuration.
+- T005 is independent of T001 to T004.
+- T006 needs T001 to T005; T007 needs T006; T008 needs T007.
+
+## Worker Assignment
+
+- Codex implementer, `gpt-6-luna` at `max`: T001 to T004.
+- Fresh Claude Code reviewer: the code in T007. Fresh Codex reviewer,
+  `gpt-6-luna` at `max`: the documents in T007.
+- Main: everything else.
