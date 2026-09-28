@@ -338,7 +338,10 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
   cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
   otherwise it clears any inherited value. Where those arguments cannot be
   read, an amend is compared with the commit it replaces, as before this rule
-  handled amends, so it can be refused or accepted wrongly.
+  handled amends, so it can be refused or accepted wrongly. The hook does not
+  know which options take a value, so a value such as the message in
+  `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
+  and a value `--no-amend` hides a real amend.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,

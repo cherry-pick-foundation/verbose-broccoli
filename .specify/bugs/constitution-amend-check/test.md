@@ -42,6 +42,10 @@ seed, and the new commit without a bump.
   undetected and is compared with the commit it replaces, as before this fix:
   it can then be refused wrongly or accepted wrongly (see fix.md, Deviations
   from Assessment).
+- The hook matches every argument, including option values. So a new commit
+  with a message paragraph `-m --amend` is compared with `HEAD^` and can skip
+  its bump, and a value `--no-amend` hides a real amend. The develop merge
+  review found this; `docs/architecture.md` records it as a limit.
 - `git rebase -i` `fixup` and `squash` do not run the `commit-msg` hook, so a
   combined commit can raise the version more than once. This is outside this
   bug and was true before it; the develop merge review reported it.
