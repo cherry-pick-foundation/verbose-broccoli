@@ -145,12 +145,14 @@ def test_search_refuses_stale_document_paths_and_content_hashes(tmp_path, change
     else:
         page.unlink()
 
-    with pytest.raises(LookupError, match="wiki-consistency index"):
+    with pytest.raises(LookupError, match="wiki-consistency index") as error:
         search.search(
             "wiki-a",
             cache,
             [{"id": "q1", "text": "quadratic formula", "collection": "pages", "limit": 5}],
         )
+    if change == "deleted":
+        assert "deleted: concepts/quad.md" in str(error.value)
 
 
 def test_search_stale_error_lists_sorted_paths_and_counts_rest(tmp_path):
@@ -179,9 +181,10 @@ def test_search_stale_error_lists_sorted_paths_and_counts_rest(tmp_path):
 
     assert str(error.value) == (
         "qmd pages collection is stale; changed: concepts/a-changed.md, "
-        "missing: concepts/b-whitespace.md, missing: concepts/c-whitespace.md, "
+        "empty: concepts/b-whitespace.md, empty: concepts/c-whitespace.md, "
         "added: concepts/d-added.md, added: concepts/e-added.md, 5 more; "
-        "run wiki-consistency index"
+        "fill or delete empty files (running index alone cannot clear them "
+        "because qmd keeps their old rows), then run wiki-consistency index"
     )
 
 
@@ -199,10 +202,10 @@ def test_collection_chunk_count_propagates_qmd_errors(tmp_path, monkeypatch):
         search._collection_chunk_count("wiki-a", tmp_path / "cache", "evidence")
 
 
-def test_qmd_internal_import_documents_pinned_version():
-    source = Path(search.__file__).with_name("search.mjs").read_text(encoding="utf-8")
+def test_qmd_internal_import_uses_pinned_version():
+    package = Path(search.__file__).parents[2] / "node_modules" / "@tobilu" / "qmd" / "package.json"
 
-    assert "// Relies on qmd 2.8.3's internal module; qmd exports no scan helper." in source
+    assert json.loads(package.read_text(encoding="utf-8"))["version"] == "2.8.3"
 
 
 def test_search_uses_keyword_when_cached_model_needs_embeddings(tmp_path, monkeypatch):

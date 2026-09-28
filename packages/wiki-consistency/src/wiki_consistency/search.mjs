@@ -127,16 +127,15 @@ try {
       }
       for (const path of indexed.keys()) {
         if (!expectedByPath.has(path))
-          differences.push({kind: 'missing', path});
+          differences.push({
+            kind: existsSync(resolve(roots[name], path)) ? 'empty' : 'deleted',
+            path,
+          });
       }
       differences.sort((left, right) =>
         left.path < right.path ? -1 : left.path > right.path ? 1 : 0,
       );
-      if (
-        lookupErrors.length ||
-        indexed.size !== expected.length ||
-        differences.length
-      ) {
+      if (lookupErrors.length || differences.length) {
         const details = differences
           .slice(0, 5)
           .map(({kind, path}) => `${kind}: ${path}`);
@@ -144,14 +143,14 @@ try {
           details.push(`${differences.length - details.length} more`);
         }
         if (!details.length) {
-          details.push(
-            lookupErrors.length
-              ? `${lookupErrors.length} lookup errors`
-              : 'document counts differ',
-          );
+          details.push(`${lookupErrors.length} lookup errors`);
         }
+        const emptyFiles = differences.some(({kind}) => kind === 'empty');
         error =
           `qmd ${name} collection is stale; ${details.join(', ')}; ` +
+          (emptyFiles
+            ? 'fill or delete empty files (running index alone cannot clear them because qmd keeps their old rows), then '
+            : '') +
           'run wiki-consistency index';
         break;
       }
