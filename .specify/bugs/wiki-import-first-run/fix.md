@@ -7,11 +7,13 @@
 
 ## Summary
 
-The raw import tests now run the tool with uv's `--quiet` flag added to
-`uv run --locked --offline --script`. When uv has to build the script
-environment first, it no longer prints `Installed 1 package …` on stderr, so the
-tests' empty-stderr checks see only the tool's own output. uv's errors, and the
-tool's stdout, stderr and exit code, pass through as before.
+`Fixture.command`, which runs the tool for the raw import tests, now adds uv's
+`--quiet` flag to `uv run --locked --offline --script`. When uv has to build the
+script environment first, it no longer prints `Installed 1 package …` on stderr,
+so the tests' empty-stderr checks see only the tool's own output. uv's errors,
+and the tool's stdout, stderr and exit code, pass through as before. The US5
+tests build their own `uv run` command, which stays unchanged: as the assessment
+explains, their first call checks only the exit code.
 
 ## Changes
 

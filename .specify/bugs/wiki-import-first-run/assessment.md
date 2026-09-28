@@ -64,6 +64,8 @@ that setup line, as CHE-9's was (its folder dates from 00:26 KST on 2026-09-28,
 
 ## Suspected Code Paths
 
+Line numbers refer to `7137315`, the revision before the fix.
+
 - `scripts/wiki_raw_import_test.ts:94-103` — `Fixture.command` runs
   `uv run --locked --offline --script`, so uv's own messages share stderr with
   the tool's.
