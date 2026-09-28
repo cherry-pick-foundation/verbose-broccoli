@@ -127,6 +127,20 @@ into Orca or Linear messages; tests use synthetic vaults only.
   reviewer for the documents), resolve findings, commit the review record,
   check that `develop` has not moved, and run
   `git flow feature finish vault-topics` in the `develop` worktree.
+  - 2026-09-29: Backfire rated the code review medium and the document
+    review difficult. A fresh Claude Code reviewer (`claude-sonnet-5`, high
+    effort; Orca dispatch `ctx_7cdc94be392a`) reviewed T001 to T004 at
+    `5fe1b96` and found nothing; it ran 169 wiki-consistency tests. A fresh
+    Codex reviewer (`gpt-6-luna`, `max`; `ctx_874332665c46`) reviewed the
+    documents, the records and the `test_build.py` fixture and found one
+    major issue: the example schema `docs/examples/wiki/AGENTS.md`
+    describes page metadata and the index without topics, while the spec
+    both required and exempted it. Main added the topic rules to the
+    example and named it in FR-007 (`bb380d4`); the reviewer's follow-up
+    (`ctx_e835e6d4c15d`) found the rules incomplete and the example's claim
+    that the template holds only raw and log rules stale, which `8a85d25`
+    fixed. Its second follow-up (`ctx_1af231e8ebf7`) found nothing. Next:
+    the review record and the finish.
 
 ## Phase 4: After the finish
 
