@@ -195,7 +195,9 @@ each vault's schema, its latest commit and the check's result.
   for entities, concepts, comparisons and synthesis) MUST stay as they are;
   topics do not replace folders and do not create vaults.
 - **FR-007**: The repository documents that describe page metadata or the
-  index MUST describe topics the same way as the template.
+  index MUST describe topics the same way as the template: the architecture
+  document, the consistency skill and the example schema
+  `docs/examples/wiki/AGENTS.md`.
 - **FR-008**: After the merge into `develop`, each of the `default`, `chat`
   and `code` vaults MUST adopt the topics rule in exactly one vault commit,
   changing only the topics part of its schema, its regenerated index and one
@@ -250,8 +252,6 @@ each vault's schema, its latest commit and the check's result.
 - Adopting topics in the `default`, `chat` and `code` vaults adds only the
   topics part of the template, so rules that other features add to the
   template stay with those features.
-- The older example schema `docs/examples/wiki/AGENTS.md` is not the
-  template; this feature does not change it.
 
 ## Out of Scope
 
