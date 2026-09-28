@@ -405,4 +405,11 @@ interfaces this plan assumed were read again. Differences and their effect:
   separates two same-named servers is unverified (011 research, "Results").
   [docs/backfire.md](../../docs/backfire.md) now describes the work build's
   pseudonymization, so R9's "Current conflict" is resolved.
+- **Installing from a work build** (found in T025): `packages/doc-regions`
+  sets setuptools' `egg_base = ".venv"`, so building it as
+  `wiki-consistency`'s path dependency needs `doc-regions/.venv/` to exist.
+  The build leaves `.venv/` out, so the skill syncs `doc-regions` first,
+  then `wiki-consistency`; both then install offline from uv's cache.
+- **qmd's keyword hits** carry no character offset, so `search.mjs` maps
+  every hit to a line with qmd's exported `extractSnippet`, as qmd's CLI does.
 

@@ -49,6 +49,23 @@ INSTANCE/
 
 Sources are relative to `INSTANCE`. Generators read only those files.
 
+`page_catalog` output, for a page `wiki/concepts/quad.md`:
+
+```markdown
+- [Quadratic formula](concepts/quad.md) — How the quadratic formula follows from completing the square.
+```
+
+`source_provenance` output, one source per call, revisions sorted by name:
+
+```markdown
+Source `<source-id>` (`<kind>`), original file `<name from data/<name>>`:
+
+- `<revision>`: modified `<Source-Modified>`, <bytes from Payload-Oxum> bytes, SHA-256 `<hex>`
+```
+
+It has no heading, so it does not change the page's heading structure, and it
+ends with a newline.
+
 ## Converted evidence
 
 | Field | Location | Rule |

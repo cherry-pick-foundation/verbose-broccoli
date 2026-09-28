@@ -28,7 +28,14 @@ sources:
 ## Special pages
 
 - `index.md`: one mechanical region calling `page_catalog("wiki/**/*.md")`
-  and nothing else to edit by hand; the check fails when it is stale.
+  and nothing else to edit by hand; the check fails when it is stale. Before
+  the first `update`, its whole content is these two lines, which `update`
+  then fills:
+
+  ```markdown
+  <!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->
+  <!-- [[[end]]] -->
+  ```
 - `overview.md`: agent-written synthesis; it links to the pages it
   summarizes, and those pages are its evidence.
 - `log.md`: one entry per operation, appended at the end; earlier entries are

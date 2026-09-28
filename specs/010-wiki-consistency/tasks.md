@@ -115,7 +115,7 @@ code tasks in the Worker Assignment section.
   - 2026-09-28: `.gitignore` already ignores every `node_modules/`.
     `test:wiki-consistency` joins the `test` list with T008's first tests,
     since pytest fails when it collects none.
-- [ ] T007 [P] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`: fail
+- [x] T007 [P] Extend `scripts/doctor.ts` and `scripts/doctor_test.ts`: fail
   when `packages/wiki-consistency/.venv` or `node_modules` is missing or
   differs from its lock, and when `node` is older than 22. Tests first.
 
@@ -125,13 +125,13 @@ code tasks in the Worker Assignment section.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-- [ ] T008 Write `packages/wiki-consistency/tests/test_instance.py` and a
+- [x] T008 Write `packages/wiki-consistency/tests/test_instance.py` and a
   test helper that builds synthetic instances in temporary XDG roots (feature
   009's layout, bags made with bagit, a Git repository): XDG roots and
   `--wiki` resolve; pages, front matter and citations parse; the special
   pages are recognized; bags and their revisions are listed from `raw/`
   alone. Fails before T009.
-- [ ] T009 Implement `packages/wiki-consistency/src/wiki_consistency/instance.py`
+- [x] T009 Implement `packages/wiki-consistency/src/wiki_consistency/instance.py`
   per [data-model.md](data-model.md). T008 passes.
 
 **Checkpoint**: Every command can read an instance.
@@ -147,20 +147,20 @@ without writing or network.
 **Independent Test**: `deno task test:wiki-consistency` and the quickstart's
 "Offline check".
 
-- [ ] T010 [US1] Write `tests/test_sources.py` for `page_catalog` and
+- [x] T010 [US1] Write `tests/test_sources.py` for `page_catalog` and
   `source_provenance`: fixture instances give the exact expected text, sorted
   by path or revision; the special pages are left out of the catalog; a
   missing source raises; no network, clock or environment use. Fails before
   T011.
-- [ ] T011 [US1] Implement `src/wiki_consistency/sources.py` per
+- [x] T011 [US1] Implement `src/wiki_consistency/sources.py` per
   [data-model.md](data-model.md). T010 passes.
-- [ ] T012 [US1] Add to `packages/doc-regions/src/doc_regions/regions.py` a
+- [x] T012 [US1] Add to `packages/doc-regions/src/doc_regions/regions.py` a
   backward-compatible keyword for the command that the stale-region failure
   message names (research.md R11; default "deno task doc-regions:update"),
   passed from `check` through `process` to `cog`, with a test in
   `packages/doc-regions/tests/`; feature 008's own tests keep passing. The
   three needs of R8 are already in 008's package.
-- [ ] T013 [US1] Write `tests/test_lint.py` and `tests/test_check.py`: every
+- [x] T013 [US1] Write `tests/test_lint.py` and `tests/test_check.py`: every
   failure case in [contracts/commands.md](contracts/commands.md) "`check`"
   fails naming page and line; a passing instance passes; orphans and stale
   citations are listed and do not fail; a changed or removed earlier
@@ -169,7 +169,7 @@ without writing or network.
   run changes nothing. Every `check` case compares a hash of the instance and
   cache before and after and runs with `socket.socket` patched to raise.
   Fails before T014.
-- [ ] T014 [US1] Implement `src/wiki_consistency/lint.py` and the `check` and
+- [x] T014 [US1] Implement `src/wiki_consistency/lint.py` and the `check` and
   `update` commands in `__main__.py`: `doc_regions` for regions, lychee
   offline for links, markdown-it-py link tokens for the orphan graph, bagit
   fast validation for cited bags, `git show HEAD:wiki/log.md` for the log
@@ -188,7 +188,7 @@ split backfire requests.
 **Independent Test**: `deno task test:wiki-consistency` and the quickstart's
 "Judgment step" steps 1 to 4.
 
-- [ ] T015 [P] [US2] Write `tests/test_evidence.py`: synthetic DOCX, PPTX and
+- [x] T015 [P] [US2] Write `tests/test_evidence.py`: synthetic DOCX, PPTX and
   text PDF fixtures (generated in the test or committed as small synthetic
   files) convert with their text; plain text and Markdown pass through; an
   image-only PDF and an unsupported format get an unreadable mark with the
@@ -196,9 +196,9 @@ split backfire requests.
   small budget injected), a failure and SIGTERM leave no temporary file, and
   leftovers are removed at the next start; nothing is written outside the
   evidence cache; no socket opens. Fails before T016.
-- [ ] T016 [P] [US2] Implement `src/wiki_consistency/evidence.py` and the
+- [x] T016 [P] [US2] Implement `src/wiki_consistency/evidence.py` and the
   `convert` command per research.md R3. T015 passes.
-- [ ] T017 [P] [US2] Write `tests/test_search.py` with the pinned qmd: the
+- [x] T017 [P] [US2] Write `tests/test_search.py` with the pinned qmd: the
   `pages` and `evidence` collections are created with the cache variables of
   R4 and `--index <wiki-id>`; nothing is written into the instance; `search`
   hits map to the unit containing the hit line; a deleted index is rebuilt;
@@ -206,7 +206,7 @@ split backfire requests.
   model, semantic search is reported unavailable and keyword search still
   works; many queries run in one Node process through qmd's library API and
   give the same hits as the CLI. Fails before T018.
-- [ ] T018 [P] [US2] Implement `src/wiki_consistency/search.py`, the Node
+- [x] T018 [P] [US2] Implement `src/wiki_consistency/search.py`, the Node
   script `src/wiki_consistency/search.mjs` it runs for batched `searchLex`
   and `searchVector` queries (research.md R4), and the `index` command.
   T017 passes.
@@ -273,7 +273,7 @@ the code plugin; the schema and the skill describe the procedure.
 
 **Independent Test**: The quickstart's "Build".
 
-- [ ] T025 [P] [US5] In feature 011's plugin table in
+- [x] T025 [P] [US5] In feature 011's plugin table in
   `packages/backfire/src/backfire_tools/build.py`, add a second kind of
   entry, a per-plugin list of `packages/<name>` projects copied beside
   `backfire/` without `.venv` and `node_modules` (research.md R7), and list
@@ -281,12 +281,12 @@ the code plugin; the schema and the skill describe the procedure.
   keep passing. Add a test that builds into a temporary folder,
   installs offline from the locks and runs `check` on a synthetic instance
   with no code plugin present.
-- [ ] T026 [US5] Write `plugins/work/skills/wiki-consistency/SKILL.md`: when
+- [x] T026 [US5] Write `plugins/work/skills/wiki-consistency/SKILL.md`: when
   to use it, the commands with the plugin-relative project path, the
   judgment step and the lint operation of
   [contracts/commands.md](contracts/commands.md), and what the agent reports
   to the user.
-- [ ] T027 [US5] Extend feature 009's schema template
+- [x] T027 [US5] Extend feature 009's schema template
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md` with
   [contracts/pages.md](contracts/pages.md), keeping its raw rules; update
   feature 009's template test if it checks the text.
@@ -386,3 +386,8 @@ T019 to T023; Codex D takes T025.
   three needs to `packages/doc-regions` (research.md R8); feature 011's
   orchestrator will send its build interface when its plan is committed.
   Next: wait for the three gates.
+- 2026-09-28 (wave 1): Codex workers on gpt-6-luna at max effort, started
+  through the terminal path: A did T008 to T014, B T015 to T018, D T007 and
+  then T025; main wrote T026, T027 and a first T029 draft. Main reviewed and
+  accepted each result; `deno task verify` passed with 47 package tests.
+  Next: Codex C on T019 to T023 and the remaining `__main__.py` entries.
