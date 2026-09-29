@@ -1,6 +1,6 @@
 # Plugin reference
 
-Generated file. Do not edit; refresh with deno task docs:generate.
+Generated file. Do not edit; refresh with npm run docs:generate.
 
 Input owners: [plugins/chat/plugin.json](../../plugins/chat/plugin.json), [plugins/code/plugin.json](../../plugins/code/plugin.json), [plugins/code/mcp.json](../../plugins/code/mcp.json), [plugins/work/plugin.json](../../plugins/work/plugin.json), [plugins/work/mcp.json](../../plugins/work/mcp.json).
 

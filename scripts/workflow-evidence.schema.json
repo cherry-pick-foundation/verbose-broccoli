@@ -35,7 +35,7 @@
         "base": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
         "plan_hash": { "$ref": "#/$defs/hash" },
         "deno_version": { "type": "string", "minLength": 1 },
-        "command": { "const": "deno task check" }
+        "command": { "const": "npm run check" }
       }
     },
     "before": { "$ref": "#/$defs/state" },

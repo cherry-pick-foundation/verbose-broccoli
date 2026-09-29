@@ -19,6 +19,11 @@ interface DenoConfig {
   importMap?: string;
   scopes?: unknown;
 }
+interface PackageConfig {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  imports?: Record<string, string>;
+}
 
 const ioPackages =
   '(@hono/hono|hono|@electric-sql/pglite|@kysely/kysely|kysely|drizzle-orm|@modelcontextprotocol/sdk|webdav)';
@@ -37,10 +42,38 @@ function readConfig(path: string): DenoConfig {
   return config;
 }
 
+function readPackageConfig(path: string): DenoConfig {
+  if (!existsSync(path)) return {};
+  const result = ts.readConfigFile(path, ts.sys.readFile);
+  if (result.error)
+    throw new Error(`Cannot parse package configuration: ${path}`);
+  const config = result.config as PackageConfig;
+  return {
+    imports: {
+      ...Object.fromEntries(
+        Object.entries({...config.dependencies, ...config.devDependencies}).map(
+          ([name, specifier]) => [
+            name,
+            specifier.startsWith('npm:')
+              ? specifier
+              : `npm:${name}@${specifier}`,
+          ],
+        ),
+      ),
+      ...Object.fromEntries(
+        Object.entries(config.imports ?? {}).map(([name, target]) => [
+          name,
+          /^(?:\.{1,2}\/|\/|file:|npm:|jsr:|node:|https?:|#)/.test(target)
+            ? target
+            : `npm:${target}`,
+        ]),
+      ),
+    },
+  };
+}
+
 export function importRules(cwd: string) {
   const configs = [
-    'deno.json',
-    'deno.jsonc',
     'plugins/**/deno.json',
     'plugins/**/deno.jsonc',
     'packages/**/deno.json',
@@ -58,6 +91,10 @@ export function importRules(cwd: string) {
       directory: dirname(entry.path),
       value: readConfig(entry.path),
     }));
+  configs.push({
+    directory: cwd,
+    value: readPackageConfig(resolve(cwd, 'package.json')),
+  });
   for (const pattern of ['plugins/*', 'packages/*']) {
     for (const entry of expandGlobSync(pattern, {
       root: cwd,

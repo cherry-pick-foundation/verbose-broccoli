@@ -130,7 +130,7 @@ async def failed_call(client, provider, name, arguments, error_type, detail=None
 
 def test_built_work_server_pseudonymizes_restores_and_fails_closed(monkeypatch):
     uv = shutil.which("uv")
-    assert uv is not None, "Run deno task backfire:install to prepare uv and its caches."
+    assert uv is not None, "Run npm run backfire:install to prepare uv and its caches."
     uv = str(Path(uv).resolve())
     with TemporaryDirectory(prefix="backfire-education-") as temporary:
         parent = Path(temporary).resolve()

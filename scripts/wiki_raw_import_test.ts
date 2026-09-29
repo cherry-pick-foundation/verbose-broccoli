@@ -1,6 +1,9 @@
+import {test} from 'node:test';
+import {stat} from 'node:fs/promises';
 import {assert, assertEquals, assertMatch} from '@std/assert';
 import {copy, walk} from '@std/fs';
 import {basename, dirname, fromFileUrl, join, relative} from '@std/path';
+import {spawn, type ChildProcess} from 'node:child_process';
 
 const script = fromFileUrl(
   new URL(
@@ -11,17 +14,29 @@ const script = fromFileUrl(
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
 
-async function output(command: Deno.Command) {
-  const result = await command.output();
-  return {
-    code: result.code,
-    stdout: decoder.decode(result.stdout),
-    stderr: decoder.decode(result.stderr),
-  };
+function output(command: ChildProcess) {
+  return new Promise<{code: number; stdout: string; stderr: string}>(
+    (resolve, reject) => {
+      const stdout: Buffer[] = [];
+      const stderr: Buffer[] = [];
+      command.stdout?.on('data', (chunk: Buffer) => stdout.push(chunk));
+      command.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk));
+      command.once('error', reject);
+      command.once('close', code => {
+        resolve({
+          code: code ?? 1,
+          stdout: decoder.decode(Buffer.concat(stdout)),
+          stderr: decoder.decode(Buffer.concat(stderr)),
+        });
+      });
+    },
+  );
 }
 
 async function uvLocation(...args: string[]) {
-  const result = await output(new Deno.Command('uv', {args}));
+  const result = await output(
+    spawn('uv', args, {stdio: ['ignore', 'pipe', 'pipe']}),
+  );
   assertEquals(result.code, 0, result.stderr);
   return result.stdout.trim();
 }
@@ -69,7 +84,10 @@ class Fixture {
   raw: string;
   originals = new Map<string, {bytes: Uint8Array; mtime: number | undefined}>();
 
-  constructor(readonly home: string) {
+  readonly home: string;
+
+  constructor(home: string) {
+    this.home = home;
     this.env = {
       HOME: home,
       XDG_DATA_HOME: join(home, 'data'),
@@ -92,22 +110,16 @@ class Fixture {
   }
 
   command(...args: string[]) {
-    return new Deno.Command('uv', {
-      args: [
-        'run',
-        '--quiet',
-        '--locked',
-        '--offline',
-        '--script',
-        script,
-        ...args,
-      ],
-      cwd: this.home,
-      env: this.env,
-      stdout: 'piped',
-      stderr: 'piped',
-      signal: AbortSignal.timeout(30_000),
-    });
+    return spawn(
+      'uv',
+      ['run', '--quiet', '--locked', '--offline', '--script', script, ...args],
+      {
+        cwd: this.home,
+        env: {...process.env, ...this.env},
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 30_000,
+      },
+    );
   }
 
   async run(...args: string[]) {
@@ -228,7 +240,7 @@ async function digest(bytes: Uint8Array) {
   ).join('');
 }
 
-Deno.test('raw import: locked offline help and missing-instance errors', async () => {
+test('raw import: locked offline help and missing-instance errors', async () => {
   await fixture(async f => {
     const help = await f.run('--help');
     assertEquals(help.code, 0, help.stderr);
@@ -248,7 +260,7 @@ Deno.test('raw import: locked offline help and missing-instance errors', async (
   });
 });
 
-Deno.test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
+test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('- 한국어 paper.txt');
@@ -303,7 +315,7 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
     assertMatch(info['Source-Modified'], /T.*\+00:00$/);
     assertEquals(
       new Date(info['Source-Modified']).getTime(),
-      (await Deno.stat(path)).mtime?.getTime(),
+      Number((await stat(path, {bigint: true})).mtimeNs / 1_000_000n),
     );
     assertMatch(info['Bagging-Date'], /^\d{4}-\d{2}-\d{2}$/);
     assertEquals(info['Payload-Oxum'], `${(await Deno.stat(path)).size}.1`);
@@ -317,7 +329,7 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
 });
 
 for (const damaged of ['payload', 'bag-info.txt']) {
-  Deno.test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
+  test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('paper.txt');
@@ -349,7 +361,7 @@ for (const damaged of ['payload', 'bag-info.txt']) {
   });
 }
 
-Deno.test('raw import US1: an unreadable original fails without adding evidence', async () => {
+test('raw import US1: an unreadable original fails without adding evidence', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('unreadable.txt');
@@ -363,7 +375,7 @@ Deno.test('raw import US1: an unreadable original fails without adding evidence'
   });
 });
 
-Deno.test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
+test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('trailing space ');
@@ -375,7 +387,7 @@ Deno.test('raw import US1: unrepresentable BagIt provenance fails before publica
   });
 });
 
-Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
+test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revisions.txt', 'first');
@@ -416,7 +428,7 @@ Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions 
   });
 });
 
-Deno.test('raw import US2: a new revision must sort after the latest revision', async () => {
+test('raw import US2: a new revision must sort after the latest revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revision-order.txt', 'first');
@@ -442,7 +454,7 @@ Deno.test('raw import US2: a new revision must sort after the latest revision', 
   });
 });
 
-Deno.test('raw import US2: equal bytes at different paths have distinct sources', async () => {
+test('raw import US2: equal bytes at different paths have distinct sources', async () => {
   await fixture(async f => {
     await f.init();
     const paths = [await f.file('one.txt'), await f.file('two.txt')];
@@ -456,7 +468,7 @@ Deno.test('raw import US2: equal bytes at different paths have distinct sources'
   });
 });
 
-Deno.test('raw import US2: two source records for one original fail the item', async () => {
+test('raw import US2: two source records for one original fail the item', async () => {
   await fixture(async f => {
     await f.init();
     const first = await f.file('first.txt');
@@ -488,7 +500,7 @@ Deno.test('raw import US2: two source records for one original fail the item', a
   });
 });
 
-Deno.test('raw import US3: only listed files are admitted without user exclusions', async () => {
+test('raw import US3: only listed files are admitted without user exclusions', async () => {
   await fixture(async f => {
     await f.init();
     const listed = await f.file('listed.txt');
@@ -503,7 +515,7 @@ Deno.test('raw import US3: only listed files are admitted without user exclusion
   });
 });
 
-Deno.test('raw import US3: excluded roots and resolved aliases are refused', async () => {
+test('raw import US3: excluded roots and resolved aliases are refused', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = await f.file('private/excluded.txt');
@@ -538,7 +550,7 @@ Deno.test('raw import US3: excluded roots and resolved aliases are refused', asy
   });
 });
 
-Deno.test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
+test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = join(f.home, 'excluded');
@@ -562,14 +574,15 @@ Deno.test('raw import US3: excluded paths stay refused through an escaping direc
   });
 });
 
-Deno.test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
+test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('original.txt');
     const originalInfo = async (create: boolean) => {
       const result = await output(
-        new Deno.Command(python, {
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             `
 import json, os, stat, sys
@@ -590,8 +603,8 @@ print(json.dumps({
             f.home,
             create ? 'create' : 'inspect',
           ],
-          env: f.env,
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(result.code, 0, result.stderr);
       return JSON.parse(result.stdout) as {
@@ -606,9 +619,9 @@ print(json.dumps({
       await Deno.symlink(path, symlink);
       const fifo = join(f.home, 'pipe');
       const prepared = await output(
-        new Deno.Command(python, {
-          args: ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo],
-          env: f.env,
+        spawn(python, ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo], {
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
         }),
       );
       assertEquals(prepared.code, 0, prepared.stderr);
@@ -634,14 +647,15 @@ print(json.dumps({
       assertEquals(await originalInfo(false), invalidOriginal);
     } finally {
       const removed = await output(
-        new Deno.Command(python, {
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             'import os,sys; os.unlink(os.fsencode(sys.argv[1]) + b"/bad-" + bytes([255]))',
             f.home,
           ],
-          env: f.env,
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(removed.code, 0, removed.stderr);
     }
@@ -657,7 +671,7 @@ for (const invalid of [
   'not object',
   'invalid JSON',
 ]) {
-  Deno.test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
+  test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -692,7 +706,7 @@ for (const config of [
   '[wiki.raw_import]\nexclude = [1]',
   '[wiki.raw_import]\nexclude = ["relative"]',
 ]) {
-  Deno.test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
+  test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -713,7 +727,7 @@ for (const config of [
   });
 }
 
-Deno.test('raw import US3: an existing source cannot change kind', async () => {
+test('raw import US3: an existing source cannot change kind', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('kind.txt');
@@ -737,7 +751,7 @@ for (const stage of [
   'partial record',
   'complete bag',
 ]) {
-  Deno.test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
+  test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('recovery.txt');
@@ -774,7 +788,7 @@ for (const stage of [
   });
 }
 
-Deno.test('raw import US4: a publication failure keeps other items and can be retried', async () => {
+test('raw import US4: a publication failure keeps other items and can be retried', async () => {
   await fixture(async f => {
     await f.init();
     const blocked = await f.file('blocked.txt', 'first');
@@ -809,7 +823,7 @@ Deno.test('raw import US4: a publication failure keeps other items and can be re
   });
 });
 
-Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
+test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
   await fixture(async f => {
     await f.init();
     const small = await f.file('finished.txt');
@@ -819,9 +833,9 @@ Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL relea
       {path: small, kind: 'files'},
       {path: large, kind: 'files'},
     ]);
-    const child = f.command('admit', '--selection', selection).spawn();
+    const child = f.command('admit', '--selection', selection);
     let exited = false;
-    const finished = child.output().finally(() => {
+    const finished = output(child).finally(() => {
       exited = true;
     });
     let pid: number | undefined;
@@ -832,9 +846,9 @@ Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL relea
       );
       // Python observes the Linux lock owner because Deno restricts direct /proc reads.
       const paused = await output(
-        new Deno.Command(python, {
-          env: f.env,
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             `
 import os, signal, sys, time
@@ -862,7 +876,8 @@ sys.exit('timed out observing the import lock')
             script,
             selection,
           ],
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(paused.code, 0, paused.stderr);
       pid = Number(paused.stdout.trim());
@@ -892,7 +907,7 @@ sys.exit('timed out observing the import lock')
   });
 });
 
-Deno.test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
+test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
   await fixture(async f => {
     const initialized = await f.init();
     assert(initialized.created.length > 0);
@@ -931,9 +946,9 @@ Deno.test('raw import US5: init copies the schema and creates an uncommitted Wik
     report(await f.admit([path]));
     const git = (...args: string[]) =>
       output(
-        new Deno.Command('git', {
-          args: ['-C', f.instance, ...args],
-          env: f.env,
+        spawn('git', ['-C', f.instance, ...args], {
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
         }),
       );
     const status = await git('status', '--porcelain', '--ignored');
@@ -944,7 +959,7 @@ Deno.test('raw import US5: init copies the schema and creates an uncommitted Wik
   });
 });
 
-Deno.test('raw import US5: unnamed commands use the work vault under vaults', async () => {
+test('raw import US5: unnamed commands use the work vault under vaults', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('work-vault.txt');
@@ -980,7 +995,7 @@ Deno.test('raw import US5: unnamed commands use the work vault under vaults', as
   });
 });
 
-Deno.test('raw import US5: repeated init preserves every byte and modification time', async () => {
+test('raw import US5: repeated init preserves every byte and modification time', async () => {
   await fixture(async f => {
     await f.init();
     await Deno.writeTextFile(
@@ -1001,7 +1016,7 @@ Deno.test('raw import US5: repeated init preserves every byte and modification t
   });
 });
 
-Deno.test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
+test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
   await fixture(async f => {
     const initialized = await f.run('--wiki', 'selected', 'init');
     assertEquals(initialized.code, 0, initialized.stderr);
@@ -1048,7 +1063,7 @@ Deno.test('raw import US5: named Wiki and all four kinds use their own roots', a
   });
 });
 
-Deno.test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
+test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
   await fixture(async f => {
     const path = join(f.home, 'Documents/chatgpt/chatgpt-export.zip');
     await f.fileAt(path, '');
@@ -1071,7 +1086,13 @@ Deno.test('raw import US1-US3: a synthetic ChatGPT export gives chat and work tw
       },
     });
     const python = (...args: string[]) =>
-      output(new Deno.Command('python3', {args, cwd: f.home, env: f.env}));
+      output(
+        spawn('python3', args, {
+          cwd: f.home,
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }),
+      );
     const saveExport = async (conversations: unknown[]) => {
       const result = await python(
         '-c',
@@ -1192,7 +1213,7 @@ with zipfile.ZipFile(path, "w") as archive:
 });
 
 for (const value of ['unset', '', 'relative']) {
-  Deno.test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
+  test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
     await fixture(async f => {
       for (const name of ['DATA', 'STATE', 'CACHE', 'CONFIG']) {
         if (value === 'unset') delete f.env[`XDG_${name}_HOME`];
@@ -1205,12 +1226,15 @@ for (const value of ['unset', '', 'relative']) {
           delete inherited[`XDG_${name}_HOME`];
       const command = (...args: string[]) =>
         output(
-          new Deno.Command('uv', {
-            args: ['run', '--locked', '--offline', '--script', script, ...args],
-            cwd: f.home,
-            env: inherited,
-            clearEnv: true,
-          }),
+          spawn(
+            'uv',
+            ['run', '--locked', '--offline', '--script', script, ...args],
+            {
+              cwd: f.home,
+              env: inherited,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            },
+          ),
         );
       assertEquals((await command('init')).code, 0);
       f.instance = join(f.home, '.local/share/verbose-broccoli/vaults/work');
@@ -1256,7 +1280,7 @@ for (const value of ['unset', '', 'relative']) {
   });
 }
 
-Deno.test('raw import: invalid arguments and Wiki names write nothing', async () => {
+test('raw import: invalid arguments and Wiki names write nothing', async () => {
   await fixture(async f => {
     for (const args of [
       [],

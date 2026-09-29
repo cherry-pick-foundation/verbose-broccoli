@@ -123,7 +123,7 @@ def run(root, arguments):
     return subprocess.run(arguments, cwd=root, text=True, capture_output=True)
 
 
-def cog(root, document, generator_path, update, fix_command='deno task doc-regions:update'):
+def cog(root, document, generator_path, update, fix_command='npm run doc-regions:update'):
     options = ['-r'] if update else [
         '--check', '--diff', f'--check-fail-msg=Run {fix_command}']
     return run(root, [sys.executable, '-B', '-m', 'cogapp', *options,
@@ -160,7 +160,7 @@ def replace_outputs(document, original, updated, spans):
 
 
 def process(root, targets, generators, generator_path, updating=False, *,
-            fix_command='deno task doc-regions:update'):
+            fix_command='npm run doc-regions:update'):
     root = Path(root).resolve()
     generator_path = Path(generator_path)
     if not generator_path.is_absolute():
@@ -209,7 +209,7 @@ def process(root, targets, generators, generator_path, updating=False, *,
 
 
 def check(root, targets, generators, generator_path, *,
-          fix_command='deno task doc-regions:update'):
+          fix_command='npm run doc-regions:update'):
     return process(root, targets, generators, generator_path, fix_command=fix_command)
 
 

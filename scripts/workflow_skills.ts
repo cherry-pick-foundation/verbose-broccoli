@@ -1,3 +1,4 @@
+import {execFile} from 'node:child_process';
 import {fromFileUrl, join} from '@std/path';
 import {z} from '@zod/zod';
 import canonicalize from 'canonicalize';
@@ -54,25 +55,45 @@ async function cleanCodeScope(root: string) {
   const skill = fromFileUrl(
     new URL('../plugins/code/skills/clean-code/', import.meta.url),
   );
-  const result = await new Deno.Command(Deno.execPath(), {
-    cwd: root,
-    args: [
-      'run',
-      '--config',
-      join(skill, 'deno.json'),
-      '--lock',
-      join(skill, 'deno.lock'),
-      '--frozen',
-      '--cached-only',
-      '--no-prompt',
-      '--allow-read',
-      '--allow-env',
-      join(skill, 'scripts/clean_code.ts'),
-      '--scope',
-    ],
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  const result = await new Promise<{
+    success: boolean;
+    code: number;
+    stdout: Buffer;
+    stderr: Buffer;
+  }>((resolve, reject) => {
+    execFile(
+      Deno.env.get('HOME')
+        ? join(Deno.env.get('HOME')!, '.deno/bin/deno')
+        : 'deno',
+      [
+        'run',
+        '--config',
+        join(skill, 'deno.json'),
+        '--lock',
+        join(skill, 'deno.lock'),
+        '--frozen',
+        '--cached-only',
+        '--no-prompt',
+        '--allow-read',
+        '--allow-env',
+        join(skill, 'scripts/clean_code.ts'),
+        '--scope',
+      ],
+      {cwd: root, encoding: 'buffer', maxBuffer: Infinity},
+      (error, stdout, stderr) => {
+        if (error && !Number.isInteger(error.code)) {
+          reject(error);
+          return;
+        }
+        resolve({
+          success: !error,
+          code: error ? (error.code as number) : 0,
+          stdout,
+          stderr,
+        });
+      },
+    );
+  });
   if (!result.success)
     throw new Error(
       `Clean Code scope failed (${result.code}); run deno task clean-code:scope. ${new TextDecoder().decode(result.stderr).trim()}`,

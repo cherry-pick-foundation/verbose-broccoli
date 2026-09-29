@@ -33,21 +33,26 @@ thinking = {requested = "on", content_path = "reasoning_content", token_path = "
 
 
 @pytest.mark.parametrize("education", [False, True])
-def test_installation_check_matches_project_extra(tmp_path, monkeypatch, education):
-    root = tmp_path / "component"
+@pytest.mark.parametrize("workspace", [False, True])
+def test_installation_check_matches_project_extra(tmp_path, monkeypatch, education, workspace):
+    root = tmp_path / "workspace/packages/backfire" if workspace else tmp_path / "component"
     (root / "src/backfire").mkdir(parents=True)
     if education:
         (root / "src/backfire_education").mkdir()
     (root / ".python-version").write_text(platform.python_version(), encoding="utf-8")
+    project_root = root.parents[1] if workspace else root
+    if workspace:
+        (project_root / "pyproject.toml").write_text('[tool.uv.workspace]\nmembers = ["packages/*"]\n')
     monkeypatch.setattr(ready, "_ROOT", root)
-    monkeypatch.setattr(ready.sys, "prefix", str(root / ".venv"))
+    monkeypatch.setattr(ready.sys, "prefix", str(project_root / ".venv"))
     monkeypatch.setattr(ready.backfire, "__file__", str(root / "src/backfire/__init__.py"))
     commands = []
 
     def sync(command, **kwargs):
         commands.append(command)
         installed_extra = "--extra" in command
-        passed = "--no-dev" in command and installed_extra is education
+        passed = ("--no-dev" in command and installed_extra is education
+                  and ("--all-packages" in command) is workspace)
         return subprocess.CompletedProcess(command, int(not passed), "", "")
 
     monkeypatch.setattr(ready.subprocess, "run", sync)
@@ -61,15 +66,20 @@ def test_installation_check_matches_project_extra(tmp_path, monkeypatch, educati
     assert ready._installation_problem(versions) is None
     assert len(commands) == 2
     assert all(("--extra" in command) is education for command in commands)
+    assert all(("--all-packages" in command) is workspace for command in commands)
 
 
 @pytest.mark.parametrize("education", [False, True])
-def test_installation_failure_prints_matching_sync_command(tmp_path, monkeypatch, capsys, education):
-    root = tmp_path / "component"
+@pytest.mark.parametrize("workspace", [False, True])
+def test_installation_failure_prints_matching_sync_command(tmp_path, monkeypatch, capsys, education, workspace):
+    root = tmp_path / "workspace/packages/backfire" if workspace else tmp_path / "component"
     (root / "src/backfire").mkdir(parents=True)
     if education:
         (root / "src/backfire_education").mkdir()
     (root / ".python-version").write_text(platform.python_version(), encoding="utf-8")
+    project_root = root.parents[1] if workspace else root
+    if workspace:
+        (project_root / "pyproject.toml").write_text('[tool.uv.workspace]\nmembers = ["packages/*"]\n')
     monkeypatch.setattr(ready, "_ROOT", root)
     monkeypatch.setattr(ready.sys, "prefix", str(root / ".venv"))
     monkeypatch.setattr(ready.backfire, "__file__", str(root / "src/backfire/__init__.py"))
@@ -82,8 +92,13 @@ def test_installation_failure_prints_matching_sync_command(tmp_path, monkeypatch
     monkeypatch.setattr(ready.subprocess, "run", lambda command, **kwargs: subprocess.CompletedProcess(command, 1, "", ""))
 
     assert ready.main() == 1
-    install = "uv sync --frozen --no-dev --extra education" if education else "uv sync --frozen --no-dev"
-    assert capsys.readouterr().err == f"Readiness failed: run `{install}` in this component, then retry.\n"
+    if workspace:
+        install = "uv sync --locked --all-packages" + (" --extra education" if education else "")
+        location = "from the repository root"
+    else:
+        install = "uv sync --frozen --no-dev" + (" --extra education" if education else "")
+        location = "in this component"
+    assert capsys.readouterr().err == f"Readiness failed: run `{install}` {location}, then retry.\n"
 
 
 def test_direct_noul_uses_118_second_deadline_without_records(monkeypatch):

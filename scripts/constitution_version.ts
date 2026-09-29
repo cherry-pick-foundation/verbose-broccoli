@@ -1,3 +1,5 @@
+import {execFile} from 'node:child_process';
+
 type Version = {major: number; minor: number; patch: number};
 type VersionResult = [valid: boolean, message: string];
 
@@ -20,12 +22,34 @@ function parseVersion(text: string): Version | null {
 }
 
 function git(args: string[]) {
-  return new Deno.Command('git', {
-    args,
-    stdout: 'piped',
-    stderr: 'piped',
-    signal: AbortSignal.timeout(5000),
-  }).output();
+  return new Promise<{
+    success: boolean;
+    code: number;
+    stdout: Buffer;
+    stderr: Buffer;
+  }>((resolve, reject) => {
+    execFile(
+      'git',
+      args,
+      {
+        encoding: 'buffer',
+        maxBuffer: Infinity,
+        signal: AbortSignal.timeout(5000),
+      },
+      (error, stdout, stderr) => {
+        if (error && !Number.isInteger(error.code)) {
+          reject(error);
+          return;
+        }
+        resolve({
+          success: !error,
+          code: error ? (error.code as number) : 0,
+          stdout,
+          stderr,
+        });
+      },
+    );
+  });
 }
 
 function gitFailure(action: string, code: number | null): VersionResult {

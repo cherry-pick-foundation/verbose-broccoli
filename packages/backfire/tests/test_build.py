@@ -63,8 +63,14 @@ def source_repository(tmp_path: Path) -> Path:
             source / path,
             ignore=shutil.ignore_patterns("__pycache__"),
         )
-    for path in PACKAGE_FILES:
+    for path in ("pyproject.toml", ".python-version", "uv.lock"):
+        shutil.copy2(ROOT / path, source / path)
+    for path in PACKAGE_FILES[:-1]:
         shutil.copy2(ROOT / "packages/backfire" / path, source / "packages/backfire" / path)
+    for name in ("doc-regions", "wiki-consistency"):
+        member = source / "packages" / name
+        member.mkdir(parents=True)
+        shutil.copy2(ROOT / "packages" / name / "pyproject.toml", member / "pyproject.toml")
     return source
 
 
@@ -86,9 +92,20 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
 
     package = ROOT / "packages/backfire"
     expected = {"": None, "src": None}
-    for path in PACKAGE_FILES:
-        expected[path] = (package / path).read_bytes()
     runtime_packages = ("backfire",) if plugin == "code" else ("backfire", "backfire_education")
+    module_names = ", ".join(f'"{name}"' for name in runtime_packages)
+    for path in PACKAGE_FILES:
+        content = (
+            (output / "backfire" / path).read_bytes()
+            if path == "uv.lock"
+            else (package / path).read_bytes()
+        )
+        if path == "pyproject.toml":
+            content = content.replace(
+                b'module-name = ["backfire", "backfire_tools", "backfire_education"]',
+                f"module-name = [{module_names}]".encode(),
+            )
+        expected[path] = content
     for name in runtime_packages:
         for path, contents in tree(package / "src" / name).items():
             if "__pycache__" not in Path(path).parts and path != "config.toml":
@@ -98,7 +115,7 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     assert tree(output / "backfire") == expected
     assert "src/backfire/__main__.py" in expected
     for path, contents in expected.items():
-        if contents is not None:
+        if contents is not None and path != "uv.lock":
             assert (output / "backfire" / path).stat().st_mode == (
                 profile if path == "src/backfire/config.toml" else package / path
             ).stat().st_mode
@@ -106,16 +123,17 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     for name in projects:
         source = ROOT / "packages" / name
         built = output / name
-        assert tree(built) == tree(
+        expected_project = tree(
             source,
-            exclude=(
-                ".venv",
-                "node_modules",
-                "__pycache__",
-                ".pytest_cache",
-                "tests",
-            ),
+            exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache", "tests"),
         )
+        expected_project["uv.lock"] = (built / "uv.lock").read_bytes()
+        if name == "wiki-consistency":
+            expected_project["pyproject.toml"] = expected_project["pyproject.toml"].replace(
+                b"doc-regions = { workspace = true }",
+                b'doc-regions = { path = "../doc-regions", editable = true }',
+            )
+        assert tree(built) == expected_project
         for path in ("pyproject.toml", "uv.lock", "src"):
             assert (built / path).exists()
         assert not any(
@@ -245,7 +263,7 @@ def test_build_requires_plugin_and_output(tmp_path: Path, args: list[str]) -> No
         cwd=tmp_path, capture_output=True, text=True, timeout=10,
     )
     assert result.returncode == 1
-    assert result.stderr == "Usage: deno task backfire:build -- <plugin> <output>\n"
+    assert result.stderr == "Usage: npm run backfire:build -- <plugin> <output>\n"
     assert list(tmp_path.iterdir()) == []
 
 

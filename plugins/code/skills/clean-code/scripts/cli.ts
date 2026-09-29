@@ -3,8 +3,11 @@ import {Command, ValidationError} from '@cliffy/command';
 export {ValidationError};
 
 class CheckFailure extends Error {
-  constructor(readonly details: unknown) {
+  readonly details: unknown;
+
+  constructor(details: unknown) {
     super('The command completed its checks and found violations.');
+    this.details = details;
   }
 }
 

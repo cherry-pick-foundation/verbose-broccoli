@@ -1,24 +1,43 @@
+import {spawnSync} from 'node:child_process';
+import {test} from 'node:test';
 import {assert, assertThrows} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
-import config from '../deno.json' with {type: 'json'};
 import {analyzeImportGraph, importRules} from './clean_architecture.ts';
 
 const repository = fromFileUrl(new URL('../', import.meta.url));
 
-Deno.test('architecture: dependency directions, cycles, public APIs and Deno aliases', async () => {
+function commandOutput(
+  command: string,
+  options: {args: string[]; cwd?: string; env?: Record<string, string>},
+) {
+  const result = spawnSync(command, options.args, {
+    cwd: options.cwd,
+    env: options.env ? {...process.env, ...options.env} : undefined,
+    encoding: null,
+  });
+  if (result.error) throw result.error;
+  return {
+    code: result.status ?? 1,
+    success: result.status === 0,
+    stdout: result.stdout ?? Buffer.alloc(0),
+    stderr: result.stderr ?? Buffer.alloc(0),
+  };
+}
+
+test('architecture: dependency directions, cycles, public APIs and Deno aliases', async () => {
   const cwd = Deno.cwd();
   const root = await Deno.makeTempDir({prefix: 'architecture-'});
   const files = {
-    'deno.json': JSON.stringify({
+    'package.json': JSON.stringify({dependencies: {}}),
+    'plugins/a/deno.json': JSON.stringify({
       imports: {
-        '@platform': './plugins/a/src/infrastructure/db.ts',
+        '@platform': './src/infrastructure/db.ts',
         '@database': 'npm:@electric-sql/pglite@0.5.8',
-        '@safe': 'jsr:@std/assert@1',
+        '@safe': 'npm:@jsr/std__assert@1.0.19',
         '@sdk': 'npm:@modelcontextprotocol/sdk@1.30.0',
         '@file': 'npm:ajv@8.20.0/dist/2020.js',
       },
     }),
-    'plugins/a/deno.json': '{}',
     'plugins/b/deno.json': '{}',
     'plugins/a/src/domain/outer.ts':
       "export {value} from '../infrastructure/db.ts';",
@@ -120,11 +139,13 @@ Deno.test('architecture: dependency directions, cycles, public APIs and Deno ali
   }
 });
 
-Deno.test('architecture: unsupported scoped imports fail instead of skipping edges', async () => {
+test('architecture: unsupported scoped imports fail instead of skipping edges', async () => {
   const root = await Deno.makeTempDir({prefix: 'architecture-scopes-'});
   try {
+    await Deno.mkdir(join(root, 'plugins/a'), {recursive: true});
+    await Deno.writeTextFile(join(root, 'package.json'), '{}');
     await Deno.writeTextFile(
-      join(root, 'deno.json'),
+      join(root, 'plugins/a/deno.json'),
       JSON.stringify({scopes: {}}),
     );
     assertThrows(() => importRules(root), Error, 'scoped aliases');
@@ -133,7 +154,7 @@ Deno.test('architecture: unsupported scoped imports fail instead of skipping edg
   }
 });
 
-Deno.test('architecture: domain runtime APIs, aliases, globalThis and valid local bindings', async () => {
+test('architecture: domain runtime APIs, aliases, globalThis and valid local bindings', async () => {
   const root = await Deno.makeTempDir({prefix: 'architecture-domain-'});
   const invalid = [
     "Deno.env.get('KEY');",
@@ -160,27 +181,10 @@ Deno.test('architecture: domain runtime APIs, aliases, globalThis and valid loca
       await Deno.mkdir(dirname(join(root, path)), {recursive: true});
       await Deno.writeTextFile(join(root, path), source);
     }
-    const output = await new Deno.Command(Deno.execPath(), {
-      args: [
-        'run',
-        '--config',
-        join(repository, 'deno.json'),
-        '--frozen',
-        '--cached-only',
-        '--no-prompt',
-        '--allow-read',
-        '--allow-env',
-        '--allow-run',
-        config.imports['@biomejs/biome'],
-        'lint',
-        '--vcs-enabled=false',
-        '--reporter=json',
-        '.',
-      ],
+    const output = commandOutput(join(repository, 'node_modules/.bin/biome'), {
+      args: ['lint', '--vcs-enabled=false', '--reporter=json', '.'],
       cwd: root,
-      stdout: 'piped',
-      stderr: 'piped',
-    }).output();
+    });
     const report = JSON.parse(new TextDecoder().decode(output.stdout)) as {
       diagnostics: {category: string; location: {path: string}}[];
     };
@@ -196,7 +200,7 @@ Deno.test('architecture: domain runtime APIs, aliases, globalThis and valid loca
   }
 });
 
-Deno.test('architecture: local and external alias conflicts cannot hide dependencies', async () => {
+test('architecture: local and external alias conflicts cannot hide dependencies', async () => {
   const root = await Deno.makeTempDir({prefix: 'architecture-alias-'});
   try {
     await Deno.mkdir(join(root, 'plugins/a'), {recursive: true});
@@ -207,24 +211,27 @@ Deno.test('architecture: local and external alias conflicts cannot hide dependen
         {'@sdk/internal': './absent.ts'},
       ],
       [
+        {
+          '@sdk/internal':
+            'npm:@modelcontextprotocol/sdk@1.30.0/server/index.js',
+        },
         {'@sdk/internal': './absent.ts'},
-        {'@sdk': 'npm:@modelcontextprotocol/sdk@1.30.0'},
       ],
       [
         {'@sdk/': 'npm:@modelcontextprotocol/sdk@1.30.0/'},
         {'@sdk/internal': './absent.ts'},
       ],
       [
-        {'@sdk/': './local/'},
         {
           '@sdk/internal':
             'npm:@modelcontextprotocol/sdk@1.30.0/server/index.js',
         },
+        {'@sdk/': './local/'},
       ],
     ]) {
       await Deno.writeTextFile(
-        join(root, 'deno.json'),
-        JSON.stringify({imports: rootImports}),
+        join(root, 'package.json'),
+        JSON.stringify({dependencies: rootImports}),
       );
       await Deno.writeTextFile(
         join(root, 'plugins/a/deno.json'),
@@ -233,9 +240,9 @@ Deno.test('architecture: local and external alias conflicts cannot hide dependen
       assertThrows(() => importRules(root), Error, 'scoped resolver support');
     }
     await Deno.writeTextFile(
-      join(root, 'deno.json'),
+      join(root, 'package.json'),
       JSON.stringify({
-        imports: {
+        dependencies: {
           '@sdk': 'npm:@modelcontextprotocol/sdk@1.30.0',
           '@file': 'npm:ajv@8.20.0/dist/2020.js',
         },

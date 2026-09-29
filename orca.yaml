@@ -35,16 +35,15 @@ scripts:
 
     export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$(dirname "$deno_bin"):$PATH"
 
-    "$deno_bin" install --frozen --no-prompt
-    "$deno_bin" install --frozen --cached-only --no-prompt
+    npm ci --ignore-scripts --no-audit --no-fund
+    "$deno_bin" install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt
+    "$uv_bin" sync --locked --all-packages --extra education
     "$uv_bin" sync --locked --project tools/spec-kit
     "$uv_bin" sync --locked --project tools/shellcheck
-    "$uv_bin" sync --locked --project packages/doc-regions
-    "$uv_bin" sync --locked --project packages/wiki-consistency
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
     "$uv_bin" sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
     git config gitflow.shared.trustHooks true
     git config core.hooksPath scripts/git-hooks
     git flow config sync
-    "$deno_bin" task doctor
+    npm run doctor
 setupAgentStartupPolicy: wait-for-setup

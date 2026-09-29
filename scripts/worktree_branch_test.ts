@@ -1,20 +1,21 @@
+import {test} from 'node:test';
 import {assert, assertEquals, assertMatch} from '@std/assert';
 import {basename, dirname, fromFileUrl, join} from '@std/path';
+import {spawnSync} from 'node:child_process';
 
 const script = fromFileUrl(new URL('./worktree-branch.sh', import.meta.url));
 const decoder = new TextDecoder();
 
 async function git(cwd: string, ...args: string[]) {
-  const result = await new Deno.Command('git', {
-    args,
+  const result = spawnSync('git', args, {
     cwd,
-    env: gitEnv(cwd),
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+    env: {...process.env, ...gitEnv(cwd)},
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error) throw result.error;
   const stdout = decoder.decode(result.stdout).trim();
   const stderr = decoder.decode(result.stderr).trim();
-  assert(result.success, `git ${args.join(' ')} failed: ${stderr}`);
+  assert(result.status === 0, `git ${args.join(' ')} failed: ${stderr}`);
   return stdout;
 }
 
@@ -28,15 +29,14 @@ function gitEnv(cwd: string) {
 }
 
 async function runScript(cwd: string) {
-  const result = await new Deno.Command('sh', {
-    args: [script],
+  const result = spawnSync('sh', [script], {
     cwd,
-    env: gitEnv(cwd),
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+    env: {...process.env, ...gitEnv(cwd)},
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error) throw result.error;
   return {
-    code: result.code,
+    code: result.status ?? 1,
     stdout: decoder.decode(result.stdout).trim(),
     stderr: decoder.decode(result.stderr).trim(),
   };
@@ -137,7 +137,7 @@ async function assertUnchanged(
   assertEquals(await snapshot(repo), before);
 }
 
-Deno.test('worktree branch: applies the documented name mappings and is idempotent', async () => {
+test('worktree branch: applies the documented name mappings and is idempotent', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = [
       {name: 'release-1.0', base: 'develop', target: 'release/1.0'},
@@ -179,7 +179,7 @@ Deno.test('worktree branch: applies the documented name mappings and is idempote
   });
 });
 
-Deno.test('worktree branch: skips branches that must not be renamed', async () => {
+test('worktree branch: skips branches that must not be renamed', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['feature/already', 'release/already', 'hotfix/already'];
     for (const name of cases) {
@@ -228,7 +228,7 @@ Deno.test('worktree branch: skips branches that must not be renamed', async () =
   });
 });
 
-Deno.test('worktree branch: refuses invalid or existing targets without changes', async () => {
+test('worktree branch: refuses invalid or existing targets without changes', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['release-', 'release-.hidden'];
     for (const name of cases) {

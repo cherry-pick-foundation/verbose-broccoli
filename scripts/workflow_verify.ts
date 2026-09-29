@@ -1,9 +1,22 @@
+import {execFile} from 'node:child_process';
+import {createRequire} from 'node:module';
 import {join} from '@std/path';
 import {Ajv2020} from 'ajv/dist/2020.js';
 import canonicalize from 'canonicalize';
 import {sha256} from './hash.ts';
 import {runGit, snapshotWorkingTree} from './workflow_git.ts';
 import schema from './workflow-evidence.schema.json' with {type: 'json'};
+
+const lockfile = createRequire(import.meta.url)('proper-lockfile') as {
+  lock(
+    path: string,
+    options?: {
+      retries?:
+        | number
+        | {retries: number; minTimeout: number; maxTimeout: number};
+    },
+  ): Promise<() => Promise<void>>;
+};
 
 type State = Awaited<ReturnType<typeof snapshotWorkingTree>>;
 interface Context {
@@ -119,13 +132,30 @@ async function verify(
   let log = '';
   let after = null;
   try {
-    const result = await new Deno.Command(Deno.execPath(), {
-      cwd: context.root,
-      args: ['task', 'check'],
-      stdin: 'null',
-      stdout: 'piped',
-      stderr: 'piped',
-    }).output();
+    const result = await new Promise<{
+      success: boolean;
+      code: number;
+      stdout: Buffer;
+      stderr: Buffer;
+    }>((resolve, reject) => {
+      execFile(
+        'npm',
+        ['run', 'check'],
+        {cwd: context.root, encoding: 'buffer', maxBuffer: Infinity},
+        (error, stdout, stderr) => {
+          if (error && !Number.isInteger(error.code)) {
+            reject(error);
+            return;
+          }
+          resolve({
+            success: !error,
+            code: error ? (error.code as number) : 0,
+            stdout,
+            stderr,
+          });
+        },
+      );
+    });
     exit_code = result.code;
     log = `${new TextDecoder().decode(result.stdout)}\n${new TextDecoder().decode(result.stderr)}`;
   } catch (error) {
@@ -156,7 +186,7 @@ export async function evaluateVerification(root: string, options: Options) {
     base: options.base,
     plan_hash: await sha256(canonicalize(options.plan) ?? 'null'),
     deno_version: Deno.version.deno,
-    command: 'deno task check',
+    command: 'npm run check',
   };
   const directory = (
     await runGit(root, [
@@ -168,13 +198,17 @@ export async function evaluateVerification(root: string, options: Options) {
   ).trim();
   await Deno.mkdir(directory, {recursive: true, mode: 0o700});
   const evidencePath = join(directory, 'evidence.jsonl');
-  using mutex = await Deno.open(join(directory, 'lock'), {
+  const lockPath = join(directory, 'lock');
+  const lockFile = await Deno.open(lockPath, {
     create: true,
     write: true,
     read: true,
     mode: 0o600,
   });
-  await mutex.lock(true);
+  lockFile.close();
+  const release = await lockfile.lock(lockPath, {
+    retries: {retries: 600, minTimeout: 1000, maxTimeout: 1000},
+  });
   try {
     const records = await load(evidencePath);
     if (options.verify)
@@ -222,7 +256,7 @@ export async function evaluateVerification(root: string, options: Options) {
           ];
     if (phase !== 'VERIFIED')
       instructions.push(
-        'After workers finish, run deno task verify with the same --task, --base and --plan arguments. Repeat diagnosis → repair → verification until current checks pass.',
+        'After workers finish, run npm run verify with the same --task, --base and --plan arguments. Repeat diagnosis → repair → verification until current checks pass.',
       );
     instructions.push(
       'Evidence is local execution history, not signed provenance or filesystem isolation.',
@@ -235,6 +269,6 @@ export async function evaluateVerification(root: string, options: Options) {
       instructions,
     };
   } finally {
-    await mutex.unlock();
+    await release();
   }
 }

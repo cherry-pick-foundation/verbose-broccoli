@@ -74,7 +74,9 @@ def _versions() -> dict[str, str | None]:
 
 
 def _installation_problem(versions: dict[str, str | None]) -> str | None:
-    if Path(sys.prefix).resolve() != (_ROOT / ".venv").resolve():
+    project_root = _project_root()
+    workspace = project_root != _ROOT
+    if Path(sys.prefix).resolve() != (project_root / ".venv").resolve():
         return "Python is not running from this component's .venv."
     try:
         expected_python = (_ROOT / ".python-version").read_text(encoding="utf-8").strip()
@@ -90,7 +92,9 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
         return "A required package version, uv version, or port revision is unavailable."
 
     education_extra = ["--extra", "education"] if (_ROOT / "src" / "backfire_education").is_dir() else []
-    base = ["uv", "sync", "--project", str(_ROOT), "--check", "--frozen", "--offline", *education_extra]
+    all_packages = ["--all-packages"] if workspace else []
+    base = ["uv", "sync", "--project", str(project_root), "--check", "--frozen", "--offline",
+            *all_packages, *education_extra]
     for extra in ([], ["--no-dev"]):
         try:
             result = subprocess.run([*base, *extra], cwd=_ROOT, capture_output=True, text=True, timeout=20)
@@ -99,6 +103,12 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
         if result.returncode == 0:
             return None
     return "This component's .venv does not match uv.lock."
+
+
+def _project_root() -> Path:
+    workspace_root = _ROOT.parent.parent
+    return (workspace_root if _ROOT.parent.name == "packages"
+            and (workspace_root / "pyproject.toml").is_file() else _ROOT)
 
 
 async def _direct_judgment():
@@ -272,7 +282,14 @@ def main() -> int:
         report["tool_checks"] = _skipped_tool_checks("not run: installation check failed")
         print(json.dumps(report, ensure_ascii=False))
         education_extra = " --extra education" if (_ROOT / "src" / "backfire_education").is_dir() else ""
-        print(f"Readiness failed: run `uv sync --frozen --no-dev{education_extra}` in this component, then retry.", file=sys.stderr)
+        project_root = _project_root()
+        if project_root != _ROOT:
+            command = f"uv sync --locked --all-packages{education_extra}"
+            location = "from the repository root"
+        else:
+            command = f"uv sync --frozen --no-dev{education_extra}"
+            location = "in this component"
+        print(f"Readiness failed: run `{command}` {location}, then retry.", file=sys.stderr)
         return 1
 
     profile = None

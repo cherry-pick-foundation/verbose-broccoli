@@ -1,10 +1,12 @@
+import {spawnSync} from 'node:child_process';
+import {test} from 'node:test';
 import {assert, assertEquals, assertMatch} from '@std/assert';
 import {join} from '@std/path';
 import {constitutionVersion, isBreakingCommit} from './constitution_version.ts';
 
 const repository = new URL('../', import.meta.url);
 const repositoryRoot = decodeURIComponent(repository.pathname);
-const git = (await new Deno.Command('which', {args: ['git']}).output()).stdout;
+const git = commandOutput('which', {args: ['git']}).stdout;
 const gitPath = new TextDecoder().decode(git).trim();
 const home = Deno.env.get('HOME') ?? '/tmp';
 const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');
@@ -19,6 +21,24 @@ const baseEnv = {
 };
 const oldText = constitution('0.22.0');
 
+function commandOutput(
+  command: string,
+  options: {args: string[]; cwd?: string; env?: Record<string, string>},
+) {
+  const result = spawnSync(command, options.args, {
+    cwd: options.cwd,
+    env: options.env ? {...process.env, ...options.env} : undefined,
+    encoding: null,
+  });
+  if (result.error) throw result.error;
+  return {
+    code: result.status ?? 1,
+    success: result.status === 0,
+    stdout: result.stdout ?? Buffer.alloc(0),
+    stderr: result.stderr ?? Buffer.alloc(0),
+  };
+}
+
 function check(
   type: string | null | undefined,
   breaking: boolean,
@@ -28,7 +48,7 @@ function check(
   return constitutionVersion(type, breaking, before, after);
 }
 
-Deno.test('constitution version rule: table and edge cases', () => {
+test('constitution version rule: table and edge cases', () => {
   const minor = constitution('0.23.0', 'Policy text updated.');
   const patch = constitution('0.22.1', 'Policy text updated.');
   const major = constitution('1.0.0', 'Policy text updated.');
@@ -95,25 +115,23 @@ Deno.test('constitution version rule: table and edge cases', () => {
   );
 });
 
-Deno.test('constitution version rule: Git errors refuse changed commits', async () => {
+test('constitution version rule: Git errors refuse changed commits', async () => {
   const root = await Deno.makeTempDir({prefix: 'commit-msg-git-error-'});
   try {
     const moduleUrl = new URL('./constitution_version.ts', import.meta.url)
       .href;
     const probe = `import {constitutionVersionRule} from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify(await constitutionVersionRule({type: 'feat'})));`;
-    const result = await new Deno.Command(Deno.execPath(), {
+    const result = commandOutput(process.execPath, {
       args: [
-        'eval',
-        '--allow-read',
-        '--allow-env=PATH',
-        '--allow-run=git',
+        '--import',
+        join(repositoryRoot, 'scripts/deno_shim.ts'),
+        '--input-type=module',
+        '-e',
         probe,
       ],
       cwd: root,
       env: {DENO_DIR: denoDir, PATH: path},
-      stdout: 'piped',
-      stderr: 'piped',
-    }).output();
+    });
     assert(result.success, output(result));
     assertMatch(output(result), /Could not check HEAD/);
   } finally {
@@ -131,18 +149,16 @@ async function runGit(
   args: string[],
   extraEnv: Record<string, string> = {},
 ) {
-  return await new Deno.Command(gitPath, {
+  return commandOutput(gitPath, {
     args: ['-C', repo.root, ...args],
     env: {
       ...repo.env,
       ...extraEnv,
     },
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  });
 }
 
-function output(result: Deno.CommandOutput) {
+function output(result: ReturnType<typeof commandOutput>) {
   return (
     new TextDecoder().decode(result.stdout) +
     new TextDecoder().decode(result.stderr)
@@ -159,20 +175,21 @@ async function createRepo(): Promise<Repo> {
   };
   await Deno.mkdir(join(root, 'scripts', 'git-hooks'), {recursive: true});
   await Deno.mkdir(join(root, '.specify', 'memory'), {recursive: true});
-  await Deno.copyFile(
-    join(repositoryRoot, 'deno.json'),
-    join(root, 'deno.json'),
-  );
-  await Deno.copyFile(
-    join(repositoryRoot, 'deno.lock'),
-    join(root, 'deno.lock'),
-  );
-  for (const file of ['commitlint.config.mjs', 'constitution_version.ts']) {
-    await Deno.copyFile(
-      join(repositoryRoot, 'scripts', file),
-      join(root, 'scripts', file),
-    );
+  for (const file of [
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'scripts/deno_shim.ts',
+    'scripts/commitlint.config.mjs',
+    'scripts/constitution_version.ts',
+  ]) {
+    await Deno.copyFile(join(repositoryRoot, file), join(root, file));
   }
+  await Deno.symlink(
+    join(repositoryRoot, 'node_modules'),
+    join(root, 'node_modules'),
+    {type: 'dir'},
+  );
   const hook = join(root, 'scripts', 'git-hooks', 'commit-msg');
   await Deno.copyFile(
     join(repositoryRoot, 'scripts', 'git-hooks', 'commit-msg'),
@@ -234,7 +251,7 @@ async function commit(
   return await runGit(repo, ['commit', ...args, '-m', message], extraEnv);
 }
 
-Deno.test('commit-msg hook: amendments use the parent constitution version', async () => {
+test('commit-msg hook: amendments use the parent constitution version', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -400,7 +417,7 @@ Deno.test('commit-msg hook: amendments use the parent constitution version', asy
   });
 });
 
-Deno.test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
+test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -424,7 +441,7 @@ Deno.test('commit-msg hook: inherited commit ref does not replace the index chec
   });
 });
 
-Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {
+test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {
   await withRepo(async repo => {
     await Deno.writeTextFile(join(repo.root, 'invalid.txt'), 'change\n');
     await runGit(repo, ['add', 'invalid.txt']);
@@ -537,16 +554,16 @@ Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', asyn
   });
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'missing-deno.txt'), 'change\n');
-    await runGit(repo, ['add', 'missing-deno.txt']);
+    await Deno.writeTextFile(join(repo.root, 'missing-node.txt'), 'change\n');
+    await runGit(repo, ['add', 'missing-node.txt']);
     const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
-    const missing = await commit(repo, 'feat: commit without deno', [], {
+    const missing = await commit(repo, 'feat: commit without node', [], {
       PATH: join(repo.root, 'empty-path'),
     });
     assert(!missing.success);
     assertMatch(
       output(missing),
-      /Commit refused: Deno 2\.9\.6 was not found\./,
+      /Commit refused: Node\.js 22 or later was not found\./,
     );
     assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
   });

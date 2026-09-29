@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "target": "ESNext",
+    "types": ["node"]
+  },
+  "files": [
+    "scripts/deno_shim.ts",
+    "scripts/validate_plugins.ts",
+    "scripts/clean_architecture.ts",
+    "scripts/workflow.ts",
+    "scripts/docs.ts",
+    "scripts/constitution_version.ts"
+  ]
+}

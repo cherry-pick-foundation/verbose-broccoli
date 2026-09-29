@@ -1,3 +1,6 @@
+import {execFile} from 'node:child_process';
+import {Buffer} from 'node:buffer';
+import {createRequire} from 'node:module';
 import {dirname, fromFileUrl, join, relative, resolve} from '@std/path';
 import {z} from '@zod/zod';
 import ts from 'typescript';
@@ -13,10 +16,22 @@ import {readPluginManifests} from './validate_plugins.ts';
 import {sha256} from './hash.ts';
 
 const files = ['commands.md', 'plugins.md'] as const;
+const lockfile = createRequire(import.meta.url)('proper-lockfile') as {
+  lock(
+    path: string,
+    options?: {
+      realpath?: boolean;
+      lockfilePath?: string;
+      retries?:
+        | number
+        | {retries: number; minTimeout: number; maxTimeout: number};
+    },
+  ): Promise<() => Promise<void>>;
+};
 const packages = ['chat', 'code', 'work'];
 const output = 'docs/reference';
 const recovery = 'docs/.reference-publication';
-const refresh = 'deno task docs:generate';
+const refresh = 'npm run docs:generate';
 const decoder = new TextDecoder('utf-8', {fatal: true});
 const encoder = new TextEncoder();
 const skill = 'plugins/code/skills/clean-code';
@@ -65,8 +80,9 @@ async function read(root: string, path: string, optional = false) {
 
 async function inputs(root: string, selected?: string[]) {
   const queue = selected ?? [
-    'deno.json',
-    'deno.lock',
+    'package.json',
+    'package-lock.json',
+    'turbo.json',
     'plugins/code/deno.json',
     `${skill}/deno.json`,
     `${skill}/deno.lock`,
@@ -112,47 +128,99 @@ function stableText(value: string, root: string, path: string) {
 export async function collectHelp(root: string) {
   const result = new Map<string, string>();
   for (const [name, script] of documentedCommands) {
-    const config = name === 'clean-code' ? `${skill}/deno.json` : 'deno.json';
+    const fromDeno = name === 'clean-code';
     const allowed = ['scripts', skill, 'deno.json', 'deno.lock', 'biome.json']
       .map(path => join(root, path))
       .join(',');
-    const child = await new Deno.Command(Deno.execPath(), {
-      args: [
-        'run',
-        '--quiet',
-        '--config',
-        join(root, config),
-        '--frozen',
-        '--cached-only',
-        '--no-prompt',
-        `--allow-read=${allowed}`,
-        '--allow-env',
-        '--allow-sys',
-        join(root, script),
-        '--help',
-      ],
-      cwd: root,
-      clearEnv: true,
-      env: {
-        ...Object.fromEntries(
-          ['HOME', 'DENO_DIR', 'SYSTEMROOT'].flatMap(key => {
-            const value = Deno.env.get(key);
-            return value ? [[key, value]] : [];
-          }),
-        ),
-        NO_COLOR: '1',
-        DENO_NO_UPDATE_CHECK: '1',
-        TERM: 'dumb',
-        COLUMNS: '80',
-        LC_ALL: 'C',
-        TZ: 'UTC',
-      },
-      stdin: 'null',
-      stdout: 'piped',
-      stderr: 'piped',
-    })
-      .output()
-      .catch(() => fail(script, 'Unable to execute selected help.'));
+    const environment = {
+      ...Object.fromEntries(
+        ['HOME', 'DENO_DIR', 'SYSTEMROOT'].flatMap(key => {
+          const value = Deno.env.get(key);
+          return value ? [[key, value]] : [];
+        }),
+      ),
+      NO_COLOR: '1',
+      DENO_NO_UPDATE_CHECK: '1',
+      TERM: 'dumb',
+      COLUMNS: '80',
+      LC_ALL: 'C',
+      TZ: 'UTC',
+    };
+    const readable = await Promise.all(
+      [
+        'node_modules',
+        'scripts',
+        'plugins',
+        'package.json',
+        'package-lock.json',
+        'turbo.json',
+        'tsconfig.json',
+        'biome.json',
+      ].map(async path => {
+        const scope = join(root, path);
+        return [
+          `--allow-fs-read=${scope}`,
+          `--allow-fs-read=${await Deno.realPath(scope)}`,
+        ];
+      }),
+    );
+    const child = await new Promise<{
+      success: boolean;
+      code: number;
+      stdout: Buffer;
+      stderr: Buffer;
+    }>((resolve, reject) => {
+      execFile(
+        fromDeno
+          ? Deno.env.get('HOME')
+            ? join(Deno.env.get('HOME')!, '.deno/bin/deno')
+            : 'deno'
+          : process.execPath,
+        fromDeno
+          ? [
+              'run',
+              '--quiet',
+              '--config',
+              join(root, `${skill}/deno.json`),
+              '--frozen',
+              '--cached-only',
+              '--no-prompt',
+              `--allow-read=${allowed}`,
+              '--allow-env',
+              '--allow-sys',
+              join(root, script),
+              '--help',
+            ]
+          : [
+              '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+              '--disable-warning=SecurityWarning',
+              '--permission',
+              ...readable.flat(),
+              '--import',
+              join(root, 'scripts/deno_shim.ts'),
+              join(root, script),
+              '--help',
+            ],
+        {
+          cwd: root,
+          env: environment,
+          encoding: 'buffer',
+          maxBuffer: Infinity,
+        },
+        (error, stdout, stderr) => {
+          if (error && !Number.isInteger(error.code)) {
+            reject(error);
+            return;
+          }
+          resolve({
+            success: !error,
+            code: error ? (error.code as number) : 0,
+            stdout,
+            stderr,
+          });
+        },
+      );
+    }).catch(() => fail(script, 'Unable to execute selected help.'));
     if (!child.success || child.stderr.length)
       fail(
         script,
@@ -244,19 +312,11 @@ const taskSchema = z.object({
     z.string().min(1),
     z.union([
       z.string(),
-      z
-        .object({
-          description: z.string().optional(),
-          command: z.string().optional(),
-          dependencies: z.array(z.string()).optional(),
-        })
-        .passthrough()
-        .refine(
-          task => task.command !== undefined || task.dependencies !== undefined,
-        ),
+      z.object({description: z.string().optional()}).passthrough(),
     ]),
   ),
 });
+const npmSchema = z.object({scripts: z.record(z.string(), z.string())});
 
 async function render(
   root: string,
@@ -281,11 +341,21 @@ async function render(
   plugins.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   if (new Set(plugins.map(plugin => plugin.name)).size !== plugins.length)
     fail('plugins', 'Duplicate plugin identities.');
+  let scripts: z.infer<typeof npmSchema>['scripts'];
+  try {
+    scripts = npmSchema.parse(
+      JSON.parse(snapshot.get('package.json')!.text),
+    ).scripts;
+  } catch {
+    fail('package.json', 'Invalid root command definitions.');
+  }
   let tasks: z.infer<typeof taskSchema>['tasks'];
   try {
-    tasks = taskSchema.parse(JSON.parse(snapshot.get('deno.json')!.text)).tasks;
+    tasks = taskSchema.parse(
+      JSON.parse(snapshot.get('turbo.json')!.text),
+    ).tasks;
   } catch {
-    fail('deno.json', 'Invalid root task definitions.');
+    fail('turbo.json', 'Invalid root task descriptions.');
   }
   const help = await collectHelp(root);
   const pluginText = serialize(
@@ -324,19 +394,24 @@ async function render(
   );
   const commandText = serialize(
     'Command reference',
-    ['deno.json', ...documentedCommands.map(([, script]) => script)],
+    [
+      'package.json',
+      'turbo.json',
+      ...documentedCommands.map(([, script]) => script),
+    ],
     [
       table([
         ['Task', 'Invocation', 'Declared description'],
-        ...Object.keys(tasks)
+        ...Object.keys(scripts)
           .sort()
-          .map(name => [
-            name,
-            `deno task ${name}`,
-            typeof tasks[name] === 'string'
-              ? ''
-              : (tasks[name].description ?? ''),
-          ]),
+          .map(name => {
+            const task = tasks[`//#${name}`];
+            return [
+              name,
+              `npm run ${name}`,
+              task && typeof task === 'object' ? (task.description ?? '') : '',
+            ];
+          }),
       ]),
       ...[...help]
         .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
@@ -375,7 +450,9 @@ async function directory(root: string, path: string) {
       const value = await Deno.lstat(join(root, child));
       if (!value.isFile || value.isSymlink)
         fail(child, 'Output changed while inspecting.');
-      contents[entry.name] = (await Deno.readFile(join(root, child))).toHex();
+      contents[entry.name] = Buffer.from(
+        await Deno.readFile(join(root, child)),
+      ).toString('hex');
       stamps.push(
         entry.name,
         value.dev,
@@ -394,7 +471,7 @@ async function hashes(value: Directory) {
     await Promise.all(
       Object.entries(value.contents).map(async ([name, hex]) => [
         name,
-        await sha256(Uint8Array.fromHex(hex)),
+        await sha256(Buffer.from(hex, 'hex')),
       ]),
     ),
   );
@@ -503,7 +580,10 @@ async function unchanged(
   before: Directory,
 ) {
   if (!exact([...snapshot], [...(await inputs(root, [...snapshot.keys()]))]))
-    fail('deno.json / plugins / scripts', 'Inputs changed during collection.');
+    fail(
+      'package.json / turbo.json / plugins / scripts',
+      'Inputs changed during collection.',
+    );
   if (!exact(before, await directory(root, output)))
     fail(output, 'Output changed during collection.');
 }
@@ -517,11 +597,16 @@ export async function syncReferenceDocs(
   if (!docs?.isDirectory)
     fail('docs', 'Expected the repository documentation directory.');
   // ponytail: one native directory lock for this pair; split locks only for new output owners.
-  using lock =
+  await using _lock =
     mode === 'generate'
-      ? await Deno.open(join(root, 'docs'), {read: true})
+      ? {
+          [Symbol.asyncDispose]: await lockfile.lock(join(root, 'docs'), {
+            realpath: false,
+            lockfilePath: join(root, 'docs', '.lock'),
+            retries: {retries: 600, minTimeout: 1000, maxTimeout: 1000},
+          }),
+        }
       : null;
-  if (lock) await lock.lock();
   const snapshot = await inputs(root);
   let before = await directory(root, output);
   const expected = await render(root, snapshot);
@@ -534,7 +619,8 @@ export async function syncReferenceDocs(
       .filter(
         file =>
           file in before.contents &&
-          before.contents[file] !== encoder.encode(expected[file]).toHex(),
+          before.contents[file] !==
+            Buffer.from(encoder.encode(expected[file])).toString('hex'),
       )
       .map(file => `${output}/${file}`);
     const incomplete = (await info(root, recovery)) ? [recovery] : [];

@@ -1,21 +1,52 @@
+import {execFile} from 'node:child_process';
 import {join} from '@std/path';
 import canonicalize from 'canonicalize';
 import {sha256} from './hash.ts';
 
 export const repositoryPathspec = ['.'];
 
+function command(file: string, args: string[], cwd: string) {
+  return new Promise<{
+    success: boolean;
+    code: number;
+    stdout: Buffer;
+    stderr: Buffer;
+  }>((resolve, reject) => {
+    execFile(
+      file,
+      args,
+      {
+        cwd,
+        env: {
+          ...process.env,
+          GIT_OPTIONAL_LOCKS: '0',
+          GIT_TERMINAL_PROMPT: '0',
+        },
+        encoding: 'buffer',
+        maxBuffer: Infinity,
+      },
+      (error, stdout, stderr) => {
+        if (error && !Number.isInteger(error.code)) {
+          reject(error);
+          return;
+        }
+        resolve({
+          success: !error,
+          code: error ? (error.code as number) : 0,
+          stdout,
+          stderr,
+        });
+      },
+    );
+  });
+}
+
 export async function runGit(
   cwd: string,
   args: string[],
   allowDifference = false,
 ): Promise<string> {
-  const result = await new Deno.Command('git', {
-    cwd,
-    args,
-    env: {GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0'},
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  const result = await command('git', args, cwd);
   if (
     !result.success &&
     !(allowDifference && result.code === 1 && result.stdout.length > 0)
