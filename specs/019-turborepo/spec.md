@@ -4,7 +4,8 @@
 
 **Created**: 2026-09-29
 
-**Status**: In progress (the trial became the real change on 2026-09-29)
+**Status**: Reviewed; ready to finish into `develop` (the trial became the
+real change on 2026-09-29)
 
 **Linear issue**: CHE-32
 

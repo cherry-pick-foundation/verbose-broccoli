@@ -131,8 +131,9 @@ selection was redone on the merged tree
   and the selected prose in `README.md`, `docs/architecture.md` and
   `docs/backfire.md`.
   - 2026-09-29: Main: constitution 2.2.0 in `b1f8fff` (feat, confirmed by the
-    user, D17) and the prose in `d5eb6be`. Only dated history still names
-    Deno.
+    user, D17) and the prose in `d5eb6be`. In prose only dated history
+    still names Deno; two test fixtures and the Deno-era evidence filter
+    keep the word in code.
 - [x] T016 [P] Review fixes F1: `backfire:install` syncs the whole workspace;
   the doctor requires Node.js 24.12 (D19), reports the direct npm
   dependencies and checks Turborepo; the commit-msg tests run the real
@@ -154,6 +155,11 @@ selection was redone on the merged tree
   needed (V09, V10, V11, V15, D20).
   - 2026-09-29: Codex (`ctx_3a05d4d03026`). All 78 locked versions stayed
     the same; the build test rejected an injected 99.99.99 pin.
+- [x] T019 Review fix F4: the IO-package rule sees installed packages, and
+  the architecture guide gives the Node.js 24.12 floor (rows V27 and V28 in
+  [evidence/review-findings.md](evidence/review-findings.md), batch 25).
+  - 2026-09-29: Codex (`gpt-6-luna`, max). The test failed before the fix;
+    the repository graph now has 80 modules and 0 violations.
 - [ ] T015 Main: `npm run verify`; a fresh Claude Code reviewer for the Codex
   code and a fresh Codex reviewer for main's changes; the review record;
   `git flow feature finish`; CHE-32 to Done.
@@ -178,6 +184,14 @@ selection was redone on the merged tree
     helper scripts left `evidence/method/`, because the linters check them.
     Next: a fresh Claude Code review of the fixes and a fresh Codex review of
     Main's report and records.
+  - 2026-09-29: Main: CR4 (Claude Code, Opus 5.5, high) reviewed `b795b61`
+    and the `f444287` merge; T019 fixed its two selected findings. R4 (Codex,
+    `gpt-6-luna`, max) reviewed the report and records; Main added the
+    per-file counts, the overlaps section and these ledger fixes.
+    `npm run verify` passed after T019 with Deno hidden. The report goes to
+    the develop session with the finish request. Next: the review-record
+    commit, then `git flow feature finish` from the `develop` worktree and
+    CHE-32 to Done, both by the develop session.
 
 ## Dependencies
 

@@ -13,7 +13,7 @@ checks; `backfire`, `doc-regions` and `wiki-consistency` form one uv
 workspace with one root `uv.lock`. `npm run check` runs `turbo run check`
 and passed all 27 Turborepo tasks. `npm run verify` finished `VERIFIED` on
 the merged tree with the `deno` executable removed from `PATH`
-([evidence/logs/verify-merged-f444287.json](evidence/logs/verify-merged-f444287.json)).
+([evidence/logs/verify-final.json](evidence/logs/verify-final.json)).
 Check time is about the same as `develop`'s; CPU time is about 13 % higher.
 
 ## What users of the clean-code skill must install
@@ -31,10 +31,11 @@ Check time is about the same as `develop`'s; CPU time is about 13 % higher.
 
 ## What changed
 
-- 86 files changed against `develop` `f444287` outside `specs/`: 11,633
-  lines added and 7,382 removed. Without lock files, the generated
-  `docs/reference/` and the CLI snapshot: 74 files, 3,345 added and 2,035
-  removed (`git diff --no-renames --numstat f444287 HEAD`).
+- 86 files changed against `develop` `f444287` outside `specs/`: 11,646
+  lines added and 7,384 removed. Without lock files, the generated
+  `docs/reference/` and the CLI snapshot: 74 files, 3,358 added and 2,037
+  removed (`git diff --no-renames --numstat f444287 HEAD`; the per-file
+  list is [evidence/logs/numstat-f444287.txt](evidence/logs/numstat-f444287.txt)).
 - New: the root `package.json`, `package-lock.json`, `.npmrc`, `turbo.json`,
   `tsconfig.json`, `pyproject.toml` and `.python-version`; the skill's
   `package.json`, `package-lock.json` and `.npmrc`; `plugins/code/package.json`
@@ -48,8 +49,8 @@ Check time is about the same as `develop`'s; CPU time is about 13 % higher.
   `pyproject.toml`, `ready.py`, `build.py` and their tests, the prose in
   `AGENTS.md`, the constitution, `README.md` and the guides.
 - Locally owned code and tooling configuration (non-blank lines, method
-  below): 39,854 lines in 181 files on `develop`, 41,119 in 184 files on the
-  branch (+1,265). New configuration is 334 lines (`turbo.json` 182, root
+  below): 39,854 lines in 181 files on `develop`, 41,130 in 184 files on the
+  branch (+1,276). New configuration is 334 lines (`turbo.json` 182, root
   `package.json` 82, `tsconfig.json` 35, the skill's `package.json` 17, root
   `pyproject.toml` 12, `plugins/code/package.json` 6), and 144 lines of Deno
   configuration went. The largest growth is in `docs_test.ts` (+143),
@@ -70,7 +71,8 @@ Check time is about the same as `develop`'s; CPU time is about 13 % higher.
   added one README command that the searches had skipped (X169).
 - **Final review findings** (batch 24): 26 findings; 12 fixed, 3 sent to a
   decision (D19 to D21) and 11 not changed in code, one of them an open
-  question
+  question; batch 25 then classified the last round's five code
+  findings (two fixed, three left)
   ([evidence/review-findings.md](evidence/review-findings.md)).
 - Wrong or weak judgments seen: in the trial, backfire marked three hex
   sites `can_stay` at 0.93 although the method does not exist on Node. Its
@@ -148,6 +150,13 @@ were added. No task is cached (D8).
   them `backfire:install` removing the other packages from the shared
   `.venv`, a guard that never fired, review routing that missed the new
   tooling files, and a build test that compared a lock with itself.
+- A last round on the fixes and the second merge: a fresh Claude Code
+  reviewer (CR4) for the fix commit and a fresh Codex reviewer (R4) for the
+  coordinator's report and records. CR4 found that the fix for installed IO
+  packages never fired, because the import graph skipped `node_modules`;
+  backfire batch 25 selected it and one stale doc line, and `5405399` fixed
+  both. R4's findings were in this report (per-file counts, the overlaps
+  section) and the task ledger, and are resolved here.
 
 ## Permissions lost compared with Deno
 
@@ -213,6 +222,29 @@ and in the code and test that skip Deno-era workflow evidence records
 - **After the finish**: the `develop` worktree needs the new setup (root
   `npm ci`, the uv workspace sync and the tools), which `orca.yaml` runs.
 
+## Overlaps with other features
+
+Three features reached `develop` while this one was open; the two merges
+brought them in.
+
+- **CHE-29, Python lint with Ruff** (`develop` `8ce9b2a`): `ruff.toml`,
+  `tools/ruff`, Ruff steps in the Deno `lint` and `format` tasks, a
+  `test:ruff` suite (`scripts/ruff_test.ts`) and a Ruff environment check in
+  the doctor. This feature moved the Ruff steps and `test:ruff` into npm
+  scripts and the Turborepo graph, converted `scripts/ruff_test.ts` to
+  `node:test`, kept the doctor's Ruff check, and fixed the seven Ruff
+  findings in code this feature had added.
+- **CHE-26, vault rule checks** (`develop` `07ebf47`): new rules and tests in
+  `wiki-consistency`, a dependency of `wiki-consistency` on
+  `backfire[education]`, and new install steps in the work plugin's
+  `wiki-consistency` skill. In the uv workspace that dependency is a
+  workspace source, so the plugin build now rewrites both it and
+  `doc-regions` in the copied project (D10), and the root lock takes the
+  newer versions `wiki-consistency`'s lock had (FR-013).
+- **CHE-35, vault link targets** (`develop` `f444287`): `wiki-consistency`
+  code, tests and prose only. It merged without conflicts and needed no
+  change here.
+
 ## Governance
 
 The user approved the wording on 2026-09-29, and it is applied: `AGENTS.md`
@@ -232,7 +264,11 @@ that nothing outside the records names Deno at 0.78, `review`). Its patch
 review escalated (safe to apply 0.14, with low confidence), because it saw
 only the tooling and removal part of the diff
 ([evidence/gate-final.json](evidence/gate-final.json)); the rest had its
-own patch reviews and the final reviews.
+own patch reviews and the final reviews. A second round checked the nine
+claims added or changed after the last reviews
+([evidence/verify-report-final-2.json](evidence/verify-report-final-2.json)):
+eight verified at once; the CHE-26 claim was contradicted on thin evidence
+and verified when the full diffs were supplied.
 
 ## Method
 

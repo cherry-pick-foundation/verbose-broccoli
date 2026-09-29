@@ -541,5 +541,114 @@
       "top_probability": 0.65,
       "decision": "review"
     }
+  },
+  "batch_25": {
+    "date": "2026-09-29",
+    "purpose": "Select which findings of the last reviews of the Deno removal must be fixed before the feature merges into develop; only must_change findings will be edited now.",
+    "source": "review-CR4.md",
+    "items": [
+      {
+        "id": "V27",
+        "file": "scripts/clean_architecture.ts",
+        "lines": [],
+        "kind": "review_finding",
+        "text": "scripts/clean_architecture.ts:248; scripts/clean_architecture_test.ts:124-153: CR4 B1: the fix for V03 added resolvedIOImport ((^|/)node_modules/<ioPackages>/) to the no-io-packages-in-inner-layers rule, but analyzeImportGraph passes exclude: '(^|/)node_modules/|^scripts/vendor/|\\.md$' to dependency-cruiser, which drops every excluded module and the edge to it, so an import that resolves into node_modules never reaches the rule. A scratch fixture with @electric-sql/pglite installed and plugins/a/src/domain/installed.ts importing it gave no violation with the committed exclude, and the violation once node_modules moved from exclude to doNotFollow; the real repository then still has 0 violations (80 modules instead of 63). Removing node_modules from exclude without doNotFollow crawls packages/wiki-consistency/node_modules (3,103 modules). The test only checks that the regex matches a string, and its expected-violation list lacks installed.ts, so it passes without a working fix."
+      },
+      {
+        "id": "V28",
+        "file": "docs/architecture.md",
+        "lines": [],
+        "kind": "review_finding",
+        "text": "docs/architecture.md:253: CR4 S1: 'npm run doctor checks them and Node 22.' Decision D19 raised the doctor's floor to Node.js 24.12.0 (scripts/doctor.ts:207-208, turbo.json:22, scripts/git-hooks/commit-msg:15), so the sentence is now false. The fix brief listed only the doctor, turbo.json and the hook."
+      },
+      {
+        "id": "V29",
+        "file": "packages/backfire/tests/test_build.py",
+        "lines": [],
+        "kind": "review_finding",
+        "text": "packages/backfire/tests/test_build.py:103-116: CR4 N1: the built-lock comparison asserts that every (name, version) pair of each built uv.lock is in the root uv.lock. A pin to a version absent from the root fails, which met the brief. It still passes when a built lock drops a package or keeps only one of a package's two root versions (magika 0.6.2 and 0.6.3)."
+      },
+      {
+        "id": "V30",
+        "file": "scripts/doctor.ts",
+        "lines": [],
+        "kind": "review_finding",
+        "text": "scripts/doctor.ts:312-329,374: CR4 N2: probeTurboVersion repeats probeVersion's command call, size limit and decode, adding only the 'run npm ci' repair text and a caller-supplied version; if turbo stopped being a direct root dependency the message would read 'turbo must report version undefined'. It works today."
+      },
+      {
+        "id": "V31",
+        "file": "scripts/doctor_test.ts",
+        "lines": [],
+        "kind": "review_finding",
+        "text": "scripts/doctor_test.ts:133-136; scripts/cli_contract_test.ts:103-111: CR4 N3: one new doctor test runs a full runDoctor() only to assert report.turbo.version, which another test already asserts; one CLI contract test asserts the literal backfire:install string in package.json. Both pass and add little."
+      }
+    ],
+    "results": {
+      "V27": {
+        "id": "V27",
+        "classification": "must_change",
+        "probabilities": {
+          "must_change": 0.85,
+          "can_stay": 0.1,
+          "manual_review": 0.05
+        },
+        "confidence": 0.7749999999999998,
+        "margin": 0.75,
+        "top_probability": 0.85,
+        "decision": "auto"
+      },
+      "V28": {
+        "id": "V28",
+        "classification": "must_change",
+        "probabilities": {
+          "must_change": 0.9,
+          "can_stay": 0.05,
+          "manual_review": 0.05
+        },
+        "confidence": 0.8499999999999999,
+        "margin": 0.85,
+        "top_probability": 0.9,
+        "decision": "auto"
+      },
+      "V29": {
+        "id": "V29",
+        "classification": "can_stay",
+        "probabilities": {
+          "must_change": 0.2,
+          "can_stay": 0.7,
+          "manual_review": 0.1
+        },
+        "confidence": 0.5499999999999999,
+        "margin": 0.49999999999999994,
+        "top_probability": 0.7,
+        "decision": "review"
+      },
+      "V30": {
+        "id": "V30",
+        "classification": "can_stay",
+        "probabilities": {
+          "must_change": 0.03,
+          "can_stay": 0.95,
+          "manual_review": 0.02
+        },
+        "confidence": 0.9249999999999999,
+        "margin": 0.9199999999999999,
+        "top_probability": 0.95,
+        "decision": "auto"
+      },
+      "V31": {
+        "id": "V31",
+        "classification": "can_stay",
+        "probabilities": {
+          "must_change": 0.03,
+          "can_stay": 0.95,
+          "manual_review": 0.02
+        },
+        "confidence": 0.9249999999999999,
+        "margin": 0.9199999999999999,
+        "top_probability": 0.95,
+        "decision": "auto"
+      }
+    }
   }
 }

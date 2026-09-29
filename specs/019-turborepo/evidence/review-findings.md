@@ -33,3 +33,11 @@ are and are listed in the report (leave). F1, F2 and F3 are the fix tasks.
 - FIX `V24` must_change (auto, 0.85) → F1: scripts/doctor.ts:286
 - leave `V25` can_stay (auto, 0.90): biome.json:49 (deleted Deno entry); scripts/clean_architecture_test.ts:163-170
 - FIX `V26` must_change (auto, 0.85) → F1: scripts/doctor.ts (no Turborepo probe)
+
+Batch 25 classified the code findings of the last review ([CR4](review-CR4.md)); [R4](review-R4.md) found only gaps in the report and the task ledger, which the coordinator fixed.
+
+- FIX `V27` must_change (auto, 0.85) → F4: scripts/clean_architecture.ts:248; scripts/clean_architecture_test.ts:124-153
+- FIX `V28` must_change (auto, 0.90) → F4: docs/architecture.md:253
+- leave `V29` can_stay (review, 0.70): packages/backfire/tests/test_build.py:103-116
+- leave `V30` can_stay (auto, 0.95): scripts/doctor.ts:312-329,374
+- leave `V31` can_stay (auto, 0.95): scripts/doctor_test.ts:133-136; scripts/cli_contract_test.ts:103-111
