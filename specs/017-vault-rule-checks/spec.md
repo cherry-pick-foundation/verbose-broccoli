@@ -154,9 +154,9 @@ that exactly the pages that break the rule fail.
 
 **Acceptance Scenarios**:
 
-1. **Given** a page with Hangul, Chinese or Japanese letters that are neither
-   a roster name nor inside an allowed quote, **When** the check runs,
-   **Then** it fails and names the page and line.
+1. **Given** a page with Hangul, Chinese or Japanese letters that are not
+   a roster name, inside an allowed quote or in a link target outside code,
+   **When** the check runs, **Then** it fails and names the page and line.
 2. **Given** a page that names a student, a student's given name or a
    guardian in the roster's spelling, **When** the check runs, **Then** the
    English rule passes for those names.
@@ -165,8 +165,9 @@ that exactly the pages that break the rule fail.
    rule passes; **Given** a quote without a translation or longer than the
    limit, **Then** it fails.
 4. **Given** a page that writes a school by the roster's Hangul school name
-   outside an allowed quote, **When** the check runs, **Then** it fails and
-   says to write the school's domain ID.
+   outside an allowed quote and outside a link target outside code, **When**
+   the check runs, **Then** it fails and says to write the school's domain
+   ID.
 5. **Given** a page that writes schools only as domain IDs, **When** the
    check runs, **Then** the school rule passes.
 

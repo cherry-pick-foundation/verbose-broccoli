@@ -28,12 +28,12 @@ finish removes, and the other three vaults still pass.
 | Mask narrowing, with         | The same command at `b82681d`                                                                                                                                                                | pass   | `115 passed`.                                                                                                                                     |
 | Second review fixes, without | The same command at `ea34d9a` with `rules.py` from `b82681d`                                                                                                                                | fail   | `3 failed, 119 passed`: a code span across paragraphs, balanced parentheses in a destination, and text after a URL destination.                   |
 | Second review fixes, with    | The same command at `ea34d9a`                                                                                                                                                                | pass   | `122 passed`.                                                                                                                                     |
-| Regression suite and checks  | `deno task verify --task che-35 --base 8ce9b2a --plan <file>`, where `<file>` holds the JSON below the table, at `aba3ea1`, at `bcffef4`, at `b82681d` and at `ea34d9a`, the last two with the record changes then pending | pass   | Exit 0 each time, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:wiki-consistency`. The plan gained `spec.md` after `bcffef4`. |
+| Regression suite and checks  | `deno task verify --task che-35 --base 8ce9b2a --plan /tmp/che-35-plan.json`, with the JSON below the table in that file, at `0a1f400` with this record's changes | pass   | Exit 0, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:wiki-consistency`. Earlier runs with the same task and base, the plan in the coordinator's scratch directory, passed at `aba3ea1` and `bcffef4` (the plan still without `spec.md`), `b82681d` (with record changes then pending) and `0a1f400`. |
 | The four vaults, read only   | `uv run --project packages/wiki-consistency --frozen --offline --no-sync wiki-consistency check --wiki <name>` from this worktree at `aba3ea1`, `b82681d` and `ea34d9a`                     | partial | `default`, `code` and `chat` exit 0. `work` exits 1 with 2 `date` problems (the count lists), down from 273; the page fix follows the finish.     |
 
-`<file>` is any file outside the repository holding this JSON, which lists
-each task's files for `deno task workflow` and `deno task verify`; the run
-used a temporary file in the coordinator's scratch directory:
+`/tmp/che-35-plan.json` held this JSON, which lists each task's files for
+`deno task workflow` and `deno task verify`; to repeat the run, save it
+there:
 
 ```json
 {
@@ -88,8 +88,9 @@ FAILED …::test_english_and_school_skip_link_targets[bare-url]
 
 ## Residual Risks
 
-- Text in a link target is no longer tested by the `english`, `school` and
-  `date` rules, including a `](…)` form written inside a code span.
+- Text in a link target outside code is no longer tested by the
+  `english`, `school` and `date` rules; code spans, code blocks, link text
+  and link titles are still checked.
 - A school written in Latin letters other than its domain ID is left to the
   judgment step.
 
