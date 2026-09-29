@@ -17,9 +17,9 @@ plugin in a new directory outside the repository's `plugins/` and `packages/`
 trees. The first argument is the plugin, `code` or `work`:
 
 ```sh
-deno task backfire:install
-deno task backfire:build -- code /path/to/code-plugin
-deno task backfire:build -- work /path/to/work-plugin
+npm run backfire:install
+npm run backfire:build -- code /path/to/code-plugin
+npm run backfire:build -- work /path/to/work-plugin
 ```
 
 The output path must not already exist. Install the copied server's locked
@@ -85,7 +85,7 @@ After installation, check a built copy with:
 uv --directory /path/to/backfire-plugin/backfire run --frozen --offline --no-sync backfire ready
 ```
 
-For the repository package, use `deno task backfire:ready`. Readiness checks
+For the repository package, use `npm run backfire:ready`. Readiness checks
 the selected profile, credential, installed package, record directory and
 server tool path. It makes one direct Noul judgment, then calls
 `backfire_noul` and `backfire_extract` through MCP. These are real provider
