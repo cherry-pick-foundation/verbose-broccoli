@@ -34,6 +34,7 @@ def refuse_existing(output: Path) -> None:
 def lock_copy(
     project: str, directory: Path, *, extra: tuple[str, ...] = ()
 ) -> None:
+    """Create an offline lock for a copied project."""
     exported = subprocess.run(
         [
             "uv",
@@ -48,6 +49,7 @@ def lock_copy(
         cwd=ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
     if exported.returncode:
         raise ValueError(
@@ -80,6 +82,7 @@ def lock_copy(
             cwd=directory,
             capture_output=True,
             text=True,
+            check=False,
         )
         if result.returncode:
             raise ValueError(
@@ -191,7 +194,10 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
             copy_file(package / path, runtime / path)
         pyproject = runtime / "pyproject.toml"
         content = pyproject.read_bytes()
-        modules = b'module-name = ["backfire", "backfire_tools", "backfire_education"]'
+        modules = (
+            b'module-name = ["backfire", "backfire_tools", '
+            b'"backfire_education"]'
+        )
         module_list = ", ".join('"' + name + '"' for name in packages)
         replacement = f"module-name = [{module_list}]".encode()
         updated = content.replace(modules, replacement, 1)
@@ -231,16 +237,22 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
             if name == "wiki-consistency":
                 pyproject = copied / "pyproject.toml"
                 content = pyproject.read_text(encoding="utf-8")
-                updated = content.replace(
-                    "doc-regions = { workspace = true }",
-                    'doc-regions = { path = "../doc-regions", editable = true }',
-                    1,
-                )
-                if updated == content:
-                    raise ValueError(
-                        "Could not replace workspace source in copied wiki-consistency pyproject.toml"
+                for dependency in ("doc-regions", "backfire"):
+                    source = f"{dependency} = {{ workspace = true }}"
+                    if source not in content:
+                        raise ValueError(
+                            "Could not replace workspace source in copied "
+                            "wiki-consistency pyproject.toml"
+                        )
+                    content = content.replace(
+                        source,
+                        (
+                            f'{dependency} = {{ path = "../{dependency}", '
+                            "editable = true }"
+                        ),
+                        1,
                     )
-                pyproject.write_text(updated, encoding="utf-8")
+                pyproject.write_text(content, encoding="utf-8")
             lock_copy(name, copied)
         if interrupted:
             raise InterruptedError("Build interrupted")

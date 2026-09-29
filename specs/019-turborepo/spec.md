@@ -181,7 +181,11 @@ each claim against its recorded evidence.
   starlette 1.7.0, typesafe-sdk 0.7.2, pyjwt 2.15.1, sse-starlette 3.5.0 as
   of `develop` 8ce9b2a), so no package runs on an older version than it was
   tested with on `develop`, unless a test fails with it; any exception is
-  recorded here with the failing test.
+  recorded here with the failing test. Exception: `typesafe-sdk` stays at
+  0.7.1, the version backfire pins, because
+  `packages/backfire/tests/test_package.py::test_package_dependency_versions`
+  fails at 0.7.2. uv applies only the workspace root's
+  `constraint-dependencies`, so the root constraint holds backfire's pin.
 - **FR-014**: Biome stays the TypeScript linter and formatter in this
   feature; ESLint and Prettier rules for TypeScript (gts) come in CHE-36
   after this feature merges. Prettier formats YAML only.

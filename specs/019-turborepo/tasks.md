@@ -101,8 +101,12 @@ selection was redone on the merged tree
 - [ ] T010 [P] Test suites group A without the shim.
 - [ ] T011 [P] Test suites group B without the shim, including develop's
   `scripts/ruff_test.ts`.
-- [ ] T012 [P] Python follow-ups: the work build's `backfire` source, the Ruff
+- [x] T012 [P] Python follow-ups: the work build's `backfire` source, the Ruff
   findings, the separator comment, and the newer lock versions (FR-013).
+  - 2026-09-29: Codex (`gpt-6-luna`, max; `ctx_fa4fecc8e747`). Four packages
+    moved to develop's newer versions; `typesafe-sdk` stays 0.7.1 (the FR-013
+    exception). Main reran the slow and load, ready and entry tests on the new
+    pins; they pass.
 - [ ] T009b After T008 to T012: remove the preload, `@deno/shim-deno`,
   `@std/fs` and `deno.json`; port develop's Ruff tasks; no Deno in
   `orca.yaml` or the workflows; regenerate the references.

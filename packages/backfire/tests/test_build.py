@@ -126,7 +126,8 @@ def test_build_preserves_plugin_and_copies_only_runtime(
         )
         if path == "pyproject.toml":
             content = content.replace(
-                b'module-name = ["backfire", "backfire_tools", "backfire_education"]',
+                b'module-name = ["backfire", "backfire_tools", '
+                b'"backfire_education"]',
                 f"module-name = [{module_names}]".encode(),
             )
         expected[path] = content
@@ -161,12 +162,16 @@ def test_build_preserves_plugin_and_copies_only_runtime(
         )
         expected_project["uv.lock"] = (built / "uv.lock").read_bytes()
         if name == "wiki-consistency":
-            expected_project["pyproject.toml"] = expected_project[
-                "pyproject.toml"
-            ].replace(
-                b"doc-regions = { workspace = true }",
-                b'doc-regions = { path = "../doc-regions", editable = true }',
-            )
+            for dependency in ("doc-regions", "backfire"):
+                expected_project["pyproject.toml"] = expected_project[
+                    "pyproject.toml"
+                ].replace(
+                    f"{dependency} = {{ workspace = true }}".encode(),
+                    (
+                        f'{dependency} = {{ path = "../{dependency}", '
+                        "editable = true }"
+                    ).encode(),
+                )
         assert tree(built) == expected_project
         for path in ("pyproject.toml", "uv.lock", "src"):
             assert (built / path).exists()
@@ -228,20 +233,22 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
     env = {
         **os.environ,
         "UV_CACHE_DIR": uv_cache,
+        "UV_OFFLINE": "1",
+        "npm_config_offline": "true",
         "XDG_DATA_HOME": str(data_home),
         "XDG_CACHE_HOME": str(cache_home),
     }
+    skill = output / "skills/wiki-consistency"
     doc_regions = subprocess.run(
         [
             "uv",
             "sync",
             "--project",
-            str(output / "doc-regions"),
+            "../../doc-regions",
             "--frozen",
-            "--offline",
             "--no-dev",
         ],
-        cwd=tmp_path,
+        cwd=skill,
         env=env,
         capture_output=True,
         text=True,
@@ -254,14 +261,13 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
             "uv",
             "sync",
             "--project",
-            str(output / "backfire"),
+            "../../backfire",
             "--frozen",
-            "--offline",
             "--no-dev",
             "--extra",
             "education",
         ],
-        cwd=tmp_path,
+        cwd=skill,
         env=env,
         capture_output=True,
         text=True,
@@ -274,12 +280,11 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
             "uv",
             "sync",
             "--project",
-            str(output / "wiki-consistency"),
+            "../../wiki-consistency",
             "--frozen",
-            "--offline",
             "--no-dev",
         ],
-        cwd=tmp_path,
+        cwd=skill,
         env=env,
         capture_output=True,
         text=True,
@@ -287,12 +292,55 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
         timeout=120,
     )
     assert install.returncode == 0, install.stderr
+    npm_install = subprocess.run(
+        [
+            "npm",
+            "ci",
+            "--ignore-scripts",
+            "--no-audit",
+            "--no-fund",
+            "--prefix",
+            "../../wiki-consistency",
+        ],
+        cwd=skill,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert npm_install.returncode == 0, npm_install.stderr
+    backfire_import = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--project",
+            "../../wiki-consistency",
+            "--frozen",
+            "--offline",
+            "--no-sync",
+            "python",
+            "-c",
+            "import backfire; print(backfire.__file__)",
+        ],
+        cwd=skill,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert backfire_import.returncode == 0, backfire_import.stderr
+    assert (
+        Path(backfire_import.stdout.strip()).resolve()
+        == (output / "backfire/src/backfire/__init__.py").resolve()
+    )
     check = subprocess.run(
         [
             "uv",
             "run",
             "--project",
-            str(output / "wiki-consistency"),
+            "../../wiki-consistency",
             "--frozen",
             "--offline",
             "--no-sync",
@@ -301,7 +349,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
             "--wiki",
             wiki_id,
         ],
-        cwd=tmp_path,
+        cwd=skill,
         env=env,
         capture_output=True,
         text=True,
