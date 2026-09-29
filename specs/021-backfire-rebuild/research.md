@@ -221,6 +221,10 @@ I found no MCP protocol behavior that a custom server cannot reproduce. The stoc
 
 ## Phase 0 decisions (2026-09-29)
 
+R1 to R10 describe the first design, a vendored copy of PyModel's code.
+The user replaced it on 2026-09-30 with PyModel as a published dependency
+(R12); they stay as the record of what was tried. R11 still applies.
+
 The coordinator read the upstream at `fd6829c` (cloned from
 <https://github.com/PyModel/jev-judge-mcp>, tag `v0.6.0`), backfire at
 `ae8cadf`, and the installed `mcp` 2.2.0, and settled these points for the
@@ -423,3 +427,44 @@ plan.
   profiles (option B, not chosen); PyModel's own environment-variable
   resolver (it reads `JEV_PROVIDER` and provider keys from the environment,
   bypassing backfire's profiles and credential files).
+
+### R12. PyModel as a library (user's redesign, 2026-09-30)
+
+- **Decision**: depend on `jev-judge-mcp==0.6.0` from PyPI and remove the
+  vendored copy (committed in `051f834`, removed again in this redesign).
+  Backfire plugs in through PyModel's constructor arguments only:
+  `Runtime(settings, provider_factory=..., regex_executor=...)`,
+  `Toolset(runtime, tools)` with PyModel's `TOOLS` plus `jev_noul`, and
+  `JevMCPServer(toolset=..., log_level=...)` run by PyModel's
+  `serve(server, settings)`, as PyModel's own `server.main()` does
+  (`src/jev_judge_mcp/server.py` at `fd6829c`).
+- **Jev profiles through PyModel's resolver**: `resolve_provider(settings)`
+  (`providers/resolver.py`) picks the provider from `Settings` fields
+  (`jev_provider`, `typesafe_api_key`, `openrouter_api_key`,
+  `cloudflare_api_token` with `cloudflare_account_id`, `jev_api_key` with
+  `jev_api_base_url`) and refuses `vercel`. Building those `Settings` with
+  `Settings.model_construct()` from a backfire profile and its key file
+  reuses PyModel's four providers unchanged; `vercel` is backfire's own
+  provider (R11).
+- **What cannot plug in**: `ensure_unique_ids` is called inside PyModel's
+  tool handlers (`tools/verify.py:65-91`); the stdin reader, argument
+  parsing and result serialization run inside PyModel's server and
+  `Toolset`; the argument compiler refuses `exclusiveMinimum`
+  (`tools/arguments.py`, `SchemaUnfaithful`); `match_all` hard-codes
+  `re.compile` (`extract/executor.py`). These become the prepared
+  contribution; only `match_all`'s candidate loop is copied into backfire
+  until then, because CHE-37 needs the `regex` engine now.
+- **Removed backfire parts and their only users** (checked with `git grep`
+  on 2026-09-30): judgment and per-call records are read only by the
+  readiness command and backfire's tests; the readiness command only by the
+  `backfire:ready` script and `docs/backfire.md`; the acceptance tools and
+  `scripts/backfire/fixtures/` only by the earlier quality measurements;
+  `JudgmentError` is also used by `backfire_education` and
+  `wiki_consistency/rules.py`, so it stays; the plugin build tool also
+  builds the work plugin's copies of doc-regions and wiki-consistency,
+  which the wiki-consistency skill runs from `../../wiki-consistency`, so
+  that skill moves to the repository's `packages/`.
+- **Alternatives**: keeping the vendored copy with patches (the user
+  rejected it: a patched copy counts as fully owned code under the new size
+  rule); a runtime override of PyModel's `ensure_unique_ids` (edits
+  PyModel's behaviour without its files; not chosen).

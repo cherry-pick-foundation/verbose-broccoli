@@ -1,9 +1,9 @@
 ---
 
-description: "Task list for the backfire rebuild from jev-judge-mcp"
+description: "Task list for the backfire rebuild on jev-judge-mcp"
 ---
 
-# Tasks: Backfire Rebuilt From jev-judge-mcp
+# Tasks: Backfire Rebuilt on jev-judge-mcp
 
 **Input**: Design documents from `specs/021-backfire-rebuild/`
 
@@ -11,32 +11,37 @@ description: "Task list for the backfire rebuild from jev-judge-mcp"
 [research.md](research.md), [data-model.md](data-model.md),
 [contracts/](contracts/), [quickstart.md](quickstart.md)
 
-**Tests**: The spec requires tests: upstream equality of the tools
-(SC-001), the vendored upstream tests (SC-002), a failing-before test for
-each of CHE-37 and CHE-38 (FR-014), and the upstream-record check (SC-007).
-Every code task includes its tests.
+**Tests**: The spec requires a failing-first CHE-37 test (FR-013), the
+kept CHE-33 answerless-reply test (FR-006), stub tests for each provider
+(SC-002), the CHE-38 known failure (FR-014), and the tool-list check
+(SC-001). Every code task includes its tests.
 
 **Organization**: Main (Claude Code) owns the Spec Kit records, repository
 prose, integration and commits, and reviews each Codex worker's diff. Codex
 workers (`gpt-6-luna`, `max` effort, started through Orca's terminal path)
-implement in disjoint file scopes: worker A (vendor), worker B (rebuild),
-worker C (adapt) and worker D (load fixes). A fresh Claude Code reviewer
-gives the develop merge review of the code; a fresh Codex reviewer reviews
-the coordinator's records and documents.
+implement in disjoint file scopes. A fresh Claude Code reviewer gives the
+develop merge review of the code; a fresh Codex reviewer reviews the
+coordinator's records and documents.
+
+**Redesign**: on 2026-09-30 the user replaced the first design (a vendored
+copy of PyModel) with PyModel as a published dependency. T001 to T005 below
+were done for the first design (commit `051f834`) and are undone by T006.
+The first design's later tasks were never committed and are replaced by
+T006 onward.
 
 **Private data**: No task writes a student name, a private backfire record
 or evaluation data into the repository, Linear or Orca messages. No task
 opens `$XDG_DATA_HOME/verbose-broccoli/backfire-eval/heldout-v1.jsonl`.
-Billed provider calls happen only in T024.
+Billed provider calls happen only in T016. No task reads or prints a key.
 
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story this task belongs to (US1 to US4)
+- **[Story]**: Which user story this task belongs to (US1 to US3)
 
 ---
 
-## Phase 1: Setup — the vendored upstream (worker A)
+## Phase 1 (first design, superseded 2026-09-30): the vendored upstream
 
 **Purpose**: the upstream copy, its license and record, and the checks that
 must leave it in its upstream form. Blocks every later phase.
@@ -85,266 +90,136 @@ must leave it in its upstream form. Blocks every later phase.
     module list changed). The jev-mcp 0.9.0 notice stays until T009
     removes the port. `npm run verify` passed.
 
-**Checkpoint**: `npm run test:backfire` passes with the old port still
-serving, the vendored upstream tests included; `npm run verify` passes.
+---
+
+## Phase 2: User Story 1 — PyModel's tools through backfire (Priority: P1) 🎯 MVP (core worker)
+
+**Goal**: `backfire serve-mcp [--education]` serves PyModel's server and
+tools plus `jev_noul`, with backfire's profiles as providers.
+
+**Independent Test**: start both plugin commands with stub providers; list
+and call the tools ([quickstart.md](quickstart.md)).
+
+- [ ] T006 [US1] Switch `packages/backfire` to the published dependency:
+  pin `jev-judge-mcp==0.6.0` (with the extra its TypeSafe provider needs)
+  in `packages/backfire/pyproject.toml` and `uv.lock`; remove
+  `packages/backfire/src/jev_judge_mcp/`, `packages/backfire/tests/upstream/`,
+  `test_upstream_record.py`, the module from `module-name`, the Ruff and
+  Prettier exclusions and the dev pins that only the vendored tests needed.
+- [ ] T007 [US1] Write the entry point in
+  `packages/backfire/src/backfire/__main__.py` as [plan.md](plan.md)
+  section 1 says, with a test that the server lists PyModel's `TOOLS` then
+  `jev_noul` and reports PyModel's name (FR-001, FR-002, SC-001).
+- [ ] T008 [US1] Write `packages/backfire/src/backfire/providers.py`,
+  `config.py` (simplified) and `failures.py` (`JudgmentError` only) as
+  [contracts/provider-seam.md](contracts/provider-seam.md) says, reusing
+  worker B's `jev_provider.py` where it fits: the Hive provider through
+  system-one-adapter with PyModel's retries plus CHE-33's answerless-reply
+  retry (keep and adapt CHE-33's existing test), Jev profiles through
+  PyModel's `resolve_provider`, the education wrapper, and configuration
+  errors as `ProviderConfigError`. Tests use local stubs only (FR-005,
+  FR-006, FR-008, FR-009).
+- [ ] T009 [US1] Port the Vercel provider into
+  `packages/backfire/src/backfire/vercel.py` from jev-agent-tools 0.1.2
+  ([research.md](research.md) R11), credited with its MIT notice; add the
+  unselected `vercel` profile to `packages/backfire/src/backfire/config.toml`
+  with `credential_file` pointing at the chat plugin's `jev.env` and
+  `credential = "AI_GATEWAY_API_KEY"`; test the request (URL path,
+  headers, body, question and answer mapping, usage) against a local stub
+  without reading the real key (FR-007).
+- [ ] T010 [US1] Make `packages/backfire/src/backfire/noul.py` define
+  `jev_noul` on PyModel's framework as [plan.md](plan.md) section 4 says,
+  with tests for its definition, questions, labels, invalid answers,
+  budget error and the `auto_accept` bound (0.5 rejected, 0.51 accepted)
+  (FR-003).
+- [ ] T011 [US1] Remove what the user dropped (FR-010): `boundary.py`,
+  `decisions.py`, `judge.py`, `provider.py`, `ready.py`, `records.py`,
+  `registry.py`, `server.py`, `validate.py`, `jev_provider.py` once its code
+  moved, `packages/backfire/src/backfire_tools/`, `scripts/backfire/fixtures/`,
+  the backfire `build`, `ready` and `eval` scripts in `package.json` and
+  `turbo.json`, and every test that covers only removed code; adapt the
+  education tests that stay. List each removed file's importers first.
+
+**Checkpoint**: `npm run test:backfire` passes; both plugin commands start
+from `packages/backfire`.
 
 ---
 
-## Phase 2: User Story 1 — agents use the tools from the upstream (Priority: P1) 🎯 MVP (worker B, then worker C)
+## Phase 3: User Story 2 — CHE-37 fixed, CHE-38 handed upstream (Priority: P1)
 
-**Goal**: `backfire serve-mcp` serves the twelve tools of
-[contracts/tools.md](contracts/tools.md) from the vendored upstream,
-through backfire's judge.
-
-**Independent Test**: start the server with a scripted provider, list the
-tools, call each with synthetic input; compare definitions with the
-upstream's and results with the upstream tool's for the same answers.
-
-- [ ] T006 [US1] Add the provider seam of
-  [contracts/provider-seam.md](contracts/provider-seam.md) in
-  `packages/backfire/src/backfire/jev_provider.py` (the `JevProvider`
-  subclass, the per-call context variable, the `Runtime` construction with
-  `Settings.model_construct()`), with
-  `packages/backfire/tests/test_jev_provider.py`: answers, usage and model
-  pass through; `provider` is `compatible`; each judgment error type becomes
-  the right upstream error with backfire's text; the deadline and record
-  file come from the call context; cancellation propagates; no `JEV_*`
-  variable changes behaviour (FR-006).
-- [ ] T007 [US1] Add the registry in `packages/backfire/src/backfire/registry.py`
-  (renamed copies of the eleven upstream tools, as
-  [research.md](research.md) R3 decides) and rewrite `backfire_noul` onto
-  the upstream framework in `packages/backfire/src/backfire/noul.py`, with
-  `packages/backfire/tests/test_registry.py`: the list equals
-  [contracts/tools.md](contracts/tools.md); each definition equals the
-  upstream's after the mapping (compared with the vendored
-  `jev_judge_mcp.tools` definitions); no `jev_<tool>` name appears in any
-  listed definition or in any result or error text of the call corpus;
-  `backfire_noul`'s definition, questions, labels, invalid-answer handling
-  and budget error keep their current behaviour (FR-002, FR-003, FR-004).
-- [ ] T008 [US1] Rewrite `packages/backfire/src/backfire/server.py` as
-  [research.md](research.md) R5 and R6 decide: an `MCPServer` subclass
-  (credited to PyModel's `JevMCPServer`), the `Toolset` from T007, the
-  `Runtime` from T006, run inside `Boundary.run` over the vendored
-  `stdio_streams()`; patch `packages/backfire/src/jev_judge_mcp/stdio.py`
-  to read at most 10 MiB per line and end the session with
-  `message_limit_exceeded` beyond it, and record the patch in
-  `UPSTREAM.md`; remove `BoundedLineReader` from
-  `packages/backfire/src/backfire/boundary.py`; keep
-  `packages/backfire/src/backfire/__main__.py`'s commands and give its
-  test hook a scripted provider instead of the scripted judge
-  (`packages/backfire/tests/scripted_judge.py` or a successor). Adapt
-  `test_server.py`, `test_server_faults.py`, `test_entry.py`,
-  `test_boundary.py`, `test_boundary_core.py` and `test_lifecycle.py` in
-  `packages/backfire/tests/` (FR-001, FR-009).
-- [ ] T009 [US1] Remove the port: `packages/backfire/src/backfire/tools/`,
-  `lib.py`, `patterns.py`, `backfire/UPSTREAM.md`,
-  `packages/backfire/src/backfire_tools/acceptance/capture_upstream.py`,
-  `scripts/backfire/fixtures/upstream-0.9.0/`, and the tests that cover
-  only them (`test_tools_part1.py`, `test_tools_part2.py`, `test_lib.py`,
-  `test_patterns.py`, `test_fidelity.py`, `test_capture_upstream.py`, and
-  any other the impact graph shows); before each removal list its importers
-  with `npm run workflow -- --task <id> --graph impact --file <path>` and
-  remove or adapt each; move any still-needed shared helper next to its
-  consumer (FR-016).
-- [ ] T010 [US1] Adapt the remaining judgment and education tests in
-  `packages/backfire/tests/` to the rebuilt server:
-  `test_education_e2e.py`, `test_adapter_wiring.py`, `test_doubles.py`,
-  `test_faults.py`, `test_deadline.py`, `test_load.py`,
-  `test_pseudonymize_hook.py`, `fake_provider.py`; the provider sees only
-  pseudonyms and results restore names; CHE-33's retries still apply
-  through the tools (FR-006, FR-007).
-
-**Checkpoint**: US1 works end to end with a scripted provider;
-`npm run test:backfire` passes.
+- [ ] T012 [US2] (core worker) Write the CHE-37 test in
+  `packages/backfire/tests/test_regex_executor.py` and run it against
+  PyModel's default regex executor; record the failing output under T012.
+  Then add `packages/backfire/src/backfire/regex_executor.py` as
+  [plan.md](plan.md) section 5 says, pin `regex==2026.9.29`, pass it to the
+  `Runtime`, and make the test pass; add the runaway, concurrent and
+  cancellation cases with `(a|aa)+$` on 60 `a` and a `b` (FR-004, FR-013).
+- [ ] T013 [US2] (core worker) Adapt
+  `packages/backfire/tests/test_bounded_work.py` to the rebuilt server:
+  PyModel's twelve tools and `jev_noul`, runaway extract fields that run away
+  under `regex`, 10 MiB messages and the 1-second check kept, and the
+  `jev_verify` case marked as an expected failure naming CHE-38. Run it
+  3 times with 16 busy processes and the extract case 5 times with 80, and
+  record the results under T013 (FR-014, SC-003, SC-004).
+- [ ] T014 [P] [US2] (upstream worker) Prepare the PyModel contribution in
+  `specs/021-backfire-rebuild/upstream/` as [plan.md](plan.md) section 6
+  says: `pymodel.patch` against `v0.6.0` with PyModel-style tests, and
+  `pull-request.md`; run PyModel's suite on the patched clone and the
+  `jev_verify` load case against it; publish nothing (FR-014).
 
 ---
 
-## Phase 3: User Story 2 — responsive and fair under load (Priority: P1) (worker D)
+## Phase 4: User Story 3 — small, and run from the repository (Priority: P2)
 
-**Goal**: CHE-37 and CHE-38 fixed on the rebuilt server, each shown by a
-test that fails first.
-
-**Independent Test**: [quickstart.md](quickstart.md) step 3, before and
-after each fix.
-
-- [ ] T011 [US2] Write the CHE-37 test in
-  `packages/backfire/tests/test_regex_executor.py` against the rebuilt
-  server with the upstream process pool: when a matching process's start
-  takes more than one second (for example a slowed spawn), a simple pattern
-  such as `!` must still match; run it, and record the failing output in
-  this file under T011 (FR-012, FR-014).
-- [ ] T012 [US2] Pin `regex` 2026.9.29; add the regex-library executor in
-  `packages/backfire/src/backfire/regex_executor.py` as
-  [research.md](research.md) R7 decides (thread, `concurrent=True`, one
-  second of `regex` timeout per field carried across searches, flags mapped
-  by name, timeouts and compile errors mapped to the upstream results);
-  patch `match_all` in
-  `packages/backfire/src/jev_judge_mcp/extract/executor.py` to take its
-  compile step as a parameter and record it; pass the executor through the
-  `Runtime`. Extend `test_regex_executor.py`: T011's case passes;
-  `(a|aa)+$` on 60 `a` and a `b` times out with the upstream reason; several
-  runaway patterns in one call and in concurrent calls do not make a simple
-  pattern time out; cancellation returns at once; the event loop keeps
-  running during a runaway search (FR-012, SC-003).
-- [ ] T013 [US2] Adapt `packages/backfire/tests/test_bounded_work.py` to the
-  rebuilt server (twelve tools, `backfire_score` and `backfire_noul` cases,
-  the extract case's runaway fields using patterns that run away under
-  `regex`), keeping its 10 MiB messages and 1-second check; run it before
-  any CHE-38 fix and record the failing `backfire_verify` case under T013
-  (FR-013, FR-014).
-- [ ] T014 [US2] Fix CHE-38: patch
-  `packages/backfire/src/jev_judge_mcp/ids.py` for linear duplicate IDs
-  with the same result (a test with 100,000 identical IDs checks IDs,
-  order and linear time); profile each tool's bounded case and move every
-  synchronous step over about 20 ms off the event loop, in the vendored
-  files the profile names or in `backfire/server.py` and
-  `backfire/boundary.py`; record each vendored patch. Then run the
-  bounded-work test 3 times with 16 busy processes and the extract case 5
-  times with 80, as [quickstart.md](quickstart.md) step 3 says, and record
-  the worst stall per tool and the extract outcomes under T014 (FR-005,
-  FR-013, SC-003, SC-004).
-
-**Checkpoint**: both load fixes pass; the failing runs are recorded.
+- [ ] T015 [US3] (plugins worker, after T011) Point both plugins'
+  `mcp.json` at `packages/backfire` (the work plugin with `--education`),
+  point `plugins/work/skills/wiki-consistency/SKILL.md`'s commands at the
+  repository's `packages/`, change the doc-regions and wiki-consistency
+  request builders and their tests to `jev_` names, and fix any `scripts/`
+  check that names the removed build or the old tool names (FR-011,
+  FR-012, SC-008).
 
 ---
 
-## Phase 4: User Story 3 — backfire's own services (Priority: P2) (worker C)
+## Phase 5: Polish and acceptance (coordinator)
 
-**Goal**: records, readiness and builds work with the rebuilt server.
-
-**Independent Test**: the record, readiness and build tests pass.
-
-- [ ] T015 [P] [US3] Update `packages/backfire/src/backfire/decisions.py` to
-  the rebuilt tools' result fields and add `backfire_score`; adapt
-  `test_decisions.py` and `test_records.py` in `packages/backfire/tests/`
-  (record kinds, fields, budget and failure rules unchanged) (FR-008).
-- [ ] T016 [P] [US3] Adapt `packages/backfire/src/backfire/ready.py` and
-  `packages/backfire/tests/test_ready.py` to the rebuilt server, with no
-  billed call in the tests (FR-010).
-- [ ] T017 [P] [US3] Copy `jev_judge_mcp` into both builds in
-  `packages/backfire/src/backfire_tools/build.py`, and extend
-  `packages/backfire/tests/test_build.py` to check the license files and a
-  started build's twelve tools (FR-011).
-- [ ] T018 [US3] Check the workspace consumers: run
-  `npm run test:doc-regions` and `npm run test:wiki-consistency`, and
-  confirm the request limits in
-  `packages/doc-regions/src/doc_regions/requests.py` and
-  `packages/wiki-consistency/src/wiki_consistency/requests.py` still hold
-  on the rebuilt tools; change them only if a limit no longer holds
-  (FR-020).
-
-**Checkpoint**: US3 passes; `npm run verify` passes.
-
----
-
-## Phase 4b: User Story 1 addition — Jev profiles and Vercel (Priority: P1) (worker E, after T016)
-
-Added 2026-09-30 by the user's decision (spec Clarifications, FR-006,
-FR-021).
-
-- [ ] T026 [US1] Add Jev profiles as [research.md](research.md) R11 and
-  [contracts/provider-seam.md](contracts/provider-seam.md) define: the
-  profile schema in `packages/backfire/src/backfire/config.py`, the
-  profile-kind branch in `packages/backfire/src/backfire/judge.py` (both
-  kinds pseudonymized and recorded), the error mapping in
-  `packages/backfire/src/backfire/failures.py`, the Vercel provider in
-  `packages/backfire/src/backfire/vercel.py` (credited, MIT), an unselected
-  `[providers.vercel]` profile in `packages/backfire/src/backfire/config.toml`,
-  and `ready.py` support for either kind; add the jev-agent-tools credit to
-  `licenses/THIRD_PARTY_NOTICES.md` and the difference to
-  `jev_judge_mcp/UPSTREAM.md`. Tests with local stubs only: each Jev
-  provider is selected by profile; the Vercel request matches the driver's
-  URL path, headers, body and question and answer mapping; retries follow
-  PyModel; pseudonyms reach the stub and names come back; records are
-  written; missing keys or unknown providers fail before sending; no
-  `JEV_*` or provider environment variable changes the selection (FR-006,
-  FR-007, FR-008, FR-010, FR-021).
-
----
-
-## Phase 5: User Story 4 — the upstream record is complete (Priority: P2) (coordinator)
-
-- [ ] T019 [US4] Check `packages/backfire/src/jev_judge_mcp/UPSTREAM.md`
-  against every patch made in T008, T012 and T014 and every glue
-  behaviour in [contracts/tools.md](contracts/tools.md) and
-  [contracts/provider-seam.md](contracts/provider-seam.md); complete its
-  "Behaviour differences outside the vendored files" section (FR-015).
-
----
-
-## Phase 6: Polish and acceptance (coordinator)
-
-- [ ] T020 [P] Update `docs/backfire.md` and `docs/architecture.md` for the
-  rebuilt server (upstream, tools, `regex`, removed port, Jev profiles,
-  and the Vercel profile's credential file and variable), and regenerate
-  generated references with `npm run docs:generate` if their inputs changed
-  (FR-019).
-- [ ] T021 [P] Check the backfire skills in
-  `plugins/code/skills/backfire/` and `plugins/work/skills/backfire/`
-  (`SKILL.md`, `reference/tools.md`, `references/verbose-broccoli.md`)
-  against the rebuilt tools; correct each contradiction and record it in
-  that skill's `upstream.json` `local_modifications`; add
-  `backfire_score` where the reference lists tools (FR-019).
-- [ ] T022 Run the document judgment step the develop merge review uses
-  (as in earlier features' records) and resolve contradicted units.
-- [ ] T023 Run `npm run verify` three times in a row without a rerun and
-  record each result under T023 (SC-005).
-- [ ] T024 Run the live check through the shipped profile with at most 15
-  billed calls (for example `npm run backfire:ready` and a few tool calls
-  with synthetic input); record the number of billed calls and the outcome
-  under T024. Skip the live Jev check while no Jev key is configured, and
-  say so (SC-006).
-- [ ] T025 Write the feature report in
-  `specs/021-backfire-rebuild/report.md` (what changed, measurements,
-  unperformed checks), commit it, move CHE-39 to In Review, get the develop
-  merge review (fresh Claude Code reviewer for code, fresh Codex reviewer
-  for records), resolve findings, add the review-record commit, merge
-  `develop` into the branch and verify, confirm `develop` has not moved,
-  run `git flow feature finish backfire-rebuild` from the `develop`
-  worktree, move CHE-39 to Done with one completion comment, and report
-  CHE-37 and CHE-38 as fixed to the develop session.
+- [ ] T016 Run the live checks: one judgment per tool through the shipped
+  Hive profile (at most 15 billed calls) and one judgment through the
+  Vercel profile; record the call counts and outcomes under T016 (SC-006).
+- [ ] T017 [P] Update `docs/backfire.md`, `docs/architecture.md`, the
+  backfire skills in both plugins (`jev_` names; `upstream.json`
+  `local_modifications`), `licenses/THIRD_PARTY_NOTICES.md` (jev-judge-mcp
+  as a dependency, jev-agent-tools for the Vercel port, the jev-mcp 0.9.0
+  entry removed unless still needed), and regenerate `docs/reference/` if
+  its inputs changed (FR-012, FR-015).
+- [ ] T018 Count backfire's own code against `develop` with its file list
+  and report it; stop and ask before exceeding 500 lines (FR-017, SC-007).
+- [ ] T019 Run the document judgment step the develop merge review uses and
+  resolve contradicted units; run `npm run verify` three times in a row
+  without a rerun and record each result (SC-005).
+- [ ] T020 Write `specs/021-backfire-rebuild/report.md`, commit it, move
+  CHE-39 to In Review, get the develop merge review (fresh Claude Code
+  reviewer for code, fresh Codex reviewer for records), resolve findings,
+  add the review-record commit, merge `develop` into the branch and verify,
+  confirm `develop` has not moved, run `git flow feature finish
+  backfire-rebuild` from the `develop` worktree, move CHE-39 to Done with
+  one completion comment, and tell the develop session that CHE-37 is fixed
+  and CHE-38 waits for PyModel.
 
 ---
 
 ## Dependencies & Execution Order
 
-- Phase 1 (T001–T005) blocks everything. T002 needs T001; T003 needs T001;
-  T004 and T005 can follow T001 in any order.
-- Phase 2: T006 and T007 can run together; T008 needs both; T009 needs
-  T008; T010 needs T008 and T009.
-- Phase 3 needs T008 and T009. T011 comes before T012; T013 comes before
-  T014. The T011/T012 pair and the T013/T014 pair share only
-  `backfire/server.py` changes, which belong to T014.
-- Phase 4 needs T008 and T009 and can run in parallel with Phase 3;
-  T015–T017 touch different files.
-- Phase 4b (T026) needs T016 (both touch `ready.py`) and can run in
-  parallel with Phase 3.
-- Phase 5 needs Phases 2–4b. Phase 6 needs Phase 5; T020–T022 can run in
-  parallel with T019.
-
-## Parallel Example
-
-```text
-After T009:
-  worker C: T010, T015, T016, T017, T018   (tests and services)
-  worker D: T011 → T012, then T013 → T014  (load fixes)
-  coordinator: T020, T021 drafts
-```
+- T006 first; T007–T011 follow in the core worker's order; T012 and T013
+  after T007 (the CHE-37 test needs the rebuilt entry point).
+- T014 is independent and runs in parallel from the start.
+- T015 after T011 (it needs the removed build and final entry command).
+- T016–T020 after T006–T015.
 
 ## Implementation Strategy
 
-1. Phase 1 lands first and keeps the old port serving, so the vendored copy
-   and its record are verified on their own.
-2. Phase 2 swaps the server over in one step (MVP): the rebuilt tools with
-   upstream behaviour, including the upstream process pool and quadratic
-   IDs, so that Phase 3's tests can fail first against the rebuilt server.
-3. Phases 3 and 4 run in parallel on disjoint files.
-4. Phases 5 and 6 complete the record, documents and acceptance.
-
-## Notes
-
-- Commit with Conventional Commits and one `Spec-Kit-Task: Txxx` trailer
-  per covered task; the coordinator reviews each worker's diff before it
-  commits.
-- Before editing, after scope changes and before completion, run
-  `npm run workflow` with the task's `--task`, `--base` and `--plan`.
+1. The core worker swaps backfire onto PyModel and removes what the user
+   dropped, so the MVP is PyModel's server with backfire's providers.
+2. The upstream worker prepares the PyModel patch in parallel.
+3. The plugins worker then points the plugins and consumers at the result.
+4. The coordinator finishes documents, checks and the merge.

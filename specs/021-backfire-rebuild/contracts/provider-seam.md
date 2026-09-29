@@ -1,68 +1,53 @@
-# Contract: Provider Seam
+# Contract: Profiles and the Provider Factory
 
 ## Construction
 
-The server builds the upstream `Runtime` as
-
 ```text
-Runtime(
-    Settings.model_construct(),          # upstream defaults only
-    provider_factory=<returns backfire's JevProvider>,
-    regex_executor=<backfire's regex-library executor>,
-)
+Runtime(load_settings(),
+        provider_factory=<backfire factory>,
+        regex_executor=<backfire regex executor>)
 ```
 
-and one `Toolset(runtime, <registry>)` per server.
+PyModel's `Runtime` calls the factory once, at the first judgment of a
+server process.
 
-## Per-call context
+## Configuration
 
-Before a tool runs, the server sets a context variable with the call's
-absolute deadline and the session's record file. The provider reads it; a
-call without it (a test that uses the `Toolset` directly) uses a deadline of
-118 seconds from the start of the judgment and no record file.
+- Shipped configuration: `backfire/config.toml` (code plugin) or
+  `backfire_education/config.toml` (work plugin, selected by
+  `--education`, which also turns pseudonymization on).
+- Operator configuration: `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`,
+  which may select a profile or add and replace profiles, as today.
+- Key: from a `0600` file owned by the user, `<profile>.env` in the same
+  directory by default, or the path in the profile's `credential_file`;
+  the line `<credential>=<key>` names the variable. The key is never logged
+  or printed.
 
-## `evaluate(state, questions, model, timeout)`
+## Profile kinds
 
-1. Convert `questions` with the upstream `questions_to_wire`.
-2. Await `judge(state, wire_questions, deadline=..., record_file=...)`.
-   `judge()` keeps doing everything it does today: request validation and
-   limits, pseudonymization and restoration, the profile and credential,
-   system-one-adapter, CHE-33 retries, answer validation and the judgment
-   record.
-3. Return `Evaluation(answers, Usage(input, output), "compatible", model,
-   None)` from its result, where `model` is the model the response
-   confirmed.
-4. On `JudgmentError`, raise `ProviderConfigError(text)` for
-   `backend_not_configured` and `ProviderError(text)` otherwise, where
-   `text` is the judgment error's text. Cancellation propagates.
+- **Hive (general model)**, `api = "openai"`: `base_url`, `model`,
+  `credential`, optional `request` fields sent with every request. The
+  provider asks system-one-adapter and returns PyModel's `Evaluation`
+  (`provider` = `compatible`). Retries: PyModel's policy (408, 429, 5xx),
+  plus a normal-looking reply without an answer (CHE-33).
+- **Jev**, `api = "jev"`: `jev_provider` (`typesafe`, `openrouter`,
+  `cloudflare`, `compatible` or `vercel`), `credential`, and the fields that
+  provider needs (`base_url` for `compatible` and `vercel`, `account_id` for
+  `cloudflare`, optional `base_url` for `typesafe`), optional `model`.
+  PyModel's `resolve_provider` builds the first four from
+  `Settings.model_construct(...)`; `vercel` is backfire's Vercel provider.
 
-The `model` argument (the upstream's configured model name) and `timeout`
-are ignored: the profile names the model and the call context bounds the
-time.
+## Education wrapper
 
-## Profile kinds (added 2026-09-30)
+With education settings on, the factory returns a provider that
+pseudonymizes `state` and the questions, calls the chosen provider, and
+restores names in the answers, for either kind. Its errors
+(`backend_not_configured`, `pseudonym_conflict`) keep backfire's
+`JudgmentError` text.
 
-`judge()` loads the selected profile as today. For a general-model profile
-(`api = "openai"`) nothing changes. For a Jev profile (`api = "jev"`):
+## Errors
 
-1. The profile names `jev_provider`: `typesafe`, `openrouter`,
-   `cloudflare`, `vercel` or `compatible`, plus `model`, `credential` (the
-   variable name in the profile's `0600` credential file) and any address
-   or account field that provider needs. Missing or unknown values are
-   `backend_not_configured` naming the profile.
-2. Request schema validation and pseudonymization run as for general
-   profiles; the general-model size limits and answer-distribution checks
-   do not.
-3. The named provider's `evaluate(state, questions, model, timeout)` runs
-   with the call's remaining time as `timeout`, so PyModel's retries apply.
-4. Its `Evaluation` becomes the judge result (answers restored after
-   pseudonymization); its `ProviderError`s become backfire's fixed error
-   types; the judgment record is written as for general profiles.
-
-The Vercel provider follows jev-agent-tools 0.1.2's driver (see
-[research.md](../research.md) R11) with the address and model taken from
-the profile.
-
-## `aclose()`
-
-Nothing to release; `judge()` opens and closes its client per judgment.
+A missing or invalid profile, key file or provider name raises PyModel's
+`ProviderConfigError` with `backend_not_configured: ...` naming the file or
+profile, before anything is sent. Other provider failures are PyModel's
+`ProviderError`s, reported by PyModel's tools as they are.

@@ -1,64 +1,58 @@
-# Implementation Plan: Backfire Rebuilt From jev-judge-mcp
+# Implementation Plan: Backfire Rebuilt on jev-judge-mcp
 
-**Branch**: `feature/backfire-rebuild` | **Date**: 2026-09-29 | **Spec**: [spec.md](spec.md)
+**Branch**: `feature/backfire-rebuild` | **Date**: 2026-09-29, redesigned 2026-09-30 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/021-backfire-rebuild/spec.md`
 
 ## Summary
 
-Backfire's tools, argument handling, questions, decision logic and results
-come from a vendored copy of PyModel's jev-judge-mcp 0.6.0 instead of
-backfire's port of jev-mcp 0.9.0. The copy keeps its upstream form; backfire
-attaches to it only through the seams the upstream already offers:
-`Runtime(provider_factory=..., regex_executor=...)`, the `JevTool` and
-`Toolset` registry, and the SDK's `MCPServer` overrides that PyModel's own
-server uses. Backfire's judge (provider profiles, system-one-adapter,
-CHE-33 retries, pseudonymization, judgment records) becomes the provider
-behind that seam; its boundary (records, 10 MiB limit, 118-second deadline,
-cancellation) wraps the upstream stdio transport. Three narrow patches go
-into the vendored copy: linear duplicate-ID handling, a bounded line length
-in the stdio reader, and the off-loop work that CHE-38 needs. `backfire_noul`
-is rewritten onto the upstream tool framework, and `backfire_extract` runs
-patterns with the `regex` library's own timeout (the user's answer).
+Backfire becomes a thin layer over the published `jev-judge-mcp==0.6.0`.
+Its entry point builds PyModel's `JevMCPServer` from PyModel's `Toolset`,
+`Runtime` and `TOOLS`, adds `jev_noul`, and runs PyModel's `serve()`. It
+plugs in only through PyModel's own arguments: `provider_factory` (backfire
+profiles: Hive through system-one-adapter, or a Jev provider through
+PyModel's `resolve_provider` or the ported Vercel provider, wrapped by
+pseudonymization in the work plugin) and `regex_executor` (the `regex`
+library, CHE-37). Everything else backfire owned goes: the port, the
+boundary, records, readiness, size limits, extra Hive checks, acceptance
+tools, the plugin build tool and the vendored copy. What needs PyModel's
+code (CHE-38 and three smaller gaps) is prepared as a patch and a
+pull-request text for PyModel.
 
 ## Technical Context
 
-**Language/Version**: Python 3.14.4 (the uv workspace's interpreter); the
-backfire package's floor rises from 3.11 to 3.12, the upstream's floor.
+**Language/Version**: Python 3.14.4 (the uv workspace's interpreter);
+backfire's floor is Python 3.12, PyModel's.
 
-**Primary Dependencies**: `mcp` 2.2.0 (its `MCPServer`), the vendored
-jev-judge-mcp 0.6.0 subset, `system-one-adapter[openai]` 0.2.1 and
-`typesafe-sdk` 0.7.1 (unchanged), plus the upstream's runtime needs
-`pydantic-settings` 2.x and `httpx` 0.28.x, and `regex` 2026.9.29 for
-`backfire_extract`. All pinned exactly in `packages/backfire/pyproject.toml`
-and `uv.lock`.
+**Primary Dependencies**: `jev-judge-mcp` 0.6.0 (PyPI, MIT), `mcp` 2.2.0,
+`system-one-adapter[openai]` 0.2.1, `typesafe-sdk` 0.7.1, `regex`
+2026.9.29, and `phonenumbers` for the education extra; all pinned in
+`packages/backfire/pyproject.toml` and `uv.lock`.
 
-**Storage**: unchanged: backfire's JSONL records under
-`$XDG_STATE_HOME/verbose-broccoli/backfire/records`, profiles and
-credentials under `$XDG_CONFIG_HOME/verbose-broccoli/backfire/`.
+**Storage**: profiles in the shipped `config.toml` files and the operator's
+`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`; keys in `0600`
+credential files; the education mapping table as today. No records.
 
-**Testing**: pytest through `npm run test:backfire` (and
-`test:backfire-slow`); the vendored upstream tests that cover the vendored
-modules run in the same suite; `npm run verify` for everything.
+**Testing**: pytest through `npm run test:backfire`; local stubs for every
+provider; `npm run verify` for everything.
 
-**Target Platform**: Linux (the development laptop, 8 cores) and the
-repository's checks; Codex CLI and Claude Code start the server over stdio.
+**Target Platform**: Linux; Codex CLI and Claude Code start the server over
+stdio from the repository checkout.
 
-**Project Type**: an MCP server package inside a uv workspace, shipped in
-the code and work plugin builds.
+**Project Type**: glue around a published MCP server library.
 
-**Performance Goals**: no event-loop stall of 1 second or more for any tool
-with a 10 MiB message and 16 busy processes; simple regex patterns never
-time out under 80 busy processes (spec SC-003, SC-004).
+**Performance Goals**: simple regex patterns never time out with 80 busy
+processes; every tool except the known CHE-38 case keeps event-loop stalls
+under 1 second with 16.
 
-**Constraints**: vendored files keep their upstream form except recorded
-changes; vendor and provider details stay in configuration; no private
-records or student data in fixtures; billed provider calls only in the final
-live check (at most 15).
+**Constraints**: no edit of PyModel's code, and no copy of it except the
+short candidate loop that CHE-37 needs (section 5); about 300 to 500 lines
+of own code outside tests and pseudonymization, reported against
+`develop`; vendor details in configuration; no private data in fixtures;
+billed calls only in the final live checks.
 
-**Scale/Scope**: about 8,100 upstream lines vendored (64 modules), about
-5,000 lines of backfire source of which the port (about 3,400 lines) is
-removed, and about 15,000 lines of backfire tests to keep, adapt or remove.
+**Scale/Scope**: from about 4,500 own lines (with the partly done first
+design in the worktree) down to about 500, plus the pseudonymization module.
 
 ## Constitution Check
 
@@ -66,18 +60,15 @@ removed, and about 15,000 lines of backfire tests to keep, adapt or remove.
 
 | Principle | Check | Result |
 | --- | --- | --- |
-| I. Proven dependencies | New dependencies are pinned in `pyproject.toml` and `uv.lock`. | Pass |
-| II. Working capabilities | The spec makes tool results and error texts acceptance criteria only where it names them (upstream equality, recorded changes). | Pass |
-| IV. Current needs | jev-judge-mcp is an open-source upstream, not an earlier project of the user; the old port is removed, not reused. | Pass |
-| V. Observable acceptance | Synthetic fixtures only; positive, negative and boundary cases per tool; protocol service after bad input; failing-before tests for CHE-37 and CHE-38; unperformed checks recorded. | Pass |
-| VI. Storage | Records stay in the XDG state namespace with their budget. | Pass |
-| VII. Minimum implementation | Reuse order followed: upstream source vendored, seams used before patches, three narrow patches, glue only for backfire's own services. No compatibility copy of the port is kept. | Pass |
-| IX. Layout | Source under `packages/backfire/src/`; the vendored copy is a module of the existing package, so no fourth plugin or new package. | Pass |
-| Product boundaries | No private records, credentials or student data in fixtures, snapshots or reports; repository prose in English. | Pass |
-| Workflow | Spec Kit flow, `npm run workflow`/`verify`, Codex workers implement, Claude Code reviews, git flow finish with a review record. | Pass |
+| I. Proven dependencies | `jev-judge-mcp`, `regex` pinned in `pyproject.toml` and `uv.lock`. | Pass |
+| II. Working capabilities | CHE-38's fix in PyModel is recorded as open, not counted as done. | Pass |
+| V. Observable acceptance | Stubs for each provider, a failing-first CHE-37 test, the CHE-38 known failure recorded, unperformed checks recorded. | Pass |
+| VII. Minimum implementation | Reuse order: the published dependency and its extension points, one ported 60-line provider, glue only. Code the user no longer needs is removed. | Pass |
+| IX. Layout | Source stays in `packages/backfire/src/`; plugins name repository paths; no new package. | Pass |
+| Product boundaries | No private data in fixtures; the held-out file outside the repository stays untouched. | Pass |
+| Workflow | Spec Kit flow, Codex workers implement, Claude Code reviews, git flow finish with a review record. | Pass |
 
-Re-check after Phase 1 design: unchanged, all pass. No complexity
-exceptions.
+Re-check after Phase 1 design: unchanged, all pass.
 
 ## Project Structure
 
@@ -85,186 +76,158 @@ exceptions.
 
 ```text
 specs/021-backfire-rebuild/
-├── plan.md              # This file
-├── research.md          # The evaluation copy plus Phase 0 decisions
-├── data-model.md        # Registry, call context, upstream record
-├── quickstart.md        # Validation guide
+├── plan.md  research.md  data-model.md  quickstart.md  tasks.md
 ├── contracts/
-│   ├── tools.md         # Tool list, names, order and result framing
-│   ├── provider-seam.md # How judge() serves the upstream Runtime
-│   └── upstream-record.md
-└── tasks.md             # $speckit-tasks output
+│   ├── tools.md           # server identity and tool list
+│   └── provider-seam.md   # profiles, provider factory, pseudonymization
+└── upstream/              # prepared PyModel contribution
+    ├── pymodel.patch
+    └── pull-request.md
 ```
 
 ### Source Code (repository root)
 
 ```text
 packages/backfire/
-├── pyproject.toml                 # + jev_judge_mcp module, new pins, Python >=3.12
+├── pyproject.toml          # jev-judge-mcp==0.6.0 and regex; no vendored module
 ├── src/
-│   ├── jev_judge_mcp/             # NEW: vendored jev-judge-mcp 0.6.0 subset
-│   │   ├── LICENSE                # upstream MIT license, unchanged
-│   │   ├── THIRD_PARTY_NOTICES.md # upstream notice for jev-mcp 0.5.0 text
-│   │   ├── UPSTREAM.md            # revision, files, hashes, every change
-│   │   ├── domain/ policy/ validation/ extract/ providers/ tools/
-│   │   └── cache.py errors.py ids.py limits.py serialize.py stdio.py ...
 │   ├── backfire/
-│   │   ├── __main__.py            # serve-mcp and ready, unchanged commands
-│   │   ├── server.py              # REWRITTEN: MCPServer subclass + boundary + stdio
-│   │   ├── registry.py            # NEW: renamed upstream tools + backfire_noul
-│   │   ├── noul.py                # REWRITTEN from tools/noul.py onto JevTool
-│   │   ├── jev_provider.py        # NEW: JevProvider over judge()
-│   │   ├── regex_executor.py      # NEW: RegexExecutor on the regex library (CHE-37)
-│   │   ├── vercel.py              # NEW: Vercel AI Gateway provider (jev-agent-tools 0.1.2)
-│   │   ├── boundary.py            # kept; BoundedLineReader removed
-│   │   ├── decisions.py           # updated to the new result fields
-│   │   ├── ready.py               # updated to the rebuilt server
-│   │   ├── judge.py config.py config.toml failures.py provider.py
-│   │   │   records.py validate.py # kept
-│   │   ├── tools/ lib.py patterns.py UPSTREAM.md   # REMOVED (the port)
-│   ├── backfire_education/        # unchanged
-│   └── backfire_tools/            # build.py copies jev_judge_mcp;
-│                                  # acceptance/capture_upstream.py REMOVED
-└── tests/
-    ├── upstream/                  # NEW: vendored upstream tests for the subset
-    └── test_*.py                  # kept, adapted, or removed with the port
-scripts/backfire/fixtures/upstream-0.9.0/   # REMOVED (port captures)
-licenses/THIRD_PARTY_NOTICES.md             # jev-judge-mcp credit replaces jev-mcp's
-plugins/{code,work}/skills/backfire/        # tool references checked and updated
-docs/backfire.md docs/architecture.md       # updated
+│   │   ├── __main__.py     # serve-mcp [--education]
+│   │   ├── config.py       # profile and key-file loading, simplified
+│   │   ├── config.toml     # shipped Hive profile and an unselected Vercel profile
+│   │   ├── failures.py     # JudgmentError only
+│   │   ├── providers.py    # provider factory: Hive, Jev profiles, education wrapper
+│   │   ├── vercel.py       # Vercel provider ported from jev-agent-tools 0.1.2
+│   │   ├── regex_executor.py  # CHE-37
+│   │   └── noul.py         # jev_noul on PyModel's tool framework
+│   └── backfire_education/ # the pseudonymization module, unchanged
+└── tests/                  # rewritten and small
+plugins/code/mcp.json plugins/work/mcp.json        # start packages/backfire
+plugins/work/skills/wiki-consistency/SKILL.md      # packages/ paths
+plugins/{code,work}/skills/backfire/               # jev_ names
+packages/doc-regions/ packages/wiki-consistency/   # jev_ tool names
+docs/backfire.md docs/architecture.md licenses/THIRD_PARTY_NOTICES.md
 ```
 
-**Structure Decision**: the vendored copy is one more module of the
-existing `backfire` package (`packages/backfire/src/jev_judge_mcp/`), so its
-imports stay unchanged, the plugin build copies it by module name like
-`backfire_education`, and no new workspace package is needed. Module names
-in `backfire/` above are the plan's; a worker may merge two small glue
-modules if the result is simpler, but not split the vendored tree.
+Removed: `packages/backfire/src/jev_judge_mcp/` and
+`packages/backfire/tests/upstream/` (the vendored copy and its tests),
+`boundary.py`, `decisions.py`, `judge.py`, `provider.py`, `ready.py`,
+`records.py`, `registry.py`, `server.py`, `validate.py`, `jev_provider.py`
+(its code moves into `providers.py`), `packages/backfire/src/backfire_tools/`,
+`scripts/backfire/fixtures/`, the port (already removed in the worktree),
+and the tests of all of these. Module names are the plan's; a worker may
+merge small modules if the result is simpler.
 
 ## Design
 
-### 1. What is vendored
+### 1. Entry point
 
-The vendored subset is the import closure of `jev_judge_mcp.tools` and
-`jev_judge_mcp.stdio` at `fd6829c`: 64 modules, about 8,100 lines (listed
-in `research.md`, R1), plus `LICENSE` and `THIRD_PARTY_NOTICES.md`. The
-server entry point, installer, command-line tools, HTTP transport, doctor,
-calibration, hooks and packaged skills are not vendored. Unused provider
-modules inside the closure (TypeSafe, OpenRouter, Cloudflare, compatible)
-stay unchanged; backfire never selects them (FR-006).
+`backfire serve-mcp [--education]` follows PyModel's own `server.main()`
+for the stdio path: `load_settings()`, the startup gates that apply,
+`configure_logging`, then `JevMCPServer(toolset=Toolset(Runtime(settings,
+provider_factory=..., regex_executor=...), (*TOOLS, NOUL)), log_level=...)`,
+`freeze_startup_heap()`, `anyio.run(serve, server, settings)`, and PyModel's
+exit sequence. `--education` selects the education configuration
+(pseudonymization on, the education profile), which today the work build
+copies from `backfire_education/config.toml`.
 
-### 2. Seams before patches
+### 2. Profiles and providers
 
-| Need | Upstream seam used | Upstream patch |
-| --- | --- | --- |
-| Backfire's judgments | `Runtime(provider_factory=...)` returns a `JevProvider` whose `evaluate` calls `judge()` | none |
-| `regex` library matching (CHE-37) | `Runtime(regex_executor=...)` | `extract/executor.py`: `match_all` takes the compile step as a parameter, default `re.compile`, so the regex executor reuses the one candidate pipeline |
-| `backfire_` names | backfire builds renamed `JevTool` copies (definition name, tool-name tokens in descriptions, the payload's `tool` value) and passes them to `Toolset` | none |
-| `backfire_noul` | a new `JevTool` defined with `define()` and the upstream validators | none |
-| Server name, records, deadline | an `MCPServer` subclass modelled on PyModel's `JevMCPServer` (credited), run inside backfire's `Boundary` | none |
-| 10 MiB message limit | none | `stdio.py`: bounded line read; an overlong line ends the session as today (`message_limit_exceeded`) |
-| Linear duplicate IDs (FR-005) | none | `ids.py`: remember the next suffix per base ID; same IDs and order |
-| CHE-38 off-loop work | none where a step is inside upstream code | narrow patches that move the measured synchronous steps (for example line parsing, argument parsing, result serialization) into worker threads |
+`config.py` reads the shipped configuration (code or education) and the
+operator's file as today, selects a profile, and reads its key from a
+`0600` file owned by the user: by default `<profile>.env` in backfire's
+configuration directory, or the `credential_file` path the profile names
+(the Vercel profile names the chat plugin's `jev.env`). Two kinds:
 
-Every patch and every file not taken is listed in `jev_judge_mcp/UPSTREAM.md`
-(contract in `contracts/upstream-record.md`); a test compares each vendored
-file with its recorded upstream hash.
+- **Hive (general model)**: a `JevProvider` subclass whose `_send` asks
+  system-one-adapter with the profile's address, model, key and extra
+  request fields, and returns PyModel's `Evaluation`. PyModel's
+  `JevProvider.evaluate` retries it (408, 429, 5xx); CHE-33's rule adds one
+  case: a normal-looking reply without an answer counts as a retryable
+  failure. CHE-33's existing test for that case is kept and adapted.
+- **Jev**: `jev_provider = "typesafe" | "openrouter" | "cloudflare" |
+  "compatible"` builds PyModel `Settings` from the profile (provider name,
+  key, address or account) with `Settings.model_construct()` and calls
+  PyModel's `resolve_provider`; `"vercel"` builds backfire's Vercel
+  provider.
 
-### 3. Provider seam
+With `--education`, the factory wraps the chosen provider: pseudonymize
+state and questions, call the inner provider, restore the answers.
+Configuration errors raise PyModel's `ProviderConfigError` with backfire's
+`backend_not_configured` text naming the profile or file, so PyModel
+reports them per call.
 
-`contracts/provider-seam.md` defines it. In short: the server sets a
-per-call context (absolute deadline, record file) when the boundary starts a
-call; the provider's `evaluate` reads it, converts the upstream's wire
-questions and calls `judge()`, and returns an `Evaluation` with the judge's
-answers, usage and confirmed model and the provider name `compatible`, the
-value backfire reports today. Judgment failures become upstream
-`ProviderError`s (`ProviderConfigError` for `backend_not_configured`) whose
-text is backfire's fixed `<type>: <message>`. The upstream retry loop is not
-used, so CHE-33's retries in `judge()` stay the only retry owner. The
-upstream `Settings` is built with its defaults only
-(`Settings.model_construct()`), so `JEV_*` environment variables have no
-effect on backfire.
+### 3. Vercel provider
 
-### 4. Server
+A subclass of PyModel's `HttpProvider`, like its `compatible` provider,
+ported from jev-agent-tools 0.1.2's `transports/vercel.js`
+([research.md](research.md) R11): one POST of `{state, questions}` to the
+profile's address with the gateway headers, Noul questions sent as
+`boolean` and answers mapped back, confidence from
+`providerMetadata.typesafe.confidence`, usage from `inputTokens` and
+`outputTokens`, the model defaulting to `typesafe-ai/jev`. Credited with
+its MIT notice in the module and in `licenses/THIRD_PARTY_NOTICES.md`.
 
-`backfire serve-mcp` opens the record file, builds the `Toolset` from the
-renamed tools plus `backfire_noul`, and runs the `MCPServer`'s low-level
-server inside `Boundary.run` over the vendored `stdio_streams()`. Tool
-listing and dispatch follow `JevMCPServer` (including the `arguments: null`
-error and the notification handlers). Stop signals, session end and
-exit status stay as today. Logging goes to stderr.
+### 4. `jev_noul`
+
+Worker B's `noul.py` becomes `jev_noul`: jev-mcp 0.9.0's definition,
+questions and decision logic on PyModel's `define`, `JevTool`,
+`ToolResult` and `frame`. PyModel's argument compiler has no
+`exclusiveMinimum`, so the published schema drops that keyword (the
+description already says "Must exceed 0.5") and a `Refinement` on
+`auto_accept` enforces it.
 
 ### 5. CHE-37
 
-The new `RegexExecutor` runs each field's search in a thread
-(`anyio.to_thread.run_sync`, abandoned on cancellation) with
-`concurrent=True`, and gives the whole field one second of `regex`'s own
-timeout, which counts process CPU time; the remaining budget is carried
-across the candidate pipeline's repeated searches. A `regex` timeout maps to
-the upstream `Timeout` result, a compile error to `Invalid`, so result
-fields, caps and reason texts stay the upstream's. Tests use `(a|aa)+$` on
-60 `a` characters and a `b`. The failing-before test is written against the
-rebuilt server with PyModel's process pool, before the executor changes.
+`regex_executor.py` implements PyModel's `RegexExecutor` protocol: each
+field's search runs in a thread with `concurrent=True` and one second of
+`regex` timeout carried across the candidate pipeline's searches; flags map
+by name (`regex.ASCII` is 128, `re.ASCII` 256); PyModel's `Timeout` and
+`Invalid` results keep its reasons. PyModel's `match_all` hard-codes
+`re.compile`, so the executor carries its own copy of that candidate loop
+(about 25 lines, credited to PyModel); this is the one exception to "no
+copy", and the upstream contribution adds a compile parameter so the copy
+can go later. The CHE-37 test is written first against PyModel's default
+`ProcessRegexExecutor` and must fail.
 
-### 6. CHE-38
+### 6. CHE-38 and the upstream contribution
 
-First a measurement: the bounded-work test (10 MiB per tool over real
-stdio, 100 ms loop sampling) runs on the rebuilt server with upstream
-behaviour, idle and with 16 busy processes, and a profile names each
-synchronous step over about 20 ms. The `backfire_verify` case, with 100,000
-identical evidence IDs, fails before the fix (PyModel's quadratic IDs). The
-fix makes IDs linear and moves the named steps off the event loop. The
-boundary's input digest also moves off the loop if the profile names it.
+`test_bounded_work.py` keeps its 10 MiB per-tool cases over real stdio and
+its 1-second check, marks the `jev_verify` case as an expected failure
+naming CHE-38, and checks every other tool, `jev_noul` included. A worker
+clones PyModel at `v0.6.0` under `/tmp`, writes the fixes (linear
+`ensure_unique_ids`, a bounded stdin line, `exclusiveMinimum` in the
+argument compiler, a compile parameter for `match_all`, and moving the
+measured synchronous steps off the event loop) with PyModel-style tests,
+runs PyModel's suite, checks that the `jev_verify` case passes against the
+patched package, and stores `upstream/pymodel.patch` and
+`upstream/pull-request.md` in this feature. Nothing is published.
 
-### 7. Records, readiness, build
+### 7. Plugins and consumers
 
-`decisions.py` maps each tool's new result fields onto its fixed decision
-vocabulary and adds `backfire_score`; records keep their format. `ready.py`
-drives the rebuilt server with synthetic calls. `build.py` copies
-`jev_judge_mcp` into both builds, license files included.
-
-### 8. Jev profiles and the Vercel provider (added 2026-09-30)
-
-The user added Jev profiles ([research.md](research.md) R11,
-[contracts/provider-seam.md](contracts/provider-seam.md)). `config.py`'s
-profile schema gains `api = "jev"` with a `jev_provider` name and the
-fields that provider needs; `judge()` branches after pseudonymization:
-system-one-adapter for general-model profiles, the named PyModel provider
-(or the new Vercel provider) for Jev profiles, then restoration and the
-judgment record for both. The Vercel provider lives in
-`packages/backfire/src/backfire/vercel.py`, credited to jev-agent-tools
-0.1.2 (MIT), as a subclass of PyModel's `HttpProvider`. The shipped code
-build's `config.toml` gains an unselected `[providers.vercel]` profile, so
-the operator only selects it and adds the key file; the work build keeps
-its single education profile. `ready.py` checks either kind.
-
-### 9. What is removed
-
-The port's `backfire/tools/`, `lib.py`, `patterns.py`, `UPSTREAM.md`,
-`backfire_tools/acceptance/capture_upstream.py`, the captured
-`scripts/backfire/fixtures/upstream-0.9.0/`, and the tests that cover only
-them. Before a file goes, the worker lists its importers with
-`npm run workflow -- --graph impact` or `rg` and removes or adapts each.
+Both `mcp.json` files run `uv --directory ${PLUGIN_ROOT}/../../packages/backfire
+run --frozen --offline --no-sync backfire serve-mcp`, the work plugin with
+`--education`. The wiki-consistency skill's commands use the repository's
+`packages/` from its folder. The doc-regions and wiki-consistency request
+builders use `jev_` names. `package.json` and `turbo.json` lose the build,
+ready and evaluation scripts.
 
 ## Implementation phases and ownership
 
-The coordinator (Claude Code) owns Spec Kit records, repository prose
-(`docs/`, skills, `licenses/`), integration and commits. Codex workers
-(`gpt-6-luna`, `max` effort) implement, each in a disjoint file scope:
-
-1. **Vendor** (one worker): the vendored subset, license files, upstream
-   record and its hash test, new pins, the vendored upstream tests, and the
-   repository checks' exclusions for vendored files.
-2. **Rebuild** (one worker, after 1): provider seam, tool registry and noul,
-   server and stdio bound, port removal, and the server-level tests.
-3. **Adapt** (one worker, after 2): decisions, readiness, build, and every
-   remaining backfire test adapted to the rebuilt server.
-4. **Load fixes** (one worker, after 2, parallel with 3): CHE-37 and CHE-38,
-   each test failing first, then the fixes and load measurements.
-5. **Jev profiles** (one worker, after 3): Jev profiles, the Vercel provider
-   and their readiness check (added 2026-09-30).
-6. **Coordinator**: documents and skills, the three full verify runs, the
-   live check, the develop merge review and the finish.
+1. **Core** (Codex worker): `packages/backfire` (source, tests,
+   `pyproject.toml`), `uv.lock`, the backfire scripts in `package.json` and
+   `turbo.json`, `scripts/backfire/`; the CHE-37 test first, then the
+   executor; the bounded-work known failure.
+2. **Upstream patch** (Codex worker, parallel with 1): the PyModel
+   contribution under `specs/021-backfire-rebuild/upstream/`, built in a
+   `/tmp` clone.
+3. **Plugins and consumers** (Codex worker, after 1): `plugins/*/mcp.json`,
+   the wiki-consistency skill paths, the doc-regions and wiki-consistency
+   request builders and their tests, and `scripts/` checks that name the
+   build or the tools.
+4. **Coordinator**: specs, `docs/`, the backfire skills' prose,
+   `licenses/`, the three verify runs, the live checks (Hive, then one
+   Vercel judgment), the own-code count, the merge review and the finish.
 
 ## Complexity Tracking
 

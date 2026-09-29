@@ -1,43 +1,30 @@
-# Feature Specification: Backfire Rebuilt From jev-judge-mcp
+# Feature Specification: Backfire Rebuilt on jev-judge-mcp
 
 **Feature Branch**: `feature/backfire-rebuild`
 
 **Created**: 2026-09-29
 
-**Status**: Draft
+**Status**: Draft (redesigned 2026-09-30)
 
 **Linear issue**: CHE-39
 
 **Input**: Linear issue CHE-39, "Rebuild backfire on FastMCP from PyModel's
-jev-judge-mcp", written from the user's decisions of 2026-09-29, and the
-develop session's task brief of the same day. Backfire, the judgment server
-in `packages/backfire`, is rebuilt from the source of PyModel's
-[jev-judge-mcp](https://github.com/PyModel/jev-judge-mcp) (MIT), release
-0.6.0 at commit `fd6829c3fd1c3eb244f0feb011b6ca55298459f8`, a Python
-implementation of jkudish/jev-mcp. It replaces backfire's own Python port of
-jev-mcp 0.9.0. The user's decisions:
+jev-judge-mcp", the develop session's task brief of 2026-09-29, and the
+user's decisions of 2026-09-29 and 2026-09-30 recorded under
+Clarifications. Backfire, the judgment server in `packages/backfire`, is
+rebuilt on PyModel's [jev-judge-mcp](https://github.com/PyModel/jev-judge-mcp)
+0.6.0 (MIT), a Python implementation of jkudish/jev-mcp, replacing
+backfire's own Python port of jev-mcp 0.9.0.
 
-1. Replace backfire in place: the same server name and plugin setup, and
-   backfire's own additions kept: saved judgment records, education
-   pseudonymization, the readiness check, configuration and provider
-   profiles, and judgments on general models (for example DeepSeek on Hive)
-   through system-one-adapter.
-2. Tool behaviour follows jev-judge-mcp as it is (jev-mcp 0.5.0 plus
-   PyModel's recorded divergences and its extra score tool), with two
-   additions: keep `backfire_noul`, and fix PyModel's quadratic handling of
-   duplicate IDs. Tools keep the `backfire_` names. The port of 0.9.0 is
-   removed.
-3. The server layer is the official MCP Python SDK's `MCPServer`, which
-   PyModel also uses, with tools defined by exact schemas rather than
-   generated from type hints.
-4. Backfire's model connection attaches through PyModel's provider seam and
-   keeps CHE-33's retries for server failures and replies without an answer.
-5. PyModel's source is reused with the smallest adaptation (root `AGENTS.md`,
-   "Reuse Before Implementing"): it is vendored with its license and notices,
-   every change from upstream is recorded, and nothing that can be kept is
-   rewritten.
-6. The rebuilt server fixes CHE-37 and CHE-38, each with a test that fails
-   before the fix.
+The first design (2026-09-29) vendored a copy of PyModel's code and kept
+backfire's tool names, boundary, records and readiness check. On
+2026-09-30 the user replaced it: backfire depends on the published
+`jev-judge-mcp==0.6.0` package and plugs into PyModel only through its own
+extension points, without editing PyModel; backfire keeps only what it
+needs to function; what cannot plug in becomes a prepared contribution to
+PyModel. Backfire's own code targets about 300 to 500 lines, not counting
+tests or the existing pseudonymization module, under the user's new rule
+that a feature asks before adding more than 300 net lines of own code.
 
 The read-only evaluation of jev-judge-mcp of 2026-09-29 is copied into this
 feature's `research.md`.
@@ -66,349 +53,337 @@ feature's `research.md`.
   PyModel's TypeSafe, OpenRouter, Cloudflare and compatible providers, based
   on jev-mcp 0.9.0's own Vercel code (which comes from jkudish's
   `jev-agent-tools` 0.1.2, MIT). Should PyModel's other Jev providers also
-  become selectable, or only Vercel? → A: Option A. Backfire profiles gain a
-  second kind, a Jev profile that names its provider (`typesafe`,
-  `openrouter`, `cloudflare`, `vercel` or `compatible`), served by PyModel's
-  providers plus the ported Vercel provider, credited. Pseudonymization,
-  judgment records and the readiness check apply to both profile kinds; Jev
-  profiles use PyModel's retries; the shipped default stays DeepSeek on Hive,
-  and a Jev profile is used only when the operator selects it. No Vercel or
-  TypeSafe key exists on the laptop yet: a Vercel key would go in a new
-  `0600` credential file in `~/.config/verbose-broccoli/backfire/` that the
-  user creates, so the Vercel path is tested against a local stub, the
-  expected file and variable are documented, and the live check skips it
-  unless a key is added. It is a new task after the server swap. (User's
-  answer, relayed by the develop session.)
+  become selectable, or only Vercel? → A: Backfire profiles gain a second
+  kind, a Jev profile that names its provider (`typesafe`, `openrouter`,
+  `cloudflare`, `vercel` or `compatible`), served by PyModel's providers
+  plus the ported Vercel provider, credited. Jev profiles use PyModel's
+  retries; the shipped default stays DeepSeek on Hive, and a Jev profile is
+  used only when the operator selects it. No Vercel or TypeSafe key exists
+  on the laptop: a Vercel key would go in a new `0600` credential file in
+  `~/.config/verbose-broccoli/backfire/` that the user creates, so the
+  Vercel path is tested against a local stub, the expected file and
+  variable are documented, and no live Jev check runs unless a key is
+  added.
+- Redesign (user's decision, relayed by the develop session): stop copying
+  PyModel and use it as a library. Depend on the published
+  `jev-judge-mcp==0.6.0` (pinned, MIT) and remove the vendored files and
+  their tests. Build backfire from PyModel's own plug-in points without
+  editing PyModel: an entry point of about 20 lines that constructs
+  `JevMCPServer(toolset=Toolset(Runtime(settings, provider_factory=...,
+  regex_executor=...), TOOLS + [noul]))` and runs PyModel's `serve()`; a
+  provider factory for Hive profiles (system-one-adapter with
+  pseudonymization) and for Jev profiles (PyModel's `resolve_provider` plus
+  the Vercel provider); a regex executor on the `regex` library (CHE-37);
+  and the Noul tool added to the list. Accept PyModel's `jev_` tool names
+  and behaviour, including its own input limits. What cannot plug in (the
+  quadratic duplicate-ID handling behind CHE-38, the stdin line limit, the
+  missing `exclusiveMinimum` keyword) becomes a prepared upstream
+  contribution to PyModel: the patch and the pull-request text are written,
+  nothing is opened on GitHub.
+- Conflicts with the 2026-09-29 decisions, resolved by the user: the server
+  reports PyModel's name `jev-mcp` under the plugin key `backfire` and
+  serves PyModel's packaged skill resources; tools use PyModel's `jev_`
+  names, with the backfire skills, documents and the doc-regions and
+  wiki-consistency request builders updated; CHE-38 stays open until PyModel
+  releases the contribution, and the `jev_verify` load case is marked as a
+  known failure that names CHE-38; backfire's call boundary goes (the
+  10 MiB message limit, the 118-second call deadline and per-call records).
+- Keep only what backfire needs to function (user's decision): keep the
+  entry point, the Hive provider with profiles and key file, the
+  pseudonymization hook, Jev profiles and the Vercel provider, the regex
+  executor and the Noul tool. Remove the acceptance tools and their
+  fixtures, the judgment and per-call records, the readiness command, and
+  the extra Hive checks (thinking evidence, reported model, cut-off output,
+  refusal, special status codes, fixed error types); PyModel's answer
+  validation and retries stand in for them. Keep the small `JudgmentError`
+  class that the pseudonymization module and wiki-consistency use. Keep
+  CHE-33's retry of a normal-looking reply without an answer, with its
+  existing failing-then-passing test.
+- Plugins (user's decision): run both plugins straight from the
+  repository. Their `mcp.json` points at `packages/backfire`; `serve-mcp`
+  gets an option that turns on the work plugin's education settings
+  (pseudonymization and its profile); the wiki-consistency skill's commands
+  point at `packages/`; the plugin build tool and its tests are removed.
+  The held-out evaluation file outside the repository stays untouched.
+- Vercel key (user's decision): a Vercel AI Gateway key now exists as
+  `AI_GATEWAY_API_KEY` in `~/.config/verbose-broccoli/chat/jev.env` (mode
+  `0600`), created for the chat plugin (CHE-41). Backfire's Vercel profile
+  names that file as its key file instead of copying the key, and once the
+  Vercel provider works, one live Jev judgment runs through it and its call
+  count is reported. The key is never read into logs or output.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Agents use backfire's tools from the reused upstream (Priority: P1)
+### User Story 1 - Agents use PyModel's Jev tools through backfire (Priority: P1)
 
-An agent in the code or work plugin starts backfire the way it does today and
-calls its judgment tools. It gets the tool set, arguments, results and errors
-of jev-judge-mcp 0.6.0 under `backfire_` names, plus `backfire_noul`. Each
-judgment goes to the model named by backfire's provider profile, and the
-work build still pseudonymizes education data before it leaves the machine.
+An agent in the code or work plugin starts backfire from the repository and
+calls its judgment tools. It gets jev-judge-mcp 0.6.0's server and tools,
+plus `jev_noul`. Each judgment goes to the model the selected backfire
+profile names: DeepSeek on Hive by default, or a Jev provider when the
+operator selects a Jev profile. The work plugin pseudonymizes education
+data before it leaves the machine.
 
-**Why this priority**: It is the purpose of the rebuild; without it nothing
-else matters.
+**Why this priority**: It is the purpose of the rebuild.
 
-**Independent Test**: Start the server with a scripted test provider, list
-its tools, and call each tool with a synthetic input; compare the tool list
-with jev-judge-mcp 0.6.0's definitions after the name change, and check
-each result against the upstream tool's behaviour for the same answers.
+**Independent Test**: Start `backfire serve-mcp` as each plugin's
+`mcp.json` does, with a local stub provider; list the tools and call each
+with synthetic input.
 
 **Acceptance Scenarios**:
 
-1. **Given** a client that starts `backfire serve-mcp` as the plugins'
-   `mcp.json` does, **When** it initializes and lists tools, **Then** the
-   server calls itself `backfire` and lists exactly the eleven tools of
-   jev-judge-mcp 0.6.0 with `jev_` replaced by `backfire_`, plus
-   `backfire_noul`.
-2. **Given** any of those eleven tools and an input the upstream accepts,
-   **When** the model's answers are the same, **Then** the result's fields,
-   values and order equal the upstream tool's result, apart from recorded
-   changes.
-3. **Given** an input the upstream rejects, or a tool name that does not
-   exist, **When** it is called, **Then** the error result is the upstream's,
-   apart from recorded changes, and the server keeps serving later calls.
-4. **Given** the shipped or operator provider profile, **When** a tool asks a
-   judgment, **Then** a general-model profile sends it to that profile's
-   endpoint and model through system-one-adapter, and a Jev profile sends it
-   through the Jev provider it names; PyModel's environment-variable provider
-   selection is never used.
+1. **Given** a client that starts the server as the plugins' `mcp.json`
+   does, **When** it initializes and lists tools, **Then** the server is
+   PyModel's (it reports `jev-mcp`) and lists PyModel's eleven tools and
+   `jev_noul`.
+2. **Given** any PyModel tool and an input PyModel accepts, **When** the
+   provider's answers are the same, **Then** the result equals what
+   PyModel's own server returns, because the tool code is PyModel's,
+   unchanged.
+3. **Given** the shipped profile, **When** a tool asks a judgment, **Then**
+   it goes to the profile's Hive endpoint and model through
+   system-one-adapter, with the key from the profile's credential file.
+4. **Given** a Jev profile that names `typesafe`, `openrouter`,
+   `cloudflare` or `compatible`, **When** a tool asks a judgment, **Then**
+   PyModel's own provider of that name sends it, configured from the
+   profile and its credential file; PyModel's environment variables do not
+   choose the provider.
 5. **Given** a Jev profile that names `vercel`, **When** a tool asks a
    judgment, **Then** the request reaches the profile's Vercel AI Gateway
-   address in the form jev-agent-tools 0.1.2 sends, with the key from the
-   profile's credential file, and the answers come back in the upstream
-   tools' answer format.
-6. **Given** the work build with pseudonymization on, **When** a tool's input
-   names a rostered student, **Then** the provider sees only pseudonyms and
-   the result the agent receives has the original names restored.
-7. **Given** a general-model profile whose provider answers with a server
-   failure or a reply without an answer, **When** retries are left in the
-   call's budget, **Then** the judgment is retried as CHE-33 made it do; a
-   Jev profile's provider is retried as PyModel retries it.
+   address in the form jev-agent-tools 0.1.2 sends, and the answers come
+   back in PyModel's answer format.
+6. **Given** the work plugin, **When** a tool's input names a rostered
+   student, **Then** the provider sees only pseudonyms and the result has
+   the original names restored, whichever profile kind is selected.
+7. **Given** a Hive reply that is a normal-looking success without an
+   answer, **When** retries are left, **Then** the judgment is retried as
+   CHE-33 made it do; server failures are retried by PyModel's policy.
 
 ---
 
-### User Story 2 - Tools stay responsive and fair under machine load (Priority: P1)
+### User Story 2 - Fair regex limits under load, and CHE-38 handed upstream (Priority: P1)
 
-The machine is busy, for example during a full `npm run verify` or with other
-agents running. `backfire_extract` still finds matches for simple patterns,
-still stops runaway patterns, and no tool call blocks the server from
-answering other messages for a second or more.
+The machine is busy. `jev_extract` still finds matches for simple patterns
+and still stops runaway patterns (CHE-37). The event-loop stall behind
+CHE-38 lives in PyModel's own code, so its fix is prepared as a
+contribution to PyModel, and backfire's load check records it as a known
+failure until PyModel releases the fix.
 
-**Why this priority**: The user decided that the rebuild must fix CHE-37 and
-CHE-38, not only re-check them; both made full verification runs fail at
-random.
+**Why this priority**: The user decided CHE-37 must be fixed in the
+rebuild and CHE-38 must be handed upstream rather than patched locally.
 
 **Independent Test**: Run the bounded-work checks with 16 and with 80 busy
-low-priority processes started, as the CHE-37 assessment describes, on the
-code before each fix and after it.
+low-priority processes, as the CHE-37 assessment describes; run the new
+CHE-37 test against PyModel's default regex executor and against
+backfire's.
 
 **Acceptance Scenarios**:
 
-1. **Given** 80 busy processes and a document of 50,000 characters, **When**
-   `backfire_extract` runs a pattern that needs at most 2 ms of processor
-   time, **Then** it returns the pattern's matches and never a time-out,
-   however long the server waits before matching starts.
-2. **Given** a pattern that runs away in the regex engine the server uses,
-   **When** `backfire_extract` runs it, **Then** that field reports the
-   time-out reason and the call still completes within the call deadline.
-3. **Given** 16 busy processes, **When** any tool is called with a
-   10 MiB message, **Then** the server's event loop is never blocked for
-   1 second or more.
-4. **Given** the code before each fix, **When** the new test for that fix
-   runs, **Then** it fails; after the fix it passes.
+1. **Given** 80 busy processes and a document of 50,000 characters,
+   **When** `jev_extract` runs a pattern that needs at most 2 ms of
+   processor time, **Then** it returns the pattern's matches and never a
+   time-out.
+2. **Given** a pattern that runs away under `regex`, **When** `jev_extract`
+   runs it, **Then** that field reports PyModel's time-out reason.
+3. **Given** PyModel's default regex executor, **When** the CHE-37 test
+   runs, **Then** it fails; with backfire's executor it passes.
+4. **Given** the `jev_verify` load case with 100,000 identical evidence
+   IDs, **When** the checks run, **Then** it is reported as a known failure
+   naming CHE-38, and every other tool's worst event-loop stall stays under
+   1 second with 16 busy processes.
+5. **Given** the prepared contribution, **When** a maintainer applies its
+   patch to PyModel's 0.6.0 source, **Then** PyModel's own tests pass and
+   the `jev_verify` load case passes against the patched PyModel.
 
 ---
 
-### User Story 3 - Backfire's own services keep working (Priority: P2)
+### User Story 3 - Backfire stays small and runs from the repository (Priority: P2)
 
-An operator relies on backfire's records, readiness check, limits and build
-for each plugin. After the rebuild the records are written as before, the
-readiness check passes against the configured provider, oversized messages
-and slow calls end the same way, and each plugin build still contains a
-working server.
+The user wants backfire used straight from the repository package, never
+installed, and wants the repository to own as little code as possible.
+After the rebuild both plugins start backfire from `packages/backfire`, and
+backfire's own code is the glue alone.
 
-**Why this priority**: The user kept these additions explicitly; losing one
-would be a regression, but the tools come first.
+**Why this priority**: It follows the user's reuse rule and new size rule;
+it matters after the tools work.
 
-**Independent Test**: Run the existing record, boundary, readiness, build
-and education tests against the rebuilt server, changed only where the
-result fields they read have changed.
+**Independent Test**: Start each plugin's `mcp.json` command from the
+repository; count backfire's own lines against `develop`.
 
 **Acceptance Scenarios**:
 
-1. **Given** a session with tool calls and judgments, **When** the session
-   ends, **Then** the records directory holds one content-free record per
-   tool call and per judgment, with the same kinds, fields, storage budget and
-   file rules as before, and decision summaries cover every tool, including
-   `backfire_score`.
-2. **Given** a message over 10 MiB, a call past its 118-second deadline, a
-   cancellation or a stop signal, **When** it happens, **Then** the server
-   answers or ends as it does today.
-3. **Given** a valid configuration and credential, **When** `backfire ready`
-   runs, **Then** it passes; given a missing or invalid one, it fails and
-   names what to fix.
-4. **Given** `npm run backfire:build -- code <dir>` or `work <dir>`, **When**
-   the built server is installed and started, **Then** it serves the rebuilt
-   tools.
-
----
-
-### User Story 4 - A maintainer can trace every line back to its upstream (Priority: P2)
-
-A maintainer who later updates backfire, or checks its license, can see
-which files came from jev-judge-mcp, at which revision, under which license,
-and exactly how each one was changed.
-
-**Why this priority**: It is required by the MIT license and by the
-repository's reuse rule, and it keeps later upstream updates cheap.
-
-**Independent Test**: Compare each vendored file with the same file at the
-upstream revision; every difference must be listed in the upstream record,
-and every unchanged file must match byte for byte.
-
-**Acceptance Scenarios**:
-
-1. **Given** the repository, **When** a maintainer reads the upstream record,
-   **Then** it names the upstream repository, release, commit, the files
-   taken, and each change with its reason.
-2. **Given** a vendored file changed without a record entry, **When** the
-   checks run, **Then** they fail and name the file.
-3. **Given** the license notices, **When** a maintainer reads them, **Then**
-   jev-judge-mcp's MIT license and its own third-party notice for jev-mcp
-   are present, and the old port's jev-mcp 0.9.0 record is gone.
+1. **Given** the code plugin's `mcp.json`, **When** a client starts it from
+   the repository, **Then** backfire serves with the shipped Hive profile
+   and no pseudonymization.
+2. **Given** the work plugin's `mcp.json`, **When** a client starts it,
+   **Then** backfire serves with the education profile and pseudonymization
+   on.
+3. **Given** the work plugin's wiki-consistency skill, **When** its
+   commands run, **Then** they use `packages/doc-regions` and
+   `packages/wiki-consistency` from the repository.
+4. **Given** the finished branch, **When** backfire's own code is counted
+   against `develop` (Python and TOML, tests and the pseudonymization module
+   excluded), **Then** it is about 300 to 500 lines, and the count and its
+   file list are reported.
 
 ### Edge Cases
 
-- A call supplies thousands of items with the same ID: the server gives them
-  unique IDs in the same way as upstream, in time that grows linearly with
-  the number of items.
+- The selected profile, its credential file or a Jev profile's provider
+  name is missing or invalid: tools that ask a judgment fail with backfire's
+  configuration error naming the profile or file, before anything is sent;
+  `jev_extract` without candidates still answers without asking.
+- Pseudonymization finds two keys that become equal: the call fails with the
+  existing conflict error.
 - Several runaway patterns arrive at once, in one call or in concurrent
-  calls: simple patterns waiting behind them still match and are not
-  reported as timed out, and every runaway pattern still ends with the
-  time-out reason.
-- `regex` accepts a pattern that jev-mcp's engine would run for longer than
-  the limit, such as `(a+)+$`: it returns its matches, as recorded in the
-  upstream record.
-- A tool's arguments contain keys that the schema does not list: the server
-  handles them as jev-judge-mcp 0.6.0 does.
-- The client sends `arguments: null`, omits `arguments`, or cancels a call
-  while its pattern is running: the server answers as jev-judge-mcp 0.6.0
-  does, and a cancelled pattern's process is killed.
-- A Jev profile names an unknown provider, or its credential file is
-  missing: tools that ask a judgment fail with backfire's configuration
-  error and name the profile or file, before anything is sent.
-- The configuration or credential is missing: tools that ask a judgment fail
-  with backfire's fixed configuration error; `backfire_extract` without any
-  candidates still answers without asking.
-- Pseudonymization finds two keys that become equal: the call fails with
-  backfire's existing conflict error.
+  calls: simple patterns waiting behind them still match.
+- `regex` finishes a pattern that jev-mcp's engine would stop, such as
+  `(a+)+$`: it returns its matches.
+- `jev_noul`'s `auto_accept` of exactly 0.5 is rejected and 0.51 is
+  accepted, although PyModel's argument compiler lacks `exclusiveMinimum`.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-**Tools**
+**Server and tools**
 
-- **FR-001**: The server MUST be named `backfire`, start with the existing
-  `backfire serve-mcp` command, and keep the plugins' `mcp.json` entries
-  unchanged.
-- **FR-002**: The server MUST list exactly twelve tools: the eleven tools of
-  jev-judge-mcp 0.6.0 with the `jev_` prefix replaced by `backfire_`
-  (`backfire_verify`, `backfire_screen`, `backfire_find`,
-  `backfire_classify`, `backfire_decide`, `backfire_rerank`,
-  `backfire_compare`, `backfire_extract`, `backfire_review`,
-  `backfire_gate`, `backfire_score`) and `backfire_noul`.
-- **FR-003**: For the eleven upstream tools, the tool definitions (title,
-  description, input schema and execution settings), argument handling,
-  questions sent to the model, decision logic, result payloads and error
-  results MUST be those of jev-judge-mcp 0.6.0, except for the tool-name
-  mapping and the changes this specification requires. Each such change MUST
-  be recorded (FR-015).
-- **FR-004**: `backfire_noul` MUST keep its current definition, questions,
-  decision logic and result fields, and MUST be served, validated and
-  reported through the same tool framework as the other tools.
-- **FR-005**: Giving items unique IDs MUST take time that grows linearly with
-  the number of items, and MUST assign the same IDs, in the same order, as
-  jev-judge-mcp 0.6.0 does.
-- **FR-006**: Every judgment MUST go through the selected backfire profile
-  and end in one of backfire's fixed judgment error types on failure. A
-  general-model profile MUST use system-one-adapter with CHE-33's retries
-  for server failures and replies without an answer. A Jev profile MUST
-  name its provider (`typesafe`, `openrouter`, `cloudflare`, `vercel` or
-  `compatible`) and use that provider with PyModel's retries. The shipped
-  profiles MUST keep selecting DeepSeek on Hive; PyModel's
-  environment-variable provider selection MUST NOT be used.
-- **FR-007**: When the shipped build enables pseudonymization, education data
-  MUST be pseudonymized before a judgment leaves the machine and restored in
-  the answers, as it is today, for both profile kinds.
-- **FR-021**: The `vercel` provider MUST be ported from jev-agent-tools
-  0.1.2's Vercel driver (the code jev-mcp 0.9.0 uses), credited with its MIT
-  license, and recorded as a difference from PyModel, which refuses Vercel.
-  Its address, model and credential variable MUST come from the profile,
-  and its key from the profile's `0600` credential file. It MUST be tested
-  against a local stub; no billed Vercel call is made unless the user adds a
-  key.
+- **FR-001**: `backfire serve-mcp` MUST construct PyModel's `JevMCPServer`
+  with a `Toolset` over PyModel's `Runtime` and run PyModel's `serve()`;
+  backfire MUST NOT edit PyModel's code or copy it, except the short
+  candidate loop of PyModel's `match_all` that the regex executor needs
+  until PyModel takes a compile parameter (credited, and named in the
+  upstream contribution).
+- **FR-002**: The server MUST list PyModel 0.6.0's eleven tools, unchanged,
+  followed by `jev_noul`.
+- **FR-003**: `jev_noul` MUST keep jev-mcp 0.9.0's Noul definition,
+  questions, labels, invalid-answer handling and budget error, defined
+  through PyModel's tool framework. Where PyModel's argument compiler cannot
+  enforce a keyword (`exclusiveMinimum`), the same bound MUST be enforced
+  with PyModel's refinement mechanism, and the difference in the published
+  schema MUST be recorded.
+- **FR-004**: `jev_extract` MUST run patterns through backfire's regex
+  executor (CHE-37): the `regex` library in a thread with
+  `concurrent=True`, one second of `regex`'s own timeout per field,
+  PyModel's result fields, caps and reasons.
 
-**Backfire's own services**
+**Providers**
 
-- **FR-008**: The server MUST keep writing content-free tool-call and
-  judgment records, for both profile kinds, with today's record kinds, fields, storage budget,
-  locking and failure behaviour; decision summaries MUST read the rebuilt
-  tools' result fields and cover all twelve tools.
-- **FR-009**: The server MUST keep the 10 MiB message limit, the 118-second
-  call deadline, cancellation, stop-signal handling and session-end
-  behaviour.
-- **FR-010**: `backfire ready` MUST check the rebuilt server and the
-  selected profile, of either kind, as it does today.
-- **FR-011**: Both plugin builds MUST contain everything the rebuilt server
-  needs, including the vendored upstream and its license files.
+- **FR-005**: The provider factory MUST load the selected backfire profile
+  and its `0600` credential file from backfire's configuration, and MUST
+  NOT let PyModel's provider environment variables choose the provider. A
+  profile MAY name another `0600` key file by path (the Vercel profile
+  names the chat plugin's `jev.env`); the key is never logged or printed.
+- **FR-006**: A Hive (general-model) profile MUST send judgments through
+  system-one-adapter with the profile's address, model and extra request
+  fields; failures MUST be retried by PyModel's retry policy, and a
+  normal-looking reply without an answer MUST be retried as CHE-33 made it
+  do, with its existing failing-then-passing test kept.
+- **FR-007**: A Jev profile MUST name `typesafe`, `openrouter`,
+  `cloudflare`, `compatible` or `vercel`; the first four MUST be PyModel's
+  own providers, obtained through PyModel's `resolve_provider` from
+  settings built from the profile; `vercel` MUST be a provider ported from
+  jev-agent-tools 0.1.2's Vercel driver, credited with its MIT license.
+- **FR-008**: When a plugin turns education settings on, pseudonymization
+  MUST wrap whichever provider the profile selects: education data is
+  replaced before a request leaves and restored in the answers.
+- **FR-009**: The shipped configuration MUST keep selecting DeepSeek on
+  Hive; vendor and provider details MUST stay in configuration, not in
+  package code.
 
-**Load fixes**
+**Removal and plugins**
 
-- **FR-012** (CHE-37): `backfire_extract` MUST match patterns with the
-  `regex` library in a thread, without blocking the event loop, and its
-  1-second regex limit MUST be `regex`'s own timeout, so it counts processor
-  time from the start of matching and never process start-up, imports or
-  waiting for a thread. A pattern that needs at most 2 ms of processor time
-  MUST NOT time out under machine load. A pattern that runs away MUST still
-  be stopped with the upstream's time-out reason, and each test of that MUST
-  use a pattern that runs away under `regex`. The result fields, caps and
-  error texts MUST stay jev-judge-mcp 0.6.0's.
-- **FR-013** (CHE-38): No tool, `backfire_verify` included, MAY block the
-  server's event loop for 1 second or more while handling a 10 MiB message
-  with 16 busy processes on the development laptop (8 cores).
-- **FR-014**: Each of FR-012 and FR-013 MUST have a test that fails on the
-  code before the fix and passes after it; the failing run MUST be recorded.
+- **FR-010**: Backfire's port of jev-mcp 0.9.0, its call boundary, its
+  judgment and per-call records, its readiness command, its size limits,
+  its extra Hive checks and fixed error types (except the `JudgmentError`
+  class), its acceptance tools and their fixtures in
+  `scripts/backfire/fixtures/`, the plugin build tool and its tests, and
+  the vendored copy of PyModel with its tests MUST be removed, leaving no
+  unused code.
+- **FR-011**: Both plugins' `mcp.json` MUST start backfire from
+  `packages/backfire` in the repository; the work plugin MUST pass the
+  `serve-mcp` option that turns on education settings; the work plugin's
+  wiki-consistency skill MUST run the repository's `packages/doc-regions`
+  and `packages/wiki-consistency`.
+- **FR-012**: Everything that names backfire's tools MUST use the `jev_`
+  names: the backfire skills in both plugins, repository documents,
+  `scripts/workflow.ts`, and the doc-regions and wiki-consistency request
+  builders, whose tests MUST pass.
 
-**Upstream record**
+**Load**
 
-- **FR-015**: The vendored jev-judge-mcp source MUST keep its upstream form
-  except for recorded changes, MUST carry its MIT license and its own
-  third-party notice, and MUST be credited in
-  `licenses/THIRD_PARTY_NOTICES.md`. One upstream record MUST name the
-  upstream repository, release, commit, the files taken with their upstream
-  hashes, and each change with its reason; it replaces the record of the
-  jev-mcp 0.9.0 port. An automated check MUST fail when a vendored file
-  differs from upstream without a record entry.
-- **FR-016**: Backfire's port of jev-mcp 0.9.0 (its tools, shared helpers,
-  captured upstream cases and the tests that only cover the port) MUST be
-  removed, leaving no unused code.
+- **FR-013** (CHE-37): a test MUST fail with PyModel's default regex
+  executor for the reason CHE-37 describes and pass with backfire's; tests
+  of runaway patterns MUST use a pattern that runs away under `regex`.
+- **FR-014** (CHE-38): the fixes that need PyModel's code (linear
+  duplicate IDs, the stdin line limit, `exclusiveMinimum`, and moving the
+  measured synchronous steps off the event loop) MUST be prepared as a
+  patch against PyModel 0.6.0 with its own tests and a pull-request text,
+  stored in this feature's records; nothing is opened on GitHub. The
+  bounded-work check MUST mark the `jev_verify` case as a known failure
+  naming CHE-38 and MUST check every other tool.
 
 **Boundaries**
 
-- **FR-017**: Vendor and provider details MUST stay in configuration, not in
-  package code.
-- **FR-018**: Private backfire records, student data and evaluation data
-  MUST NOT enter committed fixtures, snapshots or reports; no implementer
-  opens the held-out evaluation file.
-- **FR-019**: The repository's documents and the plugins' backfire skill
-  files MUST NOT contradict the rebuilt tool set; where they describe tools,
-  results or the upstream, they MUST be updated.
-- **FR-020**: The workspace packages that call backfire (doc-regions and
-  wiki-consistency) MUST keep passing their tests; any request limit they
-  assume MUST still hold on the rebuilt server.
+- **FR-015**: `jev-judge-mcp==0.6.0` and `regex` MUST be pinned in
+  `packages/backfire/pyproject.toml` and `uv.lock`; the credits for
+  jev-judge-mcp (a dependency) and jev-agent-tools (ported code) MUST be in
+  `licenses/THIRD_PARTY_NOTICES.md`, and the jev-mcp 0.9.0 entry MUST go
+  unless something that still ships needs it.
+- **FR-016**: Private backfire records, student data and evaluation data
+  MUST NOT enter fixtures, snapshots or reports; no implementer opens the
+  held-out evaluation file.
+- **FR-017**: Backfire's own code MUST be reported as a net line count
+  against `develop` with its file list; going above 500 lines needs the
+  user's approval first.
 
 ### Key Entities
 
-- **Vendored upstream**: the files taken from jev-judge-mcp 0.6.0, kept in
-  their upstream form except for recorded changes, with the upstream license
-  and notices.
-- **Upstream record**: the document that names the upstream revision, the
-  files taken, their upstream hashes, and every change with its reason.
-- **Provider seam**: the point where the upstream tool runtime asks a
-  provider for a judgment; backfire's provider profiles, retries,
-  pseudonymization and judgment records attach there.
-- **Tool-call and judgment records**: backfire's existing content-free
-  session records.
+- **Backfire profile**: a TOML table in the shipped or operator
+  configuration: a Hive (general-model) profile with address, model, key
+  variable and extra request fields, or a Jev profile naming its provider
+  and that provider's settings; its key lives in a `0600` credential file.
+- **Provider factory**: the function PyModel's `Runtime` calls to get its
+  provider; backfire's builds the Hive or Jev provider from the selected
+  profile and wraps it with pseudonymization when education settings are on.
+- **Upstream contribution**: a patch against PyModel 0.6.0 plus its tests
+  and pull-request text, kept in this feature's records.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: The tool list has exactly twelve tools, and each of the eleven
-  upstream tools' definitions equals jev-judge-mcp 0.6.0's after the name
-  mapping and recorded changes, checked automatically.
-- **SC-002**: The vendored upstream's own tests for the files taken pass in
-  the repository, adapted only where recorded.
-- **SC-003**: The CHE-37 test fails on the code before its fix and passes
-  after it; with 80 busy processes, 5 of 5 runs of the bounded-work extract
-  case find the simple pattern's match, and runaway patterns time out in
-  every run.
-- **SC-004**: The CHE-38 test fails on the code before its fix and passes
-  after it; with 16 busy processes, every tool's worst event-loop stall stays
-  under 1 second in 3 of 3 runs.
+- **SC-001**: The tool list is PyModel 0.6.0's eleven tools followed by
+  `jev_noul`, checked automatically against the installed package.
+- **SC-002**: Each profile kind and each named Jev provider, Vercel
+  included, passes a test against a local stub; no billed call is made
+  outside the final live check.
+- **SC-003**: The CHE-37 test fails with PyModel's default executor and
+  passes with backfire's; with 80 busy processes, 5 of 5 runs of the extract
+  load case find the simple pattern's match, and runaway patterns time out.
+- **SC-004**: With 16 busy processes, every tool except the known CHE-38
+  case keeps its worst event-loop stall under 1 second in 3 of 3 runs; the
+  contribution's patch makes the `jev_verify` case pass against a patched
+  PyModel.
 - **SC-005**: At least three full `npm run verify` runs in a row pass
   without a rerun.
-- **SC-006**: A final live check through the shipped profile, with no more
-  than 15 billed calls, returns valid judgments; the number of billed calls
-  is reported. The Jev providers, Vercel included, pass their checks against
-  local stubs; no live Jev check runs while no Jev key is configured.
-- **SC-007**: The upstream-record check passes, and changing any vendored
-  file without a record entry makes it fail.
-- **SC-008**: No source file of the jev-mcp 0.9.0 port remains, and the
-  tests of doc-regions and wiki-consistency pass.
+- **SC-006**: A final live check through the shipped Hive profile, with no
+  more than 15 billed calls, returns valid judgments, and one live Jev
+  judgment through the Vercel profile succeeds; the number of billed calls
+  of each is reported. No other live Jev provider is checked, because no
+  other Jev key is configured.
+- **SC-007**: Backfire's own code is about 300 to 500 lines net of
+  pseudonymization and tests, reported with its file list; no vendored copy
+  of PyModel remains.
+- **SC-008**: The doc-regions and wiki-consistency tests pass, and both
+  plugins start backfire from the repository.
 
 ## Assumptions
 
-- The `regex` library replaces only where patterns run; PyModel's
-  translation of the pattern dialect, its candidate pipeline and its caps
-  stay.
-- The official MCP SDK version stays at backfire's pinned `mcp` 2.2.0, which
-  jev-judge-mcp 0.6.0 supports; its `MCPServer` is in `mcp.server.mcpserver`.
-- Only the parts of jev-judge-mcp that serving the tools needs are vendored.
-  Its installer, command-line subcommands, HTTP transport, calibration,
-  completion hook and packaged skills are not, because backfire's plugins,
-  build and readiness check already cover those needs.
-- Result payloads change from jev-mcp 0.9.0's to jev-judge-mcp 0.6.0's where
-  they differ; that follows from the user's decision that tool behaviour
-  follows jev-judge-mcp as it is.
-- Tool calls run on the development laptop and in the repository's checks;
-  the load targets use the CHE-37 assessment's method (`nice -n 19` busy
-  processes on the 8-core laptop).
-- New runtime dependencies that the vendored source needs are pinned like
-  backfire's other dependencies.
+- `jev-judge-mcp` 0.6.0 from PyPI runs with backfire's pinned `mcp` 2.2.0
+  and `typesafe-sdk` 0.7.1 on Python 3.14.4, as the evaluation checked.
+- PyModel's `serve()` provides stdio, signal handling and shutdown; its own
+  argument validation and input limits replace backfire's.
+- The Hive provider's retries use PyModel's retry policy through its
+  `JevProvider.evaluate`, with CHE-33's answerless-reply rule added as the
+  only extra case.
+- Plugins are used from the repository checkout, never installed, so a
+  plugin's `mcp.json` may name repository paths.
