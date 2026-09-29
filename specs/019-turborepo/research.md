@@ -199,6 +199,17 @@ defined", while `@std/path`, `@std/assert`, `@std/testing/mock` and
 `@cliffy/command` work. The selection was redone on the merged tree
 (classification batch 20 onward).
 
+### D17. The constitution amendment's type
+
+- **Decision**: `feat(constitution)`, version 2.1.0 to 2.2.0 (commit
+  `b1f8fff`): the workflow and verification gates name the npm commands,
+  principle IX's examples no longer name Deno, and Governance records the
+  decision. The user confirmed on 2026-09-29 that it is not breaking and
+  that principle IX's "Do not require one repository-wide runtime, server or
+  composition entry point" stays unchanged.
+- **Backfire**: `feat_minor` (0.65) over `docs_patch` (0.25) and
+  `breaking_major` (0.05), confidence 0.58 ([d17](evidence/decide-d17.json)).
+
 ## Other findings
 
 - npm 12 refuses packages whose tarballs are on another host by default
