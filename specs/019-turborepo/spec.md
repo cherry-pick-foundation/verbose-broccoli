@@ -1,10 +1,10 @@
-# Feature Specification: Turborepo trial
+# Feature Specification: Turborepo, Node.js and a uv workspace
 
 **Feature Branch**: `feature/turborepo`
 
 **Created**: 2026-09-29
 
-**Status**: Draft
+**Status**: In progress (the trial became the real change on 2026-09-29)
 
 **Linear issue**: CHE-32
 
@@ -15,8 +15,15 @@ The user chose to switch the repository's tooling to Turborepo, to move the
 TypeScript side from Deno to Node.js, and to run the three Python packages
 (`backfire`, `doc-regions`, `wiki-consistency`) as one native uv workspace
 under Turborepo's experimental Python support. Backfire judgments select the
-parts that must change, and only those change. The outcome is a report; the
-branch is not merged into `develop` as part of this feature.
+parts that must change, and only those change. The trial's outcome was a
+report ([report.md](report.md)). On 2026-09-29 the user made it the real
+change, relayed by the orchestrator of the `develop` worktree: remove Deno
+completely, including the `@deno/shim-deno` preload and the shipped
+clean-code skill's Deno runtime; merge `develop` and redo the selection on
+that base; apply the governance wording to `AGENTS.md` and the
+constitution; and finish the feature into `develop` through the normal
+review path. The user kept Prettier for YAML and accepted the weaker Node
+permission model with its losses listed.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -155,10 +162,29 @@ each claim against its recorded evidence.
   one is missing or stale.
 - **FR-008**: Turborepo MUST NOT reuse a cached result after a change to a
   file that the task reads.
-- **FR-009**: The trial MUST NOT change `AGENTS.md`, the constitution, the
-  user's global tools, Linear, or other features' worktrees.
+- **FR-009**: The change MUST NOT change the user's global tools, Linear, or
+  other features' worktrees. `AGENTS.md` and the constitution change only by
+  the governance wording in the report, and a breaking constitution change
+  needs the user's approval before its commit.
+- **FR-011**: No part of the repository MAY require or invoke Deno: no
+  `deno.json` or `deno.lock` files, no `@deno/shim-deno` or other Deno-API
+  shim, and no Deno in the doctor, `orca.yaml` or the GitHub workflows. The
+  shipped clean-code skill runs on Node.js, and its `SKILL.md` states what
+  users must install.
+- **FR-012**: The feature MUST include `develop`'s changes up to the merge
+  base it finishes on, with the backfire selection redone on that base.
 - **FR-010**: The report MUST contain the items of User Story 4 and be
   recorded in this feature's directory and sent to the develop session.
+
+- **FR-013**: Where `develop`'s per-package locks held different versions of
+  one package, the root `uv.lock` MUST use the newer one (openai 3.20.0,
+  starlette 1.7.0, typesafe-sdk 0.7.2, pyjwt 2.15.1, sse-starlette 3.5.0 as
+  of `develop` 8ce9b2a), so no package runs on an older version than it was
+  tested with on `develop`, unless a test fails with it; any exception is
+  recorded here with the failing test.
+- **FR-014**: Biome stays the TypeScript linter and formatter in this
+  feature; ESLint and Prettier rules for TypeScript (gts) come in CHE-36
+  after this feature merges. Prettier formats YAML only.
 
 ## Success Criteria *(mandatory)*
 
@@ -183,8 +209,7 @@ each claim against its recorded evidence.
   repository dependency.
 - `tools/spec-kit` and `tools/shellcheck` stay separate uv projects; they are
   development tools, not packages, and are not workspace members.
-- The shipped clean-code skill's runtime, and every other scope, governance
-  or check-removal question, is decided by the user through the develop
-  session.
+- Scope, governance and check-removal questions are decided by the user
+  through the develop session.
 - The GitHub workflows are changed where they must be, but cannot be run
   locally; the report says so.

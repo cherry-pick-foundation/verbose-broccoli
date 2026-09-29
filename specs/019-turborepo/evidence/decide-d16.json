@@ -1,0 +1,68 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the shipped clean-code skill (plugins/code/skills/clean-code), which users copy into their own projects and which the user has now decided to move from Deno to Node.js, reach its dependencies and the Deno APIs its scripts call?",
+  "evidence": "The user decided on 2026-09-29 (through the develop session) that the clean-code skill moves to Node so that Deno is no longer required anywhere in the repository, that @deno/shim-deno is kept where it is used, and that the report must state what skill users must install (Node version, any npm install step). The skill has SKILL.md, deno.json (imports: eslint 10.10.0, typescript-eslint 8.70.0, typescript 6.0.3, @typescript-eslint/utils 8.70.0 from npm; @std/fs 1.0.24, @std/path 1.1.6, @std/assert 1, @cliffy/command 1.2.1 from JSR), deno.lock, and three scripts. Its runtime scripts call the Deno namespace at 5 sites: clean_code.ts Deno.args, Deno.cwd and Deno.readTextFile; cli.ts Deno.args and Deno.exitCode. Its test file clean_code_test.ts has 5 Deno.test registrations and about 20 Deno file-system calls. Today users run 'deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --scope'. The repository's own scripts import the skill's cli.ts and run with the repository preload (scripts/deno_shim.ts, which bridges Deno.exitCode). JSR packages install through npm only from npm.jsr.io with a project .npmrc containing @jsr:registry=https://npm.jsr.io and allow-remote=root (npm 12 refuses them otherwise). Node runs the .ts files with type stripping; clean_code.ts uses import.meta.main.",
+  "candidates": [
+   {
+    "id": "skill_shim_preload",
+    "description": "The skill gets its own package.json, package-lock.json and .npmrc (the same pinned packages as npm and JSR aliases, plus @deno/shim-deno) and its own copy of the preload; its Deno call sites stay unchanged except Deno.test, and users run 'npm ci --prefix <skill-root>' once and then 'node --import <skill-root>/scripts/deno_shim.ts <skill-root>/scripts/clean_code.ts --scope'."
+   },
+   {
+    "id": "skill_node_rewrite",
+    "description": "The skill gets its own package.json, package-lock.json and .npmrc (the same pinned packages as npm and JSR aliases, no shim); its few Deno call sites are rewritten to Node built-ins (process.argv, process.cwd, node:fs/promises, process.exitCode, node:test), and users run 'npm ci --prefix <skill-root>' once and then 'node <skill-root>/scripts/clean_code.ts --scope'."
+   }
+  ],
+  "requirements": [
+   "Users run the skill with one plain node command after one npm install step.",
+   "Adds no new copy of locally owned glue code to the shipped skill."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. The user decided on 2026-09-29 to move the shipped clean-code skill to Node too, so that Deno is not required anywhere in the repository, keeping @deno/shim-deno where it is used.\n6. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "skill_node_rewrite",
+   "escaped": false,
+   "confidence": 0.8374999999999999,
+   "probabilities": {
+    "skill_shim_preload": 0.05,
+    "skill_node_rewrite": 0.87,
+    "ask_user": 0.01,
+    "investigate": 0.02,
+    "none": 0.05
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "skill_shim_preload",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "skill_shim_preload",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "skill_node_rewrite",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "skill_node_rewrite",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2474,
+   "output_tokens": 2383
+  }
+ }
+}

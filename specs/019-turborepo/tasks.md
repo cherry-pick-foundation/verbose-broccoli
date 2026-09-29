@@ -84,6 +84,35 @@ Every task changes only the sites that
     report in [report.md](report.md). Next: the user decides whether to
     merge; a merge needs the selection redone on the moved `develop`.
 
+## Phase 4: The real change (2026-09-29)
+
+The user made the trial the real change: merge `develop`, remove Deno
+completely, apply the governance wording and finish into `develop`. The
+selection was redone on the merged tree
+([evidence/selected-sites-full-removal.md](evidence/selected-sites-full-removal.md)).
+
+- [x] T013 Main: merge `develop` 8ce9b2a (`cfbb1c7`), resolving 16 conflicts;
+  a fresh Codex review (R2) checks the resolution.
+- [ ] T008 [P] The clean-code skill on Node (D16): its own `package.json`,
+  lock and `.npmrc`, Node built-ins, `node:test`, the Node run command in
+  `SKILL.md`, and the repository files that run or copy it.
+- [ ] T009a [P] The non-test scripts without the shim and `@std/fs`, and the
+  doctor without Deno.
+- [ ] T010 [P] Test suites group A without the shim.
+- [ ] T011 [P] Test suites group B without the shim, including develop's
+  `scripts/ruff_test.ts`.
+- [ ] T012 [P] Python follow-ups: the work build's `backfire` source, the Ruff
+  findings, the separator comment, and the newer lock versions (FR-013).
+- [ ] T009b After T008 to T012: remove the preload, `@deno/shim-deno`,
+  `@std/fs` and `deno.json`; port develop's Ruff tasks; no Deno in
+  `orca.yaml` or the workflows; regenerate the references.
+- [ ] T014 Main: the governance wording in `AGENTS.md` and the constitution,
+  and the selected prose in `README.md`, `docs/architecture.md` and
+  `docs/backfire.md`.
+- [ ] T015 Main: `npm run verify`; a fresh Claude Code reviewer for the Codex
+  code and a fresh Codex reviewer for main's changes; the review record;
+  `git flow feature finish`; CHE-32 to Done.
+
 ## Dependencies
 
 T001 and T002 start together. T003, T004 and T005 start after T001. T006

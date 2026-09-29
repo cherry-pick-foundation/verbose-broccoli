@@ -81,7 +81,20 @@ evidence.
 - **Evidence**: it is a shipped plugin component whose `SKILL.md` tells
   users' agents to run it with Deno; moving it changes what they must
   install.
-- **Open**: scope is the user's decision.
+- **Superseded**: on 2026-09-29 the user moved the skill to Node as well,
+  so that Deno is required nowhere (see D16).
+
+### D16. The clean-code skill on Node
+
+- **Decision**: The skill gets its own `package.json`, `package-lock.json`
+  and `.npmrc` with the same pinned packages, and its few Deno calls are
+  rewritten to Node built-ins, without a shim. Users run `npm ci --prefix
+  <skill-root>` once, then `node <skill-root>/scripts/clean_code.ts`.
+- **Backfire**: `skill_node_rewrite` (0.87) over a shim preload in the skill
+  (0.05) ([d16](evidence/decide-d16.json)).
+- **Evidence**: the skill's runtime scripts call the Deno namespace at five
+  sites and its test file at about 25; JSR packages need the project
+  `.npmrc` (`@jsr` registry, `allow-remote=root`).
 
 ### D6. Python environments
 
@@ -174,6 +187,17 @@ evidence.
 - **Evidence**: the shim's `FsFile` has no `lock` or `unlock`, and Node.js
   24.19 has no file-lock API. The package was last published in 2022-06; the
   report lists that as a maintenance risk.
+
+### Scope change of 2026-09-29
+
+The user made the trial the real change: Deno goes completely, including
+the `@deno/shim-deno` preload (D1 and D11 are superseded), after merging
+`develop` 8ce9b2a. The merge brought Ruff (CHE-29), the vault rule checks
+(CHE-26) and a new dependency of `wiki-consistency` on `backfire[education]`.
+Measured on Node 24.19 without the shim: `@std/fs` fails with "Deno is not
+defined", while `@std/path`, `@std/assert`, `@std/testing/mock` and
+`@cliffy/command` work. The selection was redone on the merged tree
+(classification batch 20 onward).
 
 ## Other findings
 
