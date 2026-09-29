@@ -208,6 +208,17 @@ time limit.
   `develop` in and verify, `git flow feature finish`, `npm run verify` on the
   merged `develop`, and CHE-41 through In Review to Done with one completion
   comment.
+  - 2026-09-30: merge review at `a6537c7`. Code: a fresh Claude Code worker
+    on `claude-sonnet-5-5` at medium effort found nothing blocking and two
+    minor points, both fixed by Codex (`gpt-6-luna`, max): tracker text now
+    follows `--` in the `notify-send` call, and the notification and tracker
+    error paths have tests (14 tests). Records: a fresh Codex worker
+    (`gpt-6-luna`, max) found two blocking and two minor points, all fixed:
+    the credential file is created only when missing and the keyless check
+    uses a scratch file; the spec and contract say TypeSafe keeps
+    `TYPESAFE_MODEL`; the automation is described as approved; the monthly
+    cost is about 1 to 2 cents. The fixes do not change the implementation
+    materially, so no second round. Lines: 284 of 300.
 
 ## Dependencies & Execution Order
 
