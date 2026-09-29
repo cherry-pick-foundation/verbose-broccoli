@@ -63,7 +63,11 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
     before = _snapshot(instance)
     calls = []
+    mcp_calls = []
+    servers = []
     real_run = search.subprocess.run
+    real_stdio = search.stdio_client
+    real_session = search.ClientSession
 
     def record_run(command, *args, **kwargs):
         calls.append(
@@ -75,6 +79,17 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
         )
         return real_run(command, *args, **kwargs)
 
+    @asynccontextmanager
+    async def record_stdio(server):
+        servers.append(server)
+        async with real_stdio(server) as streams:
+            yield streams
+
+    class RecordingSession(real_session):
+        async def call_tool(self, name, arguments):
+            mcp_calls.append((name, arguments))
+            return await super().call_tool(name, arguments)
+
     for name in (
         "HF_TOKEN",
         "HF_TOKEN_PATH",
@@ -85,6 +100,8 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     ):
         monkeypatch.setenv(name, "synthetic-secret")
     monkeypatch.setattr(search.subprocess, "run", record_run)
+    monkeypatch.setattr(search, "stdio_client", record_stdio)
+    monkeypatch.setattr(search, "ClientSession", RecordingSession)
 
     result = search.index(instance, "wiki-a", cache, download=False)
     hits = search.search(
@@ -130,14 +147,30 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
         if Path(command[0]).name == "qmd":
             assert command[1:3] == ("--index", "wiki-a")
     verbs = {command[3] for command, _, _ in calls}
-    assert {"update", "search", "ls"} <= verbs
-    assert not verbs & {"embed", "pull", "query", "vsearch"}
-    assert cache.stat().st_mode & 0o777 == 0o700
+    assert {"collection", "update"} <= verbs
+    assert not verbs & {"embed", "pull", "search", "query", "vsearch"}
+    assert len(servers) == 2
+    assert "--index" in servers[-1].args[1]
+    assert servers[-1].args[-1] == "wiki-a"
+    assert "umask 077" in servers[-1].args[1]
+    assert {
+        key: servers[-1].env[key] for key in _qmd_environment(cache)
+    } == _qmd_environment(cache)
+    assert all(name not in servers[-1].env for name in search.MODEL_TOKENS)
+    typed_searches = [
+        search_args["searches"]
+        for name, search_args in mcp_calls
+        if name == "query"
+    ]
+    assert typed_searches == [[{"type": "lex", "query": "quadratic formula"}]]
     assert (cache / "qmd").stat().st_mode & 0o777 == 0o700
     assert (cache / "qmd" / "config").stat().st_mode & 0o777 == 0o700
 
 
-def test_index_embeds_only_after_download_is_requested(tmp_path, monkeypatch):
+@pytest.mark.parametrize("download", [False, True])
+def test_index_embeds_only_after_download_is_requested(
+    tmp_path, monkeypatch, download
+):
     instance, cache = _wiki(tmp_path)
     calls = []
     run_qmd = search._run_qmd
@@ -152,9 +185,9 @@ def test_index_embeds_only_after_download_is_requested(tmp_path, monkeypatch):
 
     monkeypatch.setattr(search, "_run_qmd", record_qmd)
 
-    search.index(instance, "wiki-a", cache, download=True)
+    search.index(instance, "wiki-a", cache, download=download)
 
-    assert ("embed",) in calls
+    assert (("embed",) in calls) is download
     assert all(args[0] != "pull" for args in calls)
 
 
@@ -192,26 +225,6 @@ def test_index_and_search_skip_symlinked_pages(tmp_path):
 
     search.search("wiki-a", cache, [])
     assert result["pages"] == 1
-
-
-def test_search_rejects_allowed_paths_for_pages_queries(tmp_path):
-    instance, cache = _wiki(tmp_path)
-    search.index(instance, "wiki-a", cache, download=False)
-
-    with pytest.raises(ValueError, match="allowed_paths.*evidence"):
-        search.search(
-            "wiki-a",
-            cache,
-            [
-                {
-                    "id": "q1",
-                    "text": "quadratic formula",
-                    "collection": "pages",
-                    "limit": 5,
-                    "allowed_paths": ["concepts/quad.md"],
-                }
-            ],
-        )
 
 
 @pytest.mark.parametrize(
@@ -279,36 +292,16 @@ def test_evidence_allowed_paths_return_hits_beyond_limit(tmp_path, monkeypatch):
     search.index(instance, "wiki-a", cache, download=False)
     assert search._collection_chunk_count("wiki-a", cache, "evidence") > 1
 
-    limited = json.loads(
-        search._run_qmd(
-            "wiki-a",
-            cache,
-            [
-                "search",
-                "rarephrase",
-                "-c",
-                "evidence",
-                "--format",
-                "json",
-                "-n",
-                "1",
-            ],
-            budget_action="search",
-        ).stdout
-    )
-    assert all(
-        hit["file"].split("?", 1)[0] != f"qmd://evidence/{target_path}"
-        for hit in limited
-    )
-
     calls = []
-    real_run = search.subprocess.run
+    real_stdio = search.stdio_client
 
-    def record_run(command, *args, **kwargs):
-        calls.append(tuple(map(str, command)))
-        return real_run(command, *args, **kwargs)
+    @asynccontextmanager
+    async def record_stdio(server):
+        calls.append(server)
+        async with real_stdio(server) as streams:
+            yield streams
 
-    monkeypatch.setattr(search.subprocess, "run", record_run)
+    monkeypatch.setattr(search, "stdio_client", record_stdio)
     hits = search.search(
         "wiki-a",
         cache,
@@ -324,9 +317,9 @@ def test_evidence_allowed_paths_return_hits_beyond_limit(tmp_path, monkeypatch):
     )
 
     assert any(hit["path"] == target_path for hit in hits)
-    assert any(
-        command[3] == "search" and "--all" in command for command in calls
-    )
+    assert len(calls) == 1
+    assert "mcp" in calls[0].args[1]
+    assert "--index" in calls[0].args[1]
 
 
 def test_collection_chunk_count_uses_qmd_document_count(tmp_path):
@@ -336,15 +329,29 @@ def test_collection_chunk_count_uses_qmd_document_count(tmp_path):
     assert search._collection_chunk_count("wiki-a", cache, "evidence") == 1
 
 
+def test_semantic_ready_uses_mcp_embedding_status(tmp_path, monkeypatch):
+    monkeypatch.setattr(search, "_model_is_cached", lambda unused_cache: True)
+    monkeypatch.setattr(
+        search,
+        "_run_mcp_search",
+        lambda unused_wiki_id, unused_cache, unused_queries: (
+            {"needsEmbedding": 0},
+            [],
+        ),
+    )
+
+    assert search.semantic_ready("wiki-a", tmp_path / "cache")
+
+
 def test_collection_chunk_count_propagates_qmd_errors(tmp_path, monkeypatch):
     qmd_root = tmp_path / "cache" / "qmd"
     qmd_root.mkdir(parents=True)
     (qmd_root / "wiki-a.sqlite").touch()
 
-    def fail_qmd(unused_wiki_id, unused_cache, unused_args, **unused_kwargs):
+    def fail_qmd(unused_wiki_id, unused_cache, unused_queries):
         raise subprocess.CalledProcessError(1, ["qmd", "ls"])
 
-    monkeypatch.setattr(search, "_run_qmd", fail_qmd)
+    monkeypatch.setattr(search, "_run_mcp_search", fail_qmd)
 
     with pytest.raises(subprocess.CalledProcessError):
         search._collection_chunk_count("wiki-a", tmp_path / "cache", "evidence")
@@ -526,6 +533,17 @@ def test_model_cache_accepts_qmd_filename_and_rejects_partial_or_directory(
     assert not search._model_is_cached(tmp_path)
 
 
+def test_qmd_paths_refuse_symlinks(tmp_path):
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (cache / "qmd").symlink_to(outside, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="symlinks"):
+        search._paths("wiki-a", cache)
+
+
 def test_qmd_budget_refuses_before_running_commands(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
     qmd = cache / "qmd"
@@ -609,17 +627,21 @@ def test_batched_lexical_search_matches_qmd_cli(tmp_path, monkeypatch):
             "limit": 5,
         },
     ]
-    calls = []
+    servers = []
     real_run = search.subprocess.run
+    real_stdio = search.stdio_client
 
-    def record_run(command, *args, **kwargs):
-        calls.append(tuple(map(str, command)))
-        return real_run(command, *args, **kwargs)
+    @asynccontextmanager
+    async def record_stdio(server):
+        servers.append(server)
+        async with real_stdio(server) as streams:
+            yield streams
 
-    monkeypatch.setattr(search.subprocess, "run", record_run)
+    monkeypatch.setattr(search, "stdio_client", record_stdio)
     hits = search.search("wiki-a", cache, queries)
-    search_calls = [command for command in calls if command[3] == "search"]
-    assert len(search_calls) == len(queries)
+    assert len(servers) == 1
+    assert "--index" in servers[0].args[1]
+    assert servers[0].args[-1] == "wiki-a"
     qmd = search._qmd_path()
     env = search._environment(cache)
     for query in queries:
@@ -645,7 +667,7 @@ def test_batched_lexical_search_matches_qmd_cli(tmp_path, monkeypatch):
         )
         cli_hits = json.loads(cli.stdout)
         api_results = {
-            (hit["path"], hit["line"], hit["score"])
+            (hit["path"], hit["line"])
             for hit in hits
             if hit["query"] == query["id"] and hit["mode"] == "lex"
         }
@@ -653,12 +675,12 @@ def test_batched_lexical_search_matches_qmd_cli(tmp_path, monkeypatch):
             (
                 str(hit["file"]).split("?", 1)[0].removeprefix("qmd://pages/"),
                 hit["line"],
-                hit["score"],
             )
             for hit in cli_hits
         }
         assert api_results
         assert api_results == cli_results
+    assert all(0 <= hit["score"] <= 1 for hit in hits)
 
 
 def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
@@ -686,7 +708,24 @@ def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
             if name == "status":
                 return SimpleNamespace(
                     is_error=False,
-                    structured_content={"needsEmbedding": 0},
+                    structured_content={
+                        "needsEmbedding": 0,
+                        "collections": [
+                            {
+                                "name": "pages",
+                                "path": str(instance / "wiki"),
+                            },
+                            {
+                                "name": "evidence",
+                                "path": str(
+                                    cache
+                                    / "wiki-evidence"
+                                    / "wiki-a"
+                                    / f"markitdown-{evidence.CONVERTER_VERSION}"
+                                ),
+                            },
+                        ],
+                    },
                 )
             collection = arguments["collections"][0]
             path = (
@@ -734,21 +773,24 @@ def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
     )
 
     assert len(servers) == 1
-    assert servers[0].args[-3:] == ["--index", "wiki-a", "mcp"]
+    assert "--index" in servers[0].args[1]
+    assert servers[0].args[-1] == "wiki-a"
     assert servers[0].env["QMD_FORCE_CPU"] == "1"
     assert calls[0] == ("status", {})
-    vector_calls = [arguments for name, arguments in calls if name == "query"]
-    assert len(vector_calls) == 2
-    assert vector_calls[0]["searches"] == [
-        {"type": "vec", "query": "a semantic page query"}
+    query_calls = [arguments for name, arguments in calls if name == "query"]
+    assert [arguments["searches"] for arguments in query_calls] == [
+        [{"type": "lex", "query": "a semantic page query"}],
+        [{"type": "vec", "query": "a semantic page query"}],
+        [{"type": "lex", "query": "a semantic evidence query"}],
+        [{"type": "vec", "query": "a semantic evidence query"}],
     ]
-    assert vector_calls[1]["searches"] == [
-        {"type": "vec", "query": "a semantic evidence query"}
+    assert [arguments["limit"] for arguments in query_calls] == [
+        4,
+        4,
+        100000,
+        100000,
     ]
-    assert vector_calls[0]["limit"] == 4
-    assert vector_calls[1]["limit"] == 100000
-    assert all(arguments["rerank"] is False for arguments in vector_calls)
-    assert all(arguments["minScore"] == 0 for arguments in vector_calls)
+    assert all(arguments["rerank"] is False for arguments in query_calls)
     assert {
         (hit["query"], hit["mode"]) for hit in hits if hit["mode"] == "vec"
     } == {

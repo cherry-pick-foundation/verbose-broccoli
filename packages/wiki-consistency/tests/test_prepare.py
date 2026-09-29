@@ -994,13 +994,7 @@ def test_evidence_search_finds_cited_hit_beyond_request_limit(
     evidence.convert(instance, instance.name, cache, revisions(instance))
     search.index(instance, instance.name, cache, download=False)
     captured = []
-    commands = []
     real_search = search.search
-    real_run = search.subprocess.run
-
-    def record_run(command, *args, **kwargs):
-        commands.append(tuple(map(str, command)))
-        return real_run(command, *args, **kwargs)
 
     def add_decoys_then_search(wiki_id, cache_root, queries, **kwargs):
         evidence_queries = [
@@ -1025,7 +1019,6 @@ def test_evidence_search_finds_cited_hit_beyond_request_limit(
             )
         return real_search(wiki_id, cache_root, queries, **kwargs)
 
-    monkeypatch.setattr(search.subprocess, "run", record_run)
     monkeypatch.setattr(requests.search, "search", add_decoys_then_search)
 
     result = _prepare(instance, cache, scope="lint", max_evidence_chars=80)
@@ -1033,9 +1026,6 @@ def test_evidence_search_finds_cited_hit_beyond_request_limit(
     cited_path = f"{SOURCE_ID}/{latest}.md"
     assert all(query["limit"] < 25 for query in captured)
     assert all(cited_path in query["allowed_paths"] for query in captured)
-    assert any(
-        command[3] == "search" and "--all" in command for command in commands
-    )
     assert any(
         "Cited synthetic passage." in item["text"]
         for request in result["requests"]
@@ -1119,7 +1109,26 @@ def test_vector_evidence_search_returns_all_cited_chunks_past_limit(
             if name == "status":
                 return SimpleNamespace(
                     is_error=False,
-                    structured_content={"needsEmbedding": 0},
+                    structured_content={
+                        "needsEmbedding": 0,
+                        "collections": [
+                            {
+                                "name": "pages",
+                                "path": str(instance / "wiki"),
+                                "documents": 2,
+                            },
+                            {
+                                "name": "evidence",
+                                "path": str(
+                                    cache
+                                    / "wiki-evidence"
+                                    / instance.name
+                                    / f"markitdown-{evidence.CONVERTER_VERSION}"
+                                ),
+                                "documents": 1,
+                            },
+                        ],
+                    },
                 )
             results = []
             if arguments["collections"] == ["evidence"]:
@@ -1161,15 +1170,18 @@ def test_vector_evidence_search_returns_all_cited_chunks_past_limit(
     assert queries
     assert all(query["limit"] < len(passage_lines) for query in queries)
     assert all(target_path in query["allowed_paths"] for query in queries)
-    assert len(servers) == 1
-    vector_queries = [
+    assert len(servers) == 2
+    mcp_queries = [
         arguments
         for name, arguments in tool_calls
         if name == "query" and arguments["collections"] == ["evidence"]
     ]
-    assert vector_queries
-    assert all(query["limit"] == 100000 for query in vector_queries)
-    assert all(query["rerank"] is False for query in vector_queries)
+    assert mcp_queries
+    assert all(query["limit"] == 100000 for query in mcp_queries)
+    assert all(query["rerank"] is False for query in mcp_queries)
+    assert {
+        search["type"] for query in mcp_queries for search in query["searches"]
+    } == {"lex", "vec"}
     assert any(
         "Cited synthetic passage." in item["text"]
         for request in result["requests"]
