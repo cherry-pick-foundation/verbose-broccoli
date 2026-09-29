@@ -218,3 +218,167 @@ For a FastMCP-style rebuild, keep the manual definitions and call path. Do not r
 The pure `domain/`, `policy/`, `validation/`, `extract/`, and shared limits/text/ID code can carry over unchanged if the package namespace and internal interfaces stay intact. The ten tool handlers can carry over as Jev tools only if their `jev_` names and output payloads remain acceptable. To publish `backfire_` names, retain Backfire result fields, and attach record/profile hooks, add a thin server adapter or change those definitions. Replace PyModel’s `server.py` and stdio entry point. Keep or adapt `tools/base.py` and `toolset.py` for the custom raw-schema dispatcher.
 
 I found no MCP protocol behavior that a custom server cannot reproduce. The stock type-hint decorator path alone cannot guarantee Backfire’s exact schemas, argument-error text, or error blocks. The transport’s 10 MiB line cap, 118-second deadline, cancellation, and record policy also need custom transport hooks. These are server-layer work, not reasons to rewrite the pure tool logic.
+
+## Phase 0 decisions (2026-09-29)
+
+The coordinator read the upstream at `fd6829c` (cloned from
+<https://github.com/PyModel/jev-judge-mcp>, tag `v0.6.0`), backfire at
+`ae8cadf`, and the installed `mcp` 2.2.0, and settled these points for the
+plan.
+
+### R1. Which upstream files are vendored
+
+- **Decision**: the import closure of `jev_judge_mcp.tools` and
+  `jev_judge_mcp.stdio`, computed from the upstream's `import` statements:
+  `__init__`, `cache`, `errors`, `fsutil`, `ids`, `keyfile`, `limits`,
+  `responses`, `serialize`, `settings`, `stdio`, `telemetry`, `text`; the
+  `domain` package (`answers`, `json`, `questions`, `usage`); `extract`
+  (`candidates`, `dialect`, `executor`, `worker`); `policy` (`actions`,
+  `claims`, `extract`, `ranking`, `review`, `screen`, `thresholds`);
+  `providers` (`base`, `cloudflare`, `compatible`, `openrouter`,
+  `resolver`, `retry`, `typesafe`); `tools` (`arguments`, `base`,
+  `classify`, `common`, `compare`, `decide`, `extract`, `files`, `find`,
+  `gate`, `observed`, `rerank`, `review`, `score`, `screen`, `toolset`,
+  `verify`); `validation` (`caps`, `choice`, `extract`, `noul`, `numbers`,
+  `score`). 62 modules, 8,115 lines, plus `LICENSE` and
+  `THIRD_PARTY_NOTICES.md`.
+- **Rationale**: it is everything the tools need, unchanged, so imports and
+  upstream tests keep working. The rest of the upstream (server entry point,
+  installer, CLI, HTTP transport, doctor, calibration, hooks, packaged
+  skills; about 5,000 lines) serves needs that backfire's plugins, build and
+  readiness check already meet.
+- **Alternatives**: the whole upstream tree (adds unused installer and HTTP
+  code and its dependencies); only the pure modules with rewritten tool
+  handlers (a rewrite, against the reuse rule); PyPI `jev-judge-mcp` as a
+  dependency (rejected by the evaluation: 0.5-based and needs patches the
+  package cannot take).
+
+### R2. Where the vendored copy lives
+
+- **Decision**: `packages/backfire/src/jev_judge_mcp/`, a module of the
+  existing `backfire` package, with the upstream `LICENSE`,
+  `THIRD_PARTY_NOTICES.md` and a new `UPSTREAM.md` in that directory. The
+  vendored upstream tests go under `packages/backfire/tests/upstream/`,
+  keeping the upstream `tests/` layout below it so their own imports work.
+- **Rationale**: `backfire_tools/build.py` copies modules of
+  `packages/backfire/src` by name into each plugin build, so the vendored
+  copy and its license travel with the server without a new workspace
+  package. Import names stay `jev_judge_mcp`, so no vendored line changes for
+  the move.
+- **Alternatives**: a separate workspace package `packages/jev-judge-mcp`
+  (a new package, lock and build path for one consumer); renaming the
+  package to `backfire._vendor.jev_judge_mcp` (touches every import line).
+
+### R3. `backfire_` names without patching the tools
+
+- **Decision**: backfire builds a copy of each upstream `JevTool` with the
+  name mapped, tool-name tokens in its description mapped, and a handler
+  wrapper that maps the payload's top-level `tool` value. `Toolset` compiles
+  its argument parsers from these copies, so argument errors name the
+  `backfire_` tool.
+- **Rationale**: in the upstream, tool names appear only in each
+  definition, in `frame(...)` calls and in `jev_gate`'s error payload
+  (`tools/*.py`), always as the payload's first `tool` key. Mapping them at
+  the registry keeps the vendored tools and their tests unchanged.
+- **Alternatives**: editing every `jev_` literal in the vendored tools (as
+  the port did), which changes eleven files and breaks their upstream
+  tests.
+
+### R4. Provider seam and the provider name
+
+- **Decision**: a `JevProvider` subclass whose `evaluate` calls `judge()`
+  and reports `provider: "compatible"`. It overrides `evaluate` rather than
+  `_send`, so the upstream retry loop (3 attempts, 30-second attempts,
+  90-second budget) does not wrap backfire's own CHE-33 retries or cut
+  judgments short of the 118-second call deadline. The call's deadline and
+  record file reach it through a context variable that the server sets for
+  each call.
+- **Rationale**: `Runtime.ask` calls `provider.evaluate(state, questions,
+  model, None)` (`tools/base.py`), and nothing in the tools catches provider
+  errors specially (`grep "except Provider" tools/`), so any
+  `ProviderError` text reaches the caller unchanged. `compatible` is the
+  value backfire's results carry today (`backfire/tools/answers.py`
+  `PROVIDER`), is one of the upstream's provider names, and names no vendor.
+  system-one-adapter's answers, dumped to JSON, have the fields the upstream
+  validators read (`choice`, `probabilities`, `confidence`, `noul`, `score`).
+- **Alternatives**: the upstream `TypeSafeProvider` with an adapter bridge
+  (the evaluation estimates 30–60 lines plus a resolver seam, and it would
+  bypass backfire's profiles); reporting the profile name (puts operator
+  configuration into every result).
+
+### R5. Server layer
+
+- **Decision**: an `MCPServer` subclass modelled on PyModel's
+  `JevMCPServer` (`server.py:62-110` upstream): `list_tools` and
+  `call_tool` go to the `Toolset`, the `arguments: null` case raises the same
+  error, and the cancelled and initialized notifications get no-op handlers.
+  Its low-level server runs inside backfire's `Boundary.run`, which gets the
+  raw request ID from `context.request_context.request_id`.
+- **Rationale**: `JevMCPServer` itself cannot be imported without
+  vendoring the upstream server module, which pulls in the HTTP transport,
+  bearer-token middleware, key file, packaged skills and version lookup of
+  the `jev-judge-mcp` distribution. The subclass is about 40 lines and is
+  credited in its module docstring.
+- **Alternatives**: vendoring `server.py` and patching out its HTTP and
+  skill parts (a larger patch than the copy); the SDK's low-level `Server`
+  as today (the user chose `MCPServer`).
+
+### R6. stdio
+
+- **Decision**: use the vendored `stdio_streams()` (lone surrogates kept,
+  `NaN` refused, stdin read in an abandonable thread, fd 1 pointed at stderr
+  while serving), patched to read at most 10 MiB per line and to end the
+  session with `message_limit_exceeded` beyond it, as backfire does today.
+  Backfire's `BoundedLineReader` is removed.
+- **Rationale**: reuses the upstream transport and keeps the limit that
+  backfire's contract requires.
+
+### R7. `regex` executor (CHE-37, user's answer)
+
+- **Decision**: a `RegexExecutor` implementation in backfire, passed as
+  `Runtime(regex_executor=...)`. `extract/executor.py`'s `match_all` is
+  patched to take its compile step as a parameter (default `re.compile`),
+  so both engines share the upstream candidate pipeline. The upstream
+  dialect translation compiles with `re.ASCII | re.IGNORECASE` at most
+  (`extract/dialect.py:80`) and spells out every class, so translated
+  patterns mean the same in `regex`'s version-0 mode; but `regex.ASCII` is
+  128 where `re.ASCII` is 256 (checked with `regex` 2026.9.29), so the
+  executor maps the two flag bits by name instead of passing the integer.
+  The same check confirmed the user's runaway case: `(a|aa)+$` on 60 `a`
+  and a `b` raised `TimeoutError` after 1.0 s of CPU with
+  `concurrent=True`, and `(a+)+$` returned at once.
+- **Rationale**: the seam exists, and the pipeline (empty-match advance,
+  dedupe, caps) stays one implementation.
+- **Alternatives**: patching `extract/worker.py`'s process pool (the user
+  chose `regex` instead); copying `match_all` into backfire (a compatibility
+  copy).
+
+### R8. Upstream settings
+
+- **Decision**: `Settings.model_construct()` with defaults only. The
+  upstream's `Settings()` reads only the environment, so a stray
+  `JEV_MCP_CACHE`, `JEV_MCP_MODEL` or provider key would otherwise change
+  backfire's behaviour. The no-judgment model stays the upstream default
+  `jev-latest`, which backfire reports today as well.
+
+### R9. Upstream tests
+
+- **Decision**: vendor the upstream tests that exercise the vendored
+  modules and run offline without Node.js, Docker or network, with their
+  support files and fixtures, under `packages/backfire/tests/upstream/`,
+  unchanged except for recorded changes. Tests of modules or behaviour
+  backfire replaces (process pool, providers it never selects) may stay if
+  they pass unchanged. Added test-only dependencies are pinned as dev
+  dependencies. The added run time is measured and reported.
+
+### R10. What CHE-38 must move off the event loop
+
+- **Decision**: measure before patching. Candidates found by reading the
+  code: the stdio reader parses each line (`decode_json` and pydantic
+  validation of up to 10 MiB) on the event loop; `Toolset._call` runs the
+  argument parser and `stringify` of the result on it; handlers build IDs
+  and questions before their first `await` (`tools/verify.py:65-91`); the
+  writer's `encode_frame` serializes the response on it; backfire's
+  `Boundary.receive` computes the input digest on it. The quadratic
+  `ensure_unique_ids` (`ids.py:30-51`) alone stalls `backfire_verify` for
+  tens of seconds with 100,000 identical IDs.
