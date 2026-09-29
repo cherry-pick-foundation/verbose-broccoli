@@ -157,8 +157,8 @@ from `packages/backfire`.
   on 2026-09-30: no `regex` pin and no custom executor.
 - [ ] T013 [US2] (core worker) Adapt
   `packages/backfire/tests/test_bounded_work.py` to the rebuilt server:
-  PyModel's twelve tools and `jev_noul`, runaway extract fields that run away
-  under `regex`, 10 MiB messages and the 1-second check kept, and the
+  PyModel's eleven tools and `jev_noul`, runaway extract fields that run away
+  under Python's `re`, 10 MiB messages and the 1-second check kept, and the
   `jev_verify` case marked as an expected failure naming CHE-38. Run it
   3 times with 16 busy processes and the extract case 5 times with 80, and
   record the results under T013 (FR-014, SC-003, SC-004).
