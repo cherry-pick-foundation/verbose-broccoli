@@ -1,0 +1,240 @@
+first_seen	commit	slug	category	expiry_date	decision	ended	amount
+2026-08-21T13:30:52Z	3d6794f	elevenlabs-free-plan	voice		not counted (tracker start); qualifies		10k credits/month (~10 min of audio)
+2026-08-21T13:30:52Z	3d6794f	github-copilot-free	coding		not counted (tracker start); qualifies	2026-08-26T22:57:47Z marked expired	2,000 completions + 50 chat requests per month
+2026-08-21T13:30:52Z	3d6794f	google-ai-studio-image	image		not counted (tracker start); qualifies		Free image generation in AI Studio (rate-limited)
+2026-08-21T13:30:52Z	3d6794f	google-cloud-300-free-trial	api_provider		not counted (tracker start); excluded: states a time limit		$300 in credits (90 days from signup)
+2026-08-21T13:30:52Z	3d6794f	mistral-experiment-free-tier	api_provider		not counted (tracker start); qualifies		Free rate-limited API access (no credit card required)
+2026-08-21T21:22:30Z	0664564	devin-free-plan	coding		not counted (tracker start); qualifies		Light coding-agent quota + unlimited Tab completions ($0 plan)
+2026-08-21T21:22:30Z	0664564	groq-free-tier	api_provider		not counted (tracker start); qualifies	2026-08-26T22:57:47Z marked expired	Free rate-limited API access (e.g. 1K requests/day on GPT-OSS models)
+2026-08-21T21:22:30Z	0664564	hailuo-free-tier	video		not counted (tracker start); qualifies		One-time welcome credit package + limited free generation (watermarked)
+2026-08-21T21:22:30Z	0664564	leonardo-ai-free-plan	image		not counted (tracker start); qualifies	2026-09-21T08:30:48Z removed	150 fast tokens per day (resets daily)
+2026-08-21T21:22:30Z	0664564	pika-free-plan	video		not counted (tracker start); qualifies		80 monthly video credits
+2026-08-21T21:22:30Z	0664564	runway-free-plan	video		not counted (tracker start); qualifies		125 one-time credits for AI video and image generation
+2026-08-22T07:30:21Z	a76b217	amazon-polly-free-tier	voice		excluded: states a time limit		5M characters/month on Standard voices and 1M characters/month on Neural voices for your first 12 months
+2026-08-22T07:30:21Z	a76b217	bing-image-creator	image		qualifies		Free image generation with a Microsoft account - 15 fast creations/day plus standard speed (up to 200 prompts per 24h)
+2026-08-22T07:30:21Z	a76b217	cartesia-free-plan	voice		qualifies		20K credits/month for text-to-speech and speech-to-text on the $0 plan
+2026-08-22T07:30:21Z	a76b217	cerebras-free-credit	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	$5 in free API credit after creating an account
+2026-08-22T07:30:21Z	a76b217	cloudflare-workers-ai-free-tier	api_provider		qualifies		10,000 Neurons per day at no charge (resets daily at 00:00 UTC)
+2026-08-22T07:30:21Z	a76b217	cohere-trial-key	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	Free trial key - 1,000 API calls/month across Chat, Embed, and Rerank endpoints
+2026-08-22T07:30:21Z	a76b217	cursor-hobby-plan	coding		qualifies		Free Hobby plan - limited Agent requests plus Composer access, no credit card required
+2026-08-22T07:30:21Z	a76b217	deepgram-free-credit	voice		qualifies		$200 in free credits for speech-to-text, text-to-speech, and voice agent APIs (no credit card required)
+2026-08-22T07:30:21Z	a76b217	openrouter-free-models	api_provider		qualifies		Free :free model variants - 50 requests/day at 20 req/min (1,000/day once you hold $10 credits)
+2026-08-22T07:30:21Z	a76b217	vidu-free-credits	video		qualifies		Trial credits for new users on signup, topped up with daily login bonus credits
+2026-08-22T22:35:11Z	39b00f1	cline-ox-alpha-free	coding		qualifies	2026-08-26T18:42:34Z marked expired	Free model access, rate limited
+2026-08-22T22:35:11Z	39b00f1	opencode-ox-alpha-free-week	coding	2026-08-27	excluded: states an end date	2026-08-26T18:42:34Z marked expired	Free model access, near unlimited usage (rate limited)
+2026-08-22T23:06:17Z	cc8b654	commandcode-ox-alpha-free	coding		excluded: states a time limit	2026-08-26T18:42:34Z marked expired	Free model access - $0/M input, output and cache reads on every plan while the stealth preview lasts
+2026-08-22T23:06:17Z	cc8b654	nous-ox-alpha-free	api_provider		excluded: states a time limit	2026-08-26T18:42:34Z marked expired	Free model access via Nous Portal - claimed 1 quadrillion tokens/day capacity, limited time
+2026-08-22T23:06:17Z	cc8b654	venice-ox-alpha-free	api_provider		qualifies	2026-08-26T18:42:34Z marked expired	Free model access - stealth-ox-alpha at $0/M input, output and cache reads
+2026-08-23T00:07:49Z	4076340	openrouter-ox-alpha-free	api_provider		excluded: states a time limit	2026-08-26T18:42:34Z marked expired	Free model access - $0 per million input and output tokens on stealth/ox-alpha during the stealth preview
+2026-08-23T06:55:04Z	6b40ffc	openai-codex-free-tier	coding		qualifies		Limited free Codex access on the ChatGPT Free plan, incl. GPT-5.6 Luna (no credit card)
+2026-08-23T06:55:04Z	6b40ffc	vercel-glm-5-2-free-eve-agents	coding	2026-08-27	excluded: states an end date	2026-08-29T15:11:33Z marked expired	GLM 5.2 (1M-token context) free for eve agents via Blackbox on AI Gateway through August 27
+2026-08-23T16:00:52Z	4adf97c	chatgpt-business-second-seat	coding		excluded: states a time limit	2026-09-19T06:40:44Z marked expired	1 extra ChatGPT Business seat free for 4 years (with a paid $25/mo seat) — UNVERIFIED, claimed only in an X post
+2026-08-23T16:00:52Z	4adf97c	mercury-cloud-ox-alpha-free	api_provider		qualifies	2026-08-26T18:42:34Z marked expired	$0/mo free tier — Ox Alpha model free without limit; general free plan includes 5,000 Mercury Credits/month
+2026-08-23T16:05:57Z	c463f13	aihubmix-free-model-catalog	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	50 models at $0/M input & output incl. Ox Alpha, Kimi K3, Gemini 3.7 Flash, GLM-5.2 — trial-grade, 429s possible
+2026-08-24T13:40:14Z	2bbf321	aion-labs-free-tier	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	20,000 tokens/day and 15 requests/minute
+2026-08-24T13:40:14Z	2bbf321	google-gemini-free-api-tier	api_provider		qualifies		Free input and output tokens on supported Gemini API models (quotas vary by model)
+2026-08-24T13:40:14Z	2bbf321	hugging-face-inference-credits	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	$0.10/month in Inference Provider credits for free users (subject to change)
+2026-08-24T13:40:14Z	2bbf321	kilo-code-free-models	api_provider		qualifies		Free :free models without an API key, limited to 200 requests/hour per IP
+2026-08-24T13:40:14Z	2bbf321	llm7-free-tier	api_provider		qualifies		Anonymous access with 10 requests/minute, 60 requests/hour, and 500,000 tokens/day
+2026-08-24T13:40:14Z	2bbf321	ollama-cloud-free-tier	api_provider		qualifies		Light cloud usage on the $0 Free plan, with limits resetting every 5 hours and 7 days
+2026-08-24T13:40:14Z	2bbf321	ovhcloud-ai-endpoints-free-tier	api_provider		qualifies	2026-08-26T22:57:47Z marked expired	Anonymous access at 2 requests/minute per IP and per model
+2026-08-24T13:40:14Z	2bbf321	siliconflow-free-models	api_provider		qualifies		Selected API models are free for input and output, including GLM-Z1-9B-0414
+2026-08-24T13:40:14Z	2bbf321	z-ai-free-models	api_provider		qualifies		Free input, cached input, and output for GLM-4.7-Flash, GLM-4.5-Flash, and GLM-4.6V-Flash
+2026-08-24T20:44:10Z	43d499c	gmi-cloud-minimax-week	api_provider	2026-09-06	excluded: states an end date	2026-09-07T07:04:31Z marked expired	MiniMax M3, M2.7, Speech 2.8 & Music 3.0 free for 14 days (Aug 24 - Sep 6, 2026), via GMI API or OpenRouter
+2026-08-25T22:13:54Z	98c2613	devin-startups-program	startup_program		qualifies		$15K in Devin credits on approval + up to $50K in matching grants ($65K total)
+2026-08-26T22:57:47Z	a7ec221	chatgpt-student-4mo-plus	api_provider	2026-10-31	excluded: states an end date	2026-09-21T08:30:48Z removed	4 months of ChatGPT Plus (up to $80 value)
+2026-08-27T13:55:18Z	c328485	merge-gateway-10-monthly-credits	api_provider		qualifies		$10 in free LLM credits every month (Pro plan)
+2026-08-29T15:11:33Z	9682275	genspark-free-trial-10k-credits	api_provider		excluded: states a time limit	2026-09-19T06:40:44Z marked expired	1 month free subscription + 10,000 credits (code: WELCOME25)
+2026-08-29T15:11:33Z	9682275	github-copilot-student-pack-2yr	coding	2026-09-01	excluded: states an end date	2026-09-02T06:09:39Z marked expired	2 years of Copilot Pro + 100+ dev tools ($240 value)
+2026-08-29T15:11:33Z	9682275	google-gemini-student-free-year	api_provider	2026-09-30	excluded: states an end date		1 year of Google AI Pro (US) or Google AI Plus (140+ countries) free
+2026-08-29T15:11:33Z	9682275	workbuddy-hy4-preview-free	coding	2026-09-11	excluded: states an end date	2026-09-12T12:26:09Z marked expired	Free access to Hy4 preview (2 weeks)
+2026-08-29T15:55:11Z	d7bd97b	azure-for-students	student		excluded: states a time limit		$100 Azure credits for 12 months + 25+ free services (no credit card required)
+2026-08-29T15:55:11Z	d7bd97b	figma-education-professional	student		excluded: states a time limit		Professional plan free (1 year students / 2 years educators) + 3,000 AI credits/month, Figma Make & Sites
+2026-08-29T15:55:11Z	d7bd97b	jetbrains-student-pack	student		qualifies		All JetBrains IDEs free while enrolled (annual renewal, ~$289/yr value; 40% graduation discount)
+2026-08-29T15:55:11Z	d7bd97b	notion-education-plus	student		qualifies		Plus features free (unlimited blocks/files, 30-day history) while enrolled via school email
+2026-09-01T11:45:32Z	1ab9d72	fal-minimax-h3-max-free	video		qualifies		MiniMax H3 Max free — text-to-video and image-to-video, up to 15 free videos/day (no sign-up needed for the no-account path)
+2026-09-01T15:23:54Z	d96644c	zcode-glm-5-3-flash-free	coding	2026-09-01	excluded: states an end date	2026-09-02T06:09:39Z marked expired	100M free GLM-5.3-Flash tokens
+2026-09-01T18:59:17Z	dca64e2	codebuddy-workbuddy-hy3-free	coding	2026-09-30	excluded: states an end date	2026-09-21T08:30:48Z marked expired	Hy3 coding models free on the $0/mo WorkBuddy plan (100 credits/month + 30/day reward, 5,000 code completions)
+2026-09-01T18:59:17Z	dca64e2	groq-cloud-free-models	api_provider		qualifies		Free tier with gpt-oss-120b and Qwen 3.6/3.8 27B, rate-limited, no credit card
+2026-09-01T18:59:17Z	dca64e2	inkling-free-models	coding		qualifies		Inkling and Inkling Small at $0 via OpenRouter, 1M-token context
+2026-09-01T18:59:17Z	dca64e2	ling-3-0-flash-fin-free	api_provider	2026-09-25	excluded: states an end date	2026-09-27T14:17:31Z marked expired	Ling 3.0 Flash Fin at $0 via OpenRouter, 256K context, finance-tuned function-calling
+2026-09-01T18:59:17Z	dca64e2	nvidia-nim-free-trial	api_provider		qualifies		$0 hosted trial for prototyping with NVIDIA NIM, rate-limited
+2026-09-02T06:09:39Z	1996825	inception-mercury-2-100m-free-tokens	api_provider		qualifies		100 million API tokens (one-time credit, no payment details required)
+2026-09-02T08:20:35Z	026233a	amd-radeon-cloud-free-model-apis	api_provider		qualifies		3 free online text APIs plus 1 limited-free vision API (beta; quotas unpublished)
+2026-09-02T22:51:22Z	80fe527	muse-spark-1-3-contributor-free	coding		excluded: states a time limit		Free Muse Spark 1.3 Contributor tier on OpenCode Zen for a limited time (Meta may use your prompts and completions to train future models)
+2026-09-04T15:04:50Z	434de9b	anthropic-console-free-starter-credits	api_provider		qualifies		small free starter credits (exact amount not published)
+2026-09-04T15:04:50Z	434de9b	baseten-starting-credits	api_provider		qualifies		Starting credits for new workspaces (amount not published)
+2026-09-04T15:04:50Z	434de9b	fireworks-ai-1-dollar-free-credits	api_provider		qualifies		$1 in free credits
+2026-09-04T15:04:50Z	434de9b	ideogram-free-plan	image		qualifies		Free plan ($0) with weekly slow credits for eligible accounts; amount may vary
+2026-09-04T15:04:50Z	434de9b	modal-starter-30-month-free-compute	api_provider		qualifies		$30/month in compute credits
+2026-09-04T15:04:50Z	434de9b	nebius-token-factory-trial-credit	api_provider		excluded: states a time limit		$1 credit for 30 days (bank card required to onboard)
+2026-09-04T15:04:50Z	434de9b	replicate-try-for-free	api_provider		qualifies		limited free runs of featured models (image, video, upscaling) — no credit purchase needed until the free limit is hit
+2026-09-04T15:04:50Z	434de9b	sambanova-cloud-free-tier	api_provider		qualifies		free tier, rate-limited (20 RPM / 20 RPD / 200,000 tokens per day per model), no payment method required
+2026-09-04T15:04:50Z	434de9b	suno-free-plan	voice		qualifies		Free plan, 50 credits/day (~10 songs)
+2026-09-04T15:04:50Z	434de9b	zcode-weekend-build-4-300m-tokens	coding	2026-09-06	excluded: states an end date	2026-09-07T07:04:31Z marked expired	300M GLM-5.3-Flash tokens per person
+2026-09-05T07:20:43Z	cd0a2e3	assemblyai-50-free-credits	voice		qualifies		$50 free credits for Pre-recorded STT, Real-time STT, Voice Agent, Speech Understanding, Guardrails (LLM Gateway excluded); credits do not expire
+2026-09-05T07:25:53Z	cc7e450	yepapi-5-signup-credit	api_provider		qualifies		$5 free credit on signup for 60+ models via OpenAI-compatible gateway
+2026-09-05T07:33:58Z	e0fe068	embercloud-startups-100-credits	startup_program		excluded: costs money to claim		$100 free API credits on approval (GLM-5, GLM-4.7, etc.; OpenAI-compatible); add $5 to verify company after approval
+2026-09-05T07:34:42Z	b6fe7f2	together-ai-startup-accelerator	startup_program		qualifies		Up to $15K / $30K / $50K free platform credits by funding tier (selection-based; not a general signup grant)
+2026-09-07T07:04:31Z	6ce9e68	novita-sandbox-100-credits	api_provider		qualifies		$100 promotional credits for eligible Agent Sandbox usage (CPU/RAM/storage) after account setup survey; 20 GB ephemeral + 60 GB persistent storage free-tier quotas also apply
+2026-09-07T07:07:37Z	722b3fd	google-cloud-ai-startup-program	startup_program		excluded: states a time limit		Up to $350K Google Cloud credits over 2 years for AI-first VC-funded startups (selection-based; Pre-Seed/Seed/Series A rules; distinct from the $300 free trial)
+2026-09-07T07:09:12Z	1f189da	claude-for-startups	startup_program		qualifies		Apply for free Claude API credits + priority rate limits (credits mainly for equity-funded startups founded within 4 years; no published dollar amount)
+2026-09-07T07:10:21Z	935c9d4	scaleway-generative-apis-free-tier	api_provider		qualifies		First 1,000,000 tokens free + 60 minutes audio transcription; pay from token 1,000,001 (card + KYC needed for full rate limits)
+2026-09-07T07:11:10Z	94ecc83	scaleway-business-100-credit	api_provider		qualifies	2026-09-21T08:30:48Z removed	€100 free credit when creating a Business account (pairs with Generative APIs)
+2026-09-07T07:12:17Z	63d9681	ai21-studio-10-credits	api_provider		excluded: states a time limit		$10 credit for new accounts, good for 3 months on platform APIs/SDK/playground (no card to start)
+2026-09-08T09:03:21Z	9d03f11	zed-student-pro	student		excluded: states a time limit		Zed Pro free for 1 year + $10/month in AI token credits
+2026-09-08T09:14:39Z	98f9750	daytona-200-free-compute	coding		qualifies		$200 in free compute at signup; free credits cannot be used for GPU sandboxes
+2026-09-08T09:20:58Z	fb742d6	daytona-startup-program	startup_program		qualifies		Up to $50K in Daytona credits for startups; program page says $10K straight away on the account and easily up to $50K
+2026-09-09T05:35:54Z	a80c38f	kiro-students-1000-credits-month	student		excluded: states a time limit		1,000 Kiro credits per month free for one year for verified students at participating universities; includes premium models and Kiro Web; credits do not roll over
+2026-09-09T06:19:36Z	fd8896d	coderabbit-oss-free-reviews	coding		qualifies		Free Team features for public repositories: AI reviews, slop detection, triage, Change Stack, and Security; no card or application; rate limits apply
+2026-09-11T09:33:58Z	0b8e65c	amd-ai-developer-program	api_provider		excluded: states a time limit		$100 in AMD Developer Cloud credits (expire 30 days after activation)
+2026-09-11T09:33:58Z	0b8e65c	baseten-ai-startup-program	startup_program		qualifies		Up to $25,000 for Dedicated Inference or Training plus up to $2,500 for Model APIs
+2026-09-11T09:33:58Z	0b8e65c	e2b-hobby-100-free-credits	coding		qualifies		$100 one-time usage credits on the Hobby plan ($0 plan fee)
+2026-09-11T09:33:58Z	0b8e65c	exa-free-tier	api_provider		qualifies		$20 free credits on signup plus $10 free credits every month
+2026-09-11T09:33:58Z	0b8e65c	fal-builder-grant	startup_program		qualifies		$25–$250 in fal credits for direct generative-media apps
+2026-09-11T09:33:58Z	0b8e65c	fal-startup-program	startup_program		qualifies		$1,000–$5,000 in fal credits for scaling startups
+2026-09-11T09:33:58Z	0b8e65c	firecrawl-free-plan	api_provider		qualifies		1,000 free credits every month (about 1,000 pages or 500 searches)
+2026-09-11T09:33:58Z	0b8e65c	smartoken-5-free-api-credit	api_provider	2026-12-31	excluded: states an end date		$5 one-time promotional API credit for eligible accounts
+2026-09-11T09:33:58Z	0b8e65c	tavily-free-tier	api_provider		qualifies		1,000 free API credits every month
+2026-09-11T09:33:58Z	0b8e65c	thunder-compute-students	student		qualifies		$20 free Thunder Compute credit for students at US universities
+2026-09-12T12:26:09Z	35cf1d7	alibaba-model-studio-free-quota	api_provider		excluded: states a time limit		~1,000,000 free tokens per eligible model, valid 90 days from activation (real-time inference only; Singapore region, International scope)
+2026-09-12T12:26:09Z	35cf1d7	byteplus-modelark-free-tokens	api_provider		qualifies		Free-token package per eligible model (e.g. 500,000 tokens/model; actual amount shown on the Model Activation page); requires BytePlus account + enterprise info submission
+2026-09-12T12:26:09Z	35cf1d7	firecrawl-student-program-10k-credits	student		qualifies		10,000 free credits for verified students (academic email; coupon code redeemed in Settings → Billing)
+2026-09-12T12:26:09Z	35cf1d7	nebius-ai-builder-program	startup_program		excluded: states a time limit		$25 Nebius Token Factory + $25 Tavily promo credits after registration and email verification (expire 90 days after issuance); marketing cites $400+ total in partner credits/discounts
+2026-09-12T12:26:09Z	35cf1d7	ocean-network-inference-6-free-h200-hours	api_provider		qualifies		6 complimentary hours of H200 inference (launch promo; OpenAI-compatible endpoints, curated models, templates)
+2026-09-12T12:26:09Z	35cf1d7	stability-ai-25-free-credits	image		qualifies		25 free API credits for new accounts created via Google social login (1 credit = $0.01 thereafter)
+2026-09-12T12:26:09Z	35cf1d7	upstage-education-public-interest-free	student		excluded: states a time limit		Free access to Solar Pro LLM + Document Parse for up to 1 year for eligible schools, hospitals, and nonprofits (Upstage x AWS AI Initiative)
+2026-09-12T12:26:09Z	35cf1d7	upstage-studio-agents-10-free-runs	api_provider		qualifies		10 free runs per Studio agent for document workflows (no credit card required)
+2026-09-12T12:26:09Z	35cf1d7	vercel-ai-gateway-free-tier	api_provider		qualifies		Monthly free AI Gateway credit covering a free-tier subset of models (lower per-model rate limits); buying credits permanently ends the monthly free credit
+2026-09-12T12:26:09Z	35cf1d7	voyage-ai-200m-free-tokens	api_provider		qualifies		First 200M tokens free per account on current embedding/rerank models (50M on specialized -2 models; multimodal: 200M text tokens + 150B pixels); Batch API excluded
+2026-09-13T06:58:05Z	66ab641	1min-ai-daily-free-credits	api_provider		qualifies	2026-09-21T08:30:48Z removed	15,000 free credits per day via daily app login (~450,000/month); credits never expire per site
+2026-09-13T06:58:05Z	66ab641	anthropic-ai-for-science	api_provider		excluded: states a time limit		Free Claude API credits for high-impact research; Help Center cites up to $20,000 for 6 months; Aug 2026 news cites up to $50,000 per project
+2026-09-13T06:58:05Z	66ab641	azure-free-account	api_provider		excluded: states a time limit		$200 credit for 30 days plus always-free and 12-month free-service amounts for new customers
+2026-09-13T06:58:05Z	66ab641	claude-team-plan-for-scientists	coding		excluded: states a time limit		10,000 seats; Standard seats $0/mo for 12 months; Premium $15/mo (5x usage); Claude Science, Code, and Cowork; limited availability
+2026-09-13T06:58:05Z	66ab641	cometapi-signup-credit	api_provider		qualifies		$0.1 USD free credit in Wallet after register/login
+2026-09-13T06:58:05Z	66ab641	lambda-research-grant	api_provider		qualifies		Up to $5,000 Lambda Cloud GPU (on-demand Instance) credits; research-and-mentorship framing on the grant hub
+2026-09-13T06:58:05Z	66ab641	openrouter-for-startups	startup_program		excluded: states a time limit		Up to $5,000 promotional inference credits (most expire 6 months after issuance) plus 0% processing fees for 12 months if approved; amount/duration at OpenRouter discretion
+2026-09-13T06:58:05Z	66ab641	runpod-startup-starter-tier	startup_program		qualifies		$1,000 free credits across Pods, Serverless, Clusters, Endpoints, and Storage (Growth tier is $25K bonus only with a $50K commit — not free)
+2026-09-14T05:55:16Z	0df1698	nvidia-inception-startup-program	startup_program		qualifies		Free program with cloud credits from NVIDIA and partners, free technical training, SDKs and model libraries, preferred hardware pricing, and investor exposure via Capital Connect; amounts at NVIDIA discretion, rolling applications with no fees or deadlines
+2026-09-14T07:45:34Z	1b6eeb7	free-ai-30000-tokens-day	api_provider		qualifies		30,000 tokens/day on signup (6,000 anonymous); OpenAI-compatible API to 400+ tools; no credit card
+2026-09-14T07:45:34Z	1b6eeb7	liner-startup-grant	startup_program		qualifies		Up to $1,000 in Liner Search/Search Agent API credits; no equity
+2026-09-14T07:45:34Z	1b6eeb7	orcarouter-free-credits	api_provider		qualifies		Live voucher/student/hackathon API credits (amounts on each offer card) plus rotating $0 models; most open claims need no card
+2026-09-14T07:45:34Z	1b6eeb7	requesty-free-models	api_provider		qualifies		Free Nemotron/Laguna/Gemma/Leanstral models; 200 req/day + 20 RPM for new orgs (1,000/day + 60 RPM if paying); no credit card
+2026-09-14T07:45:34Z	1b6eeb7	requesty-startup-program-1000-credits	startup_program		excluded: states a time limit		$1,000 in AI credits across 600+ models + 6 months with no gateway fee (then 5% on model cost, or 0% with own keys); VC/accelerator-backed (YC, 20VC, Tapestry, TinyVC, or comparable)
+2026-09-14T07:45:34Z	1b6eeb7	tinyfish-student-program-35-credits	student		qualifies		$35 wallet credit automatic on .edu signup plus bounty-board gift cards for approved builds ($50 agentic apps, $20 Skills, $10 prompts)
+2026-09-15T08:54:42Z	37c9975	aws-activate-credits	startup_program		qualifies		Activate Founders (self-funded): start with $1,000, up to $5,000; Activate Portfolio (pre-Series B): up to $200,000; usable across AWS incl. Amazon Bedrock; extra AI-startup credits invite-only
+2026-09-15T08:54:42Z	37c9975	digitalocean-startups	startup_program		excluded: states a time limit		12 months of DigitalOcean credits (amount varies by partner award level); select startups invited to GPU credit packages; 15 months free Standard-tier support
+2026-09-15T08:54:42Z	37c9975	fireworks-for-startups	startup_program		excluded: states a time limit		Build credits for inference, fine-tuning and on-demand GPUs (amount unpublished; credits expire 1 year after grant) + higher rate-limit options
+2026-09-15T08:54:42Z	37c9975	github-copilot-student	student		qualifies		Free Copilot Student plan for verified students: Copilot features incl. agents (excludes third-party agents) + GitHub AI Credits allowance; auto model selection only
+2026-09-15T08:54:42Z	37c9975	kiro-startup-credits	startup_program	2026-12-31	excluded: states an end date		Up to 1 year of Kiro Pro+ credits (Starter ≤2 users / Growth ≤10 / Scale ≤30); credits expire 1 year after issuance; AWS Activate credit holders not eligible
+2026-09-15T08:54:42Z	37c9975	lightning-ai-free-tier	api_provider		qualifies	2026-09-19T06:40:44Z marked expired	5 free Lightning credits (~$5) on registration, +25 more with a card; up to ~80 free GPU hours after phone verification; 1 free 4-CPU Studio + 10 GB storage free
+2026-09-15T08:54:42Z	37c9975	microsoft-for-startups	startup_program		qualifies		Up to $150,000 in Azure credits usable across eligible Azure services incl. Azure AI / OpenAI services, plus free dev tools
+2026-09-15T08:54:42Z	37c9975	modal-for-startups	startup_program		qualifies		One-time free GPU/platform credits ("thousands" per program page, not itemized) + technical and GTM support
+2026-09-15T08:54:42Z	37c9975	openai-startup-program	startup_program		qualifies		Free OpenAI API credits + rate-limit upgrades + solutions-engineer support (dollar amount not published; requires referral code from an eligible VC partner)
+2026-09-15T08:54:42Z	37c9975	ovhcloud-startup-program	startup_program		excluded: states a time limit		Start tier: €10,000 free cloud credits over 12 months + 6h engineer time; Scale tier: up to €100,000 + 20h engineer time
+2026-09-15T08:54:42Z	37c9975	perplexity-for-startups	startup_program		excluded: states a time limit	2026-09-21T08:30:48Z removed	$5,000 in API credits plus 3 months free Perplexity Enterprise Pro (up to 50 seats)
+2026-09-15T08:54:42Z	37c9975	tencent-cloud-tokenhub-free-trial	api_provider	2026-12-31	excluded: states an end date		1,000,000 free tokens per eligible language model, valid 90 days from claim (one claim per model per root account; USD 1 balance frozen per claim/enable)
+2026-09-16T11:29:51Z	3b9f817	claude-for-open-source	coding		excluded: states a time limit		6 months of free Claude Max 20x (~$1,200 value at $200/mo list); subscription grant, not API credits; capped at 10,000 recipients
+2026-09-16T11:29:51Z	3b9f817	codex-for-open-source	coding		excluded: states a time limit		Six months of ChatGPT Pro with Codex + conditional Codex Security + API credits via the Codex Open Source Fund, for eligible OSS maintainers
+2026-09-16T11:29:51Z	3b9f817	codex-open-source-fund	startup_program		qualifies	2026-09-21T08:30:48Z removed	Up to $25,000 in OpenAI API credits per project ($1M fund; applications reviewed on a rolling basis)
+2026-09-16T11:29:51Z	3b9f817	hetzner-experiments-inference-api	api_provider		excluded: states a time limit		Free OpenAI-compatible inference while in experimental status (Qwen3.6-35B-A3B-FP8, Qwen3.8-27B); 4M input / 100k output tokens per 60s, 10 req/60s
+2026-09-16T11:29:51Z	3b9f817	hyperbolic-basic-free-tier	api_provider		qualifies	2026-09-27T14:17:31Z marked expired	Basic tier with $0 minimum deposit — serverless OpenAI-compatible inference on 25+ open models at 60 RPM (Pro needs a >=$5 deposit)
+2026-09-16T11:29:51Z	3b9f817	jina-ai-10m-free-tokens	api_provider		qualifies		10M free tokens for new users across embeddings, rerank, reader and classifier APIs; Free tier 500 RPM / 1M TPM / concurrency 5
+2026-09-16T11:29:51Z	3b9f817	nlp-cloud-15-free-credit	api_provider		qualifies		Automatic $15 free credit on pay-as-you-go signup (credit card required per site FAQ); separate $0 Free plan for pretrained models, 2 parallel requests, no card
+2026-09-16T15:40:58Z	5739384	opencode-union-alpha-free	coding	2026-09-23	excluded: states an end date	2026-09-19T06:40:44Z marked expired	Free Union Alpha model access on OpenCode Zen for one week
+2026-09-16T18:29:10Z	0176871	cline-union-alpha-free	coding		qualifies	2026-09-20T12:10:28Z marked expired	Free Union Alpha model access (256k context, multimodal), rate limited
+2026-09-17T09:33:56Z	4739893	context-dev-free-tier	api_provider		qualifies		1,000 API credits/month + 10K one-time Logo Link requests (30 RPM work email / 10 RPM personal)
+2026-09-17T09:33:56Z	4739893	deepgram-flux-tts-match-promo	voice	2026-12-31	excluded: states an end date		$1 bonus credit per $1 spent on Flux TTS, up to $500 per project
+2026-09-17T09:33:56Z	4739893	deepgram-for-startups	startup_program		excluded: states a time limit		Up to $100,000 in API credits over 12 months (STT, TTS, Voice Agent)
+2026-09-17T09:33:56Z	4739893	electronhub-free-tier	api_provider		qualifies		$0.25 weekly credits (refills Sun 21:00 UTC) + 10 Neutrinos/day for :free models (up to 200/day via ads)
+2026-09-17T09:33:56Z	4739893	kimi-api-free-trial	api_provider		excluded: states a time limit		RMB 15 API voucher on registration, valid 3 months
+2026-09-17T09:33:56Z	4739893	novita-ling-3-0-flash-fin-free	api_provider		qualifies		Ling 3.0 Flash Fin at $0 input / $0 output per M tokens (256K context)
+2026-09-17T09:33:56Z	4739893	novita-ling-3-0-flash-sante-free	api_provider		qualifies		Ling 3.0 Flash Sante at $0 input / $0 output per M tokens (256K context)
+2026-09-17T09:33:56Z	4739893	novita-ling-3-0-flash-vl-free	api_provider	2026-09-23	excluded: states an end date	2026-09-24T05:55:00Z marked expired	Ling 3.0 Flash VL free input + output tokens (262K context, text/image/video input)
+2026-09-17T09:33:56Z	4739893	openrouter-ling-3-0-flash-sante-free	api_provider		qualifies		Free inclusionai/ling-3.0-flash-sante:free endpoint at $0 (262K context, healthcare MoE)
+2026-09-17T09:33:56Z	4739893	openrouter-ling-3-0-flash-vl-free	api_provider	2026-09-23	excluded: states an end date		Free inclusionai/ling-3.0-flash-vl:free endpoint at $0 (262K context, multimodal)
+2026-09-17T09:33:56Z	4739893	openrouter-union-alpha-free	api_provider		qualifies	2026-09-19T06:40:44Z marked expired	Free Union Alpha stealth model API access (262K context, tools/JSON, image input)
+2026-09-17T09:33:56Z	4739893	vercel-ling-3-0-flash-fin-free	api_provider	2026-09-25	excluded: states an end date	2026-09-27T14:17:31Z marked expired	Ling 3.0 Flash Fin at $0 on AI Gateway (256K context, function calling)
+2026-09-17T09:33:56Z	4739893	vercel-ling-3-0-flash-sante-free	api_provider	2026-10-04	excluded: states an end date		Ling 3.0 Flash Sante at $0 on AI Gateway (256K context, function calling)
+2026-09-18T10:06:30Z	aefe625	browser-use-15-signup-credit	api_provider		qualifies		$15 free credits per person, never expire (eligible Google/GitHub/Microsoft signup, no card)
+2026-09-18T10:06:30Z	aefe625	byteplus-ai-startups-accelerator	startup_program		qualifies		Up to $100,000 in cloud coupons + $6.5K voice AI credits + 10B+ LLM tokens + $137K+ cloud subsidies + workshops
+2026-09-18T10:06:30Z	aefe625	cloudflare-for-startups	startup_program		excluded: states a time limit		Up to $350K in credits for 1 year (tiers $10K / $100K / $350K by stage; Workers AI capped $2.5K-$50K by tier)
+2026-09-18T10:06:30Z	aefe625	deepinfra-deepstart	startup_program		qualifies		1,000,000,000 free inference tokens (valued at DeepSeek V3.1 prices)
+2026-09-18T10:06:30Z	aefe625	elevenlabs-startup-grants	startup_program		excluded: states a time limit		12 months free platform access + 33M characters (~680h Agents usage; $5,500+ value)
+2026-09-18T10:06:30Z	aefe625	gladia-starter-free-credits	voice		qualifies		€50 one-time free credits (~80h async / ~60h real-time transcription); prepaid wallet afterwards
+2026-09-18T10:06:30Z	aefe625	livekit-startup-program	startup_program		excluded: states a time limit		Up to $23K in credits — 12 months Cloud Scale ($6K) + $10K Cloud credits + $7K inference partner credits
+2026-09-18T10:06:30Z	aefe625	mixedbread-starter	api_provider		qualifies		$5 one-time credits (100 req/min, no card required)
+2026-09-18T10:06:30Z	aefe625	novita-ai-for-startups	startup_program		excluded: states a time limit		Up to $10,000 in usage credits — $1K upfront, then 1:1 / 2:1 spend match (up to $5K Model APIs + $5K Agent Sandbox, 1 year)
+2026-09-18T10:06:30Z	aefe625	openrouter-laguna-s-2-1-free	api_provider		qualifies		Free poolside/laguna-s-2.1:free endpoint at $0 (262K context, 118B-A8B coding agent)
+2026-09-18T10:06:30Z	aefe625	openrouter-nemotron-3-5-lightning-free	api_provider		qualifies		Free nvidia/nemotron-3.5-lightning:free endpoint at $0 (1M context, 30B-A3B MoE)
+2026-09-18T10:06:30Z	aefe625	openrouter-nemotron-3-super-free	api_provider		qualifies		Free nvidia/nemotron-3-super-120b-a12b:free endpoint at $0 (262K context, 120B-A12B hybrid MoE)
+2026-09-18T10:06:30Z	aefe625	openrouter-nemotron-3-ultra-free	api_provider		qualifies		Free nvidia/nemotron-3-ultra-550b-a55b:free endpoint at $0 (1M context, 550B-A55B hybrid MoE)
+2026-09-18T10:06:30Z	aefe625	openrouter-nex-n2-5-pro-free	api_provider		qualifies	2026-09-27T14:17:31Z marked expired	Free nex-agi/nex-n2.5-pro:free endpoint at $0 (262K context, agentic coding / computer-use)
+2026-09-18T10:06:30Z	aefe625	openrouter-north-mini-code-free	api_provider		qualifies		Free cohere/north-mini-code:free endpoint at $0 (256K context, 30B-A3B agentic coding MoE)
+2026-09-18T10:06:30Z	aefe625	runware-grant-program	startup_program		excluded: states a time limit		Up to $30,000 in API credits for 12 months (image, video, audio, LLM, 3D, avatar models)
+2026-09-18T10:06:30Z	aefe625	siliconflow-1-dollar-free-credits	api_provider		qualifies		$1 in free credits at signup, no minimum commitment
+2026-09-18T10:06:30Z	aefe625	speechmatics-startup-program	startup_program		qualifies		Up to $50,000 in usage credits (batch/real-time STT, TTS, on-prem) + engineering support
+2026-09-19T06:40:44Z	8141437	arcee-trinity-builders-program	api_provider		qualifies		Free Trinity API credits allocated at review; requested ranges from under 50M to over 1B tokens
+2026-09-19T06:40:44Z	8141437	assemblyai-startup-program	startup_program		excluded: states a time limit		12 months of recurring free credits; exact credit amount unpublished
+2026-09-19T06:40:44Z	8141437	cartesia-startups-grant	startup_program		excluded: states a time limit		96M credits/year plus $300/month in agent credits for 12 months (over $8,000 value)
+2026-09-19T06:40:44Z	8141437	gradium-for-startups	startup_program		excluded: states a time limit		54M credits worth over $2,000 through 6 months of the M plan
+2026-09-19T06:40:44Z	8141437	openrouter-gemma-4-26b-a4b-free	api_provider		qualifies		Free google/gemma-4-26b-a4b-it:free inference at $0 input and output (262K context)
+2026-09-19T06:40:44Z	8141437	openrouter-gemma-4-31b-free	api_provider		qualifies		Free google/gemma-4-31b-it:free inference at $0 input and output (262K context)
+2026-09-19T06:40:44Z	8141437	openrouter-laguna-xs-2-1-free	coding		qualifies		Free poolside/laguna-xs-2.1:free inference at $0 input and output (262K context)
+2026-09-19T06:40:44Z	8141437	openrouter-lfm-2-5-2-6b-free	api_provider		qualifies		Free liquid/lfm-2.5-2.6b:free inference at $0 input and output (65,536-token context)
+2026-09-19T06:40:44Z	8141437	openrouter-nex-n2-5-mini-free	api_provider		qualifies	2026-09-27T14:17:31Z marked expired	Free nex-agi/nex-n2.5-mini:free inference at $0 input and output (262K context)
+2026-09-19T06:40:44Z	8141437	openrouter-qwen3-8-27b-free	api_provider		qualifies		Free qwen/qwen3.8-27b:free inference at $0 input and output (262K context)
+2026-09-19T06:40:44Z	8141437	smallest-ai-startup-grants	startup_program		excluded: states a time limit		$10,000 in Voice Agent Platform credits for up to 6 months
+2026-09-19T06:40:44Z	8141437	telnyx-startups-program	startup_program		excluded: states a time limit		Up to $20,000 in AI credits for 6 months, plus 3 months of engineering support
+2026-09-20T12:10:28Z	4bdf70b	camb-ai-startup-grants	startup_program		qualifies		33M characters of MARS Text-to-Speech API credits plus direct engineering support
+2026-09-20T12:10:28Z	4bdf70b	cerebras-yc-startup-deal	startup_program		qualifies		Up to $22.5K in Cerebras Cloud inference credits plus priority support and co-marketing
+2026-09-20T12:10:28Z	4bdf70b	fish-audio-s2-1-pro-free	voice		qualifies		Free s2.1-pro-free TTS model at $0 under fair-use limits — same quality and 83-language coverage as S2.1 Pro; no TTFA/DPA guarantees
+2026-09-20T12:10:28Z	4bdf70b	openrouter-glm-5-2-free	api_provider		qualifies		Free z-ai/glm-5.2:free endpoint at $0 input/output (32K context)
+2026-09-20T12:10:28Z	4bdf70b	openrouter-nemotron-3-5-content-safety-free	api_provider		qualifies		Free nvidia/nemotron-3.5-content-safety:free endpoint at $0 (128K context guardrail model)
+2026-09-20T12:10:28Z	4bdf70b	openrouter-nemotron-3-nano-omni-free	api_provider		qualifies		Free nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free endpoint at $0 (256K context, omni multimodal input, text output)
+2026-09-20T12:10:28Z	4bdf70b	pyai-for-startups	startup_program		excluded: states a time limit		$20K–$100K in voice AI credits over 12 months (Launch $20K / Growth $50K / Scale $100K) plus managed phone minutes
+2026-09-20T12:10:28Z	4bdf70b	resemble-builders-grant	startup_program		excluded: states a time limit		Up to $30,000 in credits ($500–$30K by use case) for voice generation and deepfake detection APIs; credits expire ≤12 months from approval
+2026-09-20T12:10:28Z	4bdf70b	sarvam-ai-startup-program	startup_program		excluded: states a time limit		6–12 months of API credits matched to scale (amount unpublished) for STT, TTS, voice agents, and LLM APIs
+2026-09-20T12:10:28Z	4bdf70b	z-ai-startups-program	startup_program		qualifies		Free API credits up to 1B tokens plus GLM volume pricing, priority support, and early access
+2026-09-21T11:05:00Z	e61f28c	cartesia-google-cloud-startups	startup_program		excluded: states a time limit		12 months of Startup Tier — 1.25M credits/month plus up to 5 concurrent requests including Pro Voice Cloning (Google for Startups Cloud Program Scale Tier only)
+2026-09-21T11:05:00Z	e61f28c	kong-for-startups	startup_program		excluded: states a time limit		Up to $100K Kong Konnect Plus credits (12 months; typically $25K–$100K) plus 50% off list for 2 years after; spend across AI Gateway, API Gateway, Mesh, Event Gateway
+2026-09-21T11:05:00Z	e61f28c	llamaparse-startup-offer	startup_program		excluded: states a time limit		$2,000 free platform credits for 1 year plus engineering Slack, bulk discounts, and early access (first-time customers, $250k–<$50M raised)
+2026-09-21T11:05:00Z	e61f28c	openrouter-dots-3-note-preview-free	api_provider		qualifies		Free dots-studio/dots-3-note-preview:free at $0 input/output (512K context, multimodal, tools)
+2026-09-21T11:05:00Z	e61f28c	rime-5k-tts-credits-for-yc	startup_program		excluded: states a time limit		$5,000 TTS API credits over the first year plus priority support and early feature access (YC W24+ only)
+2026-09-21T11:05:00Z	e61f28c	zcode-bigmodel-new-user-trial	coding		excluded: states a time limit		8M tokens/day for the first 5 days (GLM-5.3 3M + GLM-5.3-Flash 5M) after connecting a BigModel account; then expires — not an ongoing free tier
+2026-09-21T22:03:30Z	7fa5807	vercel-ai-gateway-jev-free	api_provider	2026-09-25	excluded: states an end date	2026-09-27T14:17:31Z marked expired	Free typesafe-ai/jev inference (32K context) via Vercel AI Gateway
+2026-09-22T11:45:58Z	c1353f5	anyscale-ai-startup-program	startup_program		qualifies		Up to $20,000 in Anyscale usage credits (stackable with AWS/GCP/Azure etc. cloud credits) + dedicated field-engineer support
+2026-09-22T11:45:58Z	c1353f5	free-ai-startup-grant	startup_program		qualifies		15,000,000 tokens for self-hosted-model tools/API (~1yr Pro allowance) + Pro API tier (100K req/mo); tokens never expire
+2026-09-22T11:45:58Z	c1353f5	hakim-ai-mena-startup-program	startup_program		qualifies		$6,000 in Hakim credits (~6 months Business at $999/mo) + early unreleased TTS/STT/voice-clone model access + weekly eng office hours + Slack
+2026-09-22T11:45:58Z	c1353f5	murf-startup-incubator-program	startup_program		excluded: states a time limit		$1,500 free TTS/voice API credits for 3 months (one-time; overage $0.03/1K characters)
+2026-09-22T11:45:58Z	c1353f5	neuralspeak-free-plan	api_provider		qualifies		Free plan: 500 NST/month (~40 min voice or ~1K texts), 1 service, 2 API keys
+2026-09-22T13:18:29Z	9f9b351	opencode-mimo-v2-6-flash-free	coding	2026-09-28	excluded: states an end date		Free MiMo V2.6 Flash model access on OpenCode Zen for one week
+2026-09-23T07:06:35Z	8da03e8	deepgram-flux-tts-free-openrouter	voice		qualifies		Free deepgram/flux-tts:free TTS endpoint ($0, rate-limited, 36 voices)
+2026-09-23T07:06:35Z	8da03e8	hume-free-tier-credits	voice		qualifies		$20 in credits for new accounts; Free plan ($0/mo) with 10k TTS chars (~10 min) + 5 EVI minutes/month
+2026-09-23T07:06:35Z	8da03e8	inworld-on-demand-free	voice		qualifies		Free On-Demand plan with up to 70 min TTS (or 400 min STT) included
+2026-09-23T07:06:35Z	8da03e8	lemonfox-1-month-free-trial	voice		excluded: states a time limit		1 month free trial — 10M credits (30 hours speech-to-text or 2M TTS chars)
+2026-09-23T07:06:35Z	8da03e8	openrouter-free-router	api_provider		qualifies		Free openrouter/free auto-router to $0 models ($0 prompt/completion)
+2026-09-23T14:59:11Z	8a213dc	opencode-space-bunny-free	coding	2026-09-30	excluded: states an end date		Free Space Bunny model access on OpenCode Zen for one week
+2026-09-24T05:55:00Z	e9e786f	claude-code-cloud-sessions-credit	coding	2026-10-07	excluded: states an end date		One-time $100 credit on Pro or $250 credit on Max for Claude Code cloud sessions
+2026-09-24T20:46:00Z	a8911fe	cline-gemini-3-8-flash-free	coding		qualifies		Free Gemini 3.8 Flash model access (1M context), rate limited
+2026-09-25T06:31:07Z	7c71b0b	docker-cloud-sandbox-250-credit	coding	2026-09-26	excluded: states an end date	2026-09-27T14:17:31Z marked expired	$250 one-time Cloud Sandbox compute credit for new Docker Agentic Platform sign-ups (in lieu of standard $25); credit card required; unused credit expires 6 months after redemption
+2026-09-25T21:38:28Z	80ecb64	railway-free-vm	coding		qualifies	2026-09-25T22:10:05Z removed	$3.00 AI budget per IP per day (shared across up to 3 free VMs), plus a free no-card Linux VM with 2 vCPU, 2 GB RAM and coding agents preinstalled
+2026-09-27T20:12:58Z	50950d9	fish-audio-startup-program	startup_program		excluded: states a time limit		12M characters/month free for 3 months (~240+ hours of audio/month) + premium support and raised concurrency
+2026-09-27T20:12:58Z	50950d9	modelbridge-free-tier	api_provider		qualifies		500K tokens/month free + 500K welcome bonus; OpenAI-compatible API gateway for Chinese LLMs (DeepSeek, Qwen, GLM, Kimi)
+2026-09-27T20:12:58Z	50950d9	openrouter-ming-image-0-1-design-layer-free	image		qualifies		Free inclusionai/ming-image-0.1-design-layer image-to-image design layer decomposition at $0 (PNG/WebP output)
+2026-09-27T20:12:58Z	50950d9	openrouter-space-bunny-alpha-free	api_provider		qualifies		Free stealth/space-bunny-alpha inference at $0 input and output — 1M context, multimodal, tools, adjustable reasoning (free-model rate limits)
+2026-09-27T20:12:58Z	50950d9	pinecone-for-startups	startup_program		qualifies		Free Standard Tier + Pro Support (any cloud/region, RBAC, backups, import, Prometheus metrics, dedicated Slack) + usage credits and discounts
+2026-09-27T20:12:58Z	50950d9	pinecone-standard-trial	api_provider		excluded: states a time limit		$300 in credits over 21 days on Standard plan features; one trial per organization
+2026-09-27T20:12:58Z	50950d9	regolo-builder-program	startup_program		excluded: states a time limit		60 days free unlimited tokens (up to 50M tokens/day) on 100+ OSS models; active teams can later apply for up to €2,000 voucher (≤12 months)
+2026-09-27T20:12:58Z	50950d9	runway-builders-program	startup_program		qualifies		Up to 500k free API credits + Tier 5 rate limits + Runway Characters API access + private Slack/training/support
+2026-09-27T20:12:58Z	50950d9	scaleway-professional-100-credit	api_provider		qualifies		€100 free credit voucher for new Professional accounts, usable across Scaleway cloud services incl. Generative APIs
+2026-09-28T10:09:33Z	f509dd4	anyapi-free-plan	api_provider		qualifies		100K anyTokens/day on free models via OpenAI-compatible gateway (resets daily, no rollover)
+2026-09-28T10:09:33Z	f509dd4	bazaarlink-free-llm-api	api_provider		qualifies		Free OpenAI-compatible API — 2 free models, 10 RPM + 50 weighted units/day shared (20 RPM + 100/day with credit), no credit card
+2026-09-28T10:09:33Z	f509dd4	inferall-free-nim-models	api_provider		excluded: costs money to claim		25 free NVIDIA NIM calls on signup (no card); ongoing $0 in/out on 15+ NIM open models after one-time $5 activation, within daily caps
+2026-09-28T10:09:33Z	f509dd4	openrouter-respan-span-01-lite-free	api_provider		qualifies		Free respan/span-01-lite:free behavior-scoring endpoint at $0 via OpenRouter Decisions API (rate-limited)
+2026-09-29T09:44:07Z	5a11993	aerolink-starter-free-trial	api_provider		excluded: states a time limit		1-week free trial with rolling allowance — $5 per 5 hours + $35 per week, no payment required
+2026-09-29T09:44:07Z	5a11993	hapuppy-free-tier	api_provider		qualifies		200K one-time free credits on signup (basic models, 10 RPM); OpenAI-compatible gateway
+2026-09-29T09:44:07Z	5a11993	ibm-watsonx-ai-free-tier	api_provider		qualifies		Up to 300,000 foundation-model tokens/month + 20 CUH/month machine-learning tools + 100 text-extraction docs/month
+2026-09-29T09:44:07Z	5a11993	meshy-free-plan	image		qualifies		100 free credits/month (reset on the 1st at 00:00 UTC), 3D generation; outputs under CC BY 4.0
+2026-09-29T09:44:07Z	5a11993	speechmatics-100-free-credit	voice		qualifies		$100 in free credits (STT 55+ languages + TTS), 2 concurrent real-time sessions, no card required
+2026-09-29T09:44:07Z	5a11993	tripo-ai-2000-free-api-credits	image		qualifies		2,000 free API credits (~$20 at $0.01/credit), granted once per account on first API key generation
