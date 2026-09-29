@@ -32,9 +32,10 @@ short provider failure is sent again and answered within its deadline.
 
 ## Reproduction
 
-The records keep no content, HTTP status or body, only counts, timings and
-outcomes. They were read locally with a scratch script outside the
-repository; only the numbers below leave them. The window is 2026-09-28
+The records keep digests and fixed metadata, but no request or reply text and
+no HTTP status or body (`records.py:247-278`, `docs/backfire.md:185-186`).
+They were read locally with a scratch script outside the repository; only the
+counts, timings, outcomes and error types below leave them. The window is 2026-09-28
 19:00-21:00 UTC, which holds CHE-28's step and every other backfire session
 on the machine in that time, so its counts are larger than the issue's.
 
@@ -43,8 +44,9 @@ on the machine in that time, so its counts are larger than the issue's.
    `malformed_output`. The 175 failed judgments held 2,092 of the window's
    6,195 questions. Between 19:30 and 20:30 alone, 169 of 507 judgments
    failed with `provider_error`.
-2. **What the failures were.** All 175 have no `model`, no usage and
-   `thinking_evidence` false; 165 had one attempt (10 had earlier attempts
+2. **What the failures were.** In 175 of 175, the record shows no answering
+   model, no token counts and no thinking evidence (`records.py:265-275`);
+   165 had one attempt (10 had earlier attempts
    retried as rate limits or connect failures). `provider.py` records exactly
    this for an HTTP error status that no other type claims, such as 500, and
    for a success reply without an answer. CHE-22's assessment
