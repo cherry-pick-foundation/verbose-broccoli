@@ -161,6 +161,17 @@ selection was redone on the merged tree
     high effort) and one Codex reviewer (R3) reviewed `9d8af61`; backfire
     batch 24 selected the findings to fix (T016 to T018) and D19 to D21
     decided three more. Next: review the fixes, verify, record the review.
+  - 2026-09-29 (paused for a restart): Main committed the fixes (`b795b61`),
+    merged `develop` `f444287` (CHE-35, no conflicts; `b96f154`), and got
+    `npm run check` 27 of 27 and `npm run verify` VERIFIED with Deno hidden.
+    Check time: `develop` 2:19 and 2:17, branch 2:20 and 2:22 (logs in
+    [evidence/logs/](evidence/logs/)). One `backfire_extract` bounded-work
+    test failed once under full load and passed on rerun. Next: rewrite
+    [report.md](report.md) for the real change, `backfire_gate` and
+    `backfire_verify`, a fresh Claude Code review of `b795b61` and a Codex
+    review of main's report and hook line, the review record, then the
+    finish through develop-bf. Tools and specs are in
+    [evidence/method/](evidence/method/).
 
 ## Dependencies
 

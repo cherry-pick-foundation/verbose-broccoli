@@ -1,0 +1,6 @@
+User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):
+1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.
+2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.
+3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.
+4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.
+5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.
