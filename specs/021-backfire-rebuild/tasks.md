@@ -219,6 +219,12 @@ from `packages/backfire`.
 - [ ] T016 Run the live checks: one judgment per tool through the shipped
   Hive profile (at most 15 billed calls) and one judgment through the
   Vercel profile; record the call counts and outcomes under T016 (SC-006).
+  - 2026-09-30: Hive, shipped profile: one call to each of the twelve
+    tools, all valid, 12 billed requests, no retries. Vercel, with the chat
+    plugin's key file: the gateway accepted the key and answered HTTP 429
+    "No access to this model at this time." for `typesafe-ai/jev`; about 6
+    refused attempts over two runs, no judgment. The Vercel live check is
+    not done; the user was asked whether to enable the model.
 - [x] T017 [P] Update `docs/backfire.md`, `docs/architecture.md`, the
   backfire skills in both plugins (`jev_` names; `upstream.json`
   `local_modifications`), `licenses/THIRD_PARTY_NOTICES.md` (notices only
@@ -228,16 +234,35 @@ from `packages/backfire`.
   `docs/reference/` if its inputs changed (FR-012, FR-015).
 - [ ] T018 Count backfire's own code against `develop` with its file list
   and report it; stop and ask before exceeding 500 lines (FR-017, SC-007).
+  - 2026-09-30, at `ed1294f`: 791 lines (`providers.py` 225, `noul.py` 204,
+    `config.py` 145, `vercel.py` 125, `__main__.py` 47, `failures.py` 23,
+    `config.toml` 21, `__init__.py` 1), above the 500-line target; the
+    user's approval was asked for through the develop session.
 - [ ] T019 Run the document judgment step the develop merge review uses and
   resolve contradicted units; run `npm run verify` three times in a row
   without a rerun and record each result (SC-005).
+  - 2026-09-30: `doc-regions:prepare` gave 27 requests over 244 units. A
+    first run under PyModel's 30-second default attempts was stopped after
+    about 20 timed-out attempts with no answer, which led to the retry
+    settings in `ed1294f`. The rerun made 28 attempts: 26 requests answered,
+    one 69-evidence request timed out. Three units were contradicted: two
+    passages were fixed in `080d6f2` (the plugin-packaging rule in
+    `docs/architecture.md`, the CHE-38 sentence in `docs/backfire.md`); the
+    third is in the constitution, which is report-only, and goes to the
+    user. Review flags: the retry passage was fixed; 27 verified units with
+    lower confidence and 16 unchanged units that the diff does not cover
+    stand; the profile field table in `docs/backfire.md` stays agent-written
+    because its fields are read in two modules and no generator exists. A
+    follow-up run of 7 requests (7 attempts) judged the 13 changed or
+    unjudged units: none contradicted. MemoryLint's 19 warnings on the
+    constitution go to the user unchanged.
 - [ ] T020 Write `specs/021-backfire-rebuild/report.md`, commit it, move
   CHE-39 to In Review, get the develop merge review (fresh Claude Code
   reviewer for code, fresh Codex reviewer for records), resolve findings,
   add the review-record commit, merge `develop` into the branch and verify,
   confirm `develop` has not moved, run `git flow feature finish
   backfire-rebuild` from the `develop` worktree, move CHE-39 to Done with
-  one completion comment, and tell the develop session that CHE-37 is fixed
+  one completion comment, and tell the develop session that CHE-37 is resolved
   and CHE-38 waits for PyModel.
 
 ---
