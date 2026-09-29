@@ -163,6 +163,10 @@ time limit.
   provider and browser notes), regenerate `docs/reference/` and the
   mechanical regions, and add Jev Ultrafast and the jev-agent-tools request
   format to `licenses/THIRD_PARTY_NOTICES.md` (FR-014).
+  - 2026-09-30: after merging `develop` (CHE-43 keeps notices only for
+    copied upstream code), the notices keep the Jev Ultrafast entry and drop
+    the jev-agent-tools entry, since no jev-agent-tools file is copied;
+    research R2 still names that source.
 
 ## Phase 6: User Story 4 - A schedule taken from history (P2)
 
