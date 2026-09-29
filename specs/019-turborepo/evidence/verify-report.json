@@ -1,0 +1,309 @@
+{
+ "tool": "backfire_verify",
+ "date": "2026-09-29",
+ "note": "Round 1 contradicted two diff-size claims (the numbers predated the last two edits); the report was corrected and round 2 verified the corrected claims.",
+ "rounds": [
+  {
+   "arguments": {
+    "claims": [
+     "At the base commit, deno task check took 1 min 52 s and 1 min 54 s on the idle machine; on the branch, npm run check took 1 min 30 s and 1 min 34 s.",
+     "The trial uses about 10 % more CPU time than the base.",
+     "63 files changed outside specs/019-turborepo/, with 6,709 lines added and 4,241 removed.",
+     "Without lock files and docs/reference, 56 files changed, with 1,946 lines added and 1,109 removed.",
+     "Locally owned code grew from 27,666 non-blank lines in 176 files to 28,555 in 182 files.",
+     "The classification has 378 rows in 18 batches, of which 205 were selected.",
+     "Forty rows have a review decision.",
+     "All fifteen design decisions selected a candidate; none escaped to the user.",
+     "D8 chose cache_off_outside with probability 0.50 over declare_inputs at 0.30.",
+     "develop has moved to 8ce9b2a, and 17 files changed both on develop and in the trial.",
+     "519 Deno.* references remain in scripts and plugins, 30 of them in the clean-code skill.",
+     "backfire_review escalated every patch.",
+     "npm run check ran 26 Turborepo tasks, all successful."
+    ],
+    "evidence": [
+     {
+      "id": "timings",
+      "text": "baseline-check: User time (seconds): 372.61 Elapsed (wall clock) time (h:mm:ss or m:ss): 2:09.59 \nbaseline-check-2: User time (seconds): 340.72 Elapsed (wall clock) time (h:mm:ss or m:ss): 1:51.56 \nbaseline-check-3: User time (seconds): 334.15 Elapsed (wall clock) time (h:mm:ss or m:ss): 1:54.25 \nafter-check-3: User time (seconds): 363.88 Elapsed (wall clock) time (h:mm:ss or m:ss): 1:29.92 \nafter-check-4: User time (seconds): 374.86 Elapsed (wall clock) time (h:mm:ss or m:ss): 1:33.69 \nbaseline-check (time file): \nbaseline-check result: exit=0 (deno task check at 3627cb2, other work running on the machine)\nbaseline-check-2 and -3 ran in a temporary detached worktree at 3627cb2 on an idle machine; after-check-3 and -4 ran npm run check on the branch on an idle machine."
+     },
+     {
+      "id": "diffstat",
+      "text": "git diff --shortstat 3627cb2 (all, then without lock files and docs/reference):\n 63 files changed, 6712 insertions(+), 4244 deletions(-)\n 56 files changed, 1949 insertions(+), 1112 deletions(-)\n"
+     },
+     {
+      "id": "loc",
+      "text": "before (3627cb2): 27666 non-blank lines in 176 files; after (working tree): 28555 non-blank lines in 182 files.\n2\t.npmrc\n80\tpackage.json\n14\tpyproject.toml\n17\tscripts/deno_shim.ts\n19\ttsconfig.json\n181\tturbo.json"
+     },
+     {
+      "id": "classification",
+      "text": "specs/019-turborepo/evidence/classify.json: 18 batches, 378 rows; 205 rows with must_change or delete and decision auto; 173 other rows, of which 40 have decision review."
+     },
+     {
+      "id": "decisions",
+      "text": "D1: \"shim_plus_rewrite\" {'shim_with_glue': 0.08, 'shim_plus_rewrite': 0.88, 'rewrite_to_node': 0.02, 'ask_user': 0.01, 'investigate': 0.005, 'none': 0.005}\nD2: \"strip_only\" {'strip_only': 0.88, 'transform_flag': 0.05, 'tsx_loader': 0.02, 'ask_user': 0.02, 'investigate': 0.02, 'none': 0.01}\nD3: \"prettier_yaml\" {'prettier_yaml': 0.86, 'keep_deno_fmt': 0.05, 'drop_yaml_check': 0.02, 'ask_user': 0.04, 'investigate': 0.02, 'none': 0.01}\nD4: \"node_permission\" {'node_permission': 0.85, 'no_permissions': 0.01, 'ask_user': 0.09, 'investigate': 0.04, 'none': 0.01}\nD5: \"keep_skill_on_deno\" {'keep_skill_on_deno': 0.82, 'move_skill_to_node': 0.08, 'ask_user': 0.05, 'investigate': 0.03, 'none': 0.02}\nD6: \"uv_build_root_venv\" {'uv_build_root_venv': 0.8, 'per_package_env': 0.04, 'uv_build_backfire_env': 0.05, 'ask_user': 0.02, 'investigate': 0.05, 'none': 0.04}\nD7: \"lock_in_copy\" {'lock_in_copy': 0.88, 'pylock_install': 0.04, 'keep_second_lock': 0.04, 'ask_user': 0.01, 'investigate': 0.02, 'none': 0.01}\nD8: \"cache_off_outside\" {'declare_inputs': 0.3, 'cache_off_outside': 0.5, 'cache_off_all': 0.1, 'ask_user': 0.03, 'investigate': 0.05, 'none': 0.02}\nD9: \"npm_scripts\" {'npm_scripts': 0.7, 'turbo_tasks': 0.16, 'keep_deno_aliases': 0.06, 'ask_user': 0.04, 'investigate': 0.03, 'none': 0.01}\nD10: \"per_project_locks\" {'per_project_locks': 0.86, 'plugin_workspace': 0.04, 'ask_user': 0.02, 'investigate': 0.05, 'none': 0.03}\nD11: \"preload_glue\" {'preload_glue': 0.9, 'rewrite_sites': 0.07, 'ask_user': 0.01, 'investigate': 0.01, 'none': 0.01}\nD12: \"proper_lockfile\" {'proper_lockfile': 0.85, 'wx_lockfile': 0.02, 'report_gap': 0.1, 'ask_user': 0.01, 'investigate': 0.01, 'none': 0.01}\nD13: \"glob_without_members\" {'glob_without_members': 0.91, 'rename_npm_package': 0.03, 'report_gap': 0.01, 'ask_user': 0.01, 'investigate': 0.03, 'none': 0.01}\nD14: \"buffer_rewrite\" {'buffer_rewrite': 0.86, 'corejs_polyfill': 0.08, 'v8_flag': 0.01, 'ask_user': 0.02, 'investigate': 0.02, 'none': 0.01}\nD15: \"node_snapshot\" {'node_snapshot': 0.72, 'loader_hook': 0.22, 'ask_user': 0.03, 'investigate': 0.02, 'none': 0.01}"
+     },
+     {
+      "id": "develop",
+      "text": "8ce9b2a Merge branch 'feature/python-ruff' into develop\nFiles changed both in 3627cb2..develop and in the trial: deno.json, docs/architecture.md, docs/reference/commands.md, orca.yaml, packages/backfire/pyproject.toml, packages/backfire/src/backfire/ready.py, packages/backfire/src/backfire_tools/build.py, packages/backfire/tests/test_build.py, packages/backfire/tests/test_education_e2e.py, packages/backfire/tests/test_load.py, packages/backfire/tests/test_ready.py, packages/doc-regions/pyproject.toml, packages/doc-regions/src/doc_regions/regions.py, packages/doc-regions/tests/test_regions.py, packages/wiki-consistency/pyproject.toml, scripts/doctor.ts, scripts/doctor_test.ts"
+     },
+     {
+      "id": "deno",
+      "text": "rg -c 'Deno\\.[A-Za-z]+' over scripts and plugins (.ts, .mjs) per file (line counts):\nscripts/workflow_files.ts:2\nscripts/workflow_skills_test.ts:9\nscripts/docs_test.ts:65\nscripts/clean_architecture_test.ts:27\nscripts/workflow.ts:5\nscripts/plugin_skills_test.ts:10\nscripts/wiki_raw_import_test.ts:90\nscripts/workflow_graph.ts:1\nscripts/docs.ts:27\nscripts/doctor.ts:9\nscripts/worktree_branch_test.ts:5\nscripts/workflow_verify_test.ts:19\nscripts/workflow_git.ts:5\nscripts/workflow_graph_test.ts:16\nscripts/workflow_skills.ts:5\nscripts/workflow_plan_test.ts:8\nscripts/commitlint.config.mjs:1\nscripts/git_flow_test.ts:24\nscripts/doctor_test.ts:46\nscripts/workflow_verify.ts:9\nscripts/deno_shim.ts:2\nscripts/commit_msg_test.ts:26\nplugins/code/skills/clean-code/scripts/clean_code.ts:3\nscripts/cli_contract_test.ts:20\nscripts/workflow_plan.ts:1\nplugins/code/skills/clean-code/scripts/clean_code_test.ts:25\nplugins/code/skills/clean-code/scripts/cli.ts:2\nscripts/workflow_symbol.ts:1\nscripts/validate_plugins.ts:4\nscripts/constitution_version.ts:2\nscripts/workflow_test.ts:29\nscripts/clean_architecture.ts:2\n\nrg -o count total: 519; in plugins/code/skills/clean-code: 30"
+     },
+     {
+      "id": "reviews",
+      "text": "T001: escalate composite 0.703\nT002: escalate composite 0.693\nT003-1: escalate composite 0.677\nT004-1: escalate composite 0.536\nT004-2: escalate composite 0.812\nT005-1: escalate composite 0.843\nT005-2: escalate composite 0.731"
+     },
+     {
+      "id": "check",
+      "text": "//:test:plugin-skills: ℹ pass 3\n//:test:plugin-skills: ℹ fail 0\n//:test:worktree-branch: ℹ pass 3\n//:test:worktree-branch: ℹ fail 0\n//:test:clean-code: ok | 35 passed | 0 failed (939ms)\n//:test:clean-architecture: ℹ pass 4\n//:test:clean-architecture: ℹ fail 0\ndoc-regions:test: ============================= 107 passed in 8.25s ==============================\n//:test:git-flow: ℹ pass 20\n//:test:git-flow: ℹ fail 0\n//:test:workflow: ℹ pass 56\n//:test:workflow: ℹ fail 0\n//:test:doctor: ℹ pass 16\n//:test:doctor: ℹ fail 0\n//:test:cli-contract: ℹ pass 14\n//:test:cli-contract: ℹ fail 0\n//:test:commit-msg: ℹ pass 5\n//:test:commit-msg: ℹ fail 0\n//:test:wiki-raw-import: ℹ pass 43\n//:test:wiki-raw-import: ℹ fail 0\n//:test:docs: ℹ pass 14\n//:test:docs: ℹ fail 0\nwiki-consistency:test: ======================== 169 passed in 74.69s (0:01:14) ========================\nbackfire:test: ================ 1355 passed, 3 deselected in 86.83s (0:01:26) =================\n Tasks:    26 successful, 26 total"
+     }
+    ]
+   },
+   "result": {
+    "tool": "backfire_verify",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "auto_accept": 0.8,
+    "summary": {
+     "verified": 11,
+     "contradicted": 2,
+     "unsupported": 0,
+     "needs_review": 0
+    },
+    "results": [
+     {
+      "id": "claim0",
+      "claim": "At the base commit, deno task check took 1 min 52 s and 1 min 54 s on the idle machine; on the branch, npm run check took 1 min 30 s and 1 min 34 s.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "timings"
+     },
+     {
+      "id": "claim1",
+      "claim": "The trial uses about 10 % more CPU time than the base.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "timings"
+     },
+     {
+      "id": "claim2",
+      "claim": "63 files changed outside specs/019-turborepo/, with 6,709 lines added and 4,241 removed.",
+      "verdict": "contradicted",
+      "probabilities": {
+       "supports": 0.05,
+       "contradicts": 0.95,
+       "says_nothing": 0
+      },
+      "confidence": 0.9249999999999999,
+      "action": "auto",
+      "supporting_evidence": "diffstat"
+     },
+     {
+      "id": "claim3",
+      "claim": "Without lock files and docs/reference, 56 files changed, with 1,946 lines added and 1,109 removed.",
+      "verdict": "contradicted",
+      "probabilities": {
+       "supports": 0.05,
+       "contradicts": 0.95,
+       "says_nothing": 0
+      },
+      "confidence": 0.9249999999999999,
+      "action": "auto",
+      "supporting_evidence": "diffstat"
+     },
+     {
+      "id": "claim4",
+      "claim": "Locally owned code grew from 27,666 non-blank lines in 176 files to 28,555 in 182 files.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "loc"
+     },
+     {
+      "id": "claim5",
+      "claim": "The classification has 378 rows in 18 batches, of which 205 were selected.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "classification"
+     },
+     {
+      "id": "claim6",
+      "claim": "Forty rows have a review decision.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "classification"
+     },
+     {
+      "id": "claim7",
+      "claim": "All fifteen design decisions selected a candidate; none escaped to the user.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "decisions"
+     },
+     {
+      "id": "claim8",
+      "claim": "D8 chose cache_off_outside with probability 0.50 over declare_inputs at 0.30.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "decisions"
+     },
+     {
+      "id": "claim9",
+      "claim": "develop has moved to 8ce9b2a, and 17 files changed both on develop and in the trial.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "develop"
+     },
+     {
+      "id": "claim10",
+      "claim": "519 Deno.* references remain in scripts and plugins, 30 of them in the clean-code skill.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "deno"
+     },
+     {
+      "id": "claim11",
+      "claim": "backfire_review escalated every patch.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 0.9,
+       "contradicts": 0,
+       "says_nothing": 0.1
+      },
+      "confidence": 0.8499999999999999,
+      "action": "auto",
+      "supporting_evidence": "reviews"
+     },
+     {
+      "id": "claim12",
+      "claim": "npm run check ran 26 Turborepo tasks, all successful.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": "check"
+     }
+    ],
+    "usage": {
+     "input_tokens": 9276,
+     "output_tokens": 9799
+    }
+   }
+  },
+  {
+   "arguments": {
+    "claims": [
+     "63 files changed outside specs/019-turborepo/, with 6,712 lines added and 4,244 removed.",
+     "Without lock files and docs/reference, 56 files changed, with 1,949 lines added and 1,112 removed."
+    ],
+    "evidence": [
+     {
+      "id": "diffstat",
+      "text": "git diff --shortstat 3627cb2 (all, then without lock files and docs/reference):\n 63 files changed, 6712 insertions(+), 4244 deletions(-)\n 56 files changed, 1949 insertions(+), 1112 deletions(-)\n"
+     }
+    ]
+   },
+   "result": {
+    "tool": "backfire_verify",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "auto_accept": 0.8,
+    "summary": {
+     "verified": 1,
+     "contradicted": 0,
+     "unsupported": 1,
+     "needs_review": 1
+    },
+    "results": [
+     {
+      "id": "claim0",
+      "claim": "63 files changed outside specs/019-turborepo/, with 6,712 lines added and 4,244 removed.",
+      "verdict": "unsupported",
+      "probabilities": {
+       "supports": 0.3,
+       "contradicts": 0,
+       "says_nothing": 0.7
+      },
+      "confidence": 0.5499999999999999,
+      "action": "review",
+      "supporting_evidence": null
+     },
+     {
+      "id": "claim1",
+      "claim": "Without lock files and docs/reference, 56 files changed, with 1,949 lines added and 1,112 removed.",
+      "verdict": "verified",
+      "probabilities": {
+       "supports": 1,
+       "contradicts": 0,
+       "says_nothing": 0
+      },
+      "confidence": 1,
+      "action": "auto",
+      "supporting_evidence": null
+     }
+    ],
+    "usage": {
+     "input_tokens": 820,
+     "output_tokens": 2694
+    }
+   }
+  }
+ ]
+}

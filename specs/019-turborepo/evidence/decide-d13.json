@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the root package.json put Turborepo 2.11.5 into multi-package mode (needed for root tasks '//#name' next to the uv members' tasks) without the name collision between the npm package and the uv member both called wiki-consistency?",
+  "evidence": "Measured 2026-09-29 in a copy of the trial worktree with Turborepo 2.11.5, experimentalPythonWorkspaces and a virtual root uv workspace: with \"workspaces\": [\"packages/*\"] in the root package.json (T001's choice), 'turbo ls' fails: 'Failed to add workspace \"wiki-consistency\" from packages/wiki-consistency/pyproject.toml, it already exists at packages/wiki-consistency/package.json', because packages/wiki-consistency has both a uv project and an npm project (it installs qmd with npm ci --prefix packages/wiki-consistency and its own package-lock.json). npm workspaces also make that npm project a member of the root npm install, alongside its separate package-lock.json. Without a workspaces field, or with \"workspaces\": [], Turborepo runs in single-package mode and rejects every '//#name' task ('Package tasks are not allowed in single-package repositories'). With a workspaces glob that matches no directory containing a package.json (tested: [\"tools/none\"]), 'turbo run check --dry=json' lists exactly the 26 intended tasks, including backfire#test, doc-regions#test and wiki-consistency#test. packages/wiki-consistency/package.json is an unchanged site (its classification is review), so renaming its npm package is outside the selected sites.",
+  "candidates": [
+   {
+    "id": "glob_without_members",
+    "description": "Set the root package.json workspaces to a glob that selects no npm package, so Turborepo runs in multi-package mode and the only packages are the uv members; document the reason next to it in the report."
+   },
+   {
+    "id": "rename_npm_package",
+    "description": "Keep workspaces [\"packages/*\"] and rename the npm package in packages/wiki-consistency/package.json so the identities differ, making it a member of the root npm workspace."
+   },
+   {
+    "id": "report_gap",
+    "description": "Leave T001's workspaces glob and report that Turborepo cannot run this layout."
+   }
+  ],
+  "requirements": [
+   "Changes no unselected site.",
+   "turbo run check lists every intended check task."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "glob_without_members",
+   "escaped": false,
+   "confidence": 0.892,
+   "probabilities": {
+    "glob_without_members": 0.91,
+    "rename_npm_package": 0.03,
+    "report_gap": 0.01,
+    "ask_user": 0.01,
+    "investigate": 0.03,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "glob_without_members",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "glob_without_members",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "rename_npm_package",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "rename_npm_package",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "report_gap",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "report_gap",
+    "requirement": 1,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2453,
+   "output_tokens": 3501
+  }
+ }
+}

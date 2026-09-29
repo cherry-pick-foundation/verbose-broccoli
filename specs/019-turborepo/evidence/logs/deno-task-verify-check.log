@@ -1,0 +1,2020 @@
+
+   • turbo 2.11.5
+   • Packages in scope: backfire, doc-regions, verbose-broccoli-python, wiki-consistency
+   • Running check in 4 packages
+   • Remote caching disabled, using shared worktree cache
+
+doc-regions:test: cache bypass, force executing 992e27e6ae117223
+//:typecheck: cache bypass, force executing 0b0923e0aeb4a97a
+//:test:git-flow: cache bypass, force executing 2e08129be4da6cd3
+//:test:doctor: cache bypass, force executing ce63d25f8fcf8af8
+//:doctor: cache bypass, force executing 066f76b69384eaf1
+//:plugins:validate: cache bypass, force executing eecbe8c6a845a310
+//:lint:shell: cache bypass, force executing 5fe84af9ea15e127
+//:clean-code: cache bypass, force executing 8d7735be4d76eb30
+backfire:test: cache bypass, force executing d8a7829cb79df285
+//:docs:check: cache bypass, force executing b656b61a0981f7db
+//:plugins:validate: npm notice run plugins:validate
+//:plugins:validate: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=scripts --allow-fs-read=plugins --import ./scripts/deno_shim.ts scripts/validate_plugins.ts
+//:docs:check: npm notice run docs:check
+//:docs:check: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read="$(realpath node_modules)" --allow-fs-read=scripts --allow-fs-read=plugins --allow-fs-read=docs --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=deno.json --allow-fs-read=turbo.json --allow-fs-read=tsconfig.json --allow-fs-read=biome.json --allow-child-process --allow-fs-read="$(realpath "$(command -v deno)")" --allow-fs-read=$HOME/.deno/bin/deno --import ./scripts/deno_shim.ts scripts/docs.ts check
+//:doctor: npm notice run doctor
+//:doctor: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=pyproject.toml --allow-fs-read=uv.lock --allow-fs-read=packages --allow-fs-read=node_modules --allow-fs-read=scripts --allow-fs-read=plugins --allow-fs-read=/usr/local/bin/quarto --allow-fs-read=/opt/quarto/bin/quarto --allow-fs-read="$(realpath "$(command -v deno)")" --allow-fs-read="$(dirname "$(dirname "$(dirname "$(node -p process.execPath)")")")" --allow-child-process --import ./scripts/deno_shim.ts scripts/doctor.ts
+//:typecheck: npm notice run typecheck
+//:typecheck: npm notice run tsc --noEmit --project tsconfig.json
+//:lint:shell: npm notice run lint:shell
+//:lint:shell: npm notice run git ls-files -z --cached --others --exclude-standard -- '*.sh' scripts/git-hooks scripts/git-flow-hooks ':(exclude).specify/**' | xargs -0 uv run --project tools/shellcheck --frozen --offline --no-sync shellcheck
+//:test:git-flow: npm notice run test:git-flow
+//:test:git-flow: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/git_flow_test.ts
+//:test:doctor: npm notice run test:doctor
+//:test:doctor: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/doctor_test.ts
+//:test:git-flow: (node:2750667) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:git-flow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:clean-code: npm notice run clean-code
+//:clean-code: npm notice run deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-code/scripts/clean_code.ts
+//:docs:check: (node:2750655) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:docs:check: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:doctor: (node:2750692) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:doctor: (Use `node --trace-warnings ...` to show where the warning was created)
+//:clean-architecture: cache bypass, force executing 526a97e22bfb4c6b
+//:test:git-flow: (node:2750703) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:git-flow: (Use `node --trace-warnings ...` to show where the warning was created)
+doc-regions:test: ============================= test session starts ==============================
+doc-regions:test: platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+doc-regions:test: rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo
+doc-regions:test: configfile: pyproject.toml
+doc-regions:test: plugins: anyio-4.15.1
+doc-regions:test: collected 107 items
+doc-regions:test: 
+//:doctor: (node:2750720) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:doctor: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:doctor: (node:2750723) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:doctor: (Use `node --trace-warnings ...` to show where the warning was created)
+//:plugins:validate: {
+//:plugins:validate:   "plugins": [
+//:plugins:validate:     {
+//:plugins:validate:       "name": "code",
+//:plugins:validate:       "status": "PASS"
+//:plugins:validate:     },
+//:plugins:validate:     {
+//:plugins:validate:       "name": "work",
+//:plugins:validate:       "status": "PASS"
+//:plugins:validate:     },
+//:plugins:validate:     {
+//:plugins:validate:       "name": "chat",
+//:plugins:validate:       "status": "PASS"
+//:plugins:validate:     }
+//:plugins:validate:   ]
+//:plugins:validate: }
+//:clean-architecture: npm notice run clean-architecture
+//:clean-architecture: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --import ./scripts/deno_shim.ts scripts/clean_architecture.ts
+//:test:docs: cache bypass, force executing e8bd65f667b8ec6d
+//:test:docs: npm notice run test:docs
+//:test:docs: npm notice run NODE_OPTIONS=--disable-warning=SecurityWarning node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/docs_test.ts
+//:test:git-flow: ✔ git-flow: feature worktree invocation is refused without changing branches or worktrees (628.147563ms)
+doc-regions:test: packages/doc-regions/tests/test_audit.py .............                   [ 12%]
+doc-regions:test: packages/doc-regions/tests/test_config.py ..................             [ 28%]
+//:clean-architecture: {
+//:clean-architecture:   "violations": [],
+//:clean-architecture:   "error": 0,
+//:clean-architecture:   "totalCruised": 64
+//:clean-architecture: }
+//:test:commit-msg: cache bypass, force executing ec32a58a373c5421
+//:doctor: {
+//:doctor:   "status": "PASS",
+//:doctor:   "runtime": {
+//:doctor:     "version": "v24.19.0",
+//:doctor:     "platform": "linux",
+//:doctor:     "arch": "x64"
+//:doctor:   },
+//:doctor:   "deno": {
+//:doctor:     "selected": "/home/choi-eunchang/.deno/bin/deno",
+//:doctor:     "canonical": "/home/choi-eunchang/.deno/bin/deno",
+//:doctor:     "version": "2.9.6"
+//:doctor:   },
+//:doctor:   "quarto": {
+//:doctor:     "selected": "/usr/local/bin/quarto",
+//:doctor:     "canonical": "/opt/quarto/bin/quarto",
+//:doctor:     "version": "1.10.18"
+//:doctor:   },
+//:doctor:   "uv": {
+//:doctor:     "selected": "uv",
+//:doctor:     "canonical": "uv",
+//:doctor:     "version": "0.11.32"
+//:doctor:   },
+//:doctor:   "gitFlow": {
+//:doctor:     "selected": "git-flow",
+//:doctor:     "canonical": "git-flow",
+//:doctor:     "version": "2.1.0",
+//:doctor:     "config": {
+//:doctor:       "status": "PASS"
+//:doctor:     }
+//:doctor:   },
+//:doctor:   "lychee": {
+//:doctor:     "selected": "lychee",
+//:doctor:     "canonical": "lychee",
+//:doctor:     "version": "0.24.2"
+//:doctor:   },
+//:doctor:   "node": {
+//:doctor:     "selected": "node",
+//:doctor:     "canonical": "node",
+//:doctor:     "version": "24.19.0"
+//:doctor:   },
+//:doctor:   "gitHooksPath": "scripts/git-hooks",
+//:doctor:   "specKit": {
+//:doctor:     "project": "tools/spec-kit",
+//:doctor:     "python": "tools/spec-kit/.venv/bin/python",
+//:doctor:     "sync": "PASS"
+//:doctor:   },
+//:doctor:   "shellCheck": {
+//:doctor:     "project": "tools/shellcheck",
+//:doctor:     "python": "tools/shellcheck/.venv/bin/python",
+//:doctor:     "sync": "PASS"
+//:doctor:   },
+//:doctor:   "uvWorkspace": {
+//:doctor:     "project": ".",
+//:doctor:     "python": ".venv/bin/python",
+//:doctor:     "sync": "PASS"
+//:doctor:   },
+//:doctor:   "rootNpm": {
+//:doctor:     "project": ".",
+//:doctor:     "nodeModules": "./node_modules",
+//:doctor:     "npm": "PASS"
+//:doctor:   },
+//:doctor:   "wikiConsistency": {
+//:doctor:     "project": "packages/wiki-consistency",
+//:doctor:     "nodeModules": "packages/wiki-consistency/node_modules",
+//:doctor:     "npm": "PASS"
+//:doctor:   },
+//:doctor:   "lock": {
+//:doctor:     "path": "/home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/package-lock.json",
+//:doctor:     "sha256": "c43bc963ca55dd2d4a88f5a2bd68d52c9059ffd4f17251222c7fe8731a1d101f",
+//:doctor:     "dependencies": {
+//:doctor:       "node_modules/@babel/code-frame": "7.29.7",
+//:doctor:       "node_modules/@babel/helper-validator-identifier": "7.29.7",
+//:doctor:       "node_modules/@biomejs/biome": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-darwin-arm64": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-darwin-x64": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-linux-arm64": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-linux-arm64-musl": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-linux-x64": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-linux-x64-musl": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-win32-arm64": "2.5.14",
+//:doctor:       "node_modules/@biomejs/cli-win32-x64": "2.5.14",
+//:doctor:       "node_modules/@cliffy/command": "1.2.1",
+//:doctor:       "node_modules/@commitlint/cli": "21.2.3",
+//:doctor:       "node_modules/@commitlint/config-conventional": "21.2.3",
+//:doctor:       "node_modules/@commitlint/config-validator": "21.2.3",
+//:doctor:       "node_modules/@commitlint/ensure": "21.2.3",
+//:doctor:       "node_modules/@commitlint/execute-rule": "21.0.1",
+//:doctor:       "node_modules/@commitlint/format": "21.2.3",
+//:doctor:       "node_modules/@commitlint/is-ignored": "21.2.3",
+//:doctor:       "node_modules/@commitlint/lint": "21.2.3",
+//:doctor:       "node_modules/@commitlint/load": "21.2.3",
+//:doctor:       "node_modules/@commitlint/message": "21.2.0",
+//:doctor:       "node_modules/@commitlint/parse": "21.2.3",
+//:doctor:       "node_modules/@commitlint/read": "21.2.3",
+//:doctor:       "node_modules/@commitlint/resolve-extends": "21.2.3",
+//:doctor:       "node_modules/@commitlint/rules": "21.2.3",
+//:doctor:       "node_modules/@commitlint/to-lines": "21.0.1",
+//:doctor:       "node_modules/@commitlint/top-level": "21.2.0",
+//:doctor:       "node_modules/@commitlint/types": "21.2.3",
+//:doctor:       "node_modules/@conventional-changelog/git-client": "3.1.2",
+//:doctor:       "node_modules/@conventional-changelog/template": "1.4.0",
+//:doctor:       "node_modules/@deno/shim-deno": "0.19.2",
+//:doctor:       "node_modules/@deno/shim-deno-test": "0.5.0",
+//:doctor:       "node_modules/@eemeli/yaml": "2.9.1",
+//:doctor:       "node_modules/@jsr/cliffy__flags": "1.2.1",
+//:doctor:       "node_modules/@jsr/cliffy__internal": "1.2.1",
+//:doctor:       "node_modules/@jsr/cliffy__table": "1.2.1",
+//:doctor:       "node_modules/@jsr/std__assert": "1.0.19",
+//:doctor:       "node_modules/@jsr/std__async": "1.5.1",
+//:doctor:       "node_modules/@jsr/std__data-structures": "1.1.3",
+//:doctor:       "node_modules/@jsr/std__fmt": "1.0.10",
+//:doctor:       "node_modules/@jsr/std__fs": "1.0.24",
+//:doctor:       "node_modules/@jsr/std__internal": "1.0.14",
+//:doctor:       "node_modules/@jsr/std__path": "1.1.6",
+//:doctor:       "node_modules/@jsr/std__regexp": "1.0.2",
+//:doctor:       "node_modules/@jsr/std__semver": "1.0.8",
+//:doctor:       "node_modules/@jsr/std__text": "1.1.0",
+//:doctor:       "node_modules/@mdx-js/mdx": "3.1.1",
+//:doctor:       "node_modules/@simple-libs/child-process-utils": "2.0.0",
+//:doctor:       "node_modules/@simple-libs/stream-utils": "2.0.0",
+//:doctor:       "node_modules/@std/assert": "1.0.19",
+//:doctor:       "node_modules/@std/fs": "1.0.24",
+//:doctor:       "node_modules/@std/path": "1.1.6",
+//:doctor:       "node_modules/@std/testing": "1.0.20",
+//:doctor:       "node_modules/@turbo/darwin-64": "2.11.5",
+//:doctor:       "node_modules/@turbo/darwin-arm64": "2.11.5",
+//:doctor:       "node_modules/@turbo/linux-64": "2.11.5",
+//:doctor:       "node_modules/@turbo/linux-arm64": "2.11.5",
+//:doctor:       "node_modules/@turbo/windows-64": "2.11.5",
+//:doctor:       "node_modules/@turbo/windows-arm64": "2.11.5",
+//:doctor:       "node_modules/@types/debug": "4.1.13",
+//:doctor:       "node_modules/@types/estree": "1.0.9",
+//:doctor:       "node_modules/@types/estree-jsx": "1.0.5",
+//:doctor:       "node_modules/@types/hast": "3.0.5",
+//:doctor:       "node_modules/@types/mdast": "4.0.4",
+//:doctor:       "node_modules/@types/mdx": "2.0.14",
+//:doctor:       "node_modules/@types/ms": "2.1.0",
+//:doctor:       "node_modules/@types/node": "22.20.2",
+//:doctor:       "node_modules/@types/unist": "3.0.3",
+//:doctor:       "node_modules/@ungap/structured-clone": "1.4.0",
+//:doctor:       "node_modules/@zod/zod": "4.6.2",
+//:doctor:       "node_modules/acorn": "8.18.0",
+//:doctor:       "node_modules/acorn-jsx": "5.3.2",
+//:doctor:       "node_modules/acorn-jsx-walk": "2.0.0",
+//:doctor:       "node_modules/acorn-loose": "8.5.2",
+//:doctor:       "node_modules/acorn-walk": "8.3.5",
+//:doctor:       "node_modules/ajv": "8.20.0",
+//:doctor:       "node_modules/ansi-regex": "6.4.0",
+//:doctor:       "node_modules/ansi-styles": "4.3.0",
+//:doctor:       "node_modules/argparse": "2.0.1",
+//:doctor:       "node_modules/argue-cli": "3.2.0",
+//:doctor:       "node_modules/astring": "1.9.0",
+//:doctor:       "node_modules/bail": "2.0.2",
+//:doctor:       "node_modules/callsites": "3.1.0",
+//:doctor:       "node_modules/canonicalize": "5.0.0",
+//:doctor:       "node_modules/ccount": "2.0.1",
+//:doctor:       "node_modules/chalk": "4.1.2",
+//:doctor:       "node_modules/character-entities": "2.0.2",
+//:doctor:       "node_modules/character-entities-html4": "2.1.0",
+//:doctor:       "node_modules/character-entities-legacy": "3.0.0",
+//:doctor:       "node_modules/character-reference-invalid": "2.0.1",
+//:doctor:       "node_modules/cliui": "9.0.1",
+//:doctor:       "node_modules/cliui/node_modules/string-width": "7.2.0",
+//:doctor:       "node_modules/collapse-white-space": "2.1.0",
+//:doctor:       "node_modules/color-convert": "2.0.1",
+//:doctor:       "node_modules/color-name": "1.1.4",
+//:doctor:       "node_modules/comma-separated-tokens": "2.0.3",
+//:doctor:       "node_modules/commander": "15.0.0",
+//:doctor:       "node_modules/conventional-changelog-angular": "9.4.0",
+//:doctor:       "node_modules/conventional-changelog-conventionalcommits": "10.4.0",
+//:doctor:       "node_modules/conventional-commits-parser": "7.1.2",
+//:doctor:       "node_modules/cosmiconfig": "9.0.2",
+//:doctor:       "node_modules/cosmiconfig-typescript-loader": "6.3.0",
+//:doctor:       "node_modules/debug": "4.4.3",
+//:doctor:       "node_modules/decode-named-character-reference": "1.3.0",
+//:doctor:       "node_modules/dependency-cruiser": "18.2.0",
+//:doctor:       "node_modules/dequal": "2.0.3",
+//:doctor:       "node_modules/devlop": "1.1.0",
+//:doctor:       "node_modules/emoji-regex": "10.6.0",
+//:doctor:       "node_modules/enhanced-resolve": "5.24.5",
+//:doctor:       "node_modules/env-paths": "2.2.1",
+//:doctor:       "node_modules/error-ex": "1.3.4",
+//:doctor:       "node_modules/es-errors": "1.3.0",
+//:doctor:       "node_modules/es-toolkit": "1.52.0",
+//:doctor:       "node_modules/esast-util-from-estree": "2.0.0",
+//:doctor:       "node_modules/esast-util-from-js": "2.0.1",
+//:doctor:       "node_modules/escalade": "3.2.0",
+//:doctor:       "node_modules/escape-string-regexp": "5.0.0",
+//:doctor:       "node_modules/estree-util-attach-comments": "3.0.0",
+//:doctor:       "node_modules/estree-util-build-jsx": "3.0.1",
+//:doctor:       "node_modules/estree-util-is-identifier-name": "3.0.0",
+//:doctor:       "node_modules/estree-util-scope": "1.0.1",
+//:doctor:       "node_modules/estree-util-to-js": "2.0.0",
+//:doctor:       "node_modules/estree-util-visit": "2.0.0",
+//:doctor:       "node_modules/estree-walker": "3.0.3",
+//:doctor:       "node_modules/extend": "3.0.2",
+//:doctor:       "node_modules/fast-deep-equal": "3.1.3",
+//:doctor:       "node_modules/fast-uri": "3.1.8",
+//:doctor:       "node_modules/function-bind": "1.1.2",
+//:doctor:       "node_modules/get-caller-file": "2.0.5",
+//:doctor:       "node_modules/get-east-asian-width": "1.7.0",
+//:doctor:       "node_modules/global-directory": "5.0.0",
+//:doctor:       "node_modules/graceful-fs": "4.2.11",
+//:doctor:       "node_modules/has-flag": "4.0.0",
+//:doctor:       "node_modules/hasown": "2.0.4",
+//:doctor:       "node_modules/hast-util-to-estree": "3.1.3",
+//:doctor:       "node_modules/hast-util-to-jsx-runtime": "2.3.6",
+//:doctor:       "node_modules/hast-util-whitespace": "3.0.0",
+//:doctor:       "node_modules/ignore": "7.0.6",
+//:doctor:       "node_modules/import-fresh": "3.3.1",
+//:doctor:       "node_modules/import-fresh/node_modules/resolve-from": "4.0.0",
+//:doctor:       "node_modules/ini": "6.0.0",
+//:doctor:       "node_modules/inline-style-parser": "0.2.7",
+//:doctor:       "node_modules/interpret": "3.1.1",
+//:doctor:       "node_modules/is-alphabetical": "2.0.1",
+//:doctor:       "node_modules/is-alphanumerical": "2.0.1",
+//:doctor:       "node_modules/is-arrayish": "0.2.1",
+//:doctor:       "node_modules/is-core-module": "2.17.0",
+//:doctor:       "node_modules/is-decimal": "2.0.1",
+//:doctor:       "node_modules/is-hexadecimal": "2.0.1",
+//:doctor:       "node_modules/is-installed-globally": "1.0.0",
+//:doctor:       "node_modules/is-installed-globally/node_modules/global-directory": "4.0.1",
+//:doctor:       "node_modules/is-installed-globally/node_modules/ini": "4.1.1",
+//:doctor:       "node_modules/is-path-inside": "4.0.0",
+//:doctor:       "node_modules/is-plain-obj": "4.1.0",
+//:doctor:       "node_modules/isexe": "3.1.5",
+//:doctor:       "node_modules/jiti": "2.6.1",
+//:doctor:       "node_modules/js-tokens": "4.0.0",
+//:doctor:       "node_modules/js-yaml": "4.3.2",
+//:doctor:       "node_modules/json-parse-even-better-errors": "2.3.1",
+//:doctor:       "node_modules/json-schema-traverse": "1.0.0",
+//:doctor:       "node_modules/json5": "2.2.3",
+//:doctor:       "node_modules/kleur": "3.0.3",
+//:doctor:       "node_modules/lines-and-columns": "1.2.4",
+//:doctor:       "node_modules/longest-streak": "3.1.0",
+//:doctor:       "node_modules/markdown-extensions": "2.0.0",
+//:doctor:       "node_modules/markdown-table": "3.0.4",
+//:doctor:       "node_modules/mdast-util-find-and-replace": "3.0.2",
+//:doctor:       "node_modules/mdast-util-from-markdown": "2.0.3",
+//:doctor:       "node_modules/mdast-util-gfm": "3.1.0",
+//:doctor:       "node_modules/mdast-util-gfm-autolink-literal": "2.0.1",
+//:doctor:       "node_modules/mdast-util-gfm-footnote": "2.1.0",
+//:doctor:       "node_modules/mdast-util-gfm-strikethrough": "2.0.1",
+//:doctor:       "node_modules/mdast-util-gfm-table": "2.0.0",
+//:doctor:       "node_modules/mdast-util-gfm-task-list-item": "2.0.0",
+//:doctor:       "node_modules/mdast-util-mdx": "3.0.0",
+//:doctor:       "node_modules/mdast-util-mdx-expression": "2.0.1",
+//:doctor:       "node_modules/mdast-util-mdx-jsx": "3.2.0",
+//:doctor:       "node_modules/mdast-util-mdxjs-esm": "2.0.1",
+//:doctor:       "node_modules/mdast-util-phrasing": "4.1.0",
+//:doctor:       "node_modules/mdast-util-to-hast": "13.2.1",
+//:doctor:       "node_modules/mdast-util-to-markdown": "2.1.2",
+//:doctor:       "node_modules/mdast-util-to-string": "4.0.0",
+//:doctor:       "node_modules/micromark": "4.0.3",
+//:doctor:       "node_modules/micromark-core-commonmark": "2.0.4",
+//:doctor:       "node_modules/micromark-extension-gfm": "3.0.0",
+//:doctor:       "node_modules/micromark-extension-gfm-autolink-literal": "2.1.0",
+//:doctor:       "node_modules/micromark-extension-gfm-footnote": "2.1.0",
+//:doctor:       "node_modules/micromark-extension-gfm-strikethrough": "2.1.0",
+//:doctor:       "node_modules/micromark-extension-gfm-table": "2.1.2",
+//:doctor:       "node_modules/micromark-extension-gfm-tagfilter": "2.0.0",
+//:doctor:       "node_modules/micromark-extension-gfm-task-list-item": "2.1.0",
+//:doctor:       "node_modules/micromark-extension-mdx-expression": "3.0.1",
+//:doctor:       "node_modules/micromark-extension-mdx-jsx": "3.0.2",
+//:doctor:       "node_modules/micromark-extension-mdx-md": "2.0.0",
+//:doctor:       "node_modules/micromark-extension-mdxjs": "3.0.0",
+//:doctor:       "node_modules/micromark-extension-mdxjs-esm": "3.0.0",
+//:doctor:       "node_modules/micromark-factory-destination": "2.0.1",
+//:doctor:       "node_modules/micromark-factory-label": "2.0.1",
+//:doctor:       "node_modules/micromark-factory-mdx-expression": "2.0.3",
+//:doctor:       "node_modules/micromark-factory-space": "2.1.0",
+//:doctor:       "node_modules/micromark-factory-title": "2.0.1",
+//:doctor:       "node_modules/micromark-factory-whitespace": "2.0.1",
+//:doctor:       "node_modules/micromark-util-character": "2.1.1",
+//:doctor:       "node_modules/micromark-util-chunked": "2.0.1",
+//:doctor:       "node_modules/micromark-util-classify-character": "2.0.1",
+//:doctor:       "node_modules/micromark-util-combine-extensions": "2.0.1",
+//:doctor:       "node_modules/micromark-util-decode-numeric-character-reference": "2.0.2",
+//:doctor:       "node_modules/micromark-util-decode-string": "2.0.1",
+//:doctor:       "node_modules/micromark-util-edit-map": "1.0.0",
+//:doctor:       "node_modules/micromark-util-encode": "2.0.1",
+//:doctor:       "node_modules/micromark-util-events-to-acorn": "2.0.3",
+//:doctor:       "node_modules/micromark-util-html-tag-name": "2.0.1",
+//:doctor:       "node_modules/micromark-util-normalize-identifier": "2.0.1",
+//:doctor:       "node_modules/micromark-util-resolve-all": "2.0.1",
+//:doctor:       "node_modules/micromark-util-sanitize-uri": "2.0.1",
+//:doctor:       "node_modules/micromark-util-subtokenize": "2.1.0",
+//:doctor:       "node_modules/micromark-util-symbol": "2.0.1",
+//:doctor:       "node_modules/micromark-util-types": "2.0.3",
+//:doctor:       "node_modules/minimist": "1.2.8",
+//:doctor:       "node_modules/ms": "2.1.3",
+//:doctor:       "node_modules/parent-module": "1.0.1",
+//:doctor:       "node_modules/parse-entities": "4.0.2",
+//:doctor:       "node_modules/parse-entities/node_modules/@types/unist": "2.0.11",
+//:doctor:       "node_modules/parse-json": "5.2.0",
+//:doctor:       "node_modules/path-parse": "1.0.7",
+//:doctor:       "node_modules/picocolors": "1.1.1",
+//:doctor:       "node_modules/picomatch": "4.0.5",
+//:doctor:       "node_modules/prettier": "3.9.9",
+//:doctor:       "node_modules/prompts": "2.4.2",
+//:doctor:       "node_modules/proper-lockfile": "4.1.2",
+//:doctor:       "node_modules/property-information": "7.2.0",
+//:doctor:       "node_modules/rechoir": "0.8.0",
+//:doctor:       "node_modules/recma-build-jsx": "1.0.0",
+//:doctor:       "node_modules/recma-jsx": "1.0.1",
+//:doctor:       "node_modules/recma-parse": "1.0.0",
+//:doctor:       "node_modules/recma-stringify": "1.0.0",
+//:doctor:       "node_modules/regexp-tree": "0.1.27",
+//:doctor:       "node_modules/rehype-recma": "1.0.0",
+//:doctor:       "node_modules/remark-gfm": "4.0.1",
+//:doctor:       "node_modules/remark-mdx": "3.1.1",
+//:doctor:       "node_modules/remark-parse": "11.0.0",
+//:doctor:       "node_modules/remark-rehype": "11.1.2",
+//:doctor:       "node_modules/remark-stringify": "11.0.0",
+//:doctor:       "node_modules/require-from-string": "2.0.2",
+//:doctor:       "node_modules/resolve": "1.22.12",
+//:doctor:       "node_modules/resolve-from": "5.0.0",
+//:doctor:       "node_modules/retry": "0.12.0",
+//:doctor:       "node_modules/safe-regex": "2.1.1",
+//:doctor:       "node_modules/semver": "7.8.5",
+//:doctor:       "node_modules/signal-exit": "3.0.7",
+//:doctor:       "node_modules/sisteransi": "1.0.5",
+//:doctor:       "node_modules/source-map": "0.7.6",
+//:doctor:       "node_modules/space-separated-tokens": "2.0.2",
+//:doctor:       "node_modules/string-width": "8.3.0",
+//:doctor:       "node_modules/stringify-entities": "4.0.4",
+//:doctor:       "node_modules/strip-ansi": "7.2.0",
+//:doctor:       "node_modules/strip-bom": "3.0.0",
+//:doctor:       "node_modules/style-to-js": "1.1.21",
+//:doctor:       "node_modules/style-to-object": "1.0.14",
+//:doctor:       "node_modules/supports-color": "7.2.0",
+//:doctor:       "node_modules/supports-preserve-symlinks-flag": "1.0.0",
+//:doctor:       "node_modules/tapable": "2.3.3",
+//:doctor:       "node_modules/tinyexec": "1.3.1",
+//:doctor:       "node_modules/trim-lines": "3.0.1",
+//:doctor:       "node_modules/trough": "2.2.0",
+//:doctor:       "node_modules/tsconfig-paths": "4.2.0",
+//:doctor:       "node_modules/tsconfig-paths-webpack-plugin": "4.2.0",
+//:doctor:       "node_modules/turbo": "2.11.5",
+//:doctor:       "node_modules/typescript": "6.0.3",
+//:doctor:       "node_modules/undici-types": "6.21.0",
+//:doctor:       "node_modules/unified": "11.0.5",
+//:doctor:       "node_modules/unist-util-is": "6.0.1",
+//:doctor:       "node_modules/unist-util-position": "5.0.0",
+//:doctor:       "node_modules/unist-util-position-from-estree": "2.0.0",
+//:doctor:       "node_modules/unist-util-stringify-position": "4.0.0",
+//:doctor:       "node_modules/unist-util-visit": "5.1.0",
+//:doctor:       "node_modules/unist-util-visit-parents": "6.0.2",
+//:doctor:       "node_modules/vfile": "6.0.3",
+//:doctor:       "node_modules/vfile-message": "4.0.3",
+//:doctor:       "node_modules/watskeburt": "6.0.0",
+//:doctor:       "node_modules/which": "4.0.0",
+//:doctor:       "node_modules/wrap-ansi": "9.0.2",
+//:doctor:       "node_modules/wrap-ansi/node_modules/ansi-styles": "6.2.3",
+//:doctor:       "node_modules/wrap-ansi/node_modules/string-width": "7.2.0",
+//:doctor:       "node_modules/y18n": "5.0.8",
+//:doctor:       "node_modules/yargs": "18.2.0",
+//:doctor:       "node_modules/yargs-parser": "22.0.0",
+//:doctor:       "node_modules/zwitch": "2.0.4"
+//:doctor:     }
+//:doctor:   }
+//:doctor: }
+//:test:plugin-skills: cache bypass, force executing 13d8884f85e7a002
+//:test:git-flow: ✔ git-flow: finish is refused when develop has a commit the feature lacks (654.423694ms)
+//:test:commit-msg: npm notice run test:commit-msg
+//:test:commit-msg: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/commit_msg_test.ts
+//:clean-code: {
+//:clean-code:   "assessment": "NOT_APPLICABLE",
+//:clean-code:   "coverage": {
+//:clean-code:     "candidates": 32,
+//:clean-code:     "selected": 0,
+//:clean-code:     "excluded": 32,
+//:clean-code:     "errors": 0
+//:clean-code:   },
+//:clean-code:   "scope": [
+//:clean-code:     {
+//:clean-code:       "file": "plugins/code/skills/clean-code/scripts/clean_code.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 336,
+//:clean-code:           "column": 24,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 343,
+//:clean-code:           "column": 55,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 346,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 343,
+//:clean-code:           "column": 13,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 273,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 263,
+//:clean-code:           "column": 37,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 273,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 273,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "plugins/code/skills/clean-code/scripts/cli.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 44,
+//:clean-code:           "column": 72,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 41,
+//:clean-code:           "column": 17,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 47,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 42,
+//:clean-code:           "column": 61,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 29,
+//:clean-code:           "column": 45,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/clean_architecture.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 281,
+//:clean-code:           "column": 42,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 276,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 283,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 281,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 201,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/clean_architecture_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 262,
+//:clean-code:           "column": 30,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 256,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 262,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 262,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/cli_contract_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 310,
+//:clean-code:           "column": 30,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 312,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 308,
+//:clean-code:           "column": 22,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 307,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 160,
+//:clean-code:           "column": 23,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/commit_msg_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 579,
+//:clean-code:           "column": 65,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 575,
+//:clean-code:           "column": 39,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 579,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 579,
+//:clean-code:           "column": 46,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 566,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/constitution_version.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 179,
+//:clean-code:           "column": 72,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 167,
+//:clean-code:           "column": 49,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 11,
+//:clean-code:           "column": 12,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 178,
+//:clean-code:           "column": 61,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 178,
+//:clean-code:           "column": 61,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/deno_shim.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 16,
+//:clean-code:           "column": 3,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 14,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Runtime TypeScript declarations are outside the function subset.",
+//:clean-code:           "line": 6,
+//:clean-code:           "column": 3,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 14,
+//:clean-code:           "column": 1,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 20,
+//:clean-code:           "column": 1,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/docs.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 707,
+//:clean-code:           "column": 40,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 707,
+//:clean-code:           "column": 33,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 707,
+//:clean-code:           "column": 13,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 712,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 487,
+//:clean-code:           "column": 37,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/docs_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 740,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 745,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 744,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 744,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 378,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/doctor.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 403,
+//:clean-code:           "column": 22,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 402,
+//:clean-code:           "column": 37,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 403,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 405,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 275,
+//:clean-code:           "column": 55,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/doctor_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 554,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 549,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 555,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 554,
+//:clean-code:           "column": 35,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 541,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/git_flow_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 563,
+//:clean-code:           "column": 20,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 561,
+//:clean-code:           "column": 51,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 564,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 551,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 508,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/hash.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 8,
+//:clean-code:           "column": 22,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 9,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 8,
+//:clean-code:           "column": 28,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 8,
+//:clean-code:           "column": 28,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/plugin_skills_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 78,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 78,
+//:clean-code:           "column": 42,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 78,
+//:clean-code:           "column": 31,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 78,
+//:clean-code:           "column": 13,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/validate_plugins.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 80,
+//:clean-code:           "column": 23,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 78,
+//:clean-code:           "column": 39,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 80,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 82,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/wiki_raw_import_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 1301,
+//:clean-code:           "column": 20,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 1299,
+//:clean-code:           "column": 35,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 1301,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 1274,
+//:clean-code:           "column": 20,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 956,
+//:clean-code:           "column": 32,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 559,
+//:clean-code:           "column": 19,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 566,
+//:clean-code:           "column": 44,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 202,
+//:clean-code:           "column": 19,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 534,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 569,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_files.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 53,
+//:clean-code:           "column": 57,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 45,
+//:clean-code:           "column": 35,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 53,
+//:clean-code:           "column": 44,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 41,
+//:clean-code:           "column": 24,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 53,
+//:clean-code:           "column": 44,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_git.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 146,
+//:clean-code:           "column": 33,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 140,
+//:clean-code:           "column": 46,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 143,
+//:clean-code:           "column": 21,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 146,
+//:clean-code:           "column": 39,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 114,
+//:clean-code:           "column": 10,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_graph.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 164,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 169,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 145,
+//:clean-code:           "column": 23,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 51,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 150,
+//:clean-code:           "column": 15,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_graph_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 535,
+//:clean-code:           "column": 37,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 537,
+//:clean-code:           "column": 52,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 537,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 535,
+//:clean-code:           "column": 41,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_plan.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 86,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 79,
+//:clean-code:           "column": 107,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 84,
+//:clean-code:           "column": 58,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 84,
+//:clean-code:           "column": 58,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_plan_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 344,
+//:clean-code:           "column": 46,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 345,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 344,
+//:clean-code:           "column": 16,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 342,
+//:clean-code:           "column": 13,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_skills.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 218,
+//:clean-code:           "column": 51,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 215,
+//:clean-code:           "column": 47,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 214,
+//:clean-code:           "column": 10,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 197,
+//:clean-code:           "column": 30,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 107,
+//:clean-code:           "column": 21,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_skills_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 405,
+//:clean-code:           "column": 18,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 401,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 405,
+//:clean-code:           "column": 24,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 386,
+//:clean-code:           "column": 27,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_symbol.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 161,
+//:clean-code:           "column": 20,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 164,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 168,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 104,
+//:clean-code:           "column": 19,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 91,
+//:clean-code:           "column": 16,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 495,
+//:clean-code:           "column": 22,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 506,
+//:clean-code:           "column": 25,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 506,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 442,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_verify.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 272,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 262,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 272,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 233,
+//:clean-code:           "column": 14,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/workflow_verify_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 297,
+//:clean-code:           "column": 9,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 297,
+//:clean-code:           "column": 44,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 301,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 286,
+//:clean-code:           "column": 29,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     },
+//:clean-code:     {
+//:clean-code:       "file": "scripts/worktree_branch_test.ts",
+//:clean-code:       "status": "excluded",
+//:clean-code:       "reasons": [
+//:clean-code:         {
+//:clean-code:           "message": "Syntax is outside the approved function subset.",
+//:clean-code:           "line": 254,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "String literals exclude the whole file, regardless of their contents.",
+//:clean-code:           "line": 252,
+//:clean-code:           "column": 7,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Call is not bound to an unchanged function defined in this file.",
+//:clean-code:           "line": 250,
+//:clean-code:           "column": 5,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Value is not a parameter or a locally defined binding.",
+//:clean-code:           "line": 194,
+//:clean-code:           "column": 11,
+//:clean-code:           "rule": "scope/bindings"
+//:clean-code:         },
+//:clean-code:         {
+//:clean-code:           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+//:clean-code:           "line": 249,
+//:clean-code:           "column": 32,
+//:clean-code:           "rule": "no-restricted-syntax"
+//:clean-code:         }
+//:clean-code:       ]
+//:clean-code:     }
+//:clean-code:   ],
+//:clean-code:   "selected": [],
+//:clean-code:   "diagnostics": []
+//:clean-code: }
+//:test:plugin-skills: npm notice run test:plugin-skills
+//:test:plugin-skills: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/plugin_skills_test.ts
+//:test:worktree-branch: cache bypass, force executing 6433c1f3ca604ca9
+//:test:commit-msg: (node:2751429) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:commit-msg: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:plugin-skills: (node:2751453) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:plugin-skills: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:commit-msg: (node:2751477) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:commit-msg: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:plugin-skills: (node:2751495) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:plugin-skills: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:worktree-branch: npm notice run test:worktree-branch
+//:test:worktree-branch: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --import ./scripts/deno_shim.ts --test scripts/worktree_branch_test.ts
+doc-regions:test: packages/doc-regions/tests/test_regions.py ............................. [ 56%]
+//:test:worktree-branch: (node:2751623) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:worktree-branch: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:commit-msg: ✔ constitution version rule: table and edge cases (0.973956ms)
+//:test:plugin-skills: ✔ plugin skills: no project links duplicate packaged skills (14.19419ms)
+//:test:worktree-branch: (node:2751680) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:worktree-branch: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:commit-msg: ✔ constitution version rule: Git errors refuse changed commits (161.598077ms)
+backfire:test: ============================= test session starts ==============================
+backfire:test: platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+backfire:test: rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/packages/backfire
+backfire:test: configfile: pyproject.toml
+backfire:test: plugins: anyio-4.15.1
+backfire:test: collected 1358 items / 3 deselected / 1355 selected
+backfire:test: 
+//:test:git-flow: ✔ git-flow: finish is refused when feature verification fails (965.752888ms)
+backfire:test: packages/backfire/tests/test_adapter_wiring.py .....                     [  0%]
+//:test:git-flow: ✔ git-flow: finish is refused when the feature tip has no review record (596.351771ms)
+//:docs:check: {
+//:docs:check:   "status": "PASS",
+//:docs:check:   "mode": "check",
+//:docs:check:   "files": [
+//:docs:check:     "docs/reference/commands.md",
+//:docs:check:     "docs/reference/plugins.md"
+//:docs:check:   ]
+//:docs:check: }
+//:test:worktree-branch: ✔ worktree branch: applies the documented name mappings and is idempotent (694.828747ms)
+//:test:clean-code: cache bypass, force executing d26e392e57fc917e
+//:test:clean-code: npm notice run test:clean-code
+//:test:clean-code: npm notice run deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/skills/clean-code/scripts/clean_code_test.ts
+//:test:clean-code: Workspace member "tools/none" not found at file:///home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/tools/none/. Skipping.
+doc-regions:test: .........                                                                [ 64%]
+//:test:worktree-branch: ✔ worktree branch: skips branches that must not be renamed (564.438533ms)
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-commit is not the record parent (629.588792ms)
+//:test:plugin-skills: ✔ plugin skills: isolated packages retain resources and executable helpers (1807.045323ms)
+//:test:plugin-skills: ✔ plugin skills: work Backfire shares code tool reference and license (2.653428ms)
+//:test:plugin-skills: ℹ tests 3
+//:test:plugin-skills: ℹ suites 0
+//:test:plugin-skills: ℹ pass 3
+//:test:plugin-skills: ℹ fail 0
+//:test:plugin-skills: ℹ cancelled 0
+//:test:plugin-skills: ℹ skipped 0
+//:test:plugin-skills: ℹ todo 0
+//:test:plugin-skills: ℹ duration_ms 2151.144027
+//:doc-regions:check: cache bypass, force executing 8f8e6a9c65eff260
+//:test:worktree-branch: ✔ worktree branch: refuses invalid or existing targets without changes (315.821853ms)
+//:test:worktree-branch: ℹ tests 3
+//:test:worktree-branch: ℹ suites 0
+//:test:worktree-branch: ℹ pass 3
+//:test:worktree-branch: ℹ fail 0
+//:test:worktree-branch: ℹ cancelled 0
+//:test:worktree-branch: ℹ skipped 0
+//:test:worktree-branch: ℹ todo 0
+//:test:worktree-branch: ℹ duration_ms 1910.587253
+//:lint: cache bypass, force executing 09b824a5d5f631dc
+//:doc-regions:check: npm notice run doc-regions:check
+//:doc-regions:check: npm notice run PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions check scripts/doc_regions.toml
+//:lint: npm notice run lint
+//:lint: npm notice run NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome lint --error-on-warnings .
+//:test:doctor: ✔ doctor: root task permits relocated and symlinked runtimes (3980.794136ms)
+//:test:git-flow: ✔ git-flow: finish is refused when the review record changes the tree (674.69977ms)
+//:doc-regions:check: {"problems": []}
+//:test:cli-contract: cache bypass, force executing 45e3976269295b5b
+//:test:workflow: cache bypass, force executing 93b0922a2b1d3ed1
+//:lint: Checked 60 files in 574ms. No fixes applied.
+//:test:cli-contract: npm notice run test:cli-contract
+//:test:cli-contract: npm notice run NODE_OPTIONS=--disable-warning=SecurityWarning node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/cli_contract_test.ts
+//:test:clean-code: running 35 tests from ./plugins/code/skills/clean-code/scripts/clean_code_test.ts
+//:lint: (node:2753031) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:wiki-raw-import: cache bypass, force executing 5a637e7c8f958e1d
+//:test:workflow: npm notice run test:workflow
+//:test:workflow: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/workflow_test.ts scripts/workflow_plan_test.ts scripts/workflow_verify_test.ts scripts/workflow_graph_test.ts scripts/workflow_skills_test.ts
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-by is missing (651.402616ms)
+//:test:clean-code: scope: arithmetic ... ok (165ms)
+//:test:workflow: (node:2753587) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:wiki-raw-import: npm notice run test:wiki-raw-import
+//:test:wiki-raw-import: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/wiki_raw_import_test.ts
+//:test:clean-code: scope: branch and loop ... ok (23ms)
+//:test:clean-code: scope: local function ... ok (9ms)
+//:test:clean-code: scope: local arrow ... ok (7ms)
+//:test:clean-code: scope: local expression ... ok (2ms)
+//:test:clean-code: scope: local overload ... ok (1ms)
+//:test:clean-code: scope: block local binding ... ok (3ms)
+//:test:clean-code: scope: explicit any stays selected ... ok (1ms)
+//:test:clean-code: scope: unused variable stays selected ... ok (1ms)
+//:test:clean-code: scope: string ... ok (1ms)
+//:test:clean-code: scope: SQL string ... ok (901µs)
+//:test:clean-code: scope: object ... ok (1ms)
+//:test:clean-code: scope: array ... ok (7ms)
+//:test:clean-code: scope: regular expression ... ok (5ms)
+//:test:clean-code: scope: template ... ok (2ms)
+//:test:clean-code: scope: tagged template ... ok (13ms)
+//:test:clean-code: scope: JSX ... ok (4ms)
+//:test:clean-code: scope: method ... ok (1ms)
+//:test:wiki-raw-import: (node:2753621) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:wiki-raw-import: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:clean-code: scope: external call ... ok (1ms)
+//:test:clean-code: scope: external value ... ok (2ms)
+//:test:clean-code: scope: callback parameter ... ok (8ms)
+//:test:clean-code: scope: computed call ... ok (4ms)
+//:test:clean-code: scope: dynamic import ... ok (1ms)
+//:test:clean-code: scope: shadowed name ... ok (1ms)
+//:test:clean-code: scope: reassigned function ... ok (8ms)
+//:test:clean-code: scope: reassigned declaration ... ok (5ms)
+//:test:clean-code: scope: mixed file ... ok (2ms)
+//:test:clean-code: scope: type-only file ... ok (3ms)
+//:test:clean-code: scope: ambient function ... ok (3ms)
+//:test:clean-code: scope: ambient value ... ok (2ms)
+//:test:clean-code: scope: syntax error ... ok (4ms)
+//:test:workflow: (node:2753622) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:wiki-raw-import: (node:2753705) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:wiki-raw-import: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:clean-code: same selection, exact length boundary, and quality failures ... ok (516ms)
+//:test:clean-code: parse errors remain errors and never become exclusions ... ok (2ms)
+//:test:clean-code: discovery applies fixed paths and excludes declaration files and symlinks ... ok (12ms)
+//:test:clean-code: excluded-only scope is explicitly not applicable, not a quality pass ... ok (5ms)
+//:test:clean-code: 
+//:test:clean-code: ok | 35 passed | 0 failed (939ms)
+//:test:clean-code: 
+//:test:clean-architecture: cache bypass, force executing 47ad1788e9cc3c99
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-commit is missing (898.842325ms)
+//:test:clean-architecture: npm notice run test:clean-architecture
+//:test:clean-architecture: npm notice run node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/clean_architecture_test.ts
+//:test:doctor: ✔ doctor: installed identities, versions and root lock work outside the checkout (1783.089384ms)
+//:test:clean-architecture: (node:2754092) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:clean-architecture: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:doctor: ✔ doctor: missing, relative, non-executable and wrong-identity paths fail before report creation (171.515489ms)
+//:test:clean-architecture: (node:2754248) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:clean-architecture: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:wiki-raw-import: ✔ raw import: locked offline help and missing-instance errors (602.123812ms)
+//:test:cli-contract: ✔ CLI doctor: help and invalid arguments (1658.065532ms)
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-by is duplicated (892.862551ms)
+//:test:clean-architecture: ✔ architecture: dependency directions, cycles, public APIs and Deno aliases (191.948638ms)
+//:test:clean-architecture: ✔ architecture: unsupported scoped imports fail instead of skipping edges (7.740026ms)
+//:test:clean-architecture: ✔ architecture: domain runtime APIs, aliases, globalThis and valid local bindings (185.938112ms)
+//:test:clean-architecture: ✔ architecture: local and external alias conflicts cannot hide dependencies (15.266151ms)
+//:test:clean-architecture: ℹ tests 4
+//:test:clean-architecture: ℹ suites 0
+//:test:clean-architecture: ℹ pass 4
+//:test:clean-architecture: ℹ fail 0
+//:test:clean-architecture: ℹ cancelled 0
+//:test:clean-architecture: ℹ skipped 0
+//:test:clean-architecture: ℹ todo 0
+//:test:clean-architecture: ℹ duration_ms 931.684998
+wiki-consistency:test: cache bypass, force executing ce7f9b5749f70f08
+//:test:workflow: ✔ workflow graph: aliases and re-exports reach transitive consumers and affected tests only (711.768831ms)
+//:test:doctor: ✔ doctor: standalone aliases pass but .venv and Quarto runtime paths are refused (1175.054411ms)
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-by is empty (815.351124ms)
+//:test:wiki-raw-import: ✔ raw import US1: one immutable bag preserves payload, digest, timestamps and provenance (1213.709454ms)
+//:test:workflow: ✔ workflow graph: every query sees same-length import edits and a new snapshot (618.483748ms)
+doc-regions:test: packages/doc-regions/tests/test_requests.py .....................        [ 84%]
+doc-regions:test: packages/doc-regions/tests/test_units.py ...............                 [ 98%]
+doc-regions:test: scripts/doc_sources_test.py ..                                           [100%]
+doc-regions:test: 
+doc-regions:test: ============================= 107 passed in 8.25s ==============================
+//:test:workflow: ✔ workflow graph: cycles, outward domain dependencies and missing local imports fail policy (320.049043ms)
+//:format:check: cache bypass, force executing 360256e82839ce63
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-by has an empty duplicate (824.95686ms)
+//:format:check: npm notice run format:check
+//:format:check: npm notice run NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome format . && NODE_OPTIONS='--permission --allow-fs-read=*' prettier --check --single-quote .github/ orca.yaml
+//:test:wiki-raw-import: ✔ raw import US1: verify detects changed payload without writing (962.215124ms)
+//:test:workflow: ✔ workflow graph: npm and jsr dependencies stay external while ignored local targets stay outside scope (362.138908ms)
+//:format:check: Checked 60 files in 52ms. No fixes applied.
+//:format:check: (node:2755826) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:format:check: (Use `node --trace-warnings ...` to show where the warning was created)
+//:format:check: Checking formatting...
+//:test:workflow: ✔ workflow graph: invalid choices, noncanonical paths and invalid symbol positions are rejected (245.9175ms)
+wiki-consistency:test: ============================= test session starts ==============================
+wiki-consistency:test: platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+wiki-consistency:test: rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/packages/wiki-consistency
+wiki-consistency:test: configfile: pyproject.toml
+wiki-consistency:test: plugins: anyio-4.15.1
+wiki-consistency:test: collected 169 items
+wiki-consistency:test: 
+//:format:check: All matched files use Prettier code style!
+//:test:wiki-raw-import: ✔ raw import US1: verify detects changed bag-info.txt without writing (580.532174ms)
+//:test:git-flow: ✔ git-flow: finish is refused when Reviewed-commit has an empty duplicate (801.690284ms)
+//:test:workflow: ✔ workflow graph: missing, ignored and symlinked selections are rejected (442.31843ms)
+//:test:wiki-raw-import: ✔ raw import US1: an unreadable original fails without adding evidence (678.930257ms)
+//:test:git-flow: ✔ git-flow: finish is refused after develop is merged after the review record (801.769487ms)
+//:test:cli-contract: ✔ CLI doctor: actual success and failure streams (1271.82881ms)
+//:test:cli-contract: ✔ CLI workflow: help and invalid arguments (2435.85588ms)
+//:test:wiki-raw-import: ✔ raw import US1: unrepresentable BagIt provenance fails before publication (742.279992ms)
+//:test:doctor: ✔ doctor: git hooks path must match and is recorded (3540.851708ms)
+//:test:git-flow: ✔ git-flow: abbreviated Reviewed-commit values are accepted (1138.079847ms)
+wiki-consistency:test: packages/wiki-consistency/tests/test_boundary.py .                       [  0%]
+//:test:workflow: ✔ workflow graph: local symbols expose definitions, references and actual caller locations (2084.781968ms)
+//:test:workflow: ✔ workflow graph: mutations while reading symbol sources invalidate the report (123.607495ms)
+//:test:wiki-raw-import: ✔ raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision (1038.514841ms)
+//:test:git-flow: ✔ git-flow: lower-case review trailer keys are accepted (826.494464ms)
+//:test:wiki-raw-import: ✔ raw import US2: a new revision must sort after the latest revision (632.231942ms)
+//:test:wiki-raw-import: ✔ raw import US2: equal bytes at different paths have distinct sources (438.244784ms)
+//:test:git-flow: ✔ git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree (780.824236ms)
+//:test:wiki-raw-import: ✔ raw import US2: two source records for one original fail the item (708.247965ms)
+//:test:docs: ✔ references: real seven help routes, all tasks/plugins and final links are deterministic (12330.28578ms)
+//:test:wiki-raw-import: ✔ raw import US3: only listed files are admitted without user exclusions (262.483079ms)
+//:test:cli-contract: ✔ CLI workflow: actual success and failure streams (2209.25116ms)
+//:test:cli-contract: ✔ CLI clean-architecture: help and invalid arguments (1336.943998ms)
+//:test:git-flow: ✔ git-flow: fixup rebase that raises the constitution twice is refused (1507.697168ms)
+//:test:docs: ✔ references: source facts, optional MCP and Markdown characters survive serialization (921.70406ms)
+//:test:wiki-raw-import: ✔ raw import US3: excluded roots and resolved aliases are refused (711.101075ms)
+//:test:wiki-raw-import: ✔ raw import US3: excluded paths stay refused through an escaping directory symlink (416.906635ms)
+backfire:test: packages/backfire/tests/test_boundary.py .........                       [  1%]
+//:test:git-flow: ✔ git-flow: squash rebase that raises the constitution twice is refused (1102.138139ms)
+//:test:wiki-raw-import: ✔ raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused (577.25515ms)
+//:test:cli-contract: ✔ CLI clean-architecture: actual success and failure streams (977.716181ms)
+//:test:cli-contract: ✔ CLI plugins:validate: help and invalid arguments (863.038502ms)
+//:test:wiki-raw-import: ✔ raw import US3: duplicate selection is rejected before any write (512.581086ms)
+//:test:workflow: ✔ workflow graph CLI: valid queries succeed while bad input and policy violations exit one (4473.20723ms)
+//:test:workflow: (node:2753625) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:workflow: ✔ workflow plan: one bounded task delegates; two independent tasks run in parallel (127.350887ms)
+//:test:workflow: ✔ workflow plan: shared unchanged dependency permits parallel file edits (45.970322ms)
+//:test:workflow: ✔ workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits (106.947708ms)
+//:test:workflow: ✔ workflow plan: root and tests consumers prevent parallel edits across scan roots (44.372819ms)
+//:test:workflow: ✔ workflow plan: repository scan keeps tool, vendor and agent cache exclusions (25.254843ms)
+//:test:workflow: ✔ workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits (15.240352ms)
+//:test:workflow: ✔ workflow plan: symlink aliases cannot give two agents the same writable file (15.375162ms)
+//:test:workflow: ✔ workflow plan: invalid or ambiguous task scopes fail validation (7.341765ms)
+//:test:workflow: ✔ workflow plan: risky planned paths and scope growth still require review (0.588509ms)
+//:test:workflow: ✔ workflow plan: Git integration routes a clean plan then rejects changes outside its scope (571.809687ms)
+//:test:doctor: ✔ doctor: version probes require exact versions, successful exit and bounded duration (5132.905447ms)
+//:test:wiki-raw-import: ✔ raw import US3: relative selection is rejected before any write (469.995719ms)
+//:test:git-flow: ✔ git-flow: unsquashed fixup commit that changes the constitution is refused (1191.724092ms)
+//:test:docs: ✔ references: invalid manifests, tasks and duplicate identities retain the previous pair (2190.137965ms)
+//:test:doctor: ✔ doctor: git-flow version and shared configuration status are required (704.174081ms)
+//:test:wiki-raw-import: ✔ raw import US3: extra field selection is rejected before any write (424.803102ms)
+//:test:doctor: ✔ doctor: a missing or stale Spec Kit environment fails with sync guidance (101.210898ms)
+//:test:doctor: ✔ doctor: a missing or stale ShellCheck environment fails with sync guidance (95.690086ms)
+//:test:doctor: ✔ doctor: a missing or stale doc-regions environment fails with sync guidance (149.566223ms)
+//:test:wiki-raw-import: ✔ raw import US3: kind selection is rejected before any write (656.744111ms)
+//:test:wiki-raw-import: ✔ raw import US3: missing field selection is rejected before any write (562.322714ms)
+//:test:doctor: ✔ doctor: wiki-consistency Python is checked through the root uv workspace (1013.634593ms)
+//:test:doctor: ✔ doctor: a missing or stale wiki-consistency Node environment fails with install guidance (154.068311ms)
+//:test:doctor: ✔ doctor: npm ls success does not hide npm package-lock drift (77.162107ms)
+//:test:commit-msg: ✔ commit-msg hook: amendments use the parent constitution version (16200.646321ms)
+//:test:git-flow: ✔ git-flow: one correct constitution bump still finishes (1909.589129ms)
+//:test:doctor: ✔ doctor: Node must be installed and at least version 22 (93.592328ms)
+//:test:git-flow: ℹ tests 20
+//:test:git-flow: ℹ suites 0
+//:test:git-flow: ℹ pass 20
+//:test:git-flow: ℹ fail 0
+//:test:git-flow: ℹ cancelled 0
+//:test:git-flow: ℹ skipped 0
+//:test:git-flow: ℹ todo 0
+//:test:git-flow: ℹ duration_ms 18618.473043
+//:test:wiki-raw-import: ✔ raw import US3: not object selection is rejected before any write (525.103948ms)
+//:test:cli-contract: ✔ CLI plugins:validate: actual success and failure streams (532.644314ms)
+//:test:cli-contract: ✔ CLI clean-code: help and invalid arguments (2422.550545ms)
+//:test:wiki-raw-import: ✔ raw import US3: invalid JSON selection is rejected before any write (495.031893ms)
+//:test:workflow: (node:2753633) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:workflow: ✔ workflow skills: clean-code uses the exact intersection of selected and changed or planned files (1.049873ms)
+//:test:workflow: ✔ workflow skills: actual review code diffs trigger ponytail and every verification mode triggers evidence guidance (0.251536ms)
+//:test:workflow: ✔ workflow skills: malformed or failed scope reports cannot supply selected files (6.826264ms)
+//:test:workflow: ✔ workflow skills: real scope includes long eligible functions and receipts do not change code fingerprints (1877.910799ms)
+//:test:workflow: ✔ workflow skills: scope errors require review while preserving verification guidance (1545.531592ms)
+//:test:workflow: ✔ workflow skills: stale expected snapshots cannot write announcement receipts (1400.851217ms)
+//:test:workflow: ✔ workflow skills CLI: failed verification and scope errors preserve the evidence and skill guidance (2625.909625ms)
+//:test:workflow: ✔ workflow skills: task, baseline, complete scope and code changes invalidate deduplication (6687.04677ms)
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed ([broken) (575.04803ms)
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed (wiki = 1) (837.893946ms)
+//:test:workflow: ✔ workflow skills: concurrent identical calls announce each skill exactly once (1263.79887ms)
+//:test:workflow: (node:2753638) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:workflow: ✔ workflow: size boundaries and mandatory review signals (1.651958ms)
+//:test:workflow: ✔ workflow: NUL records preserve filenames and rename statistics (0.512104ms)
+//:test:workflow: ✔ workflow: staged, unstaged and untracked changes include odd filenames (197.821051ms)
+//:test:workflow: ✔ workflow: worktree reversal cannot conceal staged changes (180.989312ms)
+//:test:workflow: ✔ workflow: Git rename and deletion require review (275.398199ms)
+//:test:workflow: ✔ workflow: binary and symlink additions cannot become direct work (275.02472ms)
+//:test:workflow: ✔ workflow: Deno exports identify nonstandard public entry filenames (115.539406ms)
+//:test:workflow: ✔ workflow: explicit baseline includes commits and invalid refs fail (277.850999ms)
+//:test:workflow: ✔ workflow: difficulty thresholds are independent of review mode (1.396068ms)
+//:test:workflow: ✔ workflow: task difficulty excludes unrelated binary changes without weakening review (300.872304ms)
+//:test:workflow: ✔ workflow: planned work with no observed diff remains unassessed (157.083703ms)
+//:test:workflow: ✔ workflow: invalid directory scopes are not collected for difficulty (111.879474ms)
+//:test:workflow: ✔ workflow: per-task observations keep literal paths and independent levels (385.032094ms)
+//:test:workflow: ✔ workflow: scoped observations include staged, unstaged and untracked changes (187.691195ms)
+//:test:workflow: ✔ workflow: review eligibility does not suppress measurable task difficulty (445.757409ms)
+//:test:workflow: ✔ workflow: destination-only task retains observed rename metadata (201.288827ms)
+//:test:workflow: ✔ workflow: staged and tracked symlinks remain unassessed (258.738285ms)
+//:test:workflow: ✔ workflow: delegation instructions use Orca workers (0.359026ms)
+//:test:workflow: ✔ workflow: review instructions time independent review at merge (0.195508ms)
+//:test:workflow: ✔ workflow: every mode prints the Linear completion order (0.161791ms)
+//:test:workflow: (node:2753647) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model.
+//:test:workflow: (Use `node --trace-warnings ...` to show where the warning was created)
+//:test:workflow: ✔ workflow verification: actual check creates reusable evidence for the exact code (868.2993ms)
+//:test:workflow: ✔ workflow verification: failures accumulate across repairs within the same task (2669.226382ms)
+//:test:workflow: ✔ workflow verification: task, plan and resolved baseline keep evidence separate (792.320883ms)
+//:test:workflow: ✔ workflow verification: exit zero cannot verify code changed during the check (871.477037ms)
+//:test:workflow: ✔ workflow verification: altered or missing logs cannot reuse a previous successful result (582.314774ms)
+//:test:workflow: ✔ workflow verification: malformed or invalid evidence fails closed (845.74607ms)
+//:test:workflow: ✔ workflow verification: an interrupted run supersedes older successful evidence (422.737596ms)
+//:test:workflow: ✔ workflow verification: concurrent checks serialize their execution and evidence (1502.605502ms)
+//:test:workflow: ℹ tests 56
+//:test:workflow: ℹ suites 0
+//:test:workflow: ℹ pass 56
+//:test:workflow: ℹ fail 0
+//:test:workflow: ℹ cancelled 0
+//:test:workflow: ℹ skipped 0
+//:test:workflow: ℹ todo 0
+//:test:workflow: ℹ duration_ms 15648.999836
+//:test:commit-msg: ✔ commit-msg hook: inherited commit ref does not replace the index check (2473.384483ms)
+//:test:docs: ✔ references: every failed help form preserves output and check never repairs it (4338.041404ms)
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed ([wiki]
+//:test:wiki-raw-import: raw_import = []) (490.360569ms)
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed ([wiki.raw_import]
+//:test:wiki-raw-import: exclude = "path") (502.35642ms)
+backfire:test: packages/backfire/tests/test_boundary_core.py ................           [  2%]
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed ([wiki.raw_import]
+//:test:wiki-raw-import: exclude = [1]) (426.423165ms)
+//:test:doctor: ✔ doctor: report is private, create-only and refuses README paths and symlinks (3647.709779ms)
+//:test:wiki-raw-import: ✔ raw import US3: malformed configuration fails closed ([wiki.raw_import]
+//:test:wiki-raw-import: exclude = ["relative"]) (438.056134ms)
+//:test:docs: ✔ references: help cannot write, spawn, use network or read live Wiki configuration (1533.592387ms)
+//:test:wiki-raw-import: ✔ raw import US3: an existing source cannot change kind (556.268489ms)
+//:test:cli-contract: ✔ CLI clean-code: actual success and failure streams (2320.422033ms)
+//:test:cli-contract: ✔ CLI: semantic input mistakes fail before execution (2157.977037ms)
+//:test:wiki-raw-import: ✔ raw import US4: recover a leftover partial copy without publishing it (553.710316ms)
+//:test:cli-contract: ✔ CLI clean-code: copied skill stays independently runnable (745.291979ms)
+//:test:wiki-raw-import: ✔ raw import US4: recover a leftover copied payload without publishing it (697.927685ms)
+//:test:wiki-raw-import: ✔ raw import US4: recover a leftover partial record without publishing it (633.993702ms)
+//:test:cli-contract: ✔ CLI validators: failed checks preserve diagnostics without partial stdout (921.281945ms)
+//:test:doctor: ✔ doctor: CLI rejects invalid flags and missing runtime/report permissions (2762.020598ms)
+//:test:doctor: ℹ tests 16
+//:test:doctor: ℹ suites 0
+//:test:doctor: ℹ pass 16
+//:test:doctor: ℹ fail 0
+//:test:doctor: ℹ cancelled 0
+//:test:doctor: ℹ skipped 0
+//:test:doctor: ℹ todo 0
+//:test:doctor: ℹ duration_ms 24998.272138
+//:test:wiki-raw-import: ✔ raw import US4: recover a leftover complete bag without publishing it (486.44186ms)
+//:test:cli-contract: ✔ CLI workflow: invalid plan schema takes precedence over Git execution (560.793259ms)
+//:test:cli-contract: ℹ tests 14
+//:test:cli-contract: ℹ suites 0
+//:test:cli-contract: ℹ pass 14
+//:test:cli-contract: ℹ fail 0
+//:test:cli-contract: ℹ cancelled 0
+//:test:cli-contract: ℹ skipped 0
+//:test:cli-contract: ℹ todo 0
+//:test:cli-contract: ℹ duration_ms 20588.154486
+//:test:wiki-raw-import: ✔ raw import US4: a publication failure keeps other items and can be retried (669.049639ms)
+//:test:wiki-raw-import: ✔ raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock (1321.230098ms)
+//:test:docs: ✔ references: passing and drifting checks preserve working files and the Git index (4826.202072ms)
+//:test:wiki-raw-import: ✔ raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored (233.525814ms)
+//:test:wiki-raw-import: ✔ raw import US5: unnamed commands use the work vault under vaults (314.491772ms)
+//:test:wiki-raw-import: ✔ raw import US5: repeated init preserves every byte and modification time (237.52497ms)
+//:test:wiki-raw-import: ✔ raw import US5: named Wiki and all four kinds use their own roots (332.953807ms)
+wiki-consistency:test: packages/wiki-consistency/tests/test_check.py .......................... [ 15%]
+//:test:commit-msg: Measured commit-msg hook: 414 ms
+//:test:commit-msg: ✔ commit-msg hook: real commits, index handling, and Deno lookup (8081.352855ms)
+//:test:commit-msg: ℹ tests 5
+//:test:commit-msg: ℹ suites 0
+//:test:commit-msg: ℹ pass 5
+//:test:commit-msg: ℹ fail 0
+//:test:commit-msg: ℹ cancelled 0
+//:test:commit-msg: ℹ skipped 0
+//:test:commit-msg: ℹ todo 0
+//:test:commit-msg: ℹ duration_ms 27242.427173
+//:test:docs: ✔ references: tracked, untracked, ignored, directory and symlink extras are never read or removed (1956.761645ms)
+//:test:wiki-raw-import: ✔ raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions (1302.248817ms)
+//:test:wiki-raw-import: ✔ raw import US5: unset XDG values use HOME defaults (384.0137ms)
+//:test:wiki-raw-import: ✔ raw import US5: empty XDG values use HOME defaults (373.511027ms)
+//:test:wiki-raw-import: ✔ raw import US5: relative XDG values use HOME defaults (379.310184ms)
+//:test:docs: ✔ references: input and output drift during help collection fail before publication (2228.452426ms)
+//:test:wiki-raw-import: ✔ raw import: invalid arguments and Wiki names write nothing (801.382077ms)
+//:test:wiki-raw-import: ℹ tests 43
+//:test:wiki-raw-import: ℹ suites 0
+//:test:wiki-raw-import: ℹ pass 43
+//:test:wiki-raw-import: ℹ fail 0
+//:test:wiki-raw-import: ℹ cancelled 0
+//:test:wiki-raw-import: ℹ skipped 0
+//:test:wiki-raw-import: ℹ todo 0
+//:test:wiki-raw-import: ℹ duration_ms 26482.764284
+//:test:docs: ✔ references: failed replacement restores the exact previous pair (851.908205ms)
+//:test:docs: ✔ references: failed rollback retains recovery and the next generation restores it (2135.266869ms)
+//:test:docs: ✔ references: first-publication failure retains the complete stage for explicit recovery (1648.326539ms)
+//:test:docs: ✔ references: another writer appearing between renames is preserved with the recovery pair (1270.628975ms)
+wiki-consistency:test: .........................                                                [ 30%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_evidence.py ..............          [ 39%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_instance.py ....................... [ 52%]
+wiki-consistency:test:                                                                          [ 52%]
+backfire:test: packages/backfire/tests/test_bounded_work.py ............                [  3%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_lint.py ...                         [ 54%]
+backfire:test: packages/backfire/tests/test_build.py ................................   [  5%]
+backfire:test: packages/backfire/tests/test_capture_upstream.py ........                [  6%]
+backfire:test: packages/backfire/tests/test_config.py ................................. [  8%]
+backfire:test: ........................................................................ [ 13%]
+backfire:test: ...............                                                          [ 14%]
+backfire:test: packages/backfire/tests/test_decisions.py .............................. [ 17%]
+backfire:test: ........................................................................ [ 22%]
+backfire:test: ...........................................                              [ 25%]
+backfire:test: packages/backfire/tests/test_doubles.py ................................ [ 27%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_main.py ................            [ 63%]
+backfire:test: .                                                                        [ 28%]
+//:test:docs: ✔ references: actual SIGKILL between directory renames is detected and recoverable (12585.384088ms)
+backfire:test: packages/backfire/tests/test_education_e2e.py .                          [ 28%]
+backfire:test: packages/backfire/tests/test_education_pseudonymize.py ............      [ 29%]
+backfire:test: packages/backfire/tests/test_education_roster.py ....................... [ 30%]
+backfire:test: ...............                                                          [ 31%]
+//:test:docs: ✔ references: local and PR check entrypoints agree without Node actions (2929.366927ms)
+//:test:docs: ℹ tests 14
+//:test:docs: ℹ suites 0
+//:test:docs: ℹ pass 14
+//:test:docs: ℹ fail 0
+//:test:docs: ℹ cancelled 0
+//:test:docs: ℹ skipped 0
+//:test:docs: ℹ todo 0
+//:test:docs: ℹ duration_ms 52420.485115
+backfire:test: packages/backfire/tests/test_education_selection.py ....                 [ 32%]
+backfire:test: packages/backfire/tests/test_education_table.py ........................ [ 33%]
+backfire:test: .....                                                                    [ 34%]
+backfire:test: packages/backfire/tests/test_entry.py ....                               [ 34%]
+backfire:test: packages/backfire/tests/test_failures.py ............................... [ 36%]
+backfire:test: ......................................................                   [ 40%]
+backfire:test: packages/backfire/tests/test_faults.py .............................     [ 42%]
+backfire:test: packages/backfire/tests/test_fidelity.py ............................... [ 45%]
+backfire:test: ........................................................................ [ 50%]
+backfire:test: .................................                                        [ 52%]
+backfire:test: packages/backfire/tests/test_judge.py .................................. [ 55%]
+backfire:test:                                                                          [ 55%]
+backfire:test: packages/backfire/tests/test_lib.py ............................         [ 57%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_prepare.py ........................ [ 78%]
+backfire:test: packages/backfire/tests/test_lifecycle.py ..........                     [ 58%]
+wiki-consistency:test: .....                                                                    [ 81%]
+backfire:test: packages/backfire/tests/test_load.py .                                   [ 58%]
+backfire:test: packages/backfire/tests/test_measure_education.py ....                   [ 58%]
+backfire:test: packages/backfire/tests/test_no_provider_names.py ......                 [ 59%]
+backfire:test: packages/backfire/tests/test_package.py .                                [ 59%]
+backfire:test: packages/backfire/tests/test_patterns.py ....................            [ 60%]
+backfire:test: packages/backfire/tests/test_probe_limits.py ...............             [ 61%]
+backfire:test: packages/backfire/tests/test_probe_provider.py ......................... [ 63%]
+backfire:test: ......................                                                   [ 65%]
+backfire:test: packages/backfire/tests/test_provider.py ............................... [ 67%]
+backfire:test: ........................................................................ [ 72%]
+backfire:test: .................                                                        [ 74%]
+backfire:test: packages/backfire/tests/test_pseudonymize_hook.py ....                   [ 74%]
+backfire:test: packages/backfire/tests/test_ready.py ...........                        [ 75%]
+backfire:test: packages/backfire/tests/test_records.py ..................               [ 76%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_search.py ......................... [ 95%]
+wiki-consistency:test:                                                                          [ 95%]
+wiki-consistency:test: packages/wiki-consistency/tests/test_sources.py .......                  [100%]
+wiki-consistency:test: 
+wiki-consistency:test: ======================== 169 passed in 74.69s (0:01:14) ========================
+backfire:test: packages/backfire/tests/test_score_boundary.py ....                      [ 76%]
+backfire:test: packages/backfire/tests/test_server.py ......................            [ 78%]
+backfire:test: packages/backfire/tests/test_server_faults.py ..................         [ 79%]
+backfire:test: packages/backfire/tests/test_tools_part1.py ............................ [ 81%]
+backfire:test: ........................................................................ [ 87%]
+backfire:test: ...........                                                              [ 87%]
+backfire:test: packages/backfire/tests/test_tools_part2.py ............................ [ 90%]
+backfire:test: ........................................................................ [ 95%]
+backfire:test: .                                                                        [ 95%]
+backfire:test: packages/backfire/tests/test_validate.py ............................... [ 97%]
+backfire:test: ...............................                                          [100%]
+backfire:test: 
+backfire:test: ================ 1355 passed, 3 deselected in 86.83s (0:01:26) =================
+verbose-broccoli-python:test: cache bypass, force executing da2a2a39481313bd
+verbose-broccoli-python:check: cache bypass, force executing 2156f12e1bc7a445
+
+ Tasks:    26 successful, 26 total
+Cached:    0 cached, 26 total
+  Time:    1m28.084s 
+
+
+npm notice run check
+npm notice run turbo run check

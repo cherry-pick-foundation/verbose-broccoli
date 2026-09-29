@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the repository's TypeScript get Uint8Array hex conversion (Uint8Array.prototype.toHex and Uint8Array.fromHex), which Deno 2.9 provides but Node.js 24.19 does not by default?",
+  "evidence": "Found by T005 on 2026-09-29: npm run test:workflow fails 19 tests with 'TypeError: (intermediate value).toHex is not a function' at scripts/hash.ts:6. Measured: in Node 24.19, new Uint8Array().toHex is undefined; 'node --js-base-64' enables it (V8 describes the flag as 'enable \"Uint8Array to/from base64 and hex\" (in progress / experimental)'). Sites that use it: scripts/hash.ts:6 (sha256 helper used by workflow, docs and doctor), scripts/docs.ts:439, 458 (Uint8Array.fromHex) and 597, scripts/docs_test.ts:87. Node's Buffer converts with Buffer.from(bytes).toString('hex') and Buffer.from(hex, 'hex'). core-js 3.50.0 (npm) polyfills the proposal; a preload import would serve the sites unchanged. Decision D2 rejected experimental runtime flags for TypeScript execution.",
+  "candidates": [
+   {
+    "id": "buffer_rewrite",
+    "description": "Rewrite the five call sites to Node's Buffer hex conversion."
+   },
+   {
+    "id": "corejs_polyfill",
+    "description": "Add core-js 3.50.0 and import only its Uint8Array hex polyfill in the preload, leaving the five sites unchanged."
+   },
+   {
+    "id": "v8_flag",
+    "description": "Add --js-base-64 to every node command that runs repository TypeScript, leaving the sites unchanged."
+   }
+  ],
+  "requirements": [
+   "Uses no experimental runtime flag.",
+   "Adds no new dependency."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "buffer_rewrite",
+   "escaped": false,
+   "confidence": 0.832,
+   "probabilities": {
+    "buffer_rewrite": 0.86,
+    "corejs_polyfill": 0.08,
+    "v8_flag": 0.01,
+    "ask_user": 0.02,
+    "investigate": 0.02,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "buffer_rewrite",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "buffer_rewrite",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "corejs_polyfill",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "corejs_polyfill",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "v8_flag",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "v8_flag",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2282,
+   "output_tokens": 1336
+  }
+ }
+}

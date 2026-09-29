@@ -1,10 +1,10 @@
 # Selected change sites
 
-Generated on 2026-09-29 from [classify.json](classify.json), the backfire_classify results over every candidate site (exact rg matches, backfire_find hits by meaning, and whole-file items). SELECT means must_change or delete with an `auto` decision: only these sites may change. `leave` means can_stay, or any `review` decision: these stay unchanged, and `review` rows are open questions for the report. Row S095 was split into S095:121, :245, :295 and :341 and classified again with measured shim values (batch 3); the split rows replace it.
+Generated on 2026-09-29 from [classify.json](classify.json), the backfire_classify results over every candidate site (exact rg matches, backfire_find hits by meaning, and whole-file items). SELECT means must_change or delete with an `auto` decision: only these sites may change. `leave` means can_stay, or any `review` decision: these stay unchanged, and `review` rows are open questions for the report. Row S095 was split into S095:121, :245, :295 and :341 and classified again with measured shim values (batch 3); the split rows replace it. Batch 4 classified the last 21 hits of the search for code that reads outside its package, after its failed batches were retried; it selected none. Batch 5 classified five narrower rows split from S024, S021, S097 and S007 with measured shim gaps and decisions D11 and D12; each split row takes precedence over its original row for the lines it names. Later batches classify single sites that workers raised as blocking, each with the failing evidence. Batch 9 classified the Uint8Array hex sites (D14); it marked the three docs.ts rows can_stay at 0.93 although Node lacks the method, so batch 10 classified them again with the measured TypeErrors (`#measured` rows), which take precedence.
 
 Correction: batch 1's context said that `Deno.execPath()` returns the Node executable under the shim. Measured afterwards, it returns the `deno` executable on PATH (`which.sync('deno')`), and `Deno.version` reports the shim's fixed `1.40.2`. The error can only have marked a site must_change that needs no edit (a spawn of the clean-code skill through Deno keeps working); workers leave such sites unchanged and say so.
 
-Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto: 108; leave can_stay review: 21; leave delete review: 7; leave manual_review auto: 1; leave must_change review: 9 (total 324).
+Counts: SELECT delete auto: 9; SELECT must_change auto: 196; leave can_stay auto: 132; leave can_stay review: 22; leave delete review: 7; leave manual_review auto: 1; leave must_change review: 10 (total 377).
 
 ## `.claude/settings.json`
 
@@ -98,6 +98,9 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 ## `docs/architecture.md`
 
 - SELECT `S137` deno_cli: must_change (auto, 0.87); lines 28,34,38,57,58,117,118,121,124,234,235,236,250,333,369,383,408,413,423,437,479,482,513,524,550,551,555,558,566,572
+- SELECT `S150:130` review_finding: must_change (auto, 0.96); lines 130
+- SELECT `S150:35` review_finding: must_change (auto, 0.95); lines 35
+- SELECT `S150:436-437` review_finding: must_change (auto, 0.93); lines 436,437
 - leave `S150` deno_config: must_change (review, 0.73); lines 35,130,436,437
 - leave `S180` py_package_venv: can_stay (auto, 0.97); lines 364
 - leave `S188` py_uv_project: can_stay (auto, 0.92); lines 367,371
@@ -145,11 +148,17 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `packages/backfire/src/backfire/ready.py`
 
+- SELECT `F:T002:ready.py:90-101` worker_question: must_change (auto, 0.95); lines 90,101
 - SELECT `S177` py_package_venv: must_change (auto, 0.97); lines 77
 - SELECT `S189` py_uv_project: must_change (auto, 0.95); lines 275
 - leave `F:py_outside:packages/backfire/src/backfire/ready.py:1-39` find_py_outside: can_stay (review, 0.73); lines 1,39
 - leave `F:py_outside:packages/backfire/src/backfire/ready.py:211-239` find_py_outside: can_stay (review, 0.60); lines 211,239
 - leave `F:py_outside:packages/backfire/src/backfire/ready.py:40-75` find_py_outside: can_stay (review, 0.73); lines 40,75
+
+## `packages/backfire/src/backfire/server.py`
+
+- leave `F:py_outside:packages/backfire/src/backfire/server.py:1-27` find_py_outside: can_stay (auto, 0.95); lines 1,27
+- leave `F:py_outside:packages/backfire/src/backfire/server.py:77-103` find_py_outside: can_stay (auto, 0.95); lines 77,103
 
 ## `packages/backfire/src/backfire/validate.py`
 
@@ -170,11 +179,16 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `packages/backfire/src/backfire_tools/build.py`
 
+- SELECT `F:T002:build.py:103-110` worker_question: must_change (auto, 0.99); lines 103,110
 - SELECT `S123` deno_cli: must_change (auto, 0.92); lines 145
 - SELECT `S184` py_package_lock: must_change (auto, 0.95); lines 107
 - leave `F:py_outside:packages/backfire/src/backfire_tools/build.py:1-22` find_py_outside: can_stay (review, 0.60); lines 1,22
 - leave `F:py_outside:packages/backfire/src/backfire_tools/build.py:31-74` find_py_outside: must_change (review, 0.67); lines 31,74
 - leave `S176` py_package_venv: can_stay (auto, 0.93); lines 117
+
+## `packages/backfire/tests/test_adapter_wiring.py`
+
+- leave `F:py_outside:packages/backfire/tests/test_adapter_wiring.py:1-23` find_py_outside: can_stay (auto, 0.93); lines 1,23
 
 ## `packages/backfire/tests/test_boundary.py`
 
@@ -183,6 +197,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `packages/backfire/tests/test_build.py`
 
+- SELECT `F:T002:test_build.py:107-118` worker_question: must_change (auto, 0.95); lines 107,118
 - SELECT `F:py_venv:packages/backfire/tests/test_build.py:135-189` find_py_venv: must_change (auto, 0.89); lines 135,189
 - SELECT `F:py_venv:packages/backfire/tests/test_build.py:190-230` find_py_venv: must_change (auto, 0.89); lines 190,230
 - SELECT `F:py_venv:packages/backfire/tests/test_build.py:58-70` find_py_venv: must_change (auto, 0.80); lines 58,70
@@ -198,6 +213,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `packages/backfire/tests/test_deadline.py`
 
+- leave `F:py_outside:packages/backfire/tests/test_deadline.py:181-218` find_py_outside: can_stay (auto, 0.93); lines 181,218
 - leave `F:py_outside:packages/backfire/tests/test_deadline.py:61-79` find_py_outside: can_stay (auto, 0.89); lines 61,79
 
 ## `packages/backfire/tests/test_doubles.py`
@@ -209,7 +225,13 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 ## `packages/backfire/tests/test_education_e2e.py`
 
 - SELECT `S112` deno_cli: must_change (auto, 0.95); lines 133
+- leave `F:py_outside:packages/backfire/tests/test_education_e2e.py:1-37` find_py_outside: can_stay (auto, 0.85); lines 1,37
 - leave `F:py_venv:packages/backfire/tests/test_education_e2e.py:87-110` find_py_venv: can_stay (auto, 0.87); lines 87,110
+
+## `packages/backfire/tests/test_education_selection.py`
+
+- leave `F:py_outside:packages/backfire/tests/test_education_selection.py:1-7` find_py_outside: can_stay (auto, 0.92); lines 1,7
+- leave `F:py_outside:packages/backfire/tests/test_education_selection.py:9-17` find_py_outside: can_stay (auto, 0.85); lines 9,17
 
 ## `packages/backfire/tests/test_entry.py`
 
@@ -220,6 +242,17 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 ## `packages/backfire/tests/test_failures.py`
 
 - leave `F:py_venv:packages/backfire/tests/test_failures.py:30-35` find_py_venv: can_stay (auto, 0.96); lines 30,35
+
+## `packages/backfire/tests/test_faults.py`
+
+- leave `F:py_outside:packages/backfire/tests/test_faults.py:126-160` find_py_outside: can_stay (auto, 0.88); lines 126,160
+- leave `F:py_outside:packages/backfire/tests/test_faults.py:21-31` find_py_outside: can_stay (auto, 0.87); lines 21,31
+- leave `F:py_outside:packages/backfire/tests/test_faults.py:55-78` find_py_outside: can_stay (auto, 0.93); lines 55,78
+- leave `F:py_outside:packages/backfire/tests/test_faults.py:88-107` find_py_outside: can_stay (auto, 0.88); lines 88,107
+
+## `packages/backfire/tests/test_fidelity.py`
+
+- leave `F:py_outside:packages/backfire/tests/test_fidelity.py:1-37` find_py_outside: can_stay (review, 0.71); lines 1,37
 
 ## `packages/backfire/tests/test_judge.py`
 
@@ -278,13 +311,34 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 - SELECT `W:packages/doc-regions/pyproject.toml#build-system` whole_file: must_change (auto, 0.96); lines 1
 - leave `F:py_venv:packages/doc-regions/pyproject.toml:20-23` find_py_venv: delete (review, 0.67); lines 20,23
 
+## `packages/doc-regions/src/doc_regions/__main__.py`
+
+- leave `F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:1-13` find_py_outside: can_stay (auto, 0.91); lines 1,13
+- leave `F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:21-58` find_py_outside: must_change (review, 0.67); lines 21,58
+
 ## `packages/doc-regions/src/doc_regions/regions.py`
 
 - SELECT `S111` deno_cli: must_change (auto, 0.95); lines 126,163,212
 
+## `packages/doc-regions/src/doc_regions/requests.py`
+
+- leave `F:py_outside:packages/doc-regions/src/doc_regions/requests.py:58-64` find_py_outside: can_stay (auto, 0.91); lines 58,64
+- leave `F:py_outside:packages/doc-regions/src/doc_regions/requests.py:65-98` find_py_outside: can_stay (auto, 0.91); lines 65,98
+
+## `packages/doc-regions/tests/test_config.py`
+
+- leave `F:py_outside:packages/doc-regions/tests/test_config.py:49-54` find_py_outside: can_stay (auto, 0.93); lines 49,54
+
 ## `packages/doc-regions/tests/test_regions.py`
 
 - SELECT `S110` deno_cli: must_change (auto, 0.95); lines 58
+- leave `F:py_outside:packages/doc-regions/tests/test_regions.py:1-12` find_py_outside: can_stay (auto, 0.96); lines 1,12
+- leave `F:py_outside:packages/doc-regions/tests/test_regions.py:18-32` find_py_outside: can_stay (auto, 0.96); lines 18,32
+
+## `packages/doc-regions/tests/test_requests.py`
+
+- leave `F:py_outside:packages/doc-regions/tests/test_requests.py:147-173` find_py_outside: can_stay (auto, 0.91); lines 147,173
+- leave `F:py_outside:packages/doc-regions/tests/test_requests.py:27-35` find_py_outside: can_stay (auto, 0.87); lines 27,35
 
 ## `packages/doc-regions/uv.lock`
 
@@ -366,6 +420,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 - SELECT `R:plugins/code/skills/clean-code/scripts/cli.ts:6` ts_non_erasable: must_change (auto, 0.89); lines 6
 - leave `S097` deno_api_process: can_stay (auto, 0.93); lines 26,44
+- leave `S097:44` split_new_evidence: can_stay (auto, 0.95); lines 44
 
 ## `plugins/code/skills/speckit-implement/SKILL.md`
 
@@ -375,6 +430,10 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 - SELECT `S202` npm_prefix: must_change (auto, 0.93); lines 35
 - leave `S194` py_uv_project: can_stay (review, 0.47); lines 27
+
+## `scripts/__snapshots__/cli_contract_test.ts.snap`
+
+- SELECT `W:scripts/__snapshots__/cli_contract_test.ts.snap` snapshot: delete (auto, 0.95); lines 1
 
 ## `scripts/clean_architecture.ts`
 
@@ -396,6 +455,8 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `scripts/cli_contract_test.ts`
 
+- SELECT `R:scripts/cli_contract_test.ts:132` snapshot: must_change (auto, 0.95); lines 132
+- SELECT `R:scripts/cli_contract_test.ts:2` snapshot: must_change (auto, 0.95); lines 2
 - SELECT `S031` deno_api_command: must_change (auto, 0.95); lines 20,62,77
 - SELECT `S050` deno_api_execpath: must_change (auto, 1.00); lines 20,28
 - SELECT `S068` deno_api_test: must_change (auto, 1.00); lines 124,142,176,201,236,272
@@ -406,6 +467,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `scripts/commit_msg_test.ts`
 
+- SELECT `F:T004:commit_msg_test.ts:539-552` worker_question: must_change (auto, 0.97); lines 539,552
 - SELECT `S035` deno_api_command: must_change (auto, 1.00); lines 7,104,134,145
 - SELECT `S054` deno_api_execpath: must_change (auto, 1.00); lines 104
 - SELECT `S067` deno_api_test: must_change (auto, 1.00); lines 31,98,237,403,427
@@ -434,16 +496,26 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 ## `scripts/docs.ts`
 
 - SELECT `F:ts_deno:scripts/docs.ts:1-14` find_ts_deno: must_change (auto, 0.80); lines 1,14
+- SELECT `R:scripts/docs.ts:439#measured` runtime_builtin: must_change (auto, 0.96); lines 439
+- SELECT `R:scripts/docs.ts:458#measured` runtime_builtin: must_change (auto, 0.96); lines 458
+- SELECT `R:scripts/docs.ts:597#measured` runtime_builtin: must_change (auto, 0.96); lines 597
+- SELECT `S021:520-524` split_new_evidence: must_change (auto, 0.96); lines 520,524
 - SELECT `S048` deno_api_command: must_change (auto, 0.95); lines 119
 - SELECT `S058` deno_api_execpath: must_change (auto, 0.97); lines 119
 - SELECT `S124` deno_cli: must_change (auto, 0.89); lines 19,138,144,335
 - SELECT `S148` deno_config: must_change (auto, 0.80); lines 68,69,70,71,72,115,116,286,288,327,506
+- leave `R:scripts/docs.ts:439` runtime_builtin: can_stay (auto, 0.93); lines 439
+- leave `R:scripts/docs.ts:458` runtime_builtin: can_stay (auto, 0.93); lines 458
+- leave `R:scripts/docs.ts:597` runtime_builtin: can_stay (auto, 0.93); lines 597
 - leave `S021` deno_api_fs: can_stay (auto, 0.95); lines 37,40,58,362,375,378,422,423,426,427,432,464,466,475,478,522,557,564,569,571,578,581
 - leave `S094` deno_api_process: can_stay (auto, 0.93); lines 45,139,626
 - leave `S099` import_meta_main: can_stay (auto, 0.95); lines 609
 
 ## `scripts/docs_test.ts`
 
+- SELECT `F:T003c:docs_test.ts:258-270` worker_report: must_change (auto, 0.97); lines 258,270
+- SELECT `F:T004:docs_test.ts:686-689` worker_question: must_change (auto, 0.96); lines 686,689
+- SELECT `R:scripts/docs_test.ts:87` runtime_builtin: must_change (auto, 1.00); lines 87
 - SELECT `S034` deno_api_command: must_change (auto, 1.00); lines 99,375,379,381,551,625,636,653
 - SELECT `S053` deno_api_execpath: must_change (auto, 1.00); lines 551,625,636,653
 - SELECT `S062` deno_api_test: must_change (auto, 0.97); lines 117,165,206,239,259,290,312,367,407,434,474,501,532,593
@@ -451,6 +523,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 - SELECT `S145` deno_config: must_change (auto, 0.93); lines 26,30,127,182,215,216,556,594,658
 - leave `F:ts_deno:scripts/docs_test.ts:1-16` find_ts_deno: can_stay (auto, 0.93); lines 1,16
 - leave `S007` deno_api_fs: can_stay (auto, 1.00); lines 22,27,29,32,41,42,43,47,54,61,68,77,79,87,92,127,146,219,220,221,225,251,261,284,297,298,300,302,316,321,326,327,331,335,360,385,387,414,428,441…
+- leave `S007:stubs` split_new_evidence: can_stay (auto, 0.92); lines 337,415,443,478,506
 - leave `S081` deno_api_process: can_stay (review, 0.73); lines 37,56,244,246,265,267,271,272,280,281,429
 
 ## `scripts/doctor.ts`
@@ -471,6 +544,12 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `scripts/doctor_test.ts`
 
+- SELECT `F:T004:doctor_test.ts:100-110` worker_question: must_change (auto, 0.93); lines 100,110
+- SELECT `F:T004:doctor_test.ts:182-195` worker_question: must_change (auto, 0.91); lines 182,195
+- SELECT `F:T004:doctor_test.ts:385-397` worker_question: must_change (auto, 0.92); lines 385,397
+- SELECT `F:T004:doctor_test.ts:398-410` worker_question: must_change (auto, 0.92); lines 398,410
+- SELECT `F:T004:doctor_test.ts:474-476` worker_question: must_change (auto, 0.96); lines 474,476
+- SELECT `F:T004:doctor_test.ts:477-491` worker_question: must_change (auto, 0.95); lines 477,491
 - SELECT `S045` deno_api_command: must_change (auto, 0.95); lines 8,51,70,88
 - SELECT `S049` deno_api_execpath: must_change (auto, 1.00); lines 6
 - SELECT `S069` deno_api_test: must_change (auto, 1.00); lines 76,100,149,182,216,233,284,310,325,340,355,370,382,424,436,466
@@ -501,6 +580,10 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 - leave `S020` deno_api_fs: can_stay (auto, 0.95); lines 69,88,101,105,109,110,112,113,115,118,122,124,129,130,134,148,156,200,364,507
 - leave `S122` deno_cli: can_stay (auto, 0.80); lines 11,22
 
+## `scripts/hash.ts`
+
+- SELECT `R:scripts/hash.ts:6` runtime_builtin: must_change (auto, 1.00); lines 6
+
 ## `scripts/plugin_skills_test.ts`
 
 - SELECT `S047` deno_api_command: must_change (auto, 0.95); lines 58
@@ -518,6 +601,7 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `scripts/wiki_raw_import_test.ts`
 
+- SELECT `F:check:wiki_raw_import_test.ts:303-307` test_run: must_change (auto, 0.96); lines 303,307
 - SELECT `R:scripts/wiki_raw_import_test.ts:72` ts_non_erasable: must_change (auto, 0.93); lines 72
 - SELECT `S043` deno_api_command: must_change (auto, 0.95); lines 14,24,95,571,609,637,835,934,1074,1208
 - SELECT `S073` deno_api_test: must_change (auto, 0.95); lines 231,251,320,352,366,378,419,445,459,491,506,541,565,660,695,716,740,777,812,895,947,983,1004,1051,1195,1259
@@ -606,6 +690,8 @@ Counts: SELECT delete auto: 8; SELECT must_change auto: 170; leave can_stay auto
 
 ## `scripts/workflow_verify.ts`
 
+- SELECT `S024:171-177` split_new_evidence: must_change (auto, 0.96); lines 171,177
+- SELECT `S024:238` split_new_evidence: must_change (auto, 0.96); lines 238
 - SELECT `S029` deno_api_command: must_change (auto, 0.95); lines 122
 - SELECT `S051` deno_api_execpath: must_change (auto, 1.00); lines 122
 - SELECT `S118` deno_cli: must_change (auto, 0.95); lines 159,225

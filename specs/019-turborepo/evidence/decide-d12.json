@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should scripts/workflow_verify.ts and scripts/docs.ts keep their exclusive file locks when they run on Node.js, given that the shim has no FsFile.lock?",
+  "evidence": "scripts/workflow_verify.ts:171-177 opens <git-dir>/workflow/lock and calls 'await mutex.lock(true)' (an exclusive advisory lock, released by mutex.unlock() at :238 or when the process ends) so that concurrent verify runs do not interleave records in evidence.jsonl. scripts/docs.ts:520-524 opens the docs directory and calls 'await lock.lock()' during 'docs:generate' so two publications do not interleave. Measured 2026-09-29: @deno/shim-deno 0.19.2's FsFile has no lock or unlock method, so both calls throw TypeError on Node. Node.js 24.19 has no file-locking API in node:fs. Options found: proper-lockfile 4.1.2 on npm (mkdir-based lock with stale detection, last published 2022-06); an exclusive-create lock file with node:fs open(path, 'wx') plus removal (a few lines of local code, but a crashed run leaves a stale lock, unlike an advisory lock that the kernel releases); util-linux's flock(1) program, which holds a lock only around a child command; or keeping these two scripts on Deno. AGENTS.md: if the requirement cannot be met without substantial new local implementation, stop and report the missing capability and the upstream options instead of implementing it.",
+  "candidates": [
+   {
+    "id": "proper_lockfile",
+    "description": "Add proper-lockfile 4.1.2 as a pinned dependency and replace the two lock sites with its lock/unlock calls."
+   },
+   {
+    "id": "wx_lockfile",
+    "description": "Replace the two lock sites with an exclusive-create lock file (open with 'wx', removed in finally), accepting that a crash leaves a stale lock to remove by hand."
+   },
+   {
+    "id": "report_gap",
+    "description": "Leave the two lock sites unchanged for now, report the missing capability and the upstream options to the user, and mark workflow verify and docs:generate as not working on Node in the trial."
+   }
+  ],
+  "requirements": [
+   "A crashed run does not block later runs.",
+   "Adds no locally owned locking implementation."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "proper_lockfile",
+   "escaped": false,
+   "confidence": 0.82,
+   "probabilities": {
+    "proper_lockfile": 0.85,
+    "wx_lockfile": 0.02,
+    "report_gap": 0.1,
+    "ask_user": 0.01,
+    "investigate": 0.01,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "proper_lockfile",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "proper_lockfile",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "wx_lockfile",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "wx_lockfile",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "report_gap",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "report_gap",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2423,
+   "output_tokens": 4510
+  }
+ }
+}

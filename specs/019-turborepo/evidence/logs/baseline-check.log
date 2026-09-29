@@ -1,0 +1,1624 @@
+Task typecheck deno check --frozen scripts/validate_plugins.ts scripts/clean_architecture.ts scripts/workflow.ts scripts/docs.ts scripts/constitution_version.ts
+Task plugins:validate deno run --frozen --cached-only --no-prompt --allow-read=plugins scripts/validate_plugins.ts
+Task clean-code deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-code/scripts/clean_code.ts
+Task clean-architecture deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-sys scripts/clean_architecture.ts
+Task doctor doctor_deno=$(realpath "$(which deno)") && "$doctor_deno" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,"$doctor_deno",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run="$doctor_deno",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts
+Task format:check deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format . && deno fmt --check .github/ orca.yaml
+Task lint deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings .
+Task lint:shell git ls-files -z --cached --others --exclude-standard -- '*.sh' scripts/git-hooks scripts/git-flow-hooks ':(exclude).specify/**' | xargs -0 uv run --project tools/shellcheck --frozen --offline --no-sync shellcheck
+              [typecheck] Check scripts/validate_plugins.ts
+              [typecheck] Check scripts/clean_architecture.ts
+              [typecheck] Check scripts/workflow.ts
+              [typecheck] Check scripts/docs.ts
+              [typecheck] Check scripts/constitution_version.ts
+Task test:doctor deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/doctor_test.ts
+       [plugins:validate] {
+       [plugins:validate]   "plugins": [
+       [plugins:validate]     {
+       [plugins:validate]       "name": "code",
+       [plugins:validate]       "status": "PASS"
+       [plugins:validate]     },
+       [plugins:validate]     {
+       [plugins:validate]       "name": "work",
+       [plugins:validate]       "status": "PASS"
+       [plugins:validate]     },
+       [plugins:validate]     {
+       [plugins:validate]       "name": "chat",
+       [plugins:validate]       "status": "PASS"
+       [plugins:validate]     }
+       [plugins:validate]   ]
+       [plugins:validate] }
+Task test:git-flow deno test --frozen --cached-only --no-prompt --allow-read=.gitflow,deno.json,deno.lock,scripts/commitlint.config.mjs,scripts/constitution_version.ts,scripts/git-flow-hooks/pre-flow-feature-finish --allow-write=/tmp --allow-env=HOME,DENO_DIR --allow-run=git scripts/git_flow_test.ts
+            [test:doctor] Check scripts/doctor_test.ts
+           [format:check] Checked 56 files in 89ms. No fixes applied.
+           [format:check] Checked 5 files
+Task test:worktree-branch deno test --frozen --cached-only --no-prompt --allow-read --allow-write=/tmp --allow-run=git,sh scripts/worktree_branch_test.ts
+          [test:git-flow] Check scripts/git_flow_test.ts
+   [test:worktree-branch] Check scripts/worktree_branch_test.ts
+                   [lint] Checked 56 files in 318ms. No fixes applied.
+Task test:commit-msg deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/commit_msg_test.ts
+        [test:commit-msg] Check scripts/commit_msg_test.ts
+                 [doctor] {
+                 [doctor]   "status": "PASS",
+                 [doctor]   "runtime": {
+                 [doctor]     "version": {
+                 [doctor]       "deno": "2.9.6",
+                 [doctor]       "v8": "15.0.245.2-rusty",
+                 [doctor]       "typescript": "6.0.3"
+                 [doctor]     },
+                 [doctor]     "build": {
+                 [doctor]       "target": "x86_64-unknown-linux-gnu",
+                 [doctor]       "arch": "x86_64",
+                 [doctor]       "os": "linux",
+                 [doctor]       "vendor": "unknown",
+                 [doctor]       "env": "gnu",
+                 [doctor]       "standalone": false
+                 [doctor]     }
+                 [doctor]   },
+                 [doctor]   "deno": {
+                 [doctor]     "selected": "/home/choi-eunchang/.deno/bin/deno",
+                 [doctor]     "canonical": "/home/choi-eunchang/.deno/bin/deno",
+                 [doctor]     "version": "2.9.6"
+                 [doctor]   },
+                 [doctor]   "quarto": {
+                 [doctor]     "selected": "/usr/local/bin/quarto",
+                 [doctor]     "canonical": "/opt/quarto/bin/quarto",
+                 [doctor]     "version": "1.10.18"
+                 [doctor]   },
+                 [doctor]   "uv": {
+                 [doctor]     "selected": "uv",
+                 [doctor]     "canonical": "uv",
+                 [doctor]     "version": "0.11.32"
+                 [doctor]   },
+                 [doctor]   "gitFlow": {
+                 [doctor]     "selected": "git-flow",
+                 [doctor]     "canonical": "git-flow",
+                 [doctor]     "version": "2.1.0",
+                 [doctor]     "config": {
+                 [doctor]       "status": "PASS"
+                 [doctor]     }
+                 [doctor]   },
+                 [doctor]   "lychee": {
+                 [doctor]     "selected": "lychee",
+                 [doctor]     "canonical": "lychee",
+                 [doctor]     "version": "0.24.2"
+                 [doctor]   },
+                 [doctor]   "node": {
+                 [doctor]     "selected": "node",
+                 [doctor]     "canonical": "node",
+                 [doctor]     "version": "24.19.0"
+                 [doctor]   },
+                 [doctor]   "gitHooksPath": "scripts/git-hooks",
+                 [doctor]   "specKit": {
+                 [doctor]     "project": "tools/spec-kit",
+                 [doctor]     "python": "tools/spec-kit/.venv/bin/python",
+                 [doctor]     "sync": "PASS"
+                 [doctor]   },
+                 [doctor]   "shellCheck": {
+                 [doctor]     "project": "tools/shellcheck",
+                 [doctor]     "python": "tools/shellcheck/.venv/bin/python",
+                 [doctor]     "sync": "PASS"
+                 [doctor]   },
+                 [doctor]   "docRegions": {
+                 [doctor]     "project": "packages/doc-regions",
+                 [doctor]     "python": "packages/doc-regions/.venv/bin/python",
+                 [doctor]     "sync": "PASS"
+                 [doctor]   },
+                 [doctor]   "wikiConsistency": {
+                 [doctor]     "project": "packages/wiki-consistency",
+                 [doctor]     "python": "packages/wiki-consistency/.venv/bin/python",
+                 [doctor]     "sync": "PASS",
+                 [doctor]     "nodeModules": "packages/wiki-consistency/node_modules",
+                 [doctor]     "npm": "PASS"
+                 [doctor]   },
+                 [doctor]   "lock": {
+                 [doctor]     "path": "/home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/deno.lock",
+                 [doctor]     "sha256": "7360757ceb4ce8bdf9f72dbed0a3fc9d7c22092b934e84b89a54a631751509d1",
+                 [doctor]     "dependencies": {
+                 [doctor]       "jsr:@cliffy/command@1.2.1": "1.2.1",
+                 [doctor]       "jsr:@eemeli/yaml@2.9.1": "2.9.1",
+                 [doctor]       "jsr:@std/assert@1": "1.0.19",
+                 [doctor]       "jsr:@std/fs@1.0.24": "1.0.24",
+                 [doctor]       "jsr:@std/path@1.1.6": "1.1.6",
+                 [doctor]       "jsr:@std/testing@1.0.20": "1.0.20",
+                 [doctor]       "jsr:@zod/zod@4.6.2": "4.6.2",
+                 [doctor]       "npm:@biomejs/biome@2.5.14": "2.5.14",
+                 [doctor]       "npm:@commitlint/cli@21.2.3": "21.2.3",
+                 [doctor]       "npm:@commitlint/config-conventional@21.2.3": "21.2.3",
+                 [doctor]       "npm:@mdx-js/mdx@3.1.1": "3.1.1",
+                 [doctor]       "npm:@types/node@22.20.2": "22.20.2",
+                 [doctor]       "npm:ajv@8.20.0": "8.20.0",
+                 [doctor]       "npm:canonicalize@5.0.0": "5.0.0",
+                 [doctor]       "npm:conventional-changelog-conventionalcommits@10.4.0": "10.4.0",
+                 [doctor]       "npm:dependency-cruiser@18.2.0": "18.2.0",
+                 [doctor]       "npm:mdast-util-gfm-table@2.0.0": "2.0.0",
+                 [doctor]       "npm:mdast-util-to-markdown@2.1.2": "2.1.2",
+                 [doctor]       "npm:mdast-util-to-string@4.0.0": "4.0.0",
+                 [doctor]       "npm:remark-gfm@4.0.1": "4.0.1",
+                 [doctor]       "npm:typescript@6.0.3": "6.0.3",
+                 [doctor]       "npm:unist-util-visit@5.1.0": "5.1.0"
+                 [doctor]     }
+                 [doctor]   }
+                 [doctor] }
+Task test:plugin-skills deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run=node scripts/plugin_skills_test.ts
+     [test:plugin-skills] Check scripts/plugin_skills_test.ts
+            [test:doctor] running 16 tests from ./scripts/doctor_test.ts
+   [test:worktree-branch] running 3 tests from ./scripts/worktree_branch_test.ts
+          [test:git-flow] running 20 tests from ./scripts/git_flow_test.ts
+     [clean-architecture] {
+     [clean-architecture]   "violations": [],
+     [clean-architecture]   "error": 0,
+     [clean-architecture]   "totalCruised": 73
+     [clean-architecture] }
+Task test:clean-code deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/skills/clean-code/scripts/clean_code_test.ts
+        [test:clean-code] Warning: config file file:///home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/plugins/code/skills/clean-code/deno.json is not a member of the workspace at file:///home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/. Ignoring the parent workspace config.
+        [test:clean-code] Check plugins/code/skills/clean-code/scripts/clean_code_test.ts
+   [test:worktree-branch] worktree branch: applies the documented name mappings and is idempotent ... ok (806ms)
+             [clean-code] {
+             [clean-code]   "assessment": "NOT_APPLICABLE",
+             [clean-code]   "coverage": {
+             [clean-code]     "candidates": 31,
+             [clean-code]     "selected": 0,
+             [clean-code]     "excluded": 31,
+             [clean-code]     "errors": 0
+             [clean-code]   },
+             [clean-code]   "scope": [
+             [clean-code]     {
+             [clean-code]       "file": "plugins/code/skills/clean-code/scripts/clean_code.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 336,
+             [clean-code]           "column": 24,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 343,
+             [clean-code]           "column": 55,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 346,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 343,
+             [clean-code]           "column": 13,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 273,
+             [clean-code]           "column": 29,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 263,
+             [clean-code]           "column": 37,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 273,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 273,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "plugins/code/skills/clean-code/scripts/cli.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 41,
+             [clean-code]           "column": 72,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 38,
+             [clean-code]           "column": 17,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 44,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 39,
+             [clean-code]           "column": 61,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 26,
+             [clean-code]           "column": 45,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/clean_architecture.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 244,
+             [clean-code]           "column": 42,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 239,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 246,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 244,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 164,
+             [clean-code]           "column": 29,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/clean_architecture_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 255,
+             [clean-code]           "column": 30,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 249,
+             [clean-code]           "column": 29,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 255,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 255,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/cli_contract_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 278,
+             [clean-code]           "column": 30,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 280,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 276,
+             [clean-code]           "column": 22,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 275,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 130,
+             [clean-code]           "column": 23,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/commit_msg_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 562,
+             [clean-code]           "column": 65,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 558,
+             [clean-code]           "column": 39,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 562,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 562,
+             [clean-code]           "column": 46,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 549,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/constitution_version.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 9,
+             [clean-code]           "column": 12,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 143,
+             [clean-code]           "column": 49,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 154,
+             [clean-code]           "column": 61,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 155,
+             [clean-code]           "column": 72,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 154,
+             [clean-code]           "column": 61,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/docs.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 621,
+             [clean-code]           "column": 40,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 621,
+             [clean-code]           "column": 33,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 626,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 621,
+             [clean-code]           "column": 13,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 410,
+             [clean-code]           "column": 37,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/docs_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 669,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 674,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 673,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 673,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 340,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/doctor.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 339,
+             [clean-code]           "column": 22,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 338,
+             [clean-code]           "column": 37,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 339,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 341,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 204,
+             [clean-code]           "column": 55,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/doctor_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 495,
+             [clean-code]           "column": 29,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 492,
+             [clean-code]           "column": 24,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 496,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 495,
+             [clean-code]           "column": 35,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 487,
+             [clean-code]           "column": 50,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/git_flow_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 533,
+             [clean-code]           "column": 20,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 531,
+             [clean-code]           "column": 51,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 534,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 529,
+             [clean-code]           "column": 1,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 478,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/hash.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 6,
+             [clean-code]           "column": 52,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 6,
+             [clean-code]           "column": 31,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 6,
+             [clean-code]           "column": 25,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 6,
+             [clean-code]           "column": 31,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/plugin_skills_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 75,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 75,
+             [clean-code]           "column": 42,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 75,
+             [clean-code]           "column": 31,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 75,
+             [clean-code]           "column": 13,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/validate_plugins.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 80,
+             [clean-code]           "column": 23,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 78,
+             [clean-code]           "column": 39,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 80,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 82,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/wiki_raw_import_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 1277,
+             [clean-code]           "column": 20,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 1275,
+             [clean-code]           "column": 35,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 1277,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 1259,
+             [clean-code]           "column": 1,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 941,
+             [clean-code]           "column": 32,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 559,
+             [clean-code]           "column": 19,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 566,
+             [clean-code]           "column": 44,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 202,
+             [clean-code]           "column": 19,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 534,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 569,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_files.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 53,
+             [clean-code]           "column": 57,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 45,
+             [clean-code]           "column": 35,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 53,
+             [clean-code]           "column": 44,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 41,
+             [clean-code]           "column": 24,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 53,
+             [clean-code]           "column": 44,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_git.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 115,
+             [clean-code]           "column": 33,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 109,
+             [clean-code]           "column": 46,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 115,
+             [clean-code]           "column": 39,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 112,
+             [clean-code]           "column": 21,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 83,
+             [clean-code]           "column": 10,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_graph.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 164,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 169,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 145,
+             [clean-code]           "column": 23,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 51,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 150,
+             [clean-code]           "column": 15,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_graph_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 513,
+             [clean-code]           "column": 37,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 515,
+             [clean-code]           "column": 52,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 515,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 513,
+             [clean-code]           "column": 41,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_plan.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 86,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 79,
+             [clean-code]           "column": 107,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 84,
+             [clean-code]           "column": 58,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 84,
+             [clean-code]           "column": 58,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_plan_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 343,
+             [clean-code]           "column": 46,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 344,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 343,
+             [clean-code]           "column": 16,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 341,
+             [clean-code]           "column": 13,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_skills.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 197,
+             [clean-code]           "column": 51,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 194,
+             [clean-code]           "column": 47,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 193,
+             [clean-code]           "column": 10,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 176,
+             [clean-code]           "column": 30,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 86,
+             [clean-code]           "column": 21,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_skills_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 397,
+             [clean-code]           "column": 18,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 393,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 397,
+             [clean-code]           "column": 24,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 378,
+             [clean-code]           "column": 27,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_symbol.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 161,
+             [clean-code]           "column": 20,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 164,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 168,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 104,
+             [clean-code]           "column": 19,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 91,
+             [clean-code]           "column": 16,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 486,
+             [clean-code]           "column": 22,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 497,
+             [clean-code]           "column": 25,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 497,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 485,
+             [clean-code]           "column": 1,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_verify.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 238,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 228,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 238,
+             [clean-code]           "column": 11,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 199,
+             [clean-code]           "column": 14,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/workflow_verify_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 287,
+             [clean-code]           "column": 9,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 287,
+             [clean-code]           "column": 44,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 291,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 276,
+             [clean-code]           "column": 29,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     },
+             [clean-code]     {
+             [clean-code]       "file": "scripts/worktree_branch_test.ts",
+             [clean-code]       "status": "excluded",
+             [clean-code]       "reasons": [
+             [clean-code]         {
+             [clean-code]           "message": "Syntax is outside the approved function subset.",
+             [clean-code]           "line": 254,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "String literals exclude the whole file, regardless of their contents.",
+             [clean-code]           "line": 252,
+             [clean-code]           "column": 7,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Call is not bound to an unchanged function defined in this file.",
+             [clean-code]           "line": 250,
+             [clean-code]           "column": 5,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Value is not a parameter or a locally defined binding.",
+             [clean-code]           "line": 231,
+             [clean-code]           "column": 1,
+             [clean-code]           "rule": "scope/bindings"
+             [clean-code]         },
+             [clean-code]         {
+             [clean-code]           "message": "Regular expressions and ambient runtime bindings are outside the subset.",
+             [clean-code]           "line": 249,
+             [clean-code]           "column": 32,
+             [clean-code]           "rule": "no-restricted-syntax"
+             [clean-code]         }
+             [clean-code]       ]
+             [clean-code]     }
+             [clean-code]   ],
+             [clean-code]   "selected": [],
+             [clean-code]   "diagnostics": []
+             [clean-code] }
+Task test:clean-architecture deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/clean_architecture_test.ts
+[test:clean-architecture] Check scripts/clean_architecture_test.ts
+          [test:git-flow] git-flow: feature worktree invocation is refused without changing branches or worktrees ... ok (696ms)
+Task test:workflow deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/workflow_test.ts scripts/workflow_plan_test.ts scripts/workflow_verify_test.ts scripts/workflow_graph_test.ts scripts/workflow_skills_test.ts
+          [test:workflow] Check scripts/workflow_test.ts
+          [test:workflow] Check scripts/workflow_plan_test.ts
+          [test:workflow] Check scripts/workflow_verify_test.ts
+          [test:workflow] Check scripts/workflow_graph_test.ts
+          [test:workflow] Check scripts/workflow_skills_test.ts
+   [test:worktree-branch] worktree branch: skips branches that must not be renamed ... ok (660ms)
+        [test:commit-msg] running 5 tests from ./scripts/commit_msg_test.ts
+        [test:commit-msg] constitution version rule: table and edge cases ... ok (1ms)
+        [test:commit-msg] constitution version rule: Git errors refuse changed commits ... ok (114ms)
+   [test:worktree-branch] worktree branch: refuses invalid or existing targets without changes ... ok (434ms)
+   [test:worktree-branch] 
+   [test:worktree-branch] ok | 3 passed | 0 failed (1s)
+   [test:worktree-branch] 
+          [test:git-flow] git-flow: finish is refused when develop has a commit the feature lacks ... ok (1s)
+Task test:cli-contract deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/cli_contract_test.ts
+      [test:cli-contract] Check scripts/cli_contract_test.ts
+     [test:plugin-skills] running 3 tests from ./scripts/plugin_skills_test.ts
+     [test:plugin-skills] plugin skills: no project links duplicate packaged skills ... ok (7ms)
+          [test:git-flow] git-flow: finish is refused when feature verification fails ... ok (875ms)
+            [test:doctor] doctor: root task permits relocated and symlinked runtimes ... ok (3s)
+          [test:git-flow] git-flow: finish is refused when the feature tip has no review record ... ok (883ms)
+        [test:clean-code] running 35 tests from ./plugins/code/skills/clean-code/scripts/clean_code_test.ts
+        [test:clean-code] scope: arithmetic ... ok (52ms)
+        [test:clean-code] scope: branch and loop ... ok (10ms)
+        [test:clean-code] scope: local function ... ok (5ms)
+        [test:clean-code] scope: local arrow ... ok (3ms)
+        [test:clean-code] scope: local expression ... ok (3ms)
+        [test:clean-code] scope: local overload ... ok (2ms)
+        [test:clean-code] scope: block local binding ... ok (4ms)
+        [test:clean-code] scope: explicit any stays selected ... ok (2ms)
+        [test:clean-code] scope: unused variable stays selected ... ok (2ms)
+        [test:clean-code] scope: string ... ok (2ms)
+        [test:clean-code] scope: SQL string ... ok (4ms)
+        [test:clean-code] scope: object ... ok (3ms)
+        [test:clean-code] scope: array ... ok (3ms)
+        [test:clean-code] scope: regular expression ... ok (5ms)
+        [test:clean-code] scope: template ... ok (12ms)
+        [test:clean-code] scope: tagged template ... ok (2ms)
+        [test:clean-code] scope: JSX ... ok (5ms)
+        [test:clean-code] scope: method ... ok (7ms)
+        [test:clean-code] scope: external call ... ok (1ms)
+        [test:clean-code] scope: external value ... ok (4ms)
+        [test:clean-code] scope: callback parameter ... ok (2ms)
+        [test:clean-code] scope: computed call ... ok (4ms)
+        [test:clean-code] scope: dynamic import ... ok (2ms)
+        [test:clean-code] scope: shadowed name ... ok (2ms)
+        [test:clean-code] scope: reassigned function ... ok (2ms)
+        [test:clean-code] scope: reassigned declaration ... ok (12ms)
+        [test:clean-code] scope: mixed file ... ok (2ms)
+        [test:clean-code] scope: type-only file ... ok (2ms)
+        [test:clean-code] scope: ambient function ... ok (1ms)
+        [test:clean-code] scope: ambient value ... ok (1ms)
+        [test:clean-code] scope: syntax error ... ok (4ms)
+[test:clean-architecture] running 4 tests from ./scripts/clean_architecture_test.ts
+[test:clean-architecture] architecture: dependency directions, cycles, public APIs and Deno aliases ... ok (219ms)
+[test:clean-architecture] architecture: unsupported scoped imports fail instead of skipping edges ... ok (1ms)
+          [test:git-flow] git-flow: finish is refused when Reviewed-commit is not the record parent ... ok (724ms)
+[test:clean-architecture] architecture: domain runtime APIs, aliases, globalThis and valid local bindings ... ok (135ms)
+          [test:workflow] running 20 tests from ./scripts/workflow_test.ts
+[test:clean-architecture] architecture: local and external alias conflicts cannot hide dependencies ... ok (29ms)
+          [test:workflow] workflow: size boundaries and mandatory review signals ... ok (31ms)
+          [test:workflow] workflow: NUL records preserve filenames and rename statistics ... ok (1ms)
+[test:clean-architecture] 
+[test:clean-architecture] ok | 4 passed | 0 failed (426ms)
+[test:clean-architecture] 
+Task test:docs deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-sys --allow-run scripts/docs_test.ts
+          [test:workflow] workflow: staged, unstaged and untracked changes include odd filenames ... ok (112ms)
+              [test:docs] Check scripts/docs_test.ts
+            [test:doctor] doctor: installed identities, versions and root lock work outside the checkout ... ok (1s)
+      [test:cli-contract] running 14 tests from ./scripts/cli_contract_test.ts
+          [test:workflow] workflow: worktree reversal cannot conceal staged changes ... ok (71ms)
+            [test:doctor] doctor: missing, relative, non-executable and wrong-identity paths fail before report creation ... ok (43ms)
+        [test:clean-code] same selection, exact length boundary, and quality failures ... ok (832ms)
+        [test:clean-code] parse errors remain errors and never become exclusions ... ok (16ms)
+          [test:workflow] workflow: Git rename and deletion require review ... ok (140ms)
+        [test:clean-code] discovery applies fixed paths and excludes declaration files and symlinks ... ok (17ms)
+        [test:clean-code] excluded-only scope is explicitly not applicable, not a quality pass ... ok (12ms)
+        [test:clean-code] 
+        [test:clean-code] ok | 35 passed | 0 failed (1s)
+        [test:clean-code] 
+Task test:backfire (test -f packages/backfire/.venv/bin/python && test -f packages/backfire/.venv/bin/pytest || (echo 'Missing Backfire pytest environment. Run deno task backfire:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/backfire --frozen --offline --no-sync pytest packages/backfire/tests -m 'not slow'
+          [test:workflow] workflow: binary and symlink additions cannot become direct work ... ok (94ms)
+          [test:workflow] workflow: Deno exports identify nonstandard public entry filenames ... ok (70ms)
+      [test:cli-contract] CLI doctor: help and invalid arguments ... ok (400ms)
+          [test:workflow] workflow: explicit baseline includes commits and invalid refs fail ... ok (120ms)
+          [test:workflow] workflow: difficulty thresholds are independent of review mode ... ok (1ms)
+     [test:plugin-skills] plugin skills: isolated packages retain resources and executable helpers ... ok (2s)
+     [test:plugin-skills] plugin skills: work Backfire shares code tool reference and license ... ok (822µs)
+     [test:plugin-skills] 
+     [test:plugin-skills] ok | 3 passed | 0 failed (3s)
+     [test:plugin-skills] 
+          [test:git-flow] git-flow: finish is refused when the review record changes the tree ... ok (716ms)
+Task test:doc-regions (test -f packages/doc-regions/.venv/bin/pytest || (echo 'Missing doc-regions environment. Run uv sync --locked --project packages/doc-regions.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py
+          [test:workflow] workflow: task difficulty excludes unrelated binary changes without weakening review ... ok (158ms)
+          [test:workflow] workflow: planned work with no observed diff remains unassessed ... ok (99ms)
+          [test:workflow] workflow: invalid directory scopes are not collected for difficulty ... ok (64ms)
+            [test:doctor] doctor: standalone aliases pass but .venv and Quarto runtime paths are refused ... ok (976ms)
+          [test:workflow] workflow: per-task observations keep literal paths and independent levels ... ok (307ms)
+          [test:workflow] workflow: scoped observations include staged, unstaged and untracked changes ... ok (100ms)
+          [test:git-flow] git-flow: finish is refused when Reviewed-by is missing ... ok (748ms)
+          [test:workflow] workflow: review eligibility does not suppress measurable task difficulty ... ok (359ms)
+       [test:doc-regions] ============================= test session starts ==============================
+       [test:doc-regions] platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+       [test:doc-regions] rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/packages/doc-regions
+       [test:doc-regions] configfile: pyproject.toml
+       [test:doc-regions] collected 107 items
+       [test:doc-regions] 
+          [test:workflow] workflow: destination-only task retains observed rename metadata ... ok (136ms)
+          [test:workflow] workflow: staged and tracked symlinks remain unassessed ... ok (144ms)
+          [test:workflow] workflow: delegation instructions use Orca workers ... ok (304µs)
+          [test:workflow] workflow: review instructions time independent review at merge ... ok (296µs)
+          [test:workflow] workflow: every mode prints the Linear completion order ... ok (398µs)
+          [test:git-flow] git-flow: finish is refused when Reviewed-commit is missing ... ok (833ms)
+      [test:cli-contract] CLI doctor: actual success and failure streams ... ok (1s)
+       [test:doc-regions] packages/doc-regions/tests/test_audit.py .............                   [ 12%]
+       [test:doc-regions] packages/doc-regions/tests/test_config.py ..................             [ 28%]
+          [test:workflow] running 10 tests from ./scripts/workflow_plan_test.ts
+          [test:git-flow] git-flow: finish is refused when Reviewed-by is duplicated ... ok (728ms)
+          [test:workflow] workflow plan: one bounded task delegates; two independent tasks run in parallel ... ok (149ms)
+          [test:workflow] workflow plan: shared unchanged dependency permits parallel file edits ... ok (72ms)
+          [test:workflow] workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits ... ok (141ms)
+      [test:cli-contract] CLI workflow: help and invalid arguments ... ok (980ms)
+          [test:workflow] workflow plan: root and tests consumers prevent parallel edits across scan roots ... ok (103ms)
+          [test:workflow] workflow plan: repository scan keeps tool, vendor and agent cache exclusions ... ok (31ms)
+          [test:workflow] workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits ... ok (18ms)
+          [test:workflow] workflow plan: symlink aliases cannot give two agents the same writable file ... ok (2ms)
+          [test:workflow] workflow plan: invalid or ambiguous task scopes fail validation ... ok (2ms)
+          [test:workflow] workflow plan: risky planned paths and scope growth still require review ... ok (445µs)
+          [test:git-flow] git-flow: finish is refused when Reviewed-by is empty ... ok (648ms)
+          [test:workflow] workflow plan: Git integration routes a clean plan then rejects changes outside its scope ... ok (264ms)
+       [test:doc-regions] packages/doc-regions/tests/test_regions.py ............................. [ 56%]
+          [test:workflow] running 8 tests from ./scripts/workflow_verify_test.ts
+              [test:docs] running 14 tests from ./scripts/docs_test.ts
+          [test:git-flow] git-flow: finish is refused when Reviewed-by has an empty duplicate ... ok (641ms)
+          [test:backfire] ============================= test session starts ==============================
+          [test:backfire] platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+          [test:backfire] rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/packages/backfire
+          [test:backfire] configfile: pyproject.toml
+          [test:backfire] plugins: anyio-4.15.1
+          [test:backfire] collected 1354 items / 3 deselected / 1351 selected
+          [test:backfire] 
+          [test:workflow] workflow verification: actual check creates reusable evidence for the exact code ... ok (322ms)
+      [test:cli-contract] CLI workflow: actual success and failure streams ... ok (1s)
+          [test:backfire] packages/backfire/tests/test_adapter_wiring.py .....                     [  0%]
+            [test:doctor] doctor: git hooks path must match and is recorded ... ok (3s)
+          [test:git-flow] git-flow: finish is refused when Reviewed-commit has an empty duplicate ... ok (621ms)
+          [test:workflow] workflow verification: failures accumulate across repairs within the same task ... ok (666ms)
+      [test:cli-contract] CLI clean-architecture: help and invalid arguments ... ok (747ms)
+          [test:workflow] workflow verification: task, plan and resolved baseline keep evidence separate ... ok (337ms)
+       [test:doc-regions] .........                                                                [ 64%]
+          [test:git-flow] git-flow: finish is refused after develop is merged after the review record ... ok (584ms)
+          [test:workflow] workflow verification: exit zero cannot verify code changed during the check ... ok (245ms)
+          [test:workflow] workflow verification: altered or missing logs cannot reuse a previous successful result ... ok (284ms)
+      [test:cli-contract] CLI clean-architecture: actual success and failure streams ... ok (650ms)
+          [test:git-flow] git-flow: abbreviated Reviewed-commit values are accepted ... ok (711ms)
+          [test:workflow] workflow verification: malformed or invalid evidence fails closed ... ok (420ms)
+      [test:cli-contract] CLI plugins:validate: help and invalid arguments ... ok (570ms)
+          [test:workflow] workflow verification: an interrupted run supersedes older successful evidence ... ok (262ms)
+          [test:git-flow] git-flow: lower-case review trailer keys are accepted ... ok (661ms)
+          [test:workflow] workflow verification: concurrent checks serialize their execution and evidence ... ok (411ms)
+      [test:cli-contract] CLI plugins:validate: actual success and failure streams ... ok (467ms)
+          [test:workflow] running 9 tests from ./scripts/workflow_graph_test.ts
+          [test:git-flow] git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree ... ok (746ms)
+          [test:workflow] workflow graph: aliases and re-exports reach transitive consumers and affected tests only ... ok (331ms)
+        [test:commit-msg] commit-msg hook: amendments use the parent constitution version ... ok (10s)
+          [test:workflow] workflow graph: every query sees same-length import edits and a new snapshot ... ok (275ms)
+          [test:workflow] workflow graph: cycles, outward domain dependencies and missing local imports fail policy ... ok (183ms)
+          [test:workflow] workflow graph: npm and jsr dependencies stay external while ignored local targets stay outside scope ... ok (177ms)
+          [test:workflow] workflow graph: invalid choices, noncanonical paths and invalid symbol positions are rejected ... ok (190ms)
+          [test:git-flow] git-flow: fixup rebase that raises the constitution twice is refused ... ok (1s)
+          [test:workflow] workflow graph: missing, ignored and symlinked selections are rejected ... ok (278ms)
+      [test:cli-contract] CLI clean-code: help and invalid arguments ... ok (1s)
+        [test:commit-msg] commit-msg hook: inherited commit ref does not replace the index check ... ok (1s)
+            [test:doctor] doctor: version probes require exact versions, successful exit and bounded duration ... ok (5s)
+          [test:git-flow] git-flow: squash rebase that raises the constitution twice is refused ... ok (1s)
+          [test:workflow] workflow graph: local symbols expose definitions, references and actual caller locations ... ok (1s)
+       [test:doc-regions] packages/doc-regions/tests/test_requests.py .....................        [ 84%]
+       [test:doc-regions] packages/doc-regions/tests/test_units.py ...............                 [ 98%]
+          [test:workflow] workflow graph: mutations while reading symbol sources invalidate the report ... ok (143ms)
+       [test:doc-regions] packages/doc-regions ..                                                  [100%]
+       [test:doc-regions] 
+       [test:doc-regions] ============================= 107 passed in 8.84s ==============================
+Task test:wiki-consistency (test -f packages/wiki-consistency/.venv/bin/pytest || (echo 'Missing wiki-consistency environment. Run deno task wiki-consistency:install.' >&2; exit 1)) && PYTHONDONTWRITEBYTECODE=1 uv run --project packages/wiki-consistency --frozen --offline --no-sync pytest packages/wiki-consistency/tests
+            [test:doctor] doctor: git-flow version and shared configuration status are required ... ok (1s)
+            [test:doctor] doctor: a missing or stale Spec Kit environment fails with sync guidance ... ok (115ms)
+            [test:doctor] doctor: a missing or stale ShellCheck environment fails with sync guidance ... ok (116ms)
+          [test:git-flow] git-flow: unsquashed fixup commit that changes the constitution is refused ... ok (1s)
+            [test:doctor] doctor: a missing or stale doc-regions environment fails with sync guidance ... ok (175ms)
+      [test:cli-contract] CLI clean-code: actual success and failure streams ... ok (2s)
+            [test:doctor] doctor: a missing or stale wiki-consistency Python environment fails with install guidance ... ok (225ms)
+            [test:doctor] doctor: a missing or stale wiki-consistency Node environment fails with install guidance ... ok (216ms)
+            [test:doctor] doctor: npm ls success does not hide npm package-lock drift ... ok (112ms)
+            [test:doctor] doctor: Node must be installed and at least version 22 ... ok (82ms)
+          [test:git-flow] git-flow: one correct constitution bump still finishes ... ok (1s)
+          [test:git-flow] 
+          [test:git-flow] ok | 20 passed | 0 failed (16s)
+          [test:git-flow] 
+Task test:wiki-raw-import deno test --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env --allow-run scripts/wiki_raw_import_test.ts
+  [test:wiki-consistency] ============================= test session starts ==============================
+  [test:wiki-consistency] platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+  [test:wiki-consistency] rootdir: /home/choi-eunchang/workspaces/verbose-broccoli/feature-turborepo/packages/wiki-consistency
+  [test:wiki-consistency] configfile: pyproject.toml
+  [test:wiki-consistency] collected 169 items
+  [test:wiki-consistency] 
+   [test:wiki-raw-import] Check scripts/wiki_raw_import_test.ts
+      [test:cli-contract] CLI: semantic input mistakes fail before execution ... ok (1s)
+      [test:cli-contract] CLI clean-code: copied skill stays independently runnable ... ok (1s)
+              [test:docs] references: real seven help routes, all tasks/plugins and final links are deterministic ... ok (10s)
+   [test:wiki-raw-import] running 43 tests from ./scripts/wiki_raw_import_test.ts
+      [test:cli-contract] CLI validators: failed checks preserve diagnostics without partial stdout ... ok (676ms)
+          [test:workflow] workflow graph CLI: valid queries succeed while bad input and policy violations exit one ... ok (5s)
+              [test:docs] references: source facts, optional MCP and Markdown characters survive serialization ... ok (687ms)
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_boundary.py .                       [  0%]
+          [test:workflow] running 9 tests from ./scripts/workflow_skills_test.ts
+          [test:workflow] workflow skills: clean-code uses the exact intersection of selected and changed or planned files ... ok (1ms)
+          [test:workflow] workflow skills: actual review code diffs trigger ponytail and every verification mode triggers evidence guidance ... ok (375µs)
+   [test:wiki-raw-import] raw import: locked offline help and missing-instance errors ... ok (774ms)
+          [test:workflow] workflow skills: malformed or failed scope reports cannot supply selected files ... ok (24ms)
+      [test:cli-contract] CLI workflow: invalid plan schema takes precedence over Git execution ... ok (653ms)
+      [test:cli-contract] 
+      [test:cli-contract] ok | 14 passed | 0 failed (15s)
+      [test:cli-contract] 
+Task docs:check deno run --quiet --frozen --cached-only --no-prompt --allow-read=deno.json,deno.lock,biome.json,scripts,plugins/chat/plugin.json,plugins/chat/mcp.json,plugins/code/plugin.json,plugins/code/mcp.json,plugins/work/plugin.json,plugins/work/mcp.json,plugins/code/deno.json,plugins/code/skills/clean-code,docs --allow-env --allow-sys --allow-run=deno,$HOME/.deno/bin/deno scripts/docs.ts check
+   [test:wiki-raw-import] raw import US1: one immutable bag preserves payload, digest, timestamps and provenance ... ok (713ms)
+          [test:workflow] workflow skills: real scope includes long eligible functions and receipts do not change code fingerprints ... ok (1s)
+   [test:wiki-raw-import] raw import US1: verify detects changed payload without writing ... ok (718ms)
+              [test:docs] references: invalid manifests, tasks and duplicate identities retain the previous pair ... ok (1s)
+            [test:doctor] doctor: report is private, create-only and refuses README paths and symlinks ... ok (5s)
+          [test:workflow] workflow skills: scope errors require review while preserving verification guidance ... ok (1s)
+        [test:commit-msg] commit-msg hook: real commits, index handling, and Deno lookup ...
+        [test:commit-msg] ------- output -------
+        [test:commit-msg] Measured commit-msg hook: 294 ms
+        [test:commit-msg] ----- output end -----
+        [test:commit-msg] commit-msg hook: real commits, index handling, and Deno lookup ... ok (8s)
+   [test:wiki-raw-import] raw import US1: verify detects changed bag-info.txt without writing ... ok (847ms)
+        [test:commit-msg] 
+        [test:commit-msg] ok | 5 passed | 0 failed (21s)
+        [test:commit-msg] 
+Task doc-regions:check PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions check scripts/doc_regions.toml
+   [test:wiki-raw-import] raw import US1: an unreadable original fails without adding evidence ... ok (461ms)
+             [docs:check] {
+             [docs:check]   "status": "PASS",
+             [docs:check]   "mode": "check",
+             [docs:check]   "files": [
+             [docs:check]     "docs/reference/commands.md",
+             [docs:check]     "docs/reference/plugins.md"
+             [docs:check]   ]
+             [docs:check] }
+      [doc-regions:check] {"problems": []}
+   [test:wiki-raw-import] raw import US1: unrepresentable BagIt provenance fails before publication ... ok (308ms)
+          [test:workflow] workflow skills: stale expected snapshots cannot write announcement receipts ... ok (1s)
+              [test:docs] references: every failed help form preserves output and check never repairs it ... ok (1s)
+              [test:docs] references: help cannot write, spawn, use network or read live Wiki configuration ... ok (816ms)
+            [test:doctor] doctor: CLI rejects invalid flags and missing runtime/report permissions ... ok (2s)
+            [test:doctor] 
+            [test:doctor] ok | 16 passed | 0 failed (24s)
+            [test:doctor] 
+   [test:wiki-raw-import] raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision ... ok (1s)
+          [test:workflow] workflow skills CLI: failed verification and scope errors preserve the evidence and skill guidance ... ok (1s)
+   [test:wiki-raw-import] raw import US2: a new revision must sort after the latest revision ... ok (656ms)
+   [test:wiki-raw-import] raw import US2: equal bytes at different paths have distinct sources ... ok (507ms)
+   [test:wiki-raw-import] raw import US2: two source records for one original fail the item ... ok (707ms)
+   [test:wiki-raw-import] raw import US3: only listed files are admitted without user exclusions ... ok (320ms)
+              [test:docs] references: passing and drifting checks preserve working files and the Git index ... ok (2s)
+   [test:wiki-raw-import] raw import US3: excluded roots and resolved aliases are refused ... ok (494ms)
+   [test:wiki-raw-import] raw import US3: excluded paths stay refused through an escaping directory symlink ... ok (320ms)
+          [test:backfire] packages/backfire/tests/test_boundary.py .........                       [  1%]
+   [test:wiki-raw-import] raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused ... ok (372ms)
+   [test:wiki-raw-import] raw import US3: duplicate selection is rejected before any write ... ok (341ms)
+              [test:docs] references: tracked, untracked, ignored, directory and symlink extras are never read or removed ... ok (1s)
+   [test:wiki-raw-import] raw import US3: relative selection is rejected before any write ... ok (340ms)
+   [test:wiki-raw-import] raw import US3: extra field selection is rejected before any write ... ok (367ms)
+   [test:wiki-raw-import] raw import US3: kind selection is rejected before any write ... ok (286ms)
+   [test:wiki-raw-import] raw import US3: missing field selection is rejected before any write ... ok (316ms)
+              [test:docs] references: input and output drift during help collection fail before publication ... ok (1s)
+   [test:wiki-raw-import] raw import US3: not object selection is rejected before any write ... ok (348ms)
+   [test:wiki-raw-import] raw import US3: invalid JSON selection is rejected before any write ... ok (315ms)
+              [test:docs] references: failed replacement restores the exact previous pair ... ok (640ms)
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed ([broken) ... ok (455ms)
+          [test:workflow] workflow skills: task, baseline, complete scope and code changes invalidate deduplication ... ok (5s)
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed (wiki = 1) ... ok (478ms)
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed ([wiki]\nraw_import = []) ... ok (486ms)
+          [test:workflow] workflow skills: concurrent identical calls announce each skill exactly once ... ok (1s)
+          [test:workflow] 
+          [test:workflow] ok | 56 passed | 0 failed (27s)
+          [test:workflow] 
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed ([wiki.raw_import]\nexclude = "path") ... ok (344ms)
+              [test:docs] references: failed rollback retains recovery and the next generation restores it ... ok (1s)
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed ([wiki.raw_import]\nexclude = [1]) ... ok (312ms)
+   [test:wiki-raw-import] raw import US3: malformed configuration fails closed ([wiki.raw_import]\nexclude = ["relative"]) ... ok (283ms)
+   [test:wiki-raw-import] raw import US3: an existing source cannot change kind ... ok (463ms)
+              [test:docs] references: first-publication failure retains the complete stage for explicit recovery ... ok (1s)
+   [test:wiki-raw-import] raw import US4: recover a leftover partial copy without publishing it ... ok (464ms)
+   [test:wiki-raw-import] raw import US4: recover a leftover copied payload without publishing it ... ok (490ms)
+              [test:docs] references: another writer appearing between renames is preserved with the recovery pair ... ok (812ms)
+   [test:wiki-raw-import] raw import US4: recover a leftover partial record without publishing it ... ok (2s)
+          [test:backfire] packages/backfire/tests/test_boundary_core.py ................           [  2%]
+   [test:wiki-raw-import] raw import US4: recover a leftover complete bag without publishing it ... ok (2s)
+              [test:docs] references: actual SIGKILL between directory renames is detected and recoverable ... ok (5s)
+   [test:wiki-raw-import] raw import US4: a publication failure keeps other items and can be retried ... ok (1s)
+              [test:docs] references: local and PR check entrypoints agree without Node actions ... ok (1s)
+              [test:docs] 
+              [test:docs] ok | 14 passed | 0 failed (32s)
+              [test:docs] 
+   [test:wiki-raw-import] raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock ... ok (1s)
+   [test:wiki-raw-import] raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored ... ok (220ms)
+   [test:wiki-raw-import] raw import US5: unnamed commands use the work vault under vaults ... ok (330ms)
+   [test:wiki-raw-import] raw import US5: repeated init preserves every byte and modification time ... ok (285ms)
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_check.py .......................... [ 15%]
+   [test:wiki-raw-import] raw import US5: named Wiki and all four kinds use their own roots ... ok (322ms)
+   [test:wiki-raw-import] raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions ... ok (1s)
+   [test:wiki-raw-import] raw import US5: unset XDG values use HOME defaults ... ok (867ms)
+   [test:wiki-raw-import] raw import US5: empty XDG values use HOME defaults ... ok (561ms)
+   [test:wiki-raw-import] raw import US5: relative XDG values use HOME defaults ... ok (472ms)
+   [test:wiki-raw-import] raw import: invalid arguments and Wiki names write nothing ... ok (1s)
+   [test:wiki-raw-import] 
+   [test:wiki-raw-import] ok | 43 passed | 0 failed (27s)
+   [test:wiki-raw-import] 
+  [test:wiki-consistency] .........................                                                [ 30%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_evidence.py ..............          [ 39%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_instance.py ....................... [ 52%]
+  [test:wiki-consistency]                                                                          [ 52%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_lint.py ...                         [ 54%]
+          [test:backfire] packages/backfire/tests/test_bounded_work.py ............                [  3%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_main.py ................            [ 63%]
+          [test:backfire] packages/backfire/tests/test_build.py ................................   [  5%]
+          [test:backfire] packages/backfire/tests/test_capture_upstream.py ........                [  6%]
+          [test:backfire] packages/backfire/tests/test_config.py ................................. [  8%]
+          [test:backfire] ........................................................................ [ 13%]
+          [test:backfire] ...............                                                          [ 14%]
+          [test:backfire] packages/backfire/tests/test_decisions.py .............................. [ 17%]
+          [test:backfire] ........................................................................ [ 22%]
+          [test:backfire] ...........................................                              [ 25%]
+          [test:backfire] packages/backfire/tests/test_doubles.py ................................ [ 28%]
+          [test:backfire] .                                                                        [ 28%]
+          [test:backfire] packages/backfire/tests/test_education_e2e.py .                          [ 28%]
+          [test:backfire] packages/backfire/tests/test_education_pseudonymize.py ............      [ 29%]
+          [test:backfire] packages/backfire/tests/test_education_roster.py ....................... [ 30%]
+          [test:backfire] ...............                                                          [ 31%]
+          [test:backfire] packages/backfire/tests/test_education_selection.py ....                 [ 32%]
+          [test:backfire] packages/backfire/tests/test_education_table.py ........................ [ 33%]
+          [test:backfire] .....                                                                    [ 34%]
+          [test:backfire] packages/backfire/tests/test_entry.py ....                               [ 34%]
+          [test:backfire] packages/backfire/tests/test_failures.py ............................... [ 36%]
+          [test:backfire] ......................................................                   [ 40%]
+          [test:backfire] packages/backfire/tests/test_faults.py .............................     [ 43%]
+          [test:backfire] packages/backfire/tests/test_fidelity.py ............................... [ 45%]
+          [test:backfire] ........................................................................ [ 50%]
+          [test:backfire] .................................                                        [ 53%]
+          [test:backfire] packages/backfire/tests/test_judge.py .................................. [ 55%]
+          [test:backfire]                                                                          [ 55%]
+          [test:backfire] packages/backfire/tests/test_lib.py ............................         [ 57%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_prepare.py ........................ [ 78%]
+  [test:wiki-consistency] .....                                                                    [ 81%]
+          [test:backfire] packages/backfire/tests/test_lifecycle.py ..........                     [ 58%]
+          [test:backfire] packages/backfire/tests/test_load.py .                                   [ 58%]
+          [test:backfire] packages/backfire/tests/test_measure_education.py ....                   [ 58%]
+          [test:backfire] packages/backfire/tests/test_no_provider_names.py ......                 [ 59%]
+          [test:backfire] packages/backfire/tests/test_package.py .                                [ 59%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_search.py ......................... [ 95%]
+  [test:wiki-consistency]                                                                          [ 95%]
+          [test:backfire] packages/backfire/tests/test_patterns.py ....................            [ 60%]
+          [test:backfire] packages/backfire/tests/test_probe_limits.py ...............             [ 61%]
+          [test:backfire] packages/backfire/tests/test_probe_provider.py ......................... [ 63%]
+          [test:backfire] ......................                                                   [ 65%]
+  [test:wiki-consistency] packages/wiki-consistency/tests/test_sources.py .......                  [100%]
+  [test:wiki-consistency] 
+  [test:wiki-consistency] ======================= 169 passed in 101.23s (0:01:41) ========================
+          [test:backfire] packages/backfire/tests/test_provider.py ............................... [ 67%]
+          [test:backfire] ........................................................................ [ 73%]
+          [test:backfire] .................                                                        [ 74%]
+          [test:backfire] packages/backfire/tests/test_pseudonymize_hook.py ....                   [ 74%]
+          [test:backfire] packages/backfire/tests/test_ready.py .......                            [ 75%]
+          [test:backfire] packages/backfire/tests/test_records.py ..................               [ 76%]
+          [test:backfire] packages/backfire/tests/test_score_boundary.py ....                      [ 76%]
+          [test:backfire] packages/backfire/tests/test_server.py ......................            [ 78%]
+          [test:backfire] packages/backfire/tests/test_server_faults.py ..................         [ 79%]
+          [test:backfire] packages/backfire/tests/test_tools_part1.py ............................ [ 81%]
+          [test:backfire] ........................................................................ [ 87%]
+          [test:backfire] ...........                                                              [ 87%]
+          [test:backfire] packages/backfire/tests/test_tools_part2.py ............................ [ 90%]
+          [test:backfire] ........................................................................ [ 95%]
+          [test:backfire] .                                                                        [ 95%]
+          [test:backfire] packages/backfire/tests/test_validate.py ............................... [ 97%]
+          [test:backfire] ...............................                                          [100%]
+          [test:backfire] 
+          [test:backfire] ================ 1351 passed, 3 deselected in 120.75s (0:02:00) ================
+Task test (no command)
+Task check (no command)
+	Command being timed: "deno task check"
+	User time (seconds): 372.61
+	System time (seconds): 50.82
+	Percent of CPU this job got: 326%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:09.59
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 498300
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 65
+	Minor (reclaiming a frame) page faults: 13980653
+	Voluntary context switches: 326244
+	Involuntary context switches: 277748
+	Swaps: 0
+	File system inputs: 7280
+	File system outputs: 32672
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+exit=0

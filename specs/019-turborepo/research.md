@@ -96,6 +96,14 @@ evidence.
   setuptools writes `src/*.egg-info` in built plugins; `uv_build` writes
   nothing outside `.venv` and keeps `.toml` and `.mjs` package data.
   Turborepo's inferred uv tasks run in the active or root environment.
+- **Found during T002**: `uv_build` refuses to build a project whose
+  `module-name` lists a module that is missing ("Expected a Python module at
+  src/backfire_education/__init__.py"), which contradicts the earlier toy
+  probe. The plugin build therefore writes into each copy a pyproject that
+  names only the modules the copy contains (classified must-change, 0.99).
+  Two more sites that T002 raised with failing output were classified
+  must-change: the built-tree comparison in `test_build.py` and the
+  per-member sync check in `ready.py`.
 
 ### D7. The built plugin's lock
 
@@ -143,6 +151,30 @@ evidence.
 - **Backfire**: `npm_scripts` (0.70, confidence 0.64)
   ([d9](evidence/decide-d9.json)).
 
+### D11. Shim gaps behind unchanged call sites
+
+- **Decision**: The preload assigns a plain mutable copy of the shim to
+  `globalThis.Deno` and forwards `Deno.exitCode` to `process.exitCode`, so
+  the unchanged `Deno.exitCode` assignment in the clean-code skill's
+  `cli.ts` and the `stub(Deno, ...)` calls in `scripts/docs_test.ts` work on
+  Node.
+- **Backfire**: `preload_glue` (0.90) over rewriting the sites (0.07)
+  ([d11](evidence/decide-d11.json)).
+- **Evidence**: measured after the first classification batches: the shim
+  has no `exitCode`, so an assignment left the exit status at 0, and its
+  namespace properties are non-configurable getters, which stubs cannot
+  replace. T001's type check found the first gap.
+
+### D12. File locks
+
+- **Decision**: `proper-lockfile` 4.1.2 replaces the two exclusive file
+  locks (`scripts/workflow_verify.ts` and `scripts/docs.ts`).
+- **Backfire**: `proper_lockfile` (0.85) over reporting the gap (0.10) and a
+  local exclusive-create lock file (0.02) ([d12](evidence/decide-d12.json)).
+- **Evidence**: the shim's `FsFile` has no `lock` or `unlock`, and Node.js
+  24.19 has no file-lock API. The package was last published in 2022-06; the
+  report lists that as a maintenance risk.
+
 ## Other findings
 
 - npm 12 refuses packages whose tarballs are on another host by default
@@ -154,6 +186,42 @@ evidence.
   `magika<=0.6.3` resolves exactly the package versions of today's three
   locks (79 packages). An exact `magika==0.6.3` pin fails, because today's
   lock keeps `magika` 0.6.2 for Windows.
+- Turborepo 2.11.5 appends an "agent guidance" block to the root
+  `AGENTS.md` when it detects an AI agent, and re-adds it on later runs. The
+  trial must not change `AGENTS.md`, so the coordinator set
+  `"agentGuidance": false` in `turbo.json` and restored the file.
+- Turborepo needs multi-package mode for root tasks (`//#name`), and a root
+  `package.json` without a non-empty `workspaces` field puts it in
+  single-package mode. `"workspaces": ["packages/*"]` makes the npm project
+  in `packages/wiki-consistency` collide with the uv member of the same name,
+  so the trial uses a glob that matches nothing (`tools/none`; D13,
+  [d13](evidence/decide-d13.json), 0.91). A root `[project]` table with the
+  same name as `[tool.turbo]` collides too, so the root uv workspace is
+  virtual.
+- Node's permission model reaches child Node processes through
+  `NODE_OPTIONS`, and each child that has `--allow-child-process` prints a
+  `SecurityWarning` to stderr, which broke the CLI contract's empty-stderr
+  checks; a `--disable-warning` flag does not reach the children. An
+  `.npmrc` `node-options` line fixed that but broke a doctor test, because
+  npm then replaced the inherited `NODE_OPTIONS`. The trial instead starts
+  `test:cli-contract` and `test:docs` with
+  `NODE_OPTIONS=--disable-warning=SecurityWarning`. The same test showed that
+  permission flags from a parent's `NODE_OPTIONS` and a child's own flags
+  add up: a script run from a permissive test process gets the parent's
+  wider grants, so a script's narrow scopes hold only when it runs first.
+- Node's `fs.symlink` "requires full fs.read and fs.write permissions", so
+  `test:git-flow` runs with unscoped reads and writes; Deno allowed writes to
+  `/tmp` only. Node's test runner also could not find the test file under
+  the narrower read scopes. Node checks resolved paths, so a scope on a
+  symlinked `node_modules` does not cover its target.
+- Turborepo runs a uv member's task in the member's directory, so the member
+  test commands start with `uv --directory ../..` to keep the repository
+  root as the working directory the old tasks had.
+- Node 24.19 lacks `Uint8Array.prototype.toHex` and `Uint8Array.fromHex`
+  (D14, Buffer instead; [d14](evidence/decide-d14.json)), and
+  `@std/testing/snapshot` cannot load its `.snap` file on Node (D15, node:test
+  snapshots; [d15](evidence/decide-d15.json)). Neither is a `Deno.*` call, so
+  the exact and semantic searches did not find them; the test runs did.
 - `@std/testing/snapshot` reads the Deno test context's `origin` and `name`;
   `node:test` in Node.js 24.19 has `TestContext.name` and
   `TestContext.filePath`.

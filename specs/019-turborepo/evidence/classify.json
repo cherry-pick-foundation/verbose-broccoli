@@ -8486,6 +8486,1407 @@
      "decision": "auto"
     }
    }
+  },
+  {
+   "batch": "4",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n",
+   "items": [
+    {
+     "id": "F:py_outside:packages/backfire/src/backfire/server.py:77-103",
+     "file": "packages/backfire/src/backfire/server.py",
+     "lines": [
+      77,
+      103
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.7,
+     "text": "packages/backfire/src/backfire/server.py:77-103 (found by meaning: py_outside, p=0.70)\nasync def serve(judge: Judge) -> None:\n    try:\n        records = RecordFile(xdg_path(\"state\") / \"backfire\" / \"records\")\n    except RecordWriteError as error:\n        raise SystemExit(str(error)) from None\n    with records:\n        boundary = Boundary(records, TOOLS)\n        server = create_server(judge, boundary)\n\n        async def signals():\n            with anyio.open_signal_receiver(signal.SIGTERM, signal.SIGINT) as receiver:\n                async for _ in receiver:\n                    boundary.stop()\n                    return\n\n        async def transport():\n            async with stdio_server(stdin=BoundedLineReader(sys.stdin.fileno())) as streams:\n                await boundary.run(server, *streams)\n\n        try:\n            async with anyio.create_task_group() as tasks:\n                tasks.start_soon(signals)\n                tasks.start_soon(transport)\n                await boundary.stopped.wait()\n                tasks.cancel_scope.cancel()\n        except* (MessageTooLarge, OSError, anyio.BrokenResourceError, anyio.ClosedResourceError):\n            print(\"session_ended\", file=sys.stderr)"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/src/backfire/server.py:1-27",
+     "file": "packages/backfire/src/backfire/server.py",
+     "lines": [
+      1,
+      27
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.1,
+     "text": "packages/backfire/src/backfire/server.py:1-27 (found by meaning: py_outside, p=0.10)\n\"\"\"The eleven ported tools on the MCP SDK's low-level stdio server.\"\"\"\n\nimport asyncio\nfrom importlib.metadata import version\nimport signal\nimport sys\n\nimport anyio\nimport jsonschema\nfrom mcp import types\nfrom mcp.server.lowlevel import Server\nfrom mcp.server.stdio import stdio_server\n\nfrom backfire.boundary import Boundary, BoundedLineReader, MessageTooLarge\nfrom backfire.config import xdg_path\nfrom backfire.judge import Judge\nfrom backfire.records import RecordFile, RecordWriteError\nfrom backfire.tools import (\n    classify, compare, decide, extract, find, gate, noul, rerank, review, screen, verify,\n)\n\n# The order of jev-mcp 0.9.0's tools/list.\nTOOLS = {tool.NAME: tool for tool in (\n    verify, screen, noul, find, classify, decide, rerank, compare, extract, review, gate,\n)}\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_adapter_wiring.py:1-23",
+     "file": "packages/backfire/tests/test_adapter_wiring.py",
+     "lines": [
+      1,
+      23
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.15,
+     "text": "packages/backfire/tests/test_adapter_wiring.py:1-23 (found by meaning: py_outside, p=0.15)\n\"\"\"Gate 9: real adapter prompting, concurrent metadata and private diagnostics.\"\"\"\n\nimport asyncio\nimport json\nimport logging\nimport traceback\n\nfrom jsonschema import Draft202012Validator\nimport pytest\nfrom system_one_adapter import AsyncSystemOneAdapterClient\nfrom typesafe_sdk import TypeSafeError\n\nfrom backfire.config import xdg_path\nfrom backfire.failures import JudgmentError\nfrom backfire.judge import judge\nfrom backfire.records import RecordFile, digest, read_records\nfrom fake_provider import FakeProvider, Reply, completion\n\nPRIVATE = \"adapter-wiring-private-document\"\nRAW = \"adapter-wiring-private-provider-output\"\nQUESTIONS = {\"q\": {\"type\": \"noul\", \"instructions\": \"adapter-wiring-private-question\"}}\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_education_e2e.py:1-37",
+     "file": "packages/backfire/tests/test_education_e2e.py",
+     "lines": [
+      1,
+      37
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.31,
+     "text": "packages/backfire/tests/test_education_e2e.py:1-37 (found by meaning: py_outside, p=0.31)\nimport asyncio\nimport csv\nimport json\nimport os\nfrom pathlib import Path\nimport shutil\nimport subprocess\nfrom tempfile import TemporaryDirectory\n\nimport anyio\nfrom mcp.client.session import ClientSession\nfrom mcp.client.stdio import StdioServerParameters, stdio_client\nimport pytest\nimport tomllib\n\nfrom backfire import config\nfrom backfire.config import xdg_path\nfrom backfire.failures import JudgmentError\nfrom backfire.judge import judge\nfrom backfire.tools import find\nfrom backfire_education.pseudonymize import pseudonymize\nfrom backfire_education.table import assign\nfrom backfire_tools.build import ROOT, build\nfrom fake_provider import FakeProvider, completion\n\nTOOL_NAMES = {\n    \"backfire_gate\", \"backfire_review\", \"backfire_verify\", \"backfire_noul\",\n    \"backfire_classify\", \"backfire_find\", \"backfire_rerank\", \"backfire_compare\",\n    \"backfire_screen\", \"backfire_extract\", \"backfire_decide\",\n}\nSTUDENT_A, STUDENT_B, STUDENT_C = \"가라온\", \"나새봄\", \"다초록\"\nGIVEN_A, GIVEN_B = \"라온\", \"새봄\"\nGUARDIANS = (\"다누리\", \"마루나\")\nSCHOOLS = (\"가상별학교\", \"바람숲학교\")\nPHONE, EMAIL = \"+1 202-555-0123\", \"synthetic.one@example.test\"\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_deadline.py:181-218",
+     "file": "packages/backfire/tests/test_deadline.py",
+     "lines": [
+      181,
+      218
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.13,
+     "text": "packages/backfire/tests/test_deadline.py:181-218 (found by meaning: py_outside, p=0.13)\ndef test_client_cancellation_kills_pattern_child_before_any_provider_call(tmp_path, monkeypatch):\n    with FakeProvider([]) as fake:\n        monkeypatch.setenv(\"BACKFIRE_TEST_PROVIDER_BASE_URL\", fake.base_url)\n\n        async def run():\n            input_sent = asyncio.Event()\n            children = []\n            spawn = asyncio.create_subprocess_exec\n\n            async def observe_spawn(*args, **kwargs):\n                child = await spawn(*args, **kwargs)\n                children.append(child)\n                close = child.stdin.close\n\n                def observe_input_end():\n                    close()\n                    input_sent.set()\n\n                monkeypatch.setattr(child.stdin, \"close\", observe_input_end)\n                return child\n\n            monkeypatch.setattr(patterns.asyncio, \"create_subprocess_exec\", observe_spawn)\n            async with memory_session(tmp_path, judge) as (client, edge, records):\n                call = asyncio.create_task(client.call_tool(\"backfire_extract\", extract_arguments(1)))\n                try:\n                    await asyncio.wait_for(input_sent.wait(), 3)\n                    child, = children\n                    assert child.returncode is None\n                    call.cancel()\n                    with pytest.raises(asyncio.CancelledError):\n                        await call\n                    assert len((await client.list_tools()).tools) == 11\n                    await edge.join()\n                    assert child.returncode == -signal.SIGKILL\n                    assert len(children) == 1 and fake.requests == []\n                    row, = read_records(records.path)\n                    assert row[\"kind\"] == \"tool_call\" and r"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_education_selection.py:9-17",
+     "file": "packages/backfire/tests/test_education_selection.py",
+     "lines": [
+      9,
+      17
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.468,
+     "text": "packages/backfire/tests/test_education_selection.py:9-17 (found by meaning: py_outside, p=0.47)\ndef shipped_profiles(tmp_path):\n    code = build(tmp_path / \"code\", plugin=\"code\")\n    work = build(tmp_path / \"work\", plugin=\"work\")\n    return {\n        \"code\": code / \"backfire/src/backfire/config.toml\",\n        \"work\": work / \"backfire/src/backfire/config.toml\",\n    }\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_education_selection.py:1-7",
+     "file": "packages/backfire/tests/test_education_selection.py",
+     "lines": [
+      1,
+      7
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.18,
+     "text": "packages/backfire/tests/test_education_selection.py:1-7 (found by meaning: py_outside, p=0.18)\nimport pytest\n\nfrom backfire import config\nfrom backfire.config import xdg_path\nfrom backfire_tools.build import build\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:55-78",
+     "file": "packages/backfire/tests/test_faults.py",
+     "lines": [
+      55,
+      78
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.324,
+     "text": "packages/backfire/tests/test_faults.py:55-78 (found by meaning: py_outside, p=0.32)\ndef test_invalid_configuration_names_its_file_and_skips_the_provider(\n    configured, monkeypatch, fault, filename,\n):\n    directory, credential = configured\n    config = directory / \"config.toml\"\n    if fault == \"selection\":\n        config.write_text('provider = \"missing\"\\n', encoding=\"utf-8\")\n    elif fault == \"profile\":\n        config.write_text('[providers.hive]\\napi = \"invalid\"\\n', encoding=\"utf-8\")\n    else:\n        credential.unlink()\n    expected_path = credential if fault == \"credential\" else config\n\n    with FakeProvider([]) as fake:\n        monkeypatch.setenv(\"BACKFIRE_TEST_PROVIDER_BASE_URL\", fake.base_url)\n        with pytest.raises(JudgmentError) as caught:\n            asyncio.run(evaluate())\n\n    assert caught.value.error_type == \"backend_not_configured\"\n    assert str(expected_path) in str(caught.value)\n    assert PRIVATE not in str(caught.value)\n    assert fake.requests == []\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:21-31",
+     "file": "packages/backfire/tests/test_faults.py",
+     "lines": [
+      21,
+      31
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.22,
+     "text": "packages/backfire/tests/test_faults.py:21-31 (found by meaning: py_outside, p=0.22)\ndef configured(monkeypatch):\n    for name in (\"BACKFIRE_TEST_PROVIDER_BASE_URL\", \"BACKFIRE_TEST_REQUEST_LIMITS\"):\n        monkeypatch.delenv(name, raising=False)\n    directory = xdg_path(\"config\") / \"backfire\"\n    directory.mkdir(parents=True)\n    credential = directory / \"hive.env\"\n    credential.write_text(\"HIVE_API_KEY=synthetic-key\\n\", encoding=\"utf-8\")\n    credential.chmod(0o600)\n    return directory, credential\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:88-107",
+     "file": "packages/backfire/tests/test_faults.py",
+     "lines": [
+      88,
+      107
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.14,
+     "text": "packages/backfire/tests/test_faults.py:88-107 (found by meaning: py_outside, p=0.14)\ndef test_http_faults_have_fixed_text_and_only_rate_limits_retry(\n    configured, monkeypatch, status, expected, attempts,\n):\n    profile = load_profile()\n    assert profile[\"name\"] == \"hive\"\n    assert profile[\"statuses\"][\"405\"] == \"balance_exhausted\"\n    assert profile[\"model\"] == PINNED_MODEL\n    replies = [Reply({\"error\": PRIVATE}, status, {\"Retry-After\": \"0\"}) for _ in range(attempts)]\n\n    with FakeProvider(replies) as fake:\n        monkeypatch.setenv(\"BACKFIRE_TEST_PROVIDER_BASE_URL\", fake.base_url)\n        with pytest.raises(JudgmentError) as caught:\n            asyncio.run(evaluate())\n\n    assert str(caught.value) == str(JudgmentError(expected))\n    assert PRIVATE not in str(caught.value)\n    assert len(fake.requests) == attempts\n    assert all(request[\"body\"][\"model\"] == PINNED_MODEL for request in fake.requests)\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:126-160",
+     "file": "packages/backfire/tests/test_faults.py",
+     "lines": [
+      126,
+      160
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.1,
+     "text": "packages/backfire/tests/test_faults.py:126-160 (found by meaning: py_outside, p=0.10)\ndef test_response_faults_fail_once_without_answer_or_diagnostics(\n    configured, monkeypatch, fault, expected,\n):\n    body = completion({\"q\": {\"yes\": 0.0, \"no\": 1.0}})\n    questions = CHOICE\n    message = body[\"choices\"][0][\"message\"]\n    if fault == \"truncated_at_max_tokens\":\n        body[\"usage\"][\"completion_tokens\"] = load_profile()[\"request\"][\"max_tokens\"]\n    elif fault == \"malformed_output\":\n        message[\"content\"] = PRIVATE\n    elif fault == \"refusal\":\n        message.update(refusal=PRIVATE, content=None)\n    elif fault == \"all_zero\":\n        message[\"content\"] = '{\"answers\":{\"q\":{\"yes\":0,\"no\":0}}}'\n    elif fault == \"off_sum\":\n        message[\"content\"] = '{\"answers\":{\"q\":{\"yes\":0.2,\"no\":0.2}}}'\n    elif fault == \"missing_model\":\n        body.pop(\"model\")\n    elif fault == \"missing_thinking\":\n        message.pop(\"reasoning_content\")\n        body[\"usage\"].pop(\"reasoning_tokens\")\n\n    with FakeProvider([body]) as fake:\n        monkeypatch.setenv(\"BACKFIRE_TEST_PROVIDER_BASE_URL\", fake.base_url)\n        with pytest.raises(JudgmentError) as caught:\n            asyncio.run(evaluate(questions=questions))\n\n    assert str(caught.value) == str(JudgmentError(expected))\n    assert PRIVATE not in str(caught.value)\n    assert len(fake.requests) == 1\n    assert fake.requests[0][\"body\"][\"model\"] == PINNED_MODEL\n    if fault == \"truncated_at_max_tokens\":\n        assert body[\"choices\"][0][\"finish_reason\"] == \"stop\"\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/backfire/tests/test_fidelity.py:1-37",
+     "file": "packages/backfire/tests/test_fidelity.py",
+     "lines": [
+      1,
+      37
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.88,
+     "text": "packages/backfire/tests/test_fidelity.py:1-37 (found by meaning: py_outside, p=0.88)\n\"\"\"Replay the pinned Node capture through the real stdio server (T030).\n\nOnly the name mapping and UPSTREAM.md differences apply. Difference 1 changes\nthe pattern description and one syntax error; difference 2 changes one failed\njudgment; difference 4 changes the explicitly listed validation errors below.\nDifference 3 is the scripted in-process judge. No captured case exercises\ndifference 5 (JavaScript prototype keys), so it permits no result changes here.\n\"\"\"\n\nimport asyncio\nimport json\nfrom pathlib import Path\nimport sys\n\nimport anyio\nimport pytest\nfrom mcp.client.session import ClientSession\nfrom mcp.client.stdio import StdioServerParameters, stdio_client\nfrom mcp.shared.exceptions import MCPError\n\nFIXTURES = Path(__file__).resolve().parents[3] / \"scripts/backfire/fixtures\"\nCAPTURE = FIXTURES / \"upstream-0.9.0\"\nCASES = [json.loads(line) for line in (CAPTURE / \"cases.jsonl\").read_text(encoding=\"utf-8\").splitlines()]\nTOOL_LIST = json.loads((CAPTURE / \"tools-list.json\").read_text(encoding=\"utf-8\"))\n\n# UPSTREAM.md difference 4: exact jsonschema diagnostics, retaining the prefix.\nVALIDATION_DIFFERENCES = {\n    \"verify-failure-en\": \"[] should be non-empty\",\n    \"verify-failure-ko\": \"-0.1 is less than the minimum of 0\",\n    \"screen-failure-en\": \"'' should be non-empty\",\n    \"screen-failure-ko\": \"-0.1 is less than the minimum of 0\",\n    \"noul-failure-en\": \"'' should be non-empty\",\n    \"noul-failure-ko\": \"0.5 is less than or equal to the minimum of 0.5\",\n    \"find-failure-ko\": \"0 is less than the minimum of 1\",\n    \"classify-failure-ko\": \"[{'id': 'test_success', 'description': '테스트가 성공한 결과.'}] is too short\",\n    \"decide-failure-ko\": \"[{'id': 'reuse-helper', 'description': '기존 헬"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:21-58",
+     "file": "packages/doc-regions/src/doc_regions/__main__.py",
+     "lines": [
+      21,
+      58
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.62,
+     "text": "packages/doc-regions/src/doc_regions/__main__.py:21-58 (found by meaning: py_outside, p=0.62)\ndef main(argv=None):\n    argv = list(sys.argv[1:] if argv is None else argv)\n    # Deno task forwards its separator after the configured positional path.\n    if len(argv) > 2 and argv[0] == 'prepare' and argv[2] == '--':\n        del argv[2]\n    parser = argparse.ArgumentParser(prog='doc-regions')\n    commands = parser.add_subparsers(dest='command', required=True)\n    for command in ('check', 'update', 'prepare', 'audit'):\n        sub = commands.add_parser(command)\n        sub.add_argument('config')\n        if command == 'prepare':\n            sub.add_argument('--base', required=True)\n            sub.add_argument('--max-evidence-chars', required=True, type=positive)\n    args = parser.parse_args(argv)\n    root = Path.cwd()\n    try:\n        if args.command == 'prepare':\n            result = prepare(root, args.config, base=args.base, max_evidence_chars=args.max_evidence_chars)\n        else:\n            config = load(args.config, root)\n            if args.command == 'audit':\n                from doc_regions.audit import audit\n                result = audit(root, config['report_only'])\n            else:\n                problems = getattr(regions, args.command)(root, config['targets'], config['generators'],\n                                                          config['generator_path'])\n                if problems:\n                    for p in problems:\n                        print(f\"{p['document']}:{p['line']}: {p['message']}\", file=sys.stderr)\n                    return 1\n                result = dict(problems=[])\n    except (OSError, ValueError, subprocess.SubprocessError) as error:\n        print(getattr(error, 'stderr', None) or str(error), file=sys.stderr)\n        retur"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:1-13",
+     "file": "packages/doc-regions/src/doc_regions/__main__.py",
+     "lines": [
+      1,
+      13
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.16,
+     "text": "packages/doc-regions/src/doc_regions/__main__.py:1-13 (found by meaning: py_outside, p=0.16)\n\"\"\"Command wrappers; the current directory is the document root.\"\"\"\n\nimport argparse\nimport json\nfrom pathlib import Path\nimport subprocess\nimport sys\n\nfrom doc_regions.config import load\nfrom doc_regions import regions\nfrom doc_regions.requests import prepare\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:58-64",
+     "file": "packages/doc-regions/src/doc_regions/requests.py",
+     "lines": [
+      58,
+      64
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.125,
+     "text": "packages/doc-regions/src/doc_regions/requests.py:58-64 (found by meaning: py_outside, p=0.12)\ndef git(root, *args):\n    return subprocess.run(\n        ['git', *args], cwd=root, text=True, capture_output=True, check=True,\n        env={**os.environ, 'GIT_OPTIONAL_LOCKS': '0'},\n    ).stdout\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:65-98",
+     "file": "packages/doc-regions/src/doc_regions/requests.py",
+     "lines": [
+      65,
+      98
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.105,
+     "text": "packages/doc-regions/src/doc_regions/requests.py:65-98 (found by meaning: py_outside, p=0.10)\ndef prepare(root, config_path, *, base, max_evidence_chars):\n    if not isinstance(max_evidence_chars, int) or max_evidence_chars < 1:\n        raise ValueError('max-evidence-chars must be a positive integer')\n    root = Path(root).resolve()\n    config = load(config_path, root)\n    merge_base = git(root, 'merge-base', base, 'HEAD').strip()\n    base_files = set(git(root, 'ls-tree', '-r', '--name-only', '-z', merge_base).split('\\0'))\n    documents = sorted(config['targets'] + config['report_only'])\n    units = []\n    for document in documents:\n        base_text = (git(root, 'show', f'{merge_base}:{document}') if document in base_files else '')\n        source = (root / document).read_bytes().decode('utf-8')\n        for unit in split(document, source, base_text):\n            unit['report_only'] = document in config['report_only']\n            units.append(unit)\n\n    diff_options = ['--no-ext-diff', '--no-textconv', '--no-color', '--no-renames']\n    changed = git(root, 'diff', *diff_options, merge_base, '--name-only', '-z', '--').split('\\0')\n    evidence = []\n    for document in sorted(path for path in changed if path):\n        if document in documents or any(\n            PurePosixPath(document).full_match(pattern)\n            for pattern in config['evidence_exclude']\n        ):\n            continue\n        diff = git(root, 'diff', *diff_options, merge_base, '--', document)\n        chunks = [diff[index:index + max_evidence_chars]\n                  for index in range(0, len(diff), max_evidence_chars)]\n        evidence.extend({\n            'id': document if len(chunks) == 1 else f'{document}#{index}',\n            'text': chunk,\n        } for index, chunk in enumerate(chunks, 1))\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/tests/test_config.py:49-54",
+     "file": "packages/doc-regions/tests/test_config.py",
+     "lines": [
+      49,
+      54
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.211,
+     "text": "packages/doc-regions/tests/test_config.py:49-54 (found by meaning: py_outside, p=0.21)\ndef test_absolute_generator_path_outside_root(tmp_path):\n    (tmp_path / 'AGENTS.md').touch()\n    config = write_config(tmp_path, targets=[], generator_path=str(tmp_path.parent))\n    assert load(config, tmp_path)['generator_path'] == tmp_path.parent\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/tests/test_regions.py:18-32",
+     "file": "packages/doc-regions/tests/test_regions.py",
+     "lines": [
+      18,
+      32
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.12,
+     "text": "packages/doc-regions/tests/test_regions.py:18-32 (found by meaning: py_outside, p=0.12)\ndef workspace(tmp_path):\n    root = tmp_path / 'root'\n    root.mkdir()\n    generators = tmp_path / 'generators'\n    generators.mkdir()\n    (generators / 'sources.py').write_text(\n        'from pathlib import Path\\n'\n        'def render(source):\\n'\n        '    return Path(source).read_text()\\n'\n    )\n    (root / 'source.txt').write_text('fresh\\n')\n    (root / 'doc.md').write_text('# Title\\n\\nBefore.\\n\\n' + region() + '\\nAfter.\\n')\n    return root, ['doc.md'], 'sources', generators\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/tests/test_regions.py:1-12",
+     "file": "packages/doc-regions/tests/test_regions.py",
+     "lines": [
+      1,
+      12
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.1,
+     "text": "packages/doc-regions/tests/test_regions.py:1-12 (found by meaning: py_outside, p=0.10)\nimport json\nimport subprocess\nimport sys\n\nimport pytest\n\nfrom doc_regions.regions import check, update\n\n\nCODE = 'import sources; cog.out(sources.render(\"source.txt\"))'\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/tests/test_requests.py:27-35",
+     "file": "packages/doc-regions/tests/test_requests.py",
+     "lines": [
+      27,
+      35
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.18,
+     "text": "packages/doc-regions/tests/test_requests.py:27-35 (found by meaning: py_outside, p=0.18)\ndef test_schema_fixtures_copy_backfire_verbatim():\n    root = Path(__file__).resolve().parents[2]\n    for name, schema in SCHEMAS.items():\n        tree = ast.parse((root / 'backfire/src/backfire/tools' / f'{name.removeprefix(\"backfire_\")}.py').read_text())\n        assignment = next(node for node in tree.body if isinstance(node, ast.Assign)\n                          and any(isinstance(t, ast.Name) and t.id == 'INPUT_SCHEMA' for t in node.targets))\n        assert schema == ast.literal_eval(assignment.value)\n\n"
+    },
+    {
+     "id": "F:py_outside:packages/doc-regions/tests/test_requests.py:147-173",
+     "file": "packages/doc-regions/tests/test_requests.py",
+     "lines": [
+      147,
+      173
+     ],
+     "kind": "find_py_outside",
+     "probability": 0.18,
+     "text": "packages/doc-regions/tests/test_requests.py:147-173 (found by meaning: py_outside, p=0.18)\ndef test_prepare_excludes_configured_evidence_globs(repository, unchanged):\n    paths = [\n        'pkg/nested/deps.lock', 'specs/008/decision.md', 'pkg/nested/tests/test_doc.py',\n        'scripts/audit_test.py', 'docs/reference/generated.md', 'src/kept.py',\n    ]\n    for name in paths:\n        path = repository / name\n        path.parent.mkdir(parents=True, exist_ok=True)\n        path.write_text('before\\n')\n    git(repository, 'add', '.')\n    git(repository, 'commit', '-m', 'add evidence path fixtures')\n    for name in paths:\n        (repository / name).write_text('after\\n')\n\n    config = repository.parent / f'{repository.name}-regions.toml'\n    config.write_text(\n        'targets = [\"doc.md\"]\\nreport_only = [\"AGENTS.md\"]\\n'\n        'generators = \"sources\"\\ngenerator_path = \"scripts\"\\n'\n        'evidence_exclude = [\"**/*.lock\", \"specs/**\", \"**/tests/**\", '\n        '\"scripts/*_test.*\", \"docs/reference/**\"]\\n'\n    )\n    with unchanged(repository):\n        result = prepare(repository, config, base='HEAD', max_evidence_chars=20000)\n    verify = [request for request in result['requests'] if request['tool'] == 'backfire_verify']\n    assert [e['id'] for e in verify[0]['arguments']['evidence']] == ['src/kept.py']\n\n"
+    }
+   ],
+   "results": {
+    "F:py_outside:packages/backfire/src/backfire/server.py:77-103": {
+     "id": "F:py_outside:packages/backfire/src/backfire/server.py:77-103",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.02,
+      "can_stay": 0.96,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/src/backfire/server.py:1-27": {
+     "id": "F:py_outside:packages/backfire/src/backfire/server.py:1-27",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.02,
+      "can_stay": 0.96,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_adapter_wiring.py:1-23": {
+     "id": "F:py_outside:packages/backfire/tests/test_adapter_wiring.py:1-23",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.95,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_education_e2e.py:1-37": {
+     "id": "F:py_outside:packages/backfire/tests/test_education_e2e.py:1-37",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.08,
+      "can_stay": 0.89,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8533333333333334,
+     "margin": 0.81,
+     "top_probability": 0.89,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_deadline.py:181-218": {
+     "id": "F:py_outside:packages/backfire/tests/test_deadline.py:181-218",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.95,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_education_selection.py:9-17": {
+     "id": "F:py_outside:packages/backfire/tests/test_education_selection.py:9-17",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.08,
+      "can_stay": 0.89,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8533333333333334,
+     "margin": 0.81,
+     "top_probability": 0.89,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_education_selection.py:1-7": {
+     "id": "F:py_outside:packages/backfire/tests/test_education_selection.py:1-7",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.94,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_faults.py:55-78": {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:55-78",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.95,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/tests/test_config.py:49-54": {
+     "id": "F:py_outside:packages/doc-regions/tests/test_config.py:49-54",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.02,
+      "can_stay": 0.95,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/tests/test_regions.py:18-32": {
+     "id": "F:py_outside:packages/doc-regions/tests/test_regions.py:18-32",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.01,
+      "can_stay": 0.97,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/tests/test_regions.py:1-12": {
+     "id": "F:py_outside:packages/doc-regions/tests/test_regions.py:1-12",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.01,
+      "can_stay": 0.97,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/tests/test_requests.py:27-35": {
+     "id": "F:py_outside:packages/doc-regions/tests/test_requests.py:27-35",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.9,
+      "delete": 0.02,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/tests/test_requests.py:147-173": {
+     "id": "F:py_outside:packages/doc-regions/tests/test_requests.py:147-173",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.93,
+      "delete": 0.02,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.9,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_faults.py:21-31": {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:21-31",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.9,
+      "delete": 0.02,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_faults.py:88-107": {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:88-107",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.91,
+      "delete": 0.02,
+      "manual_review": 0.03
+     },
+     "confidence": 0.88,
+     "margin": 0.87,
+     "top_probability": 0.91,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_faults.py:126-160": {
+     "id": "F:py_outside:packages/backfire/tests/test_faults.py:126-160",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.91,
+      "delete": 0.02,
+      "manual_review": 0.03
+     },
+     "confidence": 0.88,
+     "margin": 0.87,
+     "top_probability": 0.91,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/backfire/tests/test_fidelity.py:1-37": {
+     "id": "F:py_outside:packages/backfire/tests/test_fidelity.py:1-37",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.12,
+      "can_stay": 0.78,
+      "delete": 0.02,
+      "manual_review": 0.08
+     },
+     "confidence": 0.7066666666666667,
+     "margin": 0.66,
+     "top_probability": 0.78,
+     "decision": "review"
+    },
+    "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:21-58": {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:21-58",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.75,
+      "can_stay": 0.15,
+      "delete": 0.05,
+      "manual_review": 0.05
+     },
+     "confidence": 0.6666666666666666,
+     "margin": 0.6,
+     "top_probability": 0.75,
+     "decision": "review"
+    },
+    "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:1-13": {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/__main__.py:1-13",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.93,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.89,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:58-64": {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:58-64",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.93,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.89,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:65-98": {
+     "id": "F:py_outside:packages/doc-regions/src/doc_regions/requests.py:65-98",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.93,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.89,
+     "top_probability": 0.93,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "5",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n",
+   "items": [
+    {
+     "id": "S024:171-177",
+     "file": "scripts/workflow_verify.ts",
+     "lines": [
+      171,
+      177
+     ],
+     "text": "scripts/workflow_verify.ts:171-177 (split from S024 with new evidence)\n169:   await Deno.mkdir(directory, {recursive: true, mode: 0o700});\n170:   const evidencePath = join(directory, 'evidence.jsonl');\n171:   using mutex = await Deno.open(join(directory, 'lock'), {\n172:     create: true,\n173:     write: true,\n174:     read: true,\n175:     mode: 0o600,\n176:   });\n177:   await mutex.lock(true);\n178:   try {\n179:     const records = await load(evidencePath);\nMeasured 2026-09-29: @deno/shim-deno 0.19.2's FsFile has no lock or unlock method, so these calls throw TypeError on Node; Node 24.19 has no file-lock API.",
+     "kind": "split_new_evidence"
+    },
+    {
+     "id": "S024:238",
+     "file": "scripts/workflow_verify.ts",
+     "lines": [
+      238
+     ],
+     "text": "scripts/workflow_verify.ts:238 (split from S024 with new evidence)\n234:       latest,\n235:       instructions,\n236:     };\n237:   } finally {\n238:     await mutex.unlock();\n239:   }\n240: }\nMeasured 2026-09-29: @deno/shim-deno 0.19.2's FsFile has no lock or unlock method, so these calls throw TypeError on Node; Node 24.19 has no file-lock API.",
+     "kind": "split_new_evidence"
+    },
+    {
+     "id": "S021:520-524",
+     "file": "scripts/docs.ts",
+     "lines": [
+      520,
+      524
+     ],
+     "text": "scripts/docs.ts:520-524 (split from S021 with new evidence)\n518:     fail('docs', 'Expected the repository documentation directory.');\n519:   // ponytail: one native directory lock for this pair; split locks only for new output owners.\n520:   using lock =\n521:     mode === 'generate'\n522:       ? await Deno.open(join(root, 'docs'), {read: true})\n523:       : null;\n524:   if (lock) await lock.lock();\n525:   const snapshot = await inputs(root);\n526:   let before = await directory(root, output);\nMeasured 2026-09-29: @deno/shim-deno 0.19.2's FsFile has no lock or unlock method, so these calls throw TypeError on Node; Node 24.19 has no file-lock API.",
+     "kind": "split_new_evidence"
+    },
+    {
+     "id": "S097:44",
+     "file": "plugins/code/skills/clean-code/scripts/cli.ts",
+     "lines": [
+      44
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/cli.ts:44 (split from S097 with new evidence)\n36:             : error instanceof CheckFailure\n37:               ? 'CHECK_FAILED'\n38:               : 'EXECUTION_FAILED',\n39:           message: error instanceof Error ? error.message : String(error),\n40:         },\n41:         ...(error instanceof CheckFailure ? {details: error.details} : {}),\n42:       }),\n43:     );\n44:     Deno.exitCode = input ? 2 : 1;\n45:   }\n46: }\nMeasured 2026-09-29: the shim has no Deno.exitCode; the preload (decision D11) forwards Deno.exitCode to process.exitCode, so an assignment through the global takes effect on Node. cli.ts is the shipped clean-code skill (stays on Deno for users) and is imported by repository scripts that run on Node.",
+     "kind": "split_new_evidence"
+    },
+    {
+     "id": "S007:stubs",
+     "file": "scripts/docs_test.ts",
+     "lines": [
+      337,
+      415,
+      443,
+      478,
+      506
+     ],
+     "text": "scripts/docs_test.ts lines 337, 415, 443, 478, 506 (split from S007 with new evidence): stub(Deno, 'readFile', ...) and stub(Deno, 'rename', ...) from @std/testing/mock\n335:     const original = Deno.readFile;\n336:     {\n337:       using reads = stub(Deno, 'readFile', (path, options) => {\n338:         const value = String(path);\n414:     const original = Deno.rename;\n415:     using rename = stub(Deno, 'rename', (from, to) => {\n416:       if (String(from).endsWith('/.reference-publication/next'))\nMeasured 2026-09-29: the shim's namespace properties are non-configurable getters, but the preload (decision D11) assigns a plain mutable copy of the shim to globalThis.Deno, so stub(Deno, name, ...) can replace a function and the code under test sees it.",
+     "kind": "split_new_evidence"
+    }
+   ],
+   "results": {
+    "S024:171-177": {
+     "id": "S024:171-177",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "S024:238": {
+     "id": "S024:238",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "S021:520-524": {
+     "id": "S021:520-524",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "S097:44": {
+     "id": "S097:44",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.02,
+      "can_stay": 0.96,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "S007:stubs": {
+     "id": "S007:stubs",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.94,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.9099999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "6",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n",
+   "items": [
+    {
+     "id": "F:T002:test_build.py:107-118",
+     "file": "packages/backfire/tests/test_build.py",
+     "lines": [
+      107,
+      118
+     ],
+     "kind": "worker_question",
+     "text": "packages/backfire/tests/test_build.py:107-118 (new candidate from T002's question, 2026-09-29)\n107:         source = ROOT / \"packages\" / name\n108:         built = output / name\n109:         assert tree(built) == tree(\n110:             source,\n111:             exclude=(\n112:                 \".venv\",\n113:                 \"node_modules\",\n114:                 \"__pycache__\",\n115:                 \".pytest_cache\",\n116:                 \"tests\",\n117:             ),\n118:         )\nEvidence: with decisions D7 and D10, build.py writes a generated standalone uv.lock into each copied project (the source packages no longer have a uv.lock), and rewrites the copied wiki-consistency/pyproject.toml's doc-regions source from { workspace = true } to the path ../doc-regions. This assertion compares the built copy byte for byte with the source directory, so it fails on the new uv.lock and the rewritten pyproject."
+    }
+   ],
+   "results": {
+    "F:T002:test_build.py:107-118": {
+     "id": "F:T002:test_build.py:107-118",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "7",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n",
+   "items": [
+    {
+     "id": "F:T002:ready.py:90-101",
+     "file": "packages/backfire/src/backfire/ready.py",
+     "lines": [
+      90,
+      101
+     ],
+     "kind": "worker_question",
+     "text": "packages/backfire/src/backfire/ready.py:90-101 (new candidate from T002's question, 2026-09-29)\n90:         return \"A required package version, uv version, or port revision is unavailable.\"\n91: \n92:     education_extra = [\"--extra\", \"education\"] if (_ROOT / \"src\" / \"backfire_education\").is_dir() else []\n93:     base = [\"uv\", \"sync\", \"--project\", str(_ROOT), \"--check\", \"--frozen\", \"--offline\", *education_extra]\n94:     for extra in ([], [\"--no-dev\"]):\n95:         try:\n96:             result = subprocess.run([*base, *extra], cwd=_ROOT, capture_output=True, text=True, timeout=20)\n97:         except (OSError, subprocess.TimeoutExpired):\n98:             continue\n99:         if result.returncode == 0:\n100:             return None\n101:     return \"This component's .venv does not match uv.lock.\"\nEvidence from T002: after 'uv sync --locked --all-packages --extra education' succeeds at the new root workspace, this per-member exact check ('uv sync --project packages/backfire --check --frozen --offline [--extra education]') exits 1 and reports packages it would uninstall (those of doc-regions and wiki-consistency), because the repository's environment is now the shared root .venv. Decision D6: readiness accepts the environment of the uv project that contains it, and the readiness sync checks cover the whole workspace. In a built plugin (standalone copy, own .venv, own uv.lock), the same code must still check that copy's own environment."
+    }
+   ],
+   "results": {
+    "F:T002:ready.py:90-101": {
+     "id": "F:T002:ready.py:90-101",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "8",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n",
+   "items": [
+    {
+     "id": "F:T002:build.py:103-110",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "lines": [
+      103,
+      110
+     ],
+     "kind": "worker_question",
+     "text": "packages/backfire/src/backfire_tools/build.py:103-110, the copy of packages/backfire/pyproject.toml into the built plugin (new candidate from T002's question, 2026-09-29)\n103:         copy_tree(ROOT / \"plugins\" / plugin, partial)\n104:         package = ROOT / \"packages/backfire\"\n105:         runtime = partial / \"backfire\"\n106:         runtime.mkdir()\n107:         for path in (\"pyproject.toml\", \".python-version\", \"uv.lock\"):\n108:             copy_file(package / path, runtime / path)\n109:         for name in packages:\n110:             copy_tree(package / \"src\" / name, runtime / \"src\" / name, runtime_package=True)\n111:         copy_file(package / \"src\" / profile, runtime / \"src/backfire/config.toml\")\nEvidence from T002: with uv_build as the build backend (D6), packages/backfire/pyproject.toml names all three modules (backfire, backfire_tools, backfire_education). The code plugin copy contains only src/backfire and the work plugin copy src/backfire and src/backfire_education (PLUGINS table), so installing a copy fails: test_load reports 'Expected a Python module at src/backfire_education/__init__.py' and test_education_e2e reports 'Expected a Python module at src/backfire_tools/__init__.py'. The develop session's earlier toy probe had reported that uv_build installs with a listed module missing; this repository's run contradicts it. Copying the pyproject byte for byte therefore breaks built plugins; the copy must name only the modules it contains."
+    }
+   ],
+   "results": {
+    "F:T002:build.py:103-110": {
+     "id": "F:T002:build.py:103-110",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.99,
+      "can_stay": 0.004,
+      "delete": 0.003,
+      "manual_review": 0.003
+     },
+     "confidence": 0.9866666666666667,
+     "margin": 0.986,
+     "top_probability": 0.99,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "9",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "R:scripts/hash.ts:6",
+     "file": "scripts/hash.ts",
+     "lines": [
+      6
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/hash.ts:6 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n1: export async function sha256(data: Uint8Array | string): Promise<string> {\n2:   const bytes =\n3:     typeof data === 'string'\n4:       ? new TextEncoder().encode(data)\n5:       : new Uint8Array(data);\n6:   return new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)).toHex();\n7: }\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion."
+    },
+    {
+     "id": "R:scripts/docs.ts:439",
+     "file": "scripts/docs.ts",
+     "lines": [
+      439
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:439 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n437:   )\n438:     fail(recovery, 'Unknown recovery entries; retain this recovery path.');\n439:   let journal: z.infer<typeof journalSchema>;\n440:   try {\n441:     journal = journalSchema.parse(\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion."
+    },
+    {
+     "id": "R:scripts/docs.ts:458",
+     "file": "scripts/docs.ts",
+     "lines": [
+      458
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:458 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n456:   let restored = journal.before;\n457:   if (\n458:     exact(now, journal.after) &&\n459:     !next.exists &&\n460:     exact(saved, journal.before)\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion."
+    },
+    {
+     "id": "R:scripts/docs.ts:597",
+     "file": "scripts/docs.ts",
+     "lines": [
+      597
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:597 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n595:         fail(\n596:           recovery,\n597:           'Publication and rollback failed; previous/staged files remain recoverable here.',\n598:         );\n599:       }\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion."
+    },
+    {
+     "id": "R:scripts/docs_test.ts:87",
+     "file": "scripts/docs_test.ts",
+     "lines": [
+      87
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs_test.ts:87 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n85:       values.push([\n86:         entry.path.slice(repo.length),\n87:         (await Deno.readFile(entry.path)).toHex(),\n88:       ]);\n89:     else if (entry.isSymlink)\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion."
+    }
+   ],
+   "results": {
+    "R:scripts/hash.ts:6": {
+     "id": "R:scripts/hash.ts:6",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "R:scripts/docs.ts:439": {
+     "id": "R:scripts/docs.ts:439",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0,
+      "can_stay": 0.95,
+      "delete": 0,
+      "manual_review": 0.05
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "R:scripts/docs.ts:458": {
+     "id": "R:scripts/docs.ts:458",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0,
+      "can_stay": 0.95,
+      "delete": 0,
+      "manual_review": 0.05
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "R:scripts/docs.ts:597": {
+     "id": "R:scripts/docs.ts:597",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0,
+      "can_stay": 0.95,
+      "delete": 0,
+      "manual_review": 0.05
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "R:scripts/docs_test.ts:87": {
+     "id": "R:scripts/docs_test.ts:87",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "10",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "R:scripts/docs.ts:439#measured",
+     "file": "scripts/docs.ts",
+     "lines": [
+      439
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:439 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n437:   )\n438:     fail(recovery, 'Unknown recovery entries; retain this recovery path.');\n439:   let journal: z.infer<typeof journalSchema>;\n440:   try {\n441:     journal = journalSchema.parse(\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion.\nMeasured on Node 24.19 with the shim preload, the exact expressions of these docs.ts lines:\ndocs.ts:439 (await Deno.readFile(path)).toHex() -> TypeError: (intermediate value).toHex is not a function\ndocs.ts:458 Uint8Array.fromHex(hex) -> TypeError: Uint8Array.fromHex is not a function\ndocs.ts:597 new TextEncoder().encode(text).toHex() -> TypeError: (intermediate value).encode(...).toHex is not a function\n"
+    },
+    {
+     "id": "R:scripts/docs.ts:458#measured",
+     "file": "scripts/docs.ts",
+     "lines": [
+      458
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:458 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n456:   let restored = journal.before;\n457:   if (\n458:     exact(now, journal.after) &&\n459:     !next.exists &&\n460:     exact(saved, journal.before)\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion.\nMeasured on Node 24.19 with the shim preload, the exact expressions of these docs.ts lines:\ndocs.ts:439 (await Deno.readFile(path)).toHex() -> TypeError: (intermediate value).toHex is not a function\ndocs.ts:458 Uint8Array.fromHex(hex) -> TypeError: Uint8Array.fromHex is not a function\ndocs.ts:597 new TextEncoder().encode(text).toHex() -> TypeError: (intermediate value).encode(...).toHex is not a function\n"
+    },
+    {
+     "id": "R:scripts/docs.ts:597#measured",
+     "file": "scripts/docs.ts",
+     "lines": [
+      597
+     ],
+     "kind": "runtime_builtin",
+     "text": "scripts/docs.ts:597 (Uint8Array hex conversion; exact match rg 'toHex|fromHex')\n595:         fail(\n596:           recovery,\n597:           'Publication and rollback failed; previous/staged files remain recoverable here.',\n598:         );\n599:       }\nMeasured 2026-09-29: Node.js 24.19 has no Uint8Array.prototype.toHex or Uint8Array.fromHex (Deno 2.9 has them); npm run test:workflow fails 19 tests with 'toHex is not a function' at scripts/hash.ts:6. Decision D14 (backfire_decide, 0.86): rewrite each use to Node's Buffer hex conversion.\nMeasured on Node 24.19 with the shim preload, the exact expressions of these docs.ts lines:\ndocs.ts:439 (await Deno.readFile(path)).toHex() -> TypeError: (intermediate value).toHex is not a function\ndocs.ts:458 Uint8Array.fromHex(hex) -> TypeError: Uint8Array.fromHex is not a function\ndocs.ts:597 new TextEncoder().encode(text).toHex() -> TypeError: (intermediate value).encode(...).toHex is not a function\n"
+    }
+   ],
+   "results": {
+    "R:scripts/docs.ts:439#measured": {
+     "id": "R:scripts/docs.ts:439#measured",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "R:scripts/docs.ts:458#measured": {
+     "id": "R:scripts/docs.ts:458#measured",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "R:scripts/docs.ts:597#measured": {
+     "id": "R:scripts/docs.ts:597#measured",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "11",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "F:T004:commit_msg_test.ts:539-552",
+     "file": "scripts/commit_msg_test.ts",
+     "lines": [
+      539,
+      552
+     ],
+     "kind": "worker_question",
+     "text": "scripts/commit_msg_test.ts:539-552 at the base commit (new candidate from T004's question, 2026-09-29): the case that commits with an empty PATH and expects the hook's refusal message.\n539:   await withRepo(async repo => {\n540:     await Deno.writeTextFile(join(repo.root, 'missing-deno.txt'), 'change\\n');\n541:     await runGit(repo, ['add', 'missing-deno.txt']);\n542:     const before = output(await runGit(repo, ['rev-parse', 'HEAD']));\n543:     const missing = await commit(repo, 'feat: commit without deno', [], {\n544:       PATH: join(repo.root, 'empty-path'),\n545:     });\n546:     assert(!missing.success);\n547:     assertMatch(\n548:       output(missing),\n549:       /Commit refused: Deno 2\\.9\\.6 was not found\\./,\n550:     );\n551:     assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);\n552:   });\nEvidence: the selected site R:scripts/git-hooks/commit-msg was changed by T003 to find Node instead of Deno:\ndiff --git a/scripts/git-hooks/commit-msg b/scripts/git-hooks/commit-msg\nindex 3162d88..1e370da 100755\n--- a/scripts/git-hooks/commit-msg\n+++ b/scripts/git-hooks/commit-msg\n@@ -11,13 +11,9 @@ else\n fi\n if [ \"${amend}\" = 1 ]; then export CONSTITUTION_VERSION_AMEND=1; else unset CONSTITUTION_VERSION_AMEND; fi\n \n-if [ -x \"${HOME}/.deno/bin/deno\" ]; then\n-  deno=\"${HOME}/.deno/bin/deno\"\n-elif command -v deno >/dev/null 2>&1; then\n-  deno=$(command -v deno)\n-else\n-  printf '%s\\n' 'Commit refused: Deno 2.9.6 was not found.' >&2\n+if ! command -v node >/dev/null 2>&1; then\n+  printf '%s\\n' 'Commit refused: Node.js 22 or later was not found.' >&2\n   exit 1\n fi\n \n-exec \"${deno}\" task --quiet commitlint --edit \"$1\"\n+exec npm run --silent commitlint -- --edit \"$1\"\n\nWith that hook, this case prints 'Commit refused: Node.js 22 or later was not found.' and the Deno-message assertion fails."
+    }
+   ],
+   "results": {
+    "F:T004:commit_msg_test.ts:539-552": {
+     "id": "F:T004:commit_msg_test.ts:539-552",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.005,
+      "delete": 0.005,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "12",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "F:T004:doctor_test.ts:100-110",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      100,
+      110
+     ],
+     "text": "scripts/doctor_test.ts:100-110 (current file), test 'doctor: root task permits relocated and symlinked runtimes'\n100:     await Deno.copyFile(executable, binary);\n101:     await Deno.symlink(binary, join(alias, 'deno'));\n102:     for (const directory of [installed, alias]) {\n103:       const output = commandOutput('npm', {\n104:         args: ['run', '--silent', 'doctor'],\n105:         env: {PATH: `${directory}:${Deno.env.get('PATH')}`},\n106:       });\n107:       assert(output.success, new TextDecoder().decode(output.stderr));\n108:       assertEquals(json(output).deno.canonical, binary);\n109:     }\n110:   });\nEvidence from T004 (2026-09-29): npm run test:doctor has 9 pass and 7 fail after T003 changed the selected sites of scripts/doctor.ts (doctor now runs on Node, finds the standalone Deno by path instead of Deno.execPath(), checks the root uv workspace once instead of per-package projects, and checks the root package-lock.json). This case expects the doctor to report a relocated copy of Deno placed first on PATH, but the Node doctor reports /home/choi-eunchang/.deno/bin/deno.",
+     "kind": "worker_question"
+    },
+    {
+     "id": "F:T004:doctor_test.ts:182-195",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      182,
+      195
+     ],
+     "text": "scripts/doctor_test.ts:182-195 (current file)\n182:     await Deno.writeTextFile(plain, 'not executable', {mode: 0o644});\n183:     for (const options of [\n184:       {deno: 'deno'},\n185:       {deno: join(root, 'missing')},\n186:       {deno: wrong},\n187:       {quarto: root},\n188:       {quarto: plain},\n189:     ]) {\n190:       await assertRejects(() => runDoctor({...options, report}));\n191:       await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);\n192:     }\n193:     await assertRejects(\n194:       () => runDoctor({deno: wrong}),\n195:       Error,\nEvidence from T004 (2026-09-29): npm run test:doctor has 9 pass and 7 fail after T003 changed the selected sites of scripts/doctor.ts (doctor now runs on Node, finds the standalone Deno by path instead of Deno.execPath(), checks the root uv workspace once instead of per-package projects, and checks the root package-lock.json). This case expects runDoctor({deno: wrong}) to reject because the configured Deno differs from the executing Deno; the doctor no longer executes on Deno, so that rejection is gone.",
+     "kind": "worker_question"
+    },
+    {
+     "id": "F:T004:doctor_test.ts:385-397",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      385,
+      397
+     ],
+     "text": "scripts/doctor_test.ts:385-397 (current file)\n385:     );\n386:     await assertRejects(\n387:       () => runDoctor({uv: stale}),\n388:       Error,\n389:       'run npm run wiki-consistency:install',\n390:     );\n391:   });\n392: });\n393: \n394: test('doctor: a missing or stale wiki-consistency Node environment fails with install guidance', async () => {\n395:   await temporary(async root => {\n396:     const stale = await fixture(root, 'npm', 'Deno.exit(1);');\n397:     const options = {npm: stale, git: await fakeGit(root, 'scripts/git-hooks')};\nEvidence from T004 (2026-09-29): npm run test:doctor has 9 pass and 7 fail after T003 changed the selected sites of scripts/doctor.ts (doctor now runs on Node, finds the standalone Deno by path instead of Deno.execPath(), checks the root uv workspace once instead of per-package projects, and checks the root package-lock.json). The fake uv fails only for a per-package check whose last argument is packages/wiki-consistency; the doctor now runs one whole-workspace sync check, so the fake never fails and the expected rejection does not happen.",
+     "kind": "worker_question"
+    },
+    {
+     "id": "F:T004:doctor_test.ts:398-410",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      398,
+      410
+     ],
+     "text": "scripts/doctor_test.ts:398-410 (current file)\n398:     await assertRejects(\n399:       () => runDoctor(options),\n400:       Error,\n401:       'run npm run wiki-consistency:install',\n402:     );\n403:   });\n404: });\n405: \n406: test('doctor: npm ls success does not hide npm package-lock drift', async () => {\n407:   await temporary(async root => {\n408:     const project = join(root, 'wiki-consistency');\n409:     const nodeModules = join(project, 'node_modules');\n410:     await Deno.mkdir(nodeModules, {recursive: true});\nEvidence from T004 (2026-09-29): npm run test:doctor has 9 pass and 7 fail after T003 changed the selected sites of scripts/doctor.ts (doctor now runs on Node, finds the standalone Deno by path instead of Deno.execPath(), checks the root uv workspace once instead of per-package projects, and checks the root package-lock.json). The fake npm fails every call; the doctor now checks the root node_modules against package-lock.json first, so the rejection message is the root npm check's, not the wiki-consistency install guidance.",
+     "kind": "worker_question"
+    },
+    {
+     "id": "F:T004:docs_test.ts:686-689",
+     "file": "scripts/docs_test.ts",
+     "lines": [
+      686,
+      689
+     ],
+     "text": "scripts/docs_test.ts:686-689 (current file)\n680:   assert('pull_request' in workflow.on);\n681:   assertEquals(workflow.permissions.contents, 'read');\n682:   const steps = workflow.jobs.references.steps;\n683:   assert(steps.every(step => !step.uses));\n684:   assertEquals(steps.at(-1)?.run, 'npm run docs:check');\n685:   assert(steps.some(step => step.run?.includes('v24.19.0-linux-x64')));\n686:   assert(steps.some(step => step.run?.includes('v2.9.6/deno-')));\n687:   assert(steps.some(step => step.run?.includes('npm ci --ignore-scripts')));\n688:   assert(steps.some(step => step.run?.includes('deno install --frozen')));\n689:   await fixture(async repo => {\nEvidence: T003 changed the selected site S133 in .github/workflows/docs-check.yml; the root 'deno install --frozen' step is gone and only the clean-code skill's 'deno install --config plugins/code/skills/clean-code/deno.json --frozen' remains (S153, can_stay):\n - name: Prepare Node.js 24.19.0 with npm\n+        run: |\n+          curl --fail --silent --show-error --location https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz --output \"$RUNNER_TEMP/docs-node.tar.xz\"\n+          echo \"14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647  $RUNNER_TEMP/docs-node.tar.xz\" | sha256sum --check --strict\n+          tar -xJf \"$RUNNER_TEMP/docs-node.tar.xz\" -C \"$RUNNER_TEMP\"\n+          echo \"$RUNNER_TEMP/node-v24.19.0-linux-x64/bin\" >> \"$GITHUB_PATH\"\n       - name: Prepare standalone Deno 2.9.6\n@@ -28,5 +34,5 @@ jobs:\n         run: |\n-          deno install --frozen --no-prompt\n+          npm ci --ignore-scripts --no-audit --no-fund\n           deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt\n       - name: Check generated references\n-        run: deno task docs:check\n+        run: npm run docs:check\n\nThe assertion at line 688 still expects a step containing 'deno install --frozen', so it fails.",
+     "kind": "worker_question"
+    }
+   ],
+   "results": {
+    "F:T004:doctor_test.ts:100-110": {
+     "id": "F:T004:doctor_test.ts:100-110",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "F:T004:doctor_test.ts:182-195": {
+     "id": "F:T004:doctor_test.ts:182-195",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.93,
+      "can_stay": 0.02,
+      "delete": 0.04,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.89,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "F:T004:doctor_test.ts:385-397": {
+     "id": "F:T004:doctor_test.ts:385-397",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.02,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.9099999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "F:T004:doctor_test.ts:398-410": {
+     "id": "F:T004:doctor_test.ts:398-410",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.02,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.9099999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "F:T004:docs_test.ts:686-689": {
+     "id": "F:T004:docs_test.ts:686-689",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "13",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "F:T004:doctor_test.ts:474-476",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      474,
+      476
+     ],
+     "kind": "worker_question",
+     "text": "scripts/doctor_test.ts:474-476 at the base commit (current line 510), test 'doctor: CLI rejects invalid flags and missing runtime/report permissions' (new candidate from T004's question, 2026-09-29)\n467:   await temporary(async root => {\n468:     for (const args of [['--unknown'], ['--deno'], ['unexpected']]) {\n469:       const output = await cli(root, args);\n470:       assertEquals(output.code, 2);\n471:       assertEquals(output.stdout.length, 0);\n472:       assertEquals(json(output).error.code, 'INVALID_ARGUMENT');\n473:     }\n474:     const deniedRun = await cli(root, [], ['--allow-read']);\n475:     assertEquals(deniedRun.code, 1);\n476:     assertMatch(json(deniedRun).error.message, /run access/);\n477:     const deniedRead = await cli(\n478:       root,\nEvidence from T004: the test now runs the doctor CLI on Node with the permission model and without --allow-child-process; Node blocks execFile itself and the error message is Node's own text 'Access to this API has been restricted. Use --allow-child-process to manage permissions.', so the /run access/ pattern (Deno's permission error wording) no longer matches. 15 of 16 doctor tests pass; this is the remaining failure. Decision D4 translated Deno permission flags to Node's permission model."
+    }
+   ],
+   "results": {
+    "F:T004:doctor_test.ts:474-476": {
+     "id": "F:T004:doctor_test.ts:474-476",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "14",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n",
+   "items": [
+    {
+     "id": "F:T004:doctor_test.ts:477-491",
+     "file": "scripts/doctor_test.ts",
+     "lines": [
+      477,
+      491
+     ],
+     "kind": "worker_question",
+     "text": "scripts/doctor_test.ts:477-491 at the base commit (current 526-538), the deniedRead and deniedWrite assertions of 'doctor: CLI rejects invalid flags and missing runtime/report permissions' (new candidate from T004, 2026-09-29)\n477:     const deniedRead = await cli(\n478:       root,\n479:       [],\n480:       ['--allow-read', `--deny-read=${lock}`, '--allow-run'],\n481:     );\n482:     assertEquals(deniedRead.code, 1);\n483:     assertMatch(json(deniedRead).error.message, /read access/);\n484:     const report = join(root, 'report.json');\n485:     const deniedWrite = await cli(root, ['--report', report]);\n486:     assertEquals(deniedWrite.code, 1);\n487:     assertMatch(json(deniedWrite).error.message, /write access/);\n488:     await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);\n489:     const written = await cli(\n490:       root,\n491:       ['--report', report],\nEvidence from T004: on Node with the permission model, deniedRead receives Node's own text 'Access to this API has been restricted. Use --allow-fs-read to manage permissions.' instead of Deno's 'read access' wording, and the deniedWrite case meets the same Node boundary for writes. The same test's deniedRun assertion (base 474-476) was already classified must_change (0.96) for the same reason. Decision D4 translated Deno permission flags to Node's permission model."
+    }
+   ],
+   "results": {
+    "F:T004:doctor_test.ts:477-491": {
+     "id": "F:T004:doctor_test.ts:477-491",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "15",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n- D15: the CLI help snapshot moves from @std/testing/snapshot to node:test's built-in snapshot assertion.\n",
+   "items": [
+    {
+     "id": "R:scripts/cli_contract_test.ts:2",
+     "file": "scripts/cli_contract_test.ts",
+     "lines": [
+      2
+     ],
+     "text": "scripts/cli_contract_test.ts:2 at the base commit, the @std/testing/snapshot import\n2: import {assertSnapshot} from '@std/testing/snapshot';\nMeasured 2026-09-29: on Node 24.19, @std/testing/snapshot's assertSnapshot fails with 'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension \".snap\"' because it loads the snapshot file with import(); 5 of 14 CLI contract tests fail there. Decision D15 (backfire_decide, 0.72): use node:test's t.assert.snapshot, regenerate the five help-text snapshots once in Node's format, check that their text equals the old snapshot, and delete the old .snap file.",
+     "kind": "snapshot"
+    },
+    {
+     "id": "R:scripts/cli_contract_test.ts:132",
+     "file": "scripts/cli_contract_test.ts",
+     "lines": [
+      132
+     ],
+     "text": "scripts/cli_contract_test.ts:132 at the base commit, the assertSnapshot call\n130:     assertMatch(text, /--help/);\n131:     assertEquals(text.includes('\\u001b'), false);\n132:     await assertSnapshot(t, text);\n133:     const bad = await execute([\n134:       'task',\n135:       '--quiet',\nMeasured 2026-09-29: on Node 24.19, @std/testing/snapshot's assertSnapshot fails with 'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension \".snap\"' because it loads the snapshot file with import(); 5 of 14 CLI contract tests fail there. Decision D15 (backfire_decide, 0.72): use node:test's t.assert.snapshot, regenerate the five help-text snapshots once in Node's format, check that their text equals the old snapshot, and delete the old .snap file.",
+     "kind": "snapshot"
+    },
+    {
+     "id": "W:scripts/__snapshots__/cli_contract_test.ts.snap",
+     "file": "scripts/__snapshots__/cli_contract_test.ts.snap",
+     "lines": [
+      1
+     ],
+     "text": "scripts/__snapshots__/cli_contract_test.ts.snap: the @std/testing snapshot module ('export const snapshot = {}; snapshot[`CLI doctor: help and invalid arguments 1`] = `...`') with the five help texts.\nMeasured 2026-09-29: on Node 24.19, @std/testing/snapshot's assertSnapshot fails with 'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension \".snap\"' because it loads the snapshot file with import(); 5 of 14 CLI contract tests fail there. Decision D15 (backfire_decide, 0.72): use node:test's t.assert.snapshot, regenerate the five help-text snapshots once in Node's format, check that their text equals the old snapshot, and delete the old .snap file.",
+     "kind": "snapshot"
+    }
+   ],
+   "results": {
+    "R:scripts/cli_contract_test.ts:2": {
+     "id": "R:scripts/cli_contract_test.ts:2",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "R:scripts/cli_contract_test.ts:132": {
+     "id": "R:scripts/cli_contract_test.ts:132",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "W:scripts/__snapshots__/cli_contract_test.ts.snap": {
+     "id": "W:scripts/__snapshots__/cli_contract_test.ts.snap",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.02,
+      "can_stay": 0.01,
+      "delete": 0.96,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "16",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n- D15: the CLI help snapshot moves from @std/testing/snapshot to node:test's built-in snapshot assertion.\n",
+   "items": [
+    {
+     "id": "F:T003c:docs_test.ts:258-270",
+     "file": "scripts/docs_test.ts",
+     "lines": [
+      258,
+      270
+     ],
+     "kind": "worker_report",
+     "text": "scripts/docs_test.ts:258-270 at the base commit, the fixture help script of 'references: help cannot write, spawn, use network or read live Wiki configuration' (new candidate from T003c's report, 2026-09-29)\n258: \n259: Deno.test('references: help cannot write, spawn, use network or read live Wiki configuration', async () => {\n260:   await fixture(async repo => {\n261:     await Deno.writeTextFile(\n262:       join(repo, 'scripts/doctor.ts'),\n263:       `\n264:       for (const permission of [{name:'write'}, {name:'run'}, {name:'net'}, {name:'read',path:'${repo}/protected-user-data/secret'}]) {\n265:         if ((await Deno.permissions.query(permission)).state === 'granted') throw new Error('permission widened');\n266:       }\n267:       if (Deno.env.has('VERBOSE_BROCCOLI_CONFIG') || Deno.args.join() !== '--help') throw new Error('business input');\n268:       console.log('Usage: doctor --help');\n269:     `,\n270:     );\nEvidence: the help child now runs on Node 24.19 with the @deno/shim-deno preload and Node's permission model (no write, no child process, reads limited to named paths). @deno/shim-deno 0.19.2's Deno.permissions.query returns 'granted' for every request (node_modules/@deno/shim-deno/dist/index.mjs:426-439), so this guard throws 'permission widened' and the test fails although Node denies those operations. Node exposes its own check as process.permission.has('fs.write'), process.permission.has('child'), process.permission.has('fs.read', path); Node 24.19 has no network permission."
+    }
+   ],
+   "results": {
+    "F:T003c:docs_test.ts:258-270": {
+     "id": "F:T003c:docs_test.ts:258-270",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.005,
+      "delete": 0.01,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "17",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n- D15: the CLI help snapshot moves from @std/testing/snapshot to node:test's built-in snapshot assertion.\n",
+   "items": [
+    {
+     "id": "F:check:wiki_raw_import_test.ts:303-307",
+     "file": "scripts/wiki_raw_import_test.ts",
+     "lines": [
+      303,
+      307
+     ],
+     "kind": "test_run",
+     "text": "scripts/wiki_raw_import_test.ts:303-307 at the base commit, the Source-Modified assertion of 'raw import US1: one immutable bag preserves payload, digest, timestamps and provenance' (new candidate from test runs, 2026-09-29)\n301:     assertEquals(info['Internal-Sender-Identifier'], path);\n302:     assertEquals(info['Admission-Time'], item.revision);\n303:     assertMatch(info['Source-Modified'], /T.*\\+00:00$/);\n304:     assertEquals(\n305:       new Date(info['Source-Modified']).getTime(),\n306:       (await Deno.stat(path)).mtime?.getTime(),\n307:     );\n308:     assertMatch(info['Bagging-Date'], /^\\d{4}-\\d{2}-\\d{2}$/);\nEvidence: plugins/work/skills/wiki-raw-import/scripts/raw_import.py:178 writes Source-Modified from Python's st_mtime with microseconds, which new Date() truncates to milliseconds. On Node, @deno/shim-deno's stat returns Node's Stats.mtime, which Node rounds to the nearest millisecond, while Deno truncated. Measured: over 20,000 synthetic mtimes, Stats.mtime.getTime() differed from floor(mtimeNs / 1e6) in 10,341 cases; the test failed with actual 1790641666762 vs expected 1790641666763 in npm run check, and passed on other runs. The comparison therefore fails about half the time on Node."
+    }
+   ],
+   "results": {
+    "F:check:wiki_raw_import_test.ts:303-307": {
+     "id": "F:check:wiki_raw_import_test.ts:303-307",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "18",
+   "context": "Trial on branch feature/turborepo (Linear CHE-32). Target state, from design decisions made with backfire_decide:\n- TypeScript scripts and tests run on Node.js 24.19 with its default type stripping (only erasable TypeScript syntax is allowed; non-erasable constructs such as constructor parameter properties must be rewritten).\n- A two-line preload module sets globalThis.Deno from the npm package @deno/shim-deno 0.19.2. The shim serves these unchanged: Deno file-system calls (readTextFile, writeTextFile, mkdir, remove, stat, lstat, makeTempDir, symlink, rename, readDirSync, copyFile, chmod, realPath, cwd, writeFile, open, readLink, chdir, readFile), Deno.env, Deno.args, Deno.exit, Deno.errors.*, Deno.kill, Deno.build, Deno.version, Deno.stdout, Deno.permissions, Deno.FileInfo types. The shim does NOT serve Deno.Command, Deno.CommandOutput, Deno.exitCode or a runnable Deno.test, so those call sites must be rewritten to node:child_process, process.exitCode and node:test. Deno.execPath() under the shim returns the deno executable found on PATH (which.sync('deno')), and Deno.version reports the shim's fixed values (deno 1.40.2), not the installed Deno.\n- import.meta.main works on Node 24.19 unchanged. Bare import specifiers mapped in deno.json \"imports\" move to package.json dependencies (JSR packages through npm aliases such as \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\"); jsr: and npm: specifiers written inside source files must change.\n- Root package.json scripts and a root turbo.json replace deno.json tasks; `npm run check` runs `turbo run check`; workflow and verify become npm scripts that run scripts/workflow.ts on Node. deno.json and deno.lock are replaced by package.json and package-lock.json at the root, except for the shipped clean-code skill.\n- The shipped clean-code skill (plugins/code/skills/clean-code: its deno.json, deno.lock, scripts and SKILL.md) stays on Deno; repository tasks and tests that run it keep calling deno for it.\n- YAML formatting moves from `deno fmt` to Prettier. Deno permission flags are translated to Node's --permission model where possible.\n- Python: backfire, doc-regions and wiki-consistency become members of one root uv workspace with one root uv.lock and one root .venv; their build backend changes from setuptools to uv_build and egg_base is removed; per-package uv.lock files go away; readiness accepts the environment of the uv project that contains it; doctor and readiness use whole-workspace sync checks; built plugins get their own uv.lock generated in the built copy.\n- Out of scope and unchanged: tools/spec-kit and tools/shellcheck (separate uv projects), historical records under specs/ and .specify/, AGENTS.md and the constitution (governance; wording goes to the user instead), other features' worktrees.\n\n- Decisions made after the first batches (backfire_decide): D11, the preload assigns a plain mutable copy of the shim and forwards Deno.exitCode to process.exitCode, so Deno.exitCode assignments and stub(Deno, ...) in tests work unchanged; D12, exclusive file locks (FsFile.lock/unlock, which the shim lacks and Node has no API for) are replaced with the npm package proper-lockfile 4.1.2.\n- D14: Uint8Array.prototype.toHex and Uint8Array.fromHex, which Node 24.19 lacks, are rewritten to Buffer hex conversion.\n- D15: the CLI help snapshot moves from @std/testing/snapshot to node:test's built-in snapshot assertion.\n",
+   "items": [
+    {
+     "id": "S150:35",
+     "file": "docs/architecture.md",
+     "lines": [
+      35
+     ],
+     "text": "docs/architecture.md:34-35 (split from S150)\n33: on its floating-promise check, and bans runtime and I/O globals in `domain/`\n34: folders; Prettier formats YAML. Biome 2.5.14 is a pinned npm dependency,\n35: and its package ships a platform-specific native binary that `deno.lock` pins.\nEvidence (R1 review, 2026-09-29): the root deno.lock is deleted (selected row W:deno.lock) and the root deno.json no longer has imports (selected row deno.json#imports); the npm packages, including Biome 2.5.14, commitlint 21.2.3 and conventional-changelog-conventionalcommits 10.4.0, are pinned in the new root package.json and package-lock.json. The neighbouring selected lines (S137) already name npm, so these sentences now contradict themselves.",
+     "kind": "review_finding"
+    },
+    {
+     "id": "S150:130",
+     "file": "docs/architecture.md",
+     "lines": [
+      130
+     ],
+     "text": "docs/architecture.md:129-131 (split from S150)\n129: The root README is a short project summary; use specs and docs for detailed\n130: documentation. The dependency pins remain in `deno.json` and `deno.lock`, and\n131: the Ajv subpath mapping uses the same approved package version.\nEvidence (R1 review, 2026-09-29): the root deno.lock is deleted (selected row W:deno.lock) and the root deno.json no longer has imports (selected row deno.json#imports); the npm packages, including Biome 2.5.14, commitlint 21.2.3 and conventional-changelog-conventionalcommits 10.4.0, are pinned in the new root package.json and package-lock.json. The neighbouring selected lines (S137) already name npm, so these sentences now contradict themselves.",
+     "kind": "review_finding"
+    },
+    {
+     "id": "S150:436-437",
+     "file": "docs/architecture.md",
+     "lines": [
+      436,
+      437
+     ],
+     "text": "docs/architecture.md:432-437 (split from S150)\n432: Every commit in a set-up worktree passes the `commit-msg` hook\n433: `scripts/git-hooks/commit-msg`. It runs commitlint 21.2.3\n434: (<https://github.com/conventional-changelog/commitlint>, MIT) with\n435: `@commitlint/config-conventional` and the Conventional Commits parser preset\n436: from `conventional-changelog-conventionalcommits` 10.4.0, pinned in `deno.json`\n437: and `deno.lock` and run by `npm run commitlint`.\nEvidence (R1 review, 2026-09-29): the root deno.lock is deleted (selected row W:deno.lock) and the root deno.json no longer has imports (selected row deno.json#imports); the npm packages, including Biome 2.5.14, commitlint 21.2.3 and conventional-changelog-conventionalcommits 10.4.0, are pinned in the new root package.json and package-lock.json. The neighbouring selected lines (S137) already name npm, so these sentences now contradict themselves.",
+     "kind": "review_finding"
+    }
+   ],
+   "results": {
+    "S150:35": {
+     "id": "S150:35",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "S150:130": {
+     "id": "S150:130",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "S150:436-437": {
+     "id": "S150:436-437",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    }
+   }
   }
  ]
 }
