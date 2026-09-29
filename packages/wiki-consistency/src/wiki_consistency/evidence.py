@@ -10,16 +10,23 @@ from pathlib import Path
 import signal
 from typing import Any, BinaryIO, Iterator, Mapping
 import uuid
+import warnings
 
 # Prevent ONNX Runtime from writing telemetry files during import.
 os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
+from hwpx import Hwp5ConversionWarning
+from hwpx import HwpxDocument
+from markitdown import DocumentConverter
+from markitdown import DocumentConverterResult
 from markitdown import MarkItDown
 from markitdown import StreamInfo
 from markitdown import UnsupportedFormatException
 from markitdown.converters import PlainTextConverter
 
-CONVERTER_VERSION = f"{version('markitdown')}-json-1"
+CONVERTER_VERSION = (
+    f"{version('markitdown')}-hwpx-{version('python-hwpx')}-json-2"
+)
 EVIDENCE_BUDGET_BYTES = 1024**3
 TEMP_SUFFIX = ".wiki-consistency-tmp"
 
@@ -63,6 +70,28 @@ class JsonConverter(PlainTextConverter):
         except json.JSONDecodeError:
             pass
         return result
+
+
+class HwpxConverter(DocumentConverter):
+    """Convert HWP and HWPX documents through python-hwpx."""
+
+    def accepts(
+        self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
+    ) -> bool:
+        """Return whether the stream has an HWP or HWPX extension."""
+        del file_stream, kwargs  # Unused.
+        return (stream_info.extension or "").lower() in {".hwp", ".hwpx"}
+
+    def convert(
+        self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
+    ) -> DocumentConverterResult:
+        """Export the document with python-hwpx and release its resources."""
+        del stream_info, kwargs  # Unused.
+        document = HwpxDocument.open(file_stream.read())
+        try:
+            return DocumentConverterResult(document.text.markdown())
+        finally:
+            document.close()
 
 
 def _component(value: str) -> str:
@@ -192,6 +221,17 @@ def _existing_unreadable(
     }
 
 
+def _existing_partial(
+    mark: Path, source_id: str, revision: str
+) -> dict[str, str]:
+    stored = json.loads(mark.read_text(encoding="utf-8"))
+    return {
+        "id": source_id,
+        "revision": revision,
+        "detail": stored["detail"],
+    }
+
+
 def convert(
     instance: Path,
     wiki_id: str,
@@ -207,8 +247,10 @@ def convert(
     converted = 0
     present = 0
     unreadable: list[dict[str, str]] = []
+    partial: list[dict[str, str]] = []
     converter = MarkItDown()
     converter.register_converter(JsonConverter())
+    converter.register_converter(HwpxConverter())
 
     with _clean_on_signals():
         try:
@@ -222,8 +264,15 @@ def convert(
                     root, target, mark = _paths(
                         Path(cache), wiki_id, source_id, revision
                     )
+                    partial_mark = target.with_name(f"{revision}.partial.json")
                     if target.is_file():
                         present += 1
+                        if partial_mark.is_file():
+                            partial.append(
+                                _existing_partial(
+                                    partial_mark, source_id, revision
+                                )
+                            )
                         continue
                     if mark.is_file():
                         unreadable.append(
@@ -232,12 +281,29 @@ def convert(
                         continue
 
                     payload: Path | None = None
+                    partial_detail = ""
                     try:
                         payload = _payload_path(Path(instance), item)
                         if payload.suffix.lower() in {".txt", ".md"}:
                             text = payload.read_bytes().decode("utf-8")
                         else:
-                            text = converter.convert(payload).text_content or ""
+                            with warnings.catch_warnings(
+                                record=True
+                            ) as conversion_warnings:
+                                warnings.simplefilter(
+                                    "always", Hwp5ConversionWarning
+                                )
+                                text = (
+                                    converter.convert(payload).text_content
+                                    or ""
+                                )
+                            partial_detail = "; ".join(
+                                _detail(warning.message, payload)
+                                for warning in conversion_warnings
+                                if issubclass(
+                                    warning.category, Hwp5ConversionWarning
+                                )
+                            )
                         if not any(character.isalpha() for character in text):
                             reason = "empty_text"
                             detail = "converted text contains no letters"
@@ -279,6 +345,21 @@ def convert(
                                 }
                             )
                     else:
+                        if partial_detail:
+                            mark_data = json.dumps(
+                                {"detail": partial_detail},
+                                ensure_ascii=False,
+                                sort_keys=True,
+                            ).encode("utf-8")
+                            _write_immutable(
+                                partial_mark, mark_data, root, budget_bytes
+                            )
+                        if partial_mark.is_file():
+                            partial.append(
+                                _existing_partial(
+                                    partial_mark, source_id, revision
+                                )
+                            )
                         if _write_immutable(
                             target, text.encode("utf-8"), root, budget_bytes
                         ):
@@ -289,10 +370,12 @@ def convert(
             _cleanup_temporary_files(evidence_root)
 
     unreadable.sort(key=lambda entry: (entry["id"], entry["revision"]))
+    partial.sort(key=lambda entry: (entry["id"], entry["revision"]))
     return {
         "converted": converted,
         "present": present,
         "unreadable": unreadable,
+        "partial": partial,
     }
 
 

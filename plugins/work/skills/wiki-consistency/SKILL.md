@@ -81,7 +81,8 @@ rules that stay with the judgment step.
    the user that other pages and cross-references were not searched. The
    cause is a missing embedding model (`index` downloads it once) or
    documents qmd has not embedded yet; when `index` gave a `semantic_error`,
-   pass it on as it is.
+   pass it on as it is. Report any `partial` revisions from `convert` with
+   their warning details.
 3. Send each request's `arguments` to the backfire tool it names, on the
    **work plugin's** backfire server. Before the provider sees them, its judge
    replaces the student, guardian and school names in the operator's roster,
@@ -94,7 +95,7 @@ rules that stay with the judgment step.
    contradiction between pages to the user.
 5. Fix `evidence` units that come back `contradicted` or `review`, or tell the
    user why they stand. Report every unit listed as `unverifiable`, with its
-   cause: for example, its cited sources were unreadable (HWP or scanned PDF
+   cause: for example, its cited sources were unreadable (such as scanned PDF
    files), no passage of a long source matched it within
    `--max-evidence-chars`, or an `overview.md` unit has no linked page to
    check against.

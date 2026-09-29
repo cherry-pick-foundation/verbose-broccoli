@@ -232,10 +232,10 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   needs no cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
-  Markdown with markitdown 0.1.8 under
-  `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default `~/.cache`)
-  (1 GiB budget); HWP files and scanned PDFs are reported as unreadable, and
-  claims resting only on them as unverifiable. `index` builds qmd 2.8.3
+  Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
+  `~/.cache`) (1 GiB budget): markitdown 0.1.8 reads XLSX and other supported
+  formats, and python-hwpx 6.6.0 reads HWP and HWPX. Scanned PDFs remain
+  unreadable, so claims resting only on them are unverifiable. `index` builds qmd 2.8.3
   collections of the pages and the converted evidence under
   `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
   Qwen3 embedding model, a 610 MB download on first use. Without the model,
@@ -258,8 +258,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
-  new schema template to an existing instance, and converting HWP files or
-  scanned PDFs.
+  new schema template to an existing instance, and converting scanned PDFs.
 
 ### Backfire server
 

@@ -186,11 +186,20 @@ with the already approved Ajv dependency. Sources:
 ## microsoft/markitdown — Wiki evidence conversion
 
 - Source: <https://github.com/microsoft/markitdown>, published on PyPI as
-  `markitdown` 0.1.8 with the `docx`, `pdf` and `pptx` extras.
+  `markitdown` 0.1.8 with the `docx`, `pdf`, `pptx` and `xlsx` extras.
 - Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
   in its `uv.lock`, to convert cited raw revisions to Markdown in the cache.
   No source is copied into the repository.
 - Copyright (c) Microsoft Corporation. MIT license.
+
+## airmang/python-hwpx — HWP and HWPX evidence conversion
+
+- Source: <https://github.com/airmang/python-hwpx>, published on PyPI as
+  `python-hwpx` 6.6.0.
+- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
+  in its `uv.lock`, to read HWP 5.0 and HWPX sources and export Markdown. No
+  source is copied into the repository.
+- Copyright 2025-2026 airmang (Dr. Wily). Apache-2.0.
 
 ## tobi/qmd — Wiki candidate search
 
