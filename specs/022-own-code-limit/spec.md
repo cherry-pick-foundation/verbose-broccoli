@@ -160,8 +160,10 @@ while `develop` is unchanged.
   so `npm run verify` before a commit measures the work in progress.
 - The merge base cannot be found, for example because no `develop` branch
   exists: the check fails and says so; it never passes silently.
-- The line counter's environment is missing: the check fails and names the
-  command that installs it.
+- The line counter's environment is missing: the check fails with uv's error,
+  such as "Failed to spawn: scc". `npm run doctor` names the command that
+  installs it, `uv sync --locked --project tools/scc`, and Orca's setup
+  script runs that command.
 - `develop` moves and is merged into the feature: the merge base moves too,
   so the net change counts only the feature's own work.
 - A net decrease passes.
@@ -203,8 +205,8 @@ while `develop` is unchanged.
 - **FR-007**: The limit MUST be 300 net lines. A line matching
   `**Own-code limit**: <number>` that the branch adds, relative to the merge
   base, to a file under `specs/`, `.specify/bugs/` or `.specify/assessments/`
-  MUST raise the limit to the largest such number. Lines that exist at the
-  merge base MUST NOT.
+  MUST raise the limit to the largest such number. A line whose text exists
+  in such a file at the merge base, even under another path, MUST NOT.
 - **FR-008**: When the net change exceeds the limit, the check MUST exit with
   a failure and name the sizes, the net change, the limit and how to record
   the user's approval. Otherwise it MUST pass and print the same numbers.

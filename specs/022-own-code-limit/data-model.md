@@ -33,10 +33,11 @@ own-code files.
 
 ## Approval line
 
-A (path, line) pair: a file under `specs/`, `.specify/bugs/` or
-`.specify/assessments/`, and a line in it that starts with
-`**Own-code limit**: ` followed by a whole number. The branch's approvals are
-the pairs in the worktree that are not in the merge base.
+A line in a file under `specs/`, `.specify/bugs/` or `.specify/assessments/`
+that starts with `**Own-code limit**: ` followed by a whole number. The
+branch's approvals are the worktree's approval lines whose text appears in no
+such file at the merge base; the output names the file of the one that sets
+the limit.
 
 ## Result
 

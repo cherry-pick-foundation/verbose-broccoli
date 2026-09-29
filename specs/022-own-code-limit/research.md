@@ -33,6 +33,12 @@
   PowerShell) are programming, and Markdown, Plain Text (Text), JSON, JSONL
   (an extension of JSON), YAML, TOML, CSV and SVG are not. Linguist has no
   "License" language, so license files do not count.
+- **Known limit**: The match is by name. The develop merge review found
+  that scc names some languages differently from Linguist, for example
+  "C Header", "JSX" and "Korn Shell", so files in them would not count. The
+  repository has none; matching by Linguist's extensions or interpreters
+  would need more code in the check, which is not justified until such a
+  language appears.
 - **Alternatives considered**: Counting every language scc recognizes would
   count about 36,800 lines of Markdown and 24,000 of JSON on `develop`,
   mostly specs and fixtures. A hand-kept list of languages would need editing
@@ -59,6 +65,9 @@
   Counting only patch lines (option C) needs the unpatched upstream bytes,
   which the repository does not keep. A hand-kept exclusion list is ruled out
   by the issue.
+- **Review duty**: A branch could add an upstream record holding hashes of
+  its own files and so exempt them. The check cannot tell, so the develop
+  merge review checks every upstream record a branch adds or changes.
 - **Known gap**: Ponytail's hook modules and Spec Kit's extension scripts
   under `.specify/extensions/` are upstream copies without per-file hashes,
   so they count as own code in the baseline. A branch pays for them only if
@@ -94,10 +103,12 @@
 
 - **Decision**: In both trees, read the files under `specs/`,
   `.specify/bugs/` and `.specify/assessments/`, and collect lines that start
-  with `**Own-code limit**: ` followed by a number, as (path, line) pairs.
-  Pairs in the worktree but not at the merge base are the branch's approvals.
-  The limit is the largest of 300 and their numbers; the output names the
-  approval's file.
+  with `**Own-code limit**: ` followed by a number. A worktree line whose
+  text appears in no such file at the merge base is one of the branch's
+  approvals. The limit is the largest of 300 and their numbers; the output
+  names the approval's file. The develop merge review found that comparing
+  (path, line) pairs, the first design, let a renamed records file make an
+  old approval count again, so the comparison uses the line text alone.
 - **Rationale**: The user confirmed "a line the branch adds to its Spec Kit
   records naming the approved number". Comparing the two trees reuses the
   file lists from R5 and includes uncommitted records; an approval already on
