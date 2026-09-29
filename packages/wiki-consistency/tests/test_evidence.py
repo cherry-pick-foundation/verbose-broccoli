@@ -260,6 +260,8 @@ def test_convert_xlsx_hwp_and_hwpx_sources(tmp_path, monkeypatch):
         document.add_paragraph(f"Synthetic {path.suffix[1:].upper()} evidence")
         document.save_to_path(path)
         document.close()
+    # python-hwpx writes a .hwp path as an HWP 5.0 compound file.
+    assert hwp.read_bytes()[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
 
     items = [
         _revision(instance, "xlsx", "r1", xlsx.name, xlsx.read_bytes()),
