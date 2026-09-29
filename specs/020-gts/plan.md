@@ -91,11 +91,13 @@ package.json, package-lock.json      # gts in, Biome out; lint, lint:fix,
 turbo.json                           # //#test:gts in the test dependencies
 eslint.config.js, eslint.ignores.js  # new: gts init's files, ignores filled
 .prettierrc.js                       # new: gts init's file
-.prettierignore                      # new, if smaller than a file list (R5)
 biome.json                           # removed
 scripts/gts_test.ts                  # new: configuration test
 tsconfig.json                        # lists scripts/gts_test.ts
-scripts/docs.ts                      # drop biome.json from its read list
+scripts/docs.ts, scripts/docs_test.ts   # read eslint.ignores.js, not biome.json
+scripts/workflow_files.ts            # exclusions from eslint.ignores.js
+scripts/workflow.ts, scripts/workflow_graph.ts  # drop Biome's name
+scripts/clean_architecture_test.ts   # the domain/ ban test runs ESLint
 docs/architecture.md, docs/reference/*  # tool list; generated tables
 scripts/*.ts, scripts/*.mjs, plugins/code/skills/clean-code/scripts/*.ts,
 packages/wiki-consistency/src/wiki_consistency/search.mjs  # fixes

@@ -53,10 +53,10 @@ A second `biome-ignore` comment, in
 `plugins/code/skills/clean-code/scripts/clean_code_test.ts:65`, covers a
 Biome rule that gts does not enable; it goes.
 
-Prettier with gts's settings would also change `turbo.json`,
-`scripts/workflow-evidence.schema.json`, the four workflows under
-`.github/workflows/` and `orca.yaml` (`bracketSpacing: false` in YAML flow
-maps). These changes belong to the reformat commit.
+Prettier with gts's settings would also change `turbo.json` and
+`scripts/workflow-evidence.schema.json`; these changes belong to the reformat
+commit. The YAML files that Prettier formatted before already pass with
+gts's settings.
 
 ## R4. What gts's lint covers
 
@@ -106,3 +106,25 @@ maps). These changes belong to the reformat commit.
   `noImplicitReturns`. Adopting it would mean overriding its `lib` and
   `composite` settings, since the repository runs TypeScript directly on
   Node and emits nothing.
+
+## R8. Node's permission model
+
+- **Decision**: Run `gts lint .` and `gts fix .` without Node's permission
+  model; the other steps of the same npm scripts keep it.
+- **Evidence**: Under `NODE_OPTIONS='--permission --allow-fs-read=*
+  --allow-child-process'`, Node 24.19.0 stops gts before ESLint starts:
+  `Error [ERR_ACCESS_DENIED]: process.binding` at
+  `node_modules/tmp/lib/tmp.js:16`. gts's CLI loads `inquirer` 7.3.3 for
+  `gts init`, which loads `external-editor` 3.1.0 and `tmp` 0.0.33, whose
+  load calls `process.binding`. No permission flag grants it, and the
+  `--allow-*` flags fail without `--permission` (`ERR_MISSING_OPTION`).
+  `npm run workflow` already runs without the permission model (`f1e1ab0`).
+  The lint form passes no `--fix` and ESLint keeps no cache by default, so
+  it writes no files.
+- **Alternative rejected**: Calling ESLint directly with gts's configuration
+  would keep the permission model but would not run gts's own command,
+  which the issue asks for.
+- **Related flags**: `test:clean-architecture` adds `--allow-worker`, because
+  `eslint-plugin-prettier` formats in a worker thread; `test:gts` runs its
+  child processes without `NODE_OPTIONS` for the same `process.binding`
+  reason.
