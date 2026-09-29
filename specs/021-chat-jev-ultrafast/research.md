@@ -8,7 +8,8 @@ and file references are given so a reader at HEAD can repeat them.
 **Decision**: Copy Jev Ultrafast at revision
 `1231850a0bf1a0c0341fe408ef1668dbbfdfac46` into `packages/jev-ultrafast/`
 (its `jev_ultrafast/` package under `src/`, `LICENSE`, `tests/test_agent.py`,
-`examples/run.py` and `scripts/check_guards.py`), patch it in place, and record
+`examples/run.py`, `examples/flights.py`, which `test_agent.py` imports, and
+`scripts/check_guards.py`), patch it in place, and record
 the revision, each copied file's original SHA-256 and every difference in
 `packages/jev-ultrafast/UPSTREAM.md`.
 
@@ -18,8 +19,8 @@ Git revision but cannot patch it, so a patched copy is the smallest way to
 depend on it. The package is small (850 lines across its six modules and
 `snapshot.js`), MIT licensed, and its runtime dependencies are two published
 packages: `browser-harness==0.1.13` (MIT, from PyPI) and `httpx[http2]`.
-Upstream's `docs/` media, recording and rendering scripts, `examples/flights.py`
-and `uv.lock` are left out; the root uv lock pins the dependencies.
+Upstream's `docs/` media, recording and rendering scripts and `uv.lock`
+are left out; the root uv lock pins the dependencies.
 
 **Alternatives considered**: A Git dependency with a run-time monkeypatch of
 `post_json` (rejected: `choose()` reads `os.environ["TYPESAFE_API_KEY"]` before
@@ -179,10 +180,12 @@ agent only when the precheck exits 0 (Orca 1.4.216 `out/main/index.js`,
 function handling `skipped_precheck`); prechecks time out after at most 600 s
 and keep up to 4,000 characters of output
 (`out/shared/automation-precheck.js`). The precheck therefore runs the search
-with notification, so a strong offer is reported without a second Jev call,
-and the agent session that follows is the run's record in Orca. The agent
-provider and the exact commands are put to the user for approval before the
-automation is created.
+with notification, so a strong offer is reported without a second Jev call.
+On 2026-09-30 the user approved the automation and chose that no agent
+session starts at all: the precheck command ends with `; exit 1`, so Orca
+records every run as skipped and keeps the search's output in the run's
+details. The user also had the empty `0600` credential file created, and
+will add the Vercel key to it.
 
 ## R9. The schedule interval
 

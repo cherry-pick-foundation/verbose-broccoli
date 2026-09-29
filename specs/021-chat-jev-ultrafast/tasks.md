@@ -43,7 +43,8 @@ expects about 200.
 - [ ] T001 [US2] Copy Jev Ultrafast at `1231850a0bf1a0c0341fe408ef1668dbbfdfac46`
   into `packages/jev-ultrafast/`: `LICENSE`, `jev_ultrafast/` as
   `src/jev_ultrafast/` (all modules, `snapshot.js`, `static/`),
-  `tests/test_agent.py`, `examples/run.py`, `scripts/check_guards.py`. Adapt
+  `tests/test_agent.py`, `examples/run.py`, `examples/flights.py` (imported by
+  `test_agent.py`), `scripts/check_guards.py`. Adapt
   upstream's `pyproject.toml` to the workspace (uv_build with `module-root =
   "src"`, same runtime dependencies, same `jev` script; the dev group holds
   only the workspace's `pytest==9.1.1`, because upstream's `pytest<9` cannot
@@ -166,7 +167,8 @@ time limit.
   prompt, the provider, the empty `0600` credential file it needs) and ask
   the user through `orca orchestration ask`; after approval and the finish,
   create it with `orca automations create` and confirm it with `orca
-  automations show` (FR-012).
+  automations show` (FR-012). Approved 2026-09-30: no agent session (the
+  precheck ends with `; exit 1`), credential file created empty.
 - [ ] T017 Merge review by fresh reviewers, review-record commit, merge
   `develop` in and verify, `git flow feature finish`, `npm run verify` on the
   merged `develop`, and CHE-41 through In Review to Done with one completion

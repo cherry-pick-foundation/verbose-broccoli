@@ -53,7 +53,7 @@ shows a notification naming the offer, the second shows none.
    naming the offer's title, provider, amount and source link.
 2. **Given** new offers in the period that all state an end date, a trial
    period or a required payment, **When** the search runs, **Then** no
-   notification appears and no agent session starts.
+   notification appears.
 3. **Given** no new offer in the period, **When** the search runs, **Then**
    it ends without a Jev call and without a notification.
 4. **Given** any run, **When** it ends, **Then** no file, record or cache
@@ -199,8 +199,9 @@ compare it with the recorded interval.
 - **FR-011**: The search MUST print how many Jev calls it made, so paid calls
   can be counted.
 - **FR-012**: An Orca automation MUST run the search on the laptop every 6
-  hours, starting an agent session only when the search finds a strong offer.
-  It MUST be created only after the user approves its description.
+  hours as its precheck, which sends the notification itself and never
+  starts an agent session (user choice, 2026-09-30). It MUST be created only
+  after the user approves its description.
 - **FR-013**: The feature records MUST hold the offer history data, the
   definition of a strong offer, the average-interval calculation and the
   observed listing durations.
