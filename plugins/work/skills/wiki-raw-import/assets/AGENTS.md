@@ -175,9 +175,9 @@ front matter's `sources` field:
   offset counts only in an ISO date-time such as `2026-09-29T14:30-05:00`;
   elsewhere a minus before a time makes a range, as in `14:00 - 15:30`.
 
-The language, school and date rules skip link targets: link destinations,
-autolinks and bare URLs, which a page cannot change without breaking the
-link. Link text is checked.
+The language, school and date rules skip link targets outside code: link
+destinations, autolinks and bare URLs, which a page cannot change without
+breaking the link. Link text, link titles and code are checked.
 
 It reads the roster through backfire's `education.toml` only when a student
 page or such text exists. A passing `check` does not prove the rest, which

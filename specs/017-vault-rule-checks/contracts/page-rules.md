@@ -96,26 +96,30 @@ The original holds at most 100 characters between its marks and at least
 one CJK letter. The translation holds at least one Latin letter and no CJK
 letter outside name spans. Only the original's characters are exempt from
 `english` and `school`; the contact rules still apply inside it. Link text
-and code spans get no other exception, apart from link targets written in
-them (below).
+and code spans get no other exception.
 
 ### Link targets
 
-Link targets are:
+Link targets are these forms outside code:
 
-- what follows `](` up to its closing `)`, as in `[text](destination)`:
-  either `<…>` without a line break or an unescaped `<` or `>` inside, so
-  it may hold spaces and `)`, or the text up to the first unescaped `)`,
-  a link title included; a backslash escapes the character after it;
+- a link destination, as in `[text](destination)`: either `<…>` without a
+  line break or an unescaped `<` or `>` inside, so it may hold spaces and
+  `)`, or text without spaces up to the unescaped `)` that closes it,
+  holding at most one level of balanced parentheses; a backslash escapes
+  the character after it. A title in `"…"`, `'…'` or `(…)` after the
+  destination is not part of it and is checked;
 - CommonMark autolinks (`<scheme:...>` or `<name@domain>`, without spaces);
-- bare URLs (`http://` or `https://` up to the next space).
+- bare URLs (`http://` or `https://` up to the next space), outside link
+  titles and link destinations.
 
-The patterns do not parse Markdown, so these forms count inside code spans
-too. Other text in angle brackets, such as an HTML comment, is not a link
-target. `english`,
-`school` and `date` do not check link targets, which a page cannot change
-without breaking the link; link text is checked. `phone`, `email`,
-`id-number`, `address` and `time` check link targets too.
+Code is a fenced or indented code block, as markdown-it-py's CommonMark
+parser finds it, or an inline code span: a run of backticks up to the next
+run of the same length in the same paragraph. The same forms inside code
+are checked. Other text in angle brackets, such as an HTML comment, is not
+a link target. `english`, `school` and `date` do not check link targets,
+which a page cannot change without breaking the link; link text is
+checked. `phone`, `email`, `id-number`, `address` and `time` check link
+targets too.
 
 `school` tests only roster school spans that hold a CJK letter, so text in
 Latin letters passes it: a domain ID, and a phrase that merely ends in

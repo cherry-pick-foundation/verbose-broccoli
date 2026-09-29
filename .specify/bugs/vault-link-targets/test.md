@@ -24,12 +24,16 @@ finish removes, and the other three vaults still pass.
 | New tests, without fix       | `PYTHONDONTWRITEBYTECODE=1 uv run --project packages/wiki-consistency --frozen --offline --no-sync pytest -p no:cacheprovider -q packages/wiki-consistency/tests/test_rules.py` with `rules.py` from `6039981` | fail   | `7 failed, 96 passed`: the four link-target cases, the two zoned fractional-second cases and the book title.                                    |
 | New tests, with fix          | The same command at `104c7d0`                                                                                                                                                                | pass   | `103 passed`.                                                                                                                                     |
 | Review guard tests           | The same command at `9aebec6`                                                                                                                                                                | pass   | `106 passed`; the three added cases pass without code changes.                                                                                    |
-| Regression suite and checks  | `deno task verify --task che-35 --base 8ce9b2a --plan plan.json` at `aba3ea1`, with `plan.json` as shown below the table                                                                    | pass   | Exit 0, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:wiki-consistency`.                                            |
-| The four vaults, read only   | `uv run --project packages/wiki-consistency --frozen --offline --no-sync wiki-consistency check --wiki <name>` from this worktree at `aba3ea1`                                               | partial | `default`, `code` and `chat` exit 0. `work` exits 1 with 2 `date` problems (the count lists), down from 273; the page fix follows the finish.     |
+| Mask narrowing, without      | The same command at `b82681d` with `rules.py` from `bcffef4`                                                                                                                                | fail   | `8 failed, 107 passed`: link-like text in code (three cases), a bare URL in a code span and four link titles.                                    |
+| Mask narrowing, with         | The same command at `b82681d`                                                                                                                                                                | pass   | `115 passed`.                                                                                                                                     |
+| Second review fixes, without | The same command at `ea34d9a` with `rules.py` from `b82681d`                                                                                                                                | fail   | `3 failed, 119 passed`: a code span across paragraphs, balanced parentheses in a destination, and text after a URL destination.                   |
+| Second review fixes, with    | The same command at `ea34d9a`                                                                                                                                                                | pass   | `122 passed`.                                                                                                                                     |
+| Regression suite and checks  | `deno task verify --task che-35 --base 8ce9b2a --plan <file>`, where `<file>` holds the JSON below the table, at `aba3ea1`, at `bcffef4`, at `b82681d` and at `ea34d9a`, the last two with the record changes then pending | pass   | Exit 0 each time, workflow phase `VERIFIED`; it runs `deno task check`, which includes `test:wiki-consistency`. The plan gained `spec.md` after `bcffef4`. |
+| The four vaults, read only   | `uv run --project packages/wiki-consistency --frozen --offline --no-sync wiki-consistency check --wiki <name>` from this worktree at `aba3ea1`, `b82681d` and `ea34d9a`                     | partial | `default`, `code` and `chat` exit 0. `work` exits 1 with 2 `date` problems (the count lists), down from 273; the page fix follows the finish.     |
 
-`plan.json` is any file outside the repository holding this JSON, which
-lists each task's files for `deno task workflow` and `deno task verify`;
-pass its path to `--plan`:
+`<file>` is any file outside the repository holding this JSON, which lists
+each task's files for `deno task workflow` and `deno task verify`; the run
+used a temporary file in the coordinator's scratch directory:
 
 ```json
 {
@@ -47,6 +51,7 @@ pass its path to `--plan`:
         ".specify/bugs/vault-link-targets/assessment.md",
         ".specify/bugs/vault-link-targets/fix.md",
         ".specify/bugs/vault-link-targets/test.md",
+        "specs/017-vault-rule-checks/spec.md",
         "specs/017-vault-rule-checks/contracts/page-rules.md",
         "plugins/work/skills/wiki-raw-import/assets/AGENTS.md",
         "plugins/work/skills/wiki-consistency/SKILL.md",
@@ -73,6 +78,9 @@ FAILED …::test_english_and_school_skip_link_targets[bare-url]
 
 # test_rules.py with the fix
 103 passed
+
+# after the two review rounds, at ea34d9a
+122 passed
 
 # wiki-consistency check, work vault, before (develop 8ce9b2a) and after
 165 english, 86 school, 20 time, 2 date   ->   2 date

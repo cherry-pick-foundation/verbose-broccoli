@@ -219,8 +219,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   marks with its English translation in parentheses beside it; roster
   school names in Hangul outside such a quote, instead of domain IDs; and
   dates not written as YYYY-MM-DD or times without a zone. The language,
-  school and date rules skip link targets, which a page cannot change
-  without breaking the link.
+  school and date rules skip link targets outside code, which a page
+  cannot change without breaking the link.
   Roster names, phone numbers and email addresses are found with the work
   build's own `backfire_education` code, so the check sees them as backfire
   replaces them; it reads the roster only when a page needs it. A failure
