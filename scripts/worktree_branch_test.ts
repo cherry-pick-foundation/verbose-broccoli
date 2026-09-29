@@ -1,20 +1,23 @@
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {test} from 'node:test';
+import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {basename, dirname, fromFileUrl, join} from '@std/path';
+import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 
 const script = fromFileUrl(new URL('./worktree-branch.sh', import.meta.url));
 const decoder = new TextDecoder();
 
 async function git(cwd: string, ...args: string[]) {
-  const result = await new Deno.Command('git', {
-    args,
+  const result = spawnSync('git', args, {
     cwd,
-    env: gitEnv(cwd),
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+    env: {...process.env, ...gitEnv(cwd)},
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error) throw result.error;
   const stdout = decoder.decode(result.stdout).trim();
   const stderr = decoder.decode(result.stderr).trim();
-  assert(result.success, `git ${args.join(' ')} failed: ${stderr}`);
+  assert(result.status === 0, `git ${args.join(' ')} failed: ${stderr}`);
   return stdout;
 }
 
@@ -27,20 +30,32 @@ function gitEnv(cwd: string) {
   };
 }
 
-async function runScript(cwd: string) {
-  const result = await new Deno.Command('sh', {
-    args: [script],
+async function runScript(cwd: string, scriptPath = script) {
+  const result = spawnSync('sh', [scriptPath], {
     cwd,
-    env: gitEnv(cwd),
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+    env: {...process.env, ...gitEnv(cwd)},
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`sh terminated by signal ${result.signal}`);
   return {
-    code: result.code,
+    code: result.status ?? 1,
     stdout: decoder.decode(result.stdout).trim(),
     stderr: decoder.decode(result.stderr).trim(),
   };
 }
+
+test('worktree branch test runner rejects signal-terminated scripts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'worktree-branch-signal-'));
+  try {
+    const killed = join(root, 'killed.sh');
+    await writeFile(killed, 'kill -TERM $$\n');
+    await assertRejects(() => runScript(root, killed), Error, 'SIGTERM');
+  } finally {
+    await rm(root, {recursive: true});
+  }
+});
 
 type AddWorktree = (
   repo: string,
@@ -52,7 +67,7 @@ type AddWorktree = (
 async function temporary(
   run: (repo: string, addWorktree: AddWorktree) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'worktree-branch-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'worktree-branch-test-'));
   const repo = join(root, 'develop');
   const addWorktree: AddWorktree = async (
     repo,
@@ -69,7 +84,7 @@ async function temporary(
     return folder;
   };
   try {
-    await Deno.mkdir(repo);
+    await mkdir(repo);
     await git(repo, 'init', '--initial-branch=develop');
     await git(repo, 'config', 'user.name', 'Worktree Branch Test');
     await git(
@@ -78,13 +93,13 @@ async function temporary(
       'user.email',
       'worktree-branch-test@example.invalid',
     );
-    await Deno.writeTextFile(join(repo, 'seed.txt'), 'seed\n');
+    await writeFile(join(repo, 'seed.txt'), 'seed\n');
     await git(repo, 'add', 'seed.txt');
     await git(repo, 'commit', '-m', 'initial');
     await git(repo, 'branch', 'main');
     await run(repo, addWorktree);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
@@ -137,7 +152,7 @@ async function assertUnchanged(
   assertEquals(await snapshot(repo), before);
 }
 
-Deno.test('worktree branch: applies the documented name mappings and is idempotent', async () => {
+test('worktree branch: applies the documented name mappings and is idempotent', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = [
       {name: 'release-1.0', base: 'develop', target: 'release/1.0'},
@@ -179,7 +194,7 @@ Deno.test('worktree branch: applies the documented name mappings and is idempote
   });
 });
 
-Deno.test('worktree branch: skips branches that must not be renamed', async () => {
+test('worktree branch: skips branches that must not be renamed', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['feature/already', 'release/already', 'hotfix/already'];
     for (const name of cases) {
@@ -191,7 +206,7 @@ Deno.test('worktree branch: skips branches that must not be renamed', async () =
     }
 
     const ownCommit = await addWorktree(repo, 'own-commit');
-    await Deno.writeTextFile(join(ownCommit, 'own.txt'), 'own\n');
+    await writeFile(join(ownCommit, 'own.txt'), 'own\n');
     await git(ownCommit, 'add', 'own.txt');
     await git(ownCommit, 'commit', '-m', 'own change');
     let before = await snapshot(repo);
@@ -228,7 +243,7 @@ Deno.test('worktree branch: skips branches that must not be renamed', async () =
   });
 });
 
-Deno.test('worktree branch: refuses invalid or existing targets without changes', async () => {
+test('worktree branch: refuses invalid or existing targets without changes', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['release-', 'release-.hidden'];
     for (const name of cases) {

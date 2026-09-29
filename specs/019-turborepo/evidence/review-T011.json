@@ -1,0 +1,141 @@
+{
+  "note": "Two backfire_review calls (the patch exceeds the 50,000-character diff limit). Part 2 escalated on test gap and blast radius: npm run test:git-flow has one known failure until T009b removes the preload from the copied package.json.",
+  "part1_doctor_test": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.85,
+    "scores": {
+      "correctness": {
+        "score": 1.8800000000000001,
+        "confidence": 0.8200000000000001,
+        "probabilities": {
+          "0": 0.02,
+          "1": 0.08,
+          "2": 0.9
+        }
+      },
+      "spec_match": {
+        "score": 1.8800000000000001,
+        "confidence": 0.8200000000000001,
+        "probabilities": {
+          "0": 0.02,
+          "1": 0.08,
+          "2": 0.9
+        }
+      },
+      "test_gap": {
+        "score": 0.18,
+        "confidence": 0.73,
+        "probabilities": {
+          "0": 0.85,
+          "1": 0.12,
+          "2": 0.03
+        }
+      },
+      "blast_radius": {
+        "score": 0.07,
+        "confidence": 0.895,
+        "probabilities": {
+          "0": 0.94,
+          "1": 0.05,
+          "2": 0.01
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "review",
+    "composite": 0.9392500000000001,
+    "reason_codes": [
+      "confidence_below_auto_accept"
+    ],
+    "limiting_rubrics": [
+      "test_gap"
+    ],
+    "usage": {
+      "input_tokens": 12631,
+      "output_tokens": 3464
+    }
+  },
+  "part2_other_files": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.4,
+    "scores": {
+      "correctness": {
+        "score": 1.8099999999999998,
+        "confidence": 0.715,
+        "probabilities": {
+          "0": 0.02,
+          "1": 0.15,
+          "2": 0.83
+        }
+      },
+      "spec_match": {
+        "score": 1.8399999999999999,
+        "confidence": 0.76,
+        "probabilities": {
+          "0": 0.02,
+          "1": 0.12,
+          "2": 0.86
+        }
+      },
+      "test_gap": {
+        "score": 0.35,
+        "confidence": 0.475,
+        "probabilities": {
+          "0": 0.7,
+          "1": 0.25,
+          "2": 0.05
+        }
+      },
+      "blast_radius": {
+        "score": 0.8500000000000001,
+        "confidence": 0.475,
+        "probabilities": {
+          "0": 0.25,
+          "1": 0.65,
+          "2": 0.1
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "escalate",
+    "composite": 0.8479999999999999,
+    "reason_codes": [
+      "confidence_below_review",
+      "safe_to_apply_below_review"
+    ],
+    "limiting_rubrics": [
+      "test_gap",
+      "blast_radius"
+    ],
+    "usage": {
+      "input_tokens": 20695,
+      "output_tokens": 4357
+    }
+  }
+}

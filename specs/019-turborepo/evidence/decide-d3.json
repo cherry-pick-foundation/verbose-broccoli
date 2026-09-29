@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "What should replace 'deno fmt --check .github/ orca.yaml', the YAML formatting check inside the repository's format:check task, once the tooling moves from Deno to Node and Turborepo?",
+  "evidence": "deno.json's format:check runs Biome 2.5.14 format for code and then 'deno fmt --check .github/ orca.yaml' for YAML, with fmt.singleQuote true. Biome 2.5.14 does not format YAML: 'biome format orca.yaml' in a directory without configuration reports 'These paths were provided but ignored'. The YAML files are .github/workflows/{audit,check,docs-check,pr-title}.yml and orca.yaml. Prettier (npm) formats YAML and would be a new dev dependency; its output style can differ from deno fmt's, so the first run could reformat these files. Keeping deno fmt keeps Deno as a required development tool for this one check. Removing the YAML check drops a check.",
+  "candidates": [
+   {
+    "id": "prettier_yaml",
+    "description": "Add Prettier as a pinned dev dependency and run 'prettier --check' on the same YAML paths; accept one reformatting commit if its style differs."
+   },
+   {
+    "id": "keep_deno_fmt",
+    "description": "Keep 'deno fmt --check .github/ orca.yaml' as the YAML step, run from the Turborepo task, and report Deno as still required for YAML formatting."
+   },
+   {
+    "id": "drop_yaml_check",
+    "description": "Remove the YAML formatting step from format:check."
+   }
+  ],
+  "requirements": [
+   "Keeps a YAML formatting check.",
+   "Removes the Deno requirement from the check run."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "prettier_yaml",
+   "escaped": false,
+   "confidence": 0.832,
+   "probabilities": {
+    "prettier_yaml": 0.86,
+    "keep_deno_fmt": 0.05,
+    "drop_yaml_check": 0.02,
+    "ask_user": 0.04,
+    "investigate": 0.02,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "prettier_yaml",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "prettier_yaml",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "keep_deno_fmt",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "keep_deno_fmt",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "drop_yaml_check",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "drop_yaml_check",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2278,
+   "output_tokens": 3883
+  }
+ }
+}

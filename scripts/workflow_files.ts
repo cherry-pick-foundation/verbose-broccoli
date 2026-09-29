@@ -1,4 +1,5 @@
-import {expandGlobSync} from '@std/fs';
+import {globSync} from 'node:fs';
+import {lstat} from 'node:fs/promises';
 import {join, relative} from '@std/path';
 import {z} from '@zod/zod';
 import biome from '../biome.json' with {type: 'json'};
@@ -22,14 +23,14 @@ export const repositoryFileSchema = z
 
 export function listCodeFiles(root: string) {
   return [
-    ...expandGlobSync('**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}', {
-      root,
+    ...globSync('**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}', {
+      cwd: root,
       exclude: [...ignores, '**/.git/**'],
-      followSymlinks: false,
+      withFileTypes: true,
     }),
   ]
-    .filter(entry => entry.isFile && !entry.isSymlink)
-    .map(entry => relative(root, entry.path))
+    .filter(entry => entry.isFile() && !entry.isSymbolicLink())
+    .map(entry => relative(root, join(entry.parentPath, entry.name)))
     .sort();
 }
 
@@ -44,12 +45,16 @@ export async function getFileAccessError(
   try {
     for (const part of path.split('/')) {
       target = join(target, part);
-      const info = await Deno.lstat(target);
-      if (info.isSymlink || (target === join(root, path) && !info.isFile))
+      const info = await lstat(target);
+      if (
+        info.isSymbolicLink() ||
+        (target === join(root, path) && !info.isFile())
+      )
         return `File must be a regular file without symlink components: ${path}`;
     }
   } catch (error) {
-    if (!existingCode && error instanceof Deno.errors.NotFound) return;
+    if (!existingCode && (error as NodeJS.ErrnoException).code === 'ENOENT')
+      return;
     return `Cannot inspect file ${path}: ${String(error)}`;
   }
 }

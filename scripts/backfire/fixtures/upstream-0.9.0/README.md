@@ -32,8 +32,7 @@ PATH="$HOME/.local/share/mise/installs/node/24.19.0/bin:$PATH" \
   PYTHONDONTWRITEBYTECODE=1 \
   uv run --project packages/backfire --frozen --offline --no-sync \
   python -m backfire_tools.acceptance.capture_upstream
-deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run \
-  npm:@biomejs/biome@2.5.14 format --write \
+node_modules/.bin/biome format --write \
   scripts/backfire/fixtures/upstream-0.9.0/metadata.json \
   scripts/backfire/fixtures/upstream-0.9.0/tools-list.json
 ```

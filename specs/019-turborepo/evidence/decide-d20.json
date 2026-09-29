@@ -1,0 +1,83 @@
+{
+  "tool": "backfire_decide",
+  "date": "2026-09-29",
+  "arguments": {
+    "decision": "What should the root pyproject.toml's constraint-dependencies say, now that FR-013 moved the root uv.lock to develop's newer versions (openai 3.20.0, starlette 1.7.0, pyjwt 2.15.1, sse-starlette 3.5.0) with the exception typesafe-sdk 0.7.1?",
+    "evidence": "uv applies only the workspace root's constraint-dependencies; backfire's own typesafe-sdk==0.7.1 constraint is ignored inside the workspace, and backfire's test_package_dependency_versions fails at 0.7.2, so the root constraint typesafe-sdk==0.7.1 is required. The root also pins starlette==1.7.0, openai==3.20.0, pyjwt==2.15.1 and sse-starlette==3.5.0 and caps magika<=0.6.3 (the cap keeps develop's magika 0.6.2/0.6.3 split for Windows). uv lock keeps locked versions unless asked to upgrade, so without the four == pins the lock stays the same today; with them a later 'uv lock --upgrade' silently keeps those four packages. The file has no comment explaining any constraint. The trial first used upper bounds (<=) to hold the old versions equal to develop's per-package locks.",
+    "candidates": [
+      {
+        "id": "comment_pins",
+        "description": "Keep every constraint and add a short comment above them saying the == pins hold develop's tested versions (FR-013) and typesafe-sdk holds backfire's pin."
+      },
+      {
+        "id": "only_needed",
+        "description": "Keep only typesafe-sdk==0.7.1 and the magika cap, with a comment each; drop the four == pins, since the lock already holds those versions."
+      },
+      {
+        "id": "keep_as_is",
+        "description": "Leave the constraints as they are."
+      }
+    ],
+    "requirements": [
+      "The root uv.lock keeps develop's newer versions and the typesafe-sdk exception.",
+      "A reader of pyproject.toml can tell why each constraint is there."
+    ],
+    "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, the trial is now the real change: Deno is removed completely; this is the fix round after the final reviews, before merging into develop, and a review before develop favors speed):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+  },
+  "result": {
+    "tool": "backfire_decide",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "recommendation": {
+      "selected": "only_needed",
+      "escaped": false,
+      "confidence": 0.64,
+      "probabilities": {
+        "comment_pins": 0.2,
+        "only_needed": 0.7,
+        "keep_as_is": 0.04,
+        "ask_user": 0.03,
+        "investigate": 0.02,
+        "none": 0.01
+      }
+    },
+    "requirements_checked": 2,
+    "checks": [
+      {
+        "candidate": "comment_pins",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "comment_pins",
+        "requirement": 1,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "only_needed",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "only_needed",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "keep_as_is",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "keep_as_is",
+        "requirement": 1,
+        "answer": "contradicted"
+      }
+    ],
+    "warnings": [],
+    "usage": {
+      "input_tokens": 2395,
+      "output_tokens": 5217
+    }
+  }
+}

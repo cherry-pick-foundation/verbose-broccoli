@@ -8,7 +8,10 @@ are not requirement, evidence or implementation sources.
 ## Current skeleton
 
 Each package has a `plugin.json`; the code and work packages also have
-`skills/`. Only `code` has a Deno workspace configuration. Current versions and MCP declarations come from
+`skills/`. The `code` package has a small `package.json` that only declares
+its exports for the import-boundary check, and its clean-code skill has its
+own npm package manifest with the skill's dependencies. Current versions and
+MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
@@ -19,24 +22,24 @@ The `work` package contains the `quarto-authoring`, `session-migrate`,
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
-has no skills, Deno configuration, MCP declaration or scripts, and its
+has no skills, package manifest, MCP declaration or scripts, and its
 persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
 
-Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins
-schemas. `deno task check` runs the runtime doctor, formatting, lint, the
+Root tasks reuse Node.js and Ajv with the unmodified official Agent Plugins
+schemas. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
 shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
 suites, the reference drift check and the document region check (see
 [Document consistency](#document-consistency--2026-09-28)). Biome formats and lints code and JSON with
 one root `biome.json`, which keeps the Google TypeScript style settings, turns
 on its floating-promise check, and bans runtime and I/O globals in `domain/`
-folders; `deno fmt` formats YAML. Biome 2.5.14 runs through Deno's npm support,
-and its package ships a platform-specific native binary that `deno.lock` pins.
+folders; Prettier formats YAML. Biome 2.5.14 is a pinned npm dependency,
+and its package ships a platform-specific native binary that `package-lock.json` pins.
 Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
 The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
 which the Google shell style guide recommends, checks the repository's own
-shell scripts: `deno task lint:shell` runs it on every `*.sh` file and on the
+shell scripts: `npm run lint:shell` runs it on every `*.sh` file and on the
 hooks in `scripts/git-hooks/` and `scripts/git-flow-hooks/`, but not on Spec
 Kit's vendored scripts under `.specify/`. The root `.shellcheckrc` turns on
 four optional checks for guide rules: `${var}` braces, quoted variables,
@@ -45,7 +48,7 @@ POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
-selected standalone Deno/Quarto executables, uv, git-flow and lychee from
+selected standalone Quarto executable, uv, git-flow and lychee from
 `PATH`, the Spec Kit, ShellCheck, Ruff, doc-regions and wiki-consistency
 environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
@@ -56,8 +59,8 @@ diff before each commit and leaves the independent review to the merge into `dev
 feature work.
 
 The [command reference](reference/commands.md) lists every root task and the five
-selected help entrypoints. `deno task docs:generate` refreshes exactly the two
-files in `docs/reference/`; `deno task docs:check` rejects stale, missing or
+selected help entrypoints. `npm run docs:generate` refreshes exactly the two
+files in `docs/reference/`; `npm run docs:check` rejects stale, missing or
 unexpected output without changing files or the Git index. Authored guidance and
 live Wiki data are outside both commands' scope.
 
@@ -116,20 +119,20 @@ Codes are `INVALID_ARGUMENT`, `EXECUTION_FAILED` and `CHECK_FAILED`. The
 `details` field sits beside `error` and keeps the checker or workflow report,
 including loop evidence, graph diagnostics and skill guidance when a workflow
 gate fails. A selected REVIEW mode is not a failed check and still exits 0.
-Use `deno task --quiet <command>` for machine consumption; Deno's own banners
-and launch failures are outside this contract, and Biome, `deno fmt` and Deno
+Use `npm run --silent <command>` for machine consumption; npm's own banners
+and launch failures are outside this contract, and Biome, Prettier and Node
 test output keep their native form.
 
-`deno task test:cli-contract` checks these rules with real child processes, and
+`npm run test:cli-contract` checks these rules with real child processes, and
 help snapshots freeze the presentation. A copied-skill test checks that
 clean-code runs outside the repository. Update the snapshots only after review
-with `deno task test:cli-contract -- --update`, then rerun without updating.
+with `npm run test:cli-contract -- --update`, then rerun without updating.
 The Clean Code skill and checker share mechanically selected files; see
 the `code` package's [Clean Code skill](../plugins/code/skills/clean-code/SKILL.md). Adding a
 workspace member does not make it an independently published JSR package.
 
 The root README is a short project summary; use specs and docs for detailed
-documentation. The dependency pins remain in `deno.json` and `deno.lock`, and
+documentation. The dependency pins remain in `package.json` and `package-lock.json`, and
 the Ajv subpath mapping uses the same approved package version.
 
 ## Package and runtime ownership
@@ -247,10 +250,10 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   numbers and email addresses before the provider call and sends all other
   text as it is, and confirms a contradiction between two pages with
   `backfire_compare`.
-- `deno task wiki-consistency:install` installs both environments, after
+- `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
-  library; Orca's setup script runs the same installs, and `deno task
-  doctor` checks them and Node 22. `deno task test:wiki-consistency` runs
+  library; Orca's setup script runs the same installs, and `npm run
+  doctor` checks them and Node.js 24.12.0 or later. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
@@ -262,10 +265,10 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
 stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
 --frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
-package lives in `packages/backfire/src/backfire/`, outside the root Deno
+package lives in `packages/backfire/src/backfire/`, a member of the root uv
 workspace. The work plugin's additions, the pseudonymization module and the
 education profile, live in `packages/backfire/src/backfire_education/`.
-`deno task backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
+`npm run backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
 the packages that plugin needs into a complete plugin at an output path outside
 `plugins/` and `packages/`; one table in `backfire_tools/build.py` lists them
 per plugin. The development and release programs in
@@ -293,7 +296,8 @@ Reuse existing dependencies directly first. Constitution IX puts reusable
 implementation packages, including libraries and MCP servers, under
 `packages/<name>/src/`; add one only for a concrete shared need. A package joins
 a toolchain workspace only when it has executable code for that toolchain, so
-the Python package `packages/backfire/` stays outside the root Deno workspace.
+the Python package `packages/backfire/` joins the root uv workspace and no npm
+workspace.
 Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
@@ -348,7 +352,7 @@ initialized `.specify` scripts, templates and constitution; those project assets
 are not moved into the plugin. Quarto retains its existing host runtime
 requirement.
 
-`deno task test:plugin-skills` checks that the project keeps no skill discovery
+`npm run test:plugin-skills` checks that the project keeps no skill discovery
 links and that `.agents/ponytail` resolves to the `code` package, copies skill
 resources into temporary packages without workspace links, then runs the
 upstream Ponytail checks. This checks resource packaging; client installation
@@ -384,7 +388,7 @@ use live in `plugins/code/skills` instead.
   1.0.12 (commit `e77daa9`), PyYAML and Python 3.14; `pyproject.toml` requires
   uv 0.11.32. Orca's setup script runs `uv sync --locked --project
   tools/spec-kit` in each worktree to create the gitignored `.venv`, and
-  `deno task doctor` fails when that environment is missing or differs from the
+  `npm run doctor` fails when that environment is missing or differs from the
   lock. Run Spec Kit from the repository root as
   `uv run --project tools/spec-kit specify …`.
 
@@ -398,7 +402,7 @@ flow rule.
 - git-flow-next is a host tool at `~/.local/bin/git-flow`, installed from the
   release's linux-amd64 archive after checking it against the release's
   checksum file. Orca's setup script requires it, trusts the committed hook
-  path and runs `git flow config sync`. `deno task doctor` checks its version
+  path and runs `git flow config sync`. `npm run doctor` checks its version
   and that the local Git config matches `.gitflow`.
 - `.gitflow` configures only `main`, `develop` and `feature/`. Features merge
   with `--no-ff`, keep their branch, never fetch or push, and are updated from
@@ -423,12 +427,12 @@ flow rule.
   that worktree is on `develop` with no uncommitted changes, `develop` is an
   ancestor of the feature, the feature is checked out in a clean worktree, its
   tip is a review record, every non-merge feature commit that changes the
-  constitution passes the version rule against its parent, and `deno task
+  constitution passes the version rule against its parent, and `npm run
   verify` passes there. A review record has one parent and the same tree as
   that parent, exactly one non-empty `Reviewed-by` trailer, and exactly one
   `Reviewed-commit` trailer that resolves to the parent. The merge then has
   Git's default message, its parents are `develop` and then the review record,
-  and its tree is the reviewed and verified feature tree. `deno task
+  and its tree is the reviewed and verified feature tree. `npm run
   test:git-flow` checks these cases with the real binary.
 - Orca's setup script gives a new worktree's branch its git flow name, because
   `orca worktree create` has no branch option and turns a `/` in `--name` into
@@ -438,7 +442,7 @@ flow rule.
   leading `feature-`. It renames only a branch that has no upstream and no
   commits of its own, never `develop` or `main`, and changes nothing on a
   second run; folder names stay flat. Remove the script and its setup line
-  once `orca worktree create` offers a branch option. `deno task
+  once `orca worktree create` offers a branch option. `npm run
   test:worktree-branch` checks it.
 - Not automated: deciding that a feature is ready, running the merge review,
   updating a feature after `develop` moves (merge `develop` into it, verify,
@@ -451,8 +455,8 @@ Every commit in a set-up worktree passes the `commit-msg` hook
 `scripts/git-hooks/commit-msg`. It runs commitlint 21.2.3
 (<https://github.com/conventional-changelog/commitlint>, MIT) with
 `@commitlint/config-conventional` and the Conventional Commits parser preset
-from `conventional-changelog-conventionalcommits` 10.4.0, pinned in `deno.json`
-and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
+from `conventional-changelog-conventionalcommits` 10.4.0, pinned in `package.json`
+and `package-lock.json` and run by `npm run commitlint`.
 
 - Headers must follow Conventional Commits 1.0.0 as `config-conventional`
   defines it. Any trailer is accepted, including `Spec-Kit-Task`,
@@ -494,10 +498,10 @@ and `deno.lock` and run through Deno's npm support by `deno task commitlint`.
 - Git finds the hook through the repository setting `core.hooksPath =
   scripts/git-hooks`. The path is relative, so each worktree runs its own
   checkout's hook, and a worktree whose checkout has no `scripts/git-hooks/`
-  runs none. Orca's setup script sets it, and `deno task doctor` fails when it
-  differs. The hook finds Deno at `~/.deno/bin/deno` or on `PATH` and refuses
-  the commit when neither exists.
-- `deno task test:commit-msg` checks the rule and real commits in temporary
+  runs none. Orca's setup script sets it, and `npm run doctor` fails when it
+  differs. The hook finds Node.js on `PATH` and refuses
+  the commit when it is missing.
+- `npm run test:commit-msg` checks the rule and real commits in temporary
   repositories.
 
 ### Linear — 2026-09-27
@@ -528,7 +532,7 @@ Linear extension is used. The design and its reasons are in
   record on the feature branch, moves the issue to In Review, runs the merge
   review and finish described under [Git flow](#git-flow--2026-09-27), then
   moves the issue to Done with one completion comment giving the merge commit
-  and the record location instead of a PR link. `deno task workflow` prints
+  and the record location instead of a PR link. `npm run workflow` prints
   this order in every mode. The commands are in
   [the life-cycle contract](../specs/007-linear-usage/contracts/linear-lifecycle.md).
 - Issues are archived, never deleted. The free plan counts only non-archived
@@ -539,7 +543,7 @@ Linear extension is used. The design and its reasons are in
   to the user.
 - Orca cannot archive or delete issues or create labels, projects, documents,
   cycles or milestones. Label, project and team-setting changes happen in
-  Linear's UI, and no other Linear integration is added; the same `deno task
+  Linear's UI, and no other Linear integration is added; the same `npm run
   workflow` instruction says so.
 
 ### Document consistency — 2026-09-28
@@ -565,15 +569,15 @@ or an agent region, written by agents. No part is human-written.
   test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
   and a missing source that raises. The function reads only its named sources
   and uses no network, clock or environment. Then put the markers around the
-  text in a target and run `deno task doc-regions:update`.
-- `deno task check`, and so `deno task verify`, runs `deno task
+  text in a target and run `npm run doc-regions:update`.
+- `npm run check`, and so `npm run verify`, runs `npm run
   doc-regions:check`. It fails when a region differs from its generator's
   output, a marker is malformed or names a missing source, or a target links
   to a missing local file or heading (lychee 0.24.2, offline). It writes
-  nothing and uses no network. `deno task doc-regions:update` regenerates
+  nothing and uses no network. `npm run doc-regions:update` regenerates
   stale regions.
 - Before each `develop` merge review, the main agent runs the judgment step
-  that `deno task workflow` prints in REVIEW mode. `deno task
+  that `npm run workflow` prints in REVIEW mode. `npm run
   doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
   `backfire_verify` requests, with units as claims and the feature diff as
@@ -581,13 +585,13 @@ or an agent region, written by agents. No part is human-written.
   The agent sends them through its MCP client. It corrects target units judged
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.
-- `deno task doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
+- `npm run doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
   on `AGENTS.md` and the constitution. It downloads the pinned archive once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
   Findings for these two files, from the audit or from backfire, are only
   reported to the user; the tooling never changes them.
 - The engine is the uv project `packages/doc-regions/`. Orca's setup script
-  syncs it, and `deno task doctor` checks its environment and lychee's version.
+  syncs it, and `npm run doctor` checks its environment and lychee's version.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
 - lychee is a host tool at `~/.local/bin/lychee`, installed from the release's

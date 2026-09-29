@@ -1,0 +1,5 @@
+# CHE-32 final review CR1: Node scripts, the clean-code skill and the tooling configuration (read-only)
+
+**Report file**: `specs/019-turborepo/evidence/review-CR1.md`.
+
+**Scope** (`git diff 8ce9b2a 9d8af61 -- <path>`): the non-test TypeScript in `scripts/` (`clean_architecture.ts`, `commitlint.config.mjs`, `constitution_version.ts`, `docs.ts`, `doctor.ts`, `hash.ts`, `validate_plugins.ts`, `workflow.ts`, `workflow_files.ts`, `workflow_git.ts`, `workflow_graph.ts`, `workflow_plan.ts`, `workflow_skills.ts`, `workflow_symbol.ts`, `workflow_verify.ts`, `workflow-evidence.schema.json`), the hooks `scripts/git-hooks/commit-msg` and `scripts/git-flow-hooks/pre-flow-feature-finish`, the clean-code skill (`plugins/code/skills/clean-code/`: `SKILL.md`, `package.json`, `.npmrc`, `scripts/clean_code.ts`, `scripts/cli.ts`), `plugins/code/package.json`, and the tooling configuration: `package.json`, `.npmrc`, `turbo.json`, `tsconfig.json`, `biome.json`, `.gitignore`, `orca.yaml` and `.github/workflows/*.yml`. Skip lock files and the generated `docs/reference/`.

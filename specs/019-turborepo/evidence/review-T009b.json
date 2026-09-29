@@ -1,0 +1,142 @@
+{
+  "note": "The first call cut the diff at 50,000 characters (the generated docs/reference/commands.md at its end); the second call left out the generated command reference and the regenerated package-lock.json.",
+  "first": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.2,
+    "scores": {
+      "correctness": {
+        "score": 1.75,
+        "confidence": 0.625,
+        "probabilities": {
+          "0": 0.05,
+          "1": 0.15,
+          "2": 0.8
+        }
+      },
+      "spec_match": {
+        "score": 1.4,
+        "confidence": 0.09999999999999987,
+        "probabilities": {
+          "0": 0.1,
+          "1": 0.4,
+          "2": 0.5
+        }
+      },
+      "test_gap": {
+        "score": 0.6000000000000001,
+        "confidence": 0.09999999999999987,
+        "probabilities": {
+          "0": 0.5,
+          "1": 0.4,
+          "2": 0.1
+        }
+      },
+      "blast_radius": {
+        "score": 1.8,
+        "confidence": 0.7,
+        "probabilities": {
+          "0": 0.05,
+          "1": 0.1,
+          "2": 0.85
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "escalate",
+    "composite": 0.68,
+    "reason_codes": [
+      "confidence_below_review",
+      "safe_to_apply_below_review"
+    ],
+    "limiting_rubrics": [
+      "spec_match",
+      "test_gap"
+    ],
+    "usage": {
+      "input_tokens": 16485,
+      "output_tokens": 11141
+    }
+  },
+  "second": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.35,
+    "scores": {
+      "correctness": {
+        "score": 1.83,
+        "confidence": 0.7449999999999999,
+        "probabilities": {
+          "0": 0.02,
+          "1": 0.13,
+          "2": 0.85
+        }
+      },
+      "spec_match": {
+        "score": 1.15,
+        "confidence": 0.475,
+        "probabilities": {
+          "0": 0.1,
+          "1": 0.65,
+          "2": 0.25
+        }
+      },
+      "test_gap": {
+        "score": 0.5,
+        "confidence": 0.25,
+        "probabilities": {
+          "0": 0.55,
+          "1": 0.4,
+          "2": 0.05
+        }
+      },
+      "blast_radius": {
+        "score": 1.95,
+        "confidence": 0.925,
+        "probabilities": {
+          "0": 0,
+          "1": 0.05,
+          "2": 0.95
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "escalate",
+    "composite": 0.65475,
+    "reason_codes": [
+      "confidence_below_review",
+      "safe_to_apply_below_review"
+    ],
+    "limiting_rubrics": [
+      "test_gap"
+    ],
+    "usage": {
+      "input_tokens": 15546,
+      "output_tokens": 9260
+    }
+  }
+}

@@ -1,6 +1,24 @@
-import {assert, assertEquals, assertMatch} from '@std/assert';
-import {copy, walk} from '@std/fs';
+import {test} from 'node:test';
+import {
+  appendFile,
+  chmod,
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {basename, dirname, fromFileUrl, join, relative} from '@std/path';
+import {spawn, type ChildProcess} from 'node:child_process';
 
 const script = fromFileUrl(
   new URL(
@@ -10,18 +28,59 @@ const script = fromFileUrl(
 );
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
+const readText = (path: string) => readFile(path, 'utf8');
+const readDir = (path: string) => readdirSync(path, {withFileTypes: true});
 
-async function output(command: Deno.Command) {
-  const result = await command.output();
-  return {
-    code: result.code,
-    stdout: decoder.decode(result.stdout),
-    stderr: decoder.decode(result.stderr),
-  };
+async function* walk(root: string) {
+  yield {path: root, isDirectory: true, isSymlink: false};
+  for (const entry of await readdir(root, {
+    recursive: true,
+    withFileTypes: true,
+  })) {
+    yield {
+      path: join(entry.parentPath, entry.name),
+      isDirectory: entry.isDirectory(),
+      isSymlink: entry.isSymbolicLink(),
+    };
+  }
 }
 
+function output(command: ChildProcess) {
+  return new Promise<{code: number; stdout: string; stderr: string}>(
+    (resolve, reject) => {
+      const stdout: Buffer[] = [];
+      const stderr: Buffer[] = [];
+      command.stdout?.on('data', (chunk: Buffer) => stdout.push(chunk));
+      command.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk));
+      command.once('error', reject);
+      command.once('close', (code, signal) => {
+        if (signal) {
+          reject(new Error(`Child process terminated by signal ${signal}`));
+          return;
+        }
+        resolve({
+          code: code ?? 1,
+          stdout: decoder.decode(Buffer.concat(stdout)),
+          stderr: decoder.decode(Buffer.concat(stderr)),
+        });
+      });
+    },
+  );
+}
+
+test('wiki raw import test helper rejects signal termination', async () => {
+  const command = spawn(
+    process.execPath,
+    ['-e', "process.kill(process.pid, 'SIGKILL')"],
+    {stdio: ['ignore', 'pipe', 'pipe']},
+  );
+  await assertRejects(() => output(command), Error, 'SIGKILL');
+});
+
 async function uvLocation(...args: string[]) {
-  const result = await output(new Deno.Command('uv', {args}));
+  const result = await output(
+    spawn('uv', args, {stdio: ['ignore', 'pipe', 'pipe']}),
+  );
   assertEquals(result.code, 0, result.stderr);
   return result.stdout.trim();
 }
@@ -32,34 +91,31 @@ const python = await uvLocation('python', 'find', '3.14');
 
 async function snapshot(root: string, times = false) {
   const entries = [];
-  for await (const entry of walk(root, {
-    includeDirs: true,
-    followSymlinks: false,
-  })) {
-    const stat = await Deno.lstat(entry.path);
+  for await (const entry of walk(root)) {
+    const fileInfo = await lstat(entry.path);
     entries.push({
       path: relative(root, entry.path),
-      mode: stat.mode,
-      bytes: stat.isFile ? Array.from(await Deno.readFile(entry.path)) : null,
-      ...(times ? {mtime: stat.mtime?.getTime()} : {}),
+      mode: fileInfo.mode,
+      bytes: fileInfo.isFile() ? Array.from(await readFile(entry.path)) : null,
+      ...(times ? {mtime: fileInfo.mtime?.getTime()} : {}),
     });
   }
   return entries.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 async function fixture(run: (f: Fixture) => Promise<void>) {
-  const home = await Deno.makeTempDir({prefix: 'wiki-raw-import-'});
+  const home = await mkdtemp(join(tmpdir(), 'wiki-raw-import-'));
   const f = new Fixture(home);
   try {
     await run(f);
   } finally {
     // Published bags are deliberately read-only; only the fixture owner removes them.
-    for await (const entry of walk(home, {followSymlinks: false})) {
+    for await (const entry of walk(home)) {
       if (!entry.isSymlink)
-        await Deno.chmod(entry.path, entry.isDirectory ? 0o700 : 0o600);
+        await chmod(entry.path, entry.isDirectory ? 0o700 : 0o600);
     }
     await f.originalsUnchanged();
-    await Deno.remove(home, {recursive: true});
+    await rm(home, {recursive: true});
   }
 }
 
@@ -69,7 +125,10 @@ class Fixture {
   raw: string;
   originals = new Map<string, {bytes: Uint8Array; mtime: number | undefined}>();
 
-  constructor(readonly home: string) {
+  readonly home: string;
+
+  constructor(home: string) {
+    this.home = home;
     this.env = {
       HOME: home,
       XDG_DATA_HOME: join(home, 'data'),
@@ -92,22 +151,16 @@ class Fixture {
   }
 
   command(...args: string[]) {
-    return new Deno.Command('uv', {
-      args: [
-        'run',
-        '--quiet',
-        '--locked',
-        '--offline',
-        '--script',
-        script,
-        ...args,
-      ],
-      cwd: this.home,
-      env: this.env,
-      stdout: 'piped',
-      stderr: 'piped',
-      signal: AbortSignal.timeout(30_000),
-    });
+    return spawn(
+      'uv',
+      ['run', '--quiet', '--locked', '--offline', '--script', script, ...args],
+      {
+        cwd: this.home,
+        env: {...process.env, ...this.env},
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout: 30_000,
+      },
+    );
   }
 
   async run(...args: string[]) {
@@ -129,21 +182,21 @@ class Fixture {
   }
 
   async fileAt(path: string, text = 'synthetic original\n') {
-    await Deno.mkdir(dirname(path), {recursive: true});
-    await Deno.writeTextFile(path, text);
+    await mkdir(dirname(path), {recursive: true});
+    await writeFile(path, text);
     this.originals.set(path, {
-      bytes: encoder.encode(text),
-      mtime: (await Deno.stat(path)).mtime?.getTime(),
+      bytes: Buffer.from(text),
+      mtime: (await stat(path)).mtime?.getTime(),
     });
     return path;
   }
 
   async originalsUnchanged() {
     for (const [path, before] of this.originals) {
-      const stat = await Deno.stat(path);
-      assertEquals(stat.mtime?.getTime(), before.mtime, path);
-      if ((stat.mode ?? 0) & 0o400)
-        assertEquals(await Deno.readFile(path), before.bytes, path);
+      const fileInfo = await stat(path);
+      assertEquals(fileInfo.mtime?.getTime(), before.mtime, path);
+      if ((fileInfo.mode ?? 0) & 0o400)
+        assertEquals(await readFile(path), before.bytes, path);
     }
   }
 
@@ -152,8 +205,8 @@ class Fixture {
       this.env.XDG_STATE_HOME,
       'verbose-broccoli/vaults/work/selections/test.jsonl',
     );
-    await Deno.mkdir(dirname(path), {recursive: true});
-    await Deno.writeTextFile(
+    await mkdir(dirname(path), {recursive: true});
+    await writeFile(
       path,
       items.map(item => `${JSON.stringify(item)}\n`).join(''),
     );
@@ -228,7 +281,7 @@ async function digest(bytes: Uint8Array) {
   ).join('');
 }
 
-Deno.test('raw import: locked offline help and missing-instance errors', async () => {
+test('raw import: locked offline help and missing-instance errors', async () => {
   await fixture(async f => {
     const help = await f.run('--help');
     assertEquals(help.code, 0, help.stderr);
@@ -248,7 +301,7 @@ Deno.test('raw import: locked offline help and missing-instance errors', async (
   });
 });
 
-Deno.test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
+test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('- 한국어 paper.txt');
@@ -263,11 +316,8 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
     assertMatch(item.revision!, /^\d{8}T\d{12}Z$/);
     const revision = revisionPath(f, item);
     const payload = join(revision, 'data', basename(path));
-    assertEquals(await Deno.readFile(payload), await Deno.readFile(path));
-    assertEquals(
-      (await Deno.stat(payload)).mtime,
-      (await Deno.stat(path)).mtime,
-    );
+    assertEquals(await readFile(payload), await readFile(path));
+    assertEquals((await stat(payload)).mtime, (await stat(path)).mtime);
     const entries = await snapshot(revision);
     assertEquals(
       entries
@@ -285,11 +335,11 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
     for (const entry of entries)
       assertEquals((entry.mode ?? 0) & 0o222, 0, entry.path);
     assertEquals(
-      await Deno.readTextFile(join(revision, 'manifest-sha256.txt')),
-      `${await digest(await Deno.readFile(path))}  data/${basename(path)}\n`,
+      await readText(join(revision, 'manifest-sha256.txt')),
+      `${await digest(await readFile(path))}  data/${basename(path)}\n`,
     );
     const info = Object.fromEntries(
-      (await Deno.readTextFile(join(revision, 'bag-info.txt')))
+      (await readText(join(revision, 'bag-info.txt')))
         .trim()
         .split('\n')
         .map(line => {
@@ -303,10 +353,10 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
     assertMatch(info['Source-Modified'], /T.*\+00:00$/);
     assertEquals(
       new Date(info['Source-Modified']).getTime(),
-      (await Deno.stat(path)).mtime?.getTime(),
+      Number((await stat(path, {bigint: true})).mtimeNs / 1_000_000n),
     );
     assertMatch(info['Bagging-Date'], /^\d{4}-\d{2}-\d{2}$/);
-    assertEquals(info['Payload-Oxum'], `${(await Deno.stat(path)).size}.1`);
+    assertEquals(info['Payload-Oxum'], `${(await stat(path)).size}.1`);
     const before = await snapshot(f.home, true);
     const verified = await f.run('verify');
     assertEquals(verified.code, 0, verified.stderr);
@@ -317,7 +367,7 @@ Deno.test('raw import US1: one immutable bag preserves payload, digest, timestam
 });
 
 for (const damaged of ['payload', 'bag-info.txt']) {
-  Deno.test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
+  test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('paper.txt');
@@ -327,10 +377,10 @@ for (const damaged of ['payload', 'bag-info.txt']) {
         revision,
         damaged === 'payload' ? 'data/paper.txt' : damaged,
       );
-      await Deno.chmod(target, 0o600);
-      const bytes = await Deno.readFile(target);
+      await chmod(target, 0o600);
+      const bytes = await readFile(target);
       bytes[bytes.length - 2] ^= 1;
-      await Deno.writeFile(target, bytes);
+      await writeFile(target, bytes);
       const before = await snapshot(f.home, true);
       const result = await f.run('verify');
       assertEquals(result.code, 1);
@@ -349,21 +399,21 @@ for (const damaged of ['payload', 'bag-info.txt']) {
   });
 }
 
-Deno.test('raw import US1: an unreadable original fails without adding evidence', async () => {
+test('raw import US1: an unreadable original fails without adding evidence', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('unreadable.txt');
-    await Deno.chmod(path, 0);
+    await chmod(path, 0);
     const before = await snapshot(f.raw);
     const [item] = report(await f.admit([path]), 1);
     assertEquals(item.outcome, 'failed');
     assertEquals(await snapshot(f.raw), before);
-    await Deno.chmod(path, 0o600);
+    await chmod(path, 0o600);
     await f.originalsUnchanged();
   });
 });
 
-Deno.test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
+test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('trailing space ');
@@ -375,7 +425,7 @@ Deno.test('raw import US1: unrepresentable BagIt provenance fails before publica
   });
 });
 
-Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
+test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revisions.txt', 'first');
@@ -394,7 +444,7 @@ Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions 
       first.revision! < second.revision! && second.revision! < third.revision!,
     );
     const revisions = Array.from(
-      Deno.readDirSync(dirname(revisionPath(f, first))),
+      readDir(dirname(revisionPath(f, first))),
       entry => entry.name,
     ).sort();
     assertEquals(revisions, [first.revision, second.revision, third.revision]);
@@ -404,9 +454,7 @@ Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions 
       [third, 'first'],
     ] as const) {
       assertEquals(
-        await Deno.readTextFile(
-          join(revisionPath(f, item), 'data/revisions.txt'),
-        ),
+        await readText(join(revisionPath(f, item), 'data/revisions.txt')),
         text,
       );
     }
@@ -416,19 +464,19 @@ Deno.test('raw import US2: unchanged rerun adds nothing; changes and reversions 
   });
 });
 
-Deno.test('raw import US2: a new revision must sort after the latest revision', async () => {
+test('raw import US2: a new revision must sort after the latest revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revision-order.txt', 'first');
     const [first] = report(await f.admit([path]));
     const source = dirname(revisionPath(f, first));
     const latest = join(source, '99991231T000000000000Z');
-    await Deno.chmod(source, 0o700);
-    await Deno.rename(revisionPath(f, first), latest);
-    await Deno.chmod(source, 0o555);
+    await chmod(source, 0o700);
+    await rename(revisionPath(f, first), latest);
+    await chmod(source, 0o555);
     await f.file('revision-order.txt', 'changed');
-    const originalBytes = await Deno.readFile(path);
-    const originalMtime = (await Deno.stat(path)).mtime?.getTime();
+    const originalBytes = await readFile(path);
+    const originalMtime = (await stat(path)).mtime?.getTime();
     const before = await snapshot(f.raw);
     const [item] = report(await f.admit([path]), 1);
     assertEquals(item.outcome, 'failed');
@@ -437,12 +485,12 @@ Deno.test('raw import US2: a new revision must sort after the latest revision', 
       'new revision would not sort after the latest one',
     );
     assertEquals(await snapshot(f.raw), before);
-    assertEquals(await Deno.readFile(path), originalBytes);
-    assertEquals((await Deno.stat(path)).mtime?.getTime(), originalMtime);
+    assertEquals(await readFile(path), originalBytes);
+    assertEquals((await stat(path)).mtime?.getTime(), originalMtime);
   });
 });
 
-Deno.test('raw import US2: equal bytes at different paths have distinct sources', async () => {
+test('raw import US2: equal bytes at different paths have distinct sources', async () => {
   await fixture(async f => {
     await f.init();
     const paths = [await f.file('one.txt'), await f.file('two.txt')];
@@ -456,7 +504,7 @@ Deno.test('raw import US2: equal bytes at different paths have distinct sources'
   });
 });
 
-Deno.test('raw import US2: two source records for one original fail the item', async () => {
+test('raw import US2: two source records for one original fail the item', async () => {
   await fixture(async f => {
     await f.init();
     const first = await f.file('first.txt');
@@ -464,17 +512,17 @@ Deno.test('raw import US2: two source records for one original fail the item', a
     const [, item] = report(await f.admit([first, second]));
     const revision = revisionPath(f, item);
     const infoPath = join(revision, 'bag-info.txt');
-    const oldInfo = await Deno.readFile(infoPath);
+    const oldInfo = await readFile(infoPath);
     const newInfo = encoder.encode(
       decoder.decode(oldInfo).replace(second, first),
     );
     const tagPath = join(revision, 'tagmanifest-sha256.txt');
-    await Deno.chmod(infoPath, 0o600);
-    await Deno.writeFile(infoPath, newInfo);
-    await Deno.chmod(tagPath, 0o600);
-    await Deno.writeTextFile(
+    await chmod(infoPath, 0o600);
+    await writeFile(infoPath, newInfo);
+    await chmod(tagPath, 0o600);
+    await writeFile(
       tagPath,
-      (await Deno.readTextFile(tagPath)).replace(
+      (await readText(tagPath)).replace(
         await digest(oldInfo),
         await digest(newInfo),
       ),
@@ -488,7 +536,7 @@ Deno.test('raw import US2: two source records for one original fail the item', a
   });
 });
 
-Deno.test('raw import US3: only listed files are admitted without user exclusions', async () => {
+test('raw import US3: only listed files are admitted without user exclusions', async () => {
   await fixture(async f => {
     await f.init();
     const listed = await f.file('listed.txt');
@@ -503,20 +551,20 @@ Deno.test('raw import US3: only listed files are admitted without user exclusion
   });
 });
 
-Deno.test('raw import US3: excluded roots and resolved aliases are refused', async () => {
+test('raw import US3: excluded roots and resolved aliases are refused', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = await f.file('private/excluded.txt');
     const config = join(f.env.XDG_CONFIG_HOME, 'verbose-broccoli/config.toml');
-    await Deno.mkdir(dirname(config), {recursive: true});
-    await Deno.writeTextFile(
+    await mkdir(dirname(config), {recursive: true});
+    await writeFile(
       config,
       `[wiki.raw_import]\nexclude = [${JSON.stringify(dirname(excluded))}]\n`,
     );
     const alias = join(f.home, 'alias');
-    await Deno.symlink(dirname(excluded), alias);
+    await symlink(dirname(excluded), alias);
     const link = join(f.home, 'excluded-link');
-    await Deno.symlink(excluded, link);
+    await symlink(excluded, link);
     const paths = [excluded, join(alias, basename(excluded)), link];
     for (const variable of [
       'XDG_DATA_HOME',
@@ -538,19 +586,19 @@ Deno.test('raw import US3: excluded roots and resolved aliases are refused', asy
   });
 });
 
-Deno.test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
+test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = join(f.home, 'excluded');
     const outside = join(f.home, 'outside');
     const path = await f.fileAt(join(outside, 'escape.txt'));
-    await Deno.mkdir(excluded, {recursive: true});
+    await mkdir(excluded, {recursive: true});
     const alias = join(excluded, 'linkdir');
-    await Deno.symlink(outside, alias);
+    await symlink(outside, alias);
     const listed = join(alias, basename(path));
     const config = join(f.env.XDG_CONFIG_HOME, 'verbose-broccoli/config.toml');
-    await Deno.mkdir(dirname(config), {recursive: true});
-    await Deno.writeTextFile(
+    await mkdir(dirname(config), {recursive: true});
+    await writeFile(
       config,
       `[wiki.raw_import]\nexclude = [${JSON.stringify(excluded)}]\n`,
     );
@@ -562,14 +610,15 @@ Deno.test('raw import US3: excluded paths stay refused through an escaping direc
   });
 });
 
-Deno.test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
+test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('original.txt');
     const originalInfo = async (create: boolean) => {
       const result = await output(
-        new Deno.Command(python, {
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             `
 import json, os, stat, sys
@@ -590,8 +639,8 @@ print(json.dumps({
             f.home,
             create ? 'create' : 'inspect',
           ],
-          env: f.env,
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(result.code, 0, result.stderr);
       return JSON.parse(result.stdout) as {
@@ -602,18 +651,18 @@ print(json.dumps({
     };
     const invalidOriginal = await originalInfo(true);
     try {
-      const symlink = join(f.home, 'symlink');
-      await Deno.symlink(path, symlink);
+      const symlinkPath = join(f.home, 'symlink');
+      await symlink(path, symlinkPath);
       const fifo = join(f.home, 'pipe');
       const prepared = await output(
-        new Deno.Command(python, {
-          args: ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo],
-          env: f.env,
+        spawn(python, ['-c', 'import os,sys; os.mkfifo(sys.argv[1])', fifo], {
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
         }),
       );
       assertEquals(prepared.code, 0, prepared.stderr);
       const paths = [
-        symlink,
+        symlinkPath,
         dirname(path),
         join(f.home, 'missing'),
         fifo,
@@ -634,14 +683,15 @@ print(json.dumps({
       assertEquals(await originalInfo(false), invalidOriginal);
     } finally {
       const removed = await output(
-        new Deno.Command(python, {
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             'import os,sys; os.unlink(os.fsencode(sys.argv[1]) + b"/bad-" + bytes([255]))',
             f.home,
           ],
-          env: f.env,
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(removed.code, 0, removed.stderr);
     }
@@ -657,7 +707,7 @@ for (const invalid of [
   'not object',
   'invalid JSON',
 ]) {
-  Deno.test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
+  test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -673,7 +723,7 @@ for (const invalid of [
       }[invalid];
       const selection = await f.selection([valid, bad]);
       if (invalid === 'invalid JSON')
-        await Deno.writeTextFile(selection, '{invalid}\n', {append: true});
+        await appendFile(selection, '{invalid}\n');
       const before = await snapshot(f.home, true);
       const result = await f.run('admit', '--selection', selection);
       assertEquals(result.code, 2, result.stderr);
@@ -692,7 +742,7 @@ for (const config of [
   '[wiki.raw_import]\nexclude = [1]',
   '[wiki.raw_import]\nexclude = ["relative"]',
 ]) {
-  Deno.test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
+  test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -701,8 +751,8 @@ for (const config of [
         f.env.XDG_CONFIG_HOME,
         'verbose-broccoli/config.toml',
       );
-      await Deno.mkdir(dirname(configPath), {recursive: true});
-      await Deno.writeTextFile(configPath, config);
+      await mkdir(dirname(configPath), {recursive: true});
+      await writeFile(configPath, config);
       const before = await snapshot(f.home, true);
       const result = await f.run('admit', '--selection', selection);
       assertEquals(result.code, 2, result.stderr);
@@ -713,7 +763,7 @@ for (const config of [
   });
 }
 
-Deno.test('raw import US3: an existing source cannot change kind', async () => {
+test('raw import US3: an existing source cannot change kind', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('kind.txt');
@@ -737,7 +787,7 @@ for (const stage of [
   'partial record',
   'complete bag',
 ]) {
-  Deno.test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
+  test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('recovery.txt');
@@ -745,36 +795,33 @@ for (const stage of [
       const before = await snapshot(f.raw);
       const stale = join(f.staging(), 'dead-run', 'bag');
       if (stage === 'complete bag') {
-        await copy(revisionPath(f, first), stale);
+        await cp(revisionPath(f, first), stale, {recursive: true});
         for await (const entry of walk(stale))
-          await Deno.chmod(entry.path, entry.isDirectory ? 0o555 : 0o444);
+          await chmod(entry.path, entry.isDirectory ? 0o555 : 0o444);
       } else {
-        await Deno.mkdir(stale, {recursive: true});
-        await Deno.writeTextFile(
+        await mkdir(stale, {recursive: true});
+        await writeFile(
           join(stale, 'recovery.txt'),
           stage === 'partial copy' ? 'part' : 'synthetic original\n',
         );
         if (stage === 'partial record')
-          await Deno.writeTextFile(
-            join(stale, 'bag-info.txt'),
-            'External-Identifier:',
-          );
+          await writeFile(join(stale, 'bag-info.txt'), 'External-Identifier:');
       }
       const otherWiki = join(f.staging('other'), 'active-run');
-      await Deno.mkdir(otherWiki, {recursive: true});
-      await Deno.writeTextFile(join(otherWiki, 'keep'), 'another instance');
+      await mkdir(otherWiki, {recursive: true});
+      await writeFile(join(otherWiki, 'keep'), 'another instance');
       const otherBefore = await snapshot(otherWiki, true);
       const [again] = report(await f.admit([path]));
       assertEquals(again.outcome, 'already_admitted');
       assertEquals(await snapshot(f.raw), before);
-      assertEquals(Array.from(Deno.readDirSync(f.staging())), []);
+      assertEquals(Array.from(readDir(f.staging())), []);
       assertEquals(await snapshot(otherWiki, true), otherBefore);
       assertEquals((await f.run('verify')).code, 0);
     });
   });
 }
 
-Deno.test('raw import US4: a publication failure keeps other items and can be retried', async () => {
+test('raw import US4: a publication failure keeps other items and can be retried', async () => {
   await fixture(async f => {
     await f.init();
     const blocked = await f.file('blocked.txt', 'first');
@@ -782,7 +829,7 @@ Deno.test('raw import US4: a publication failure keeps other items and can be re
     const firstRevision = revisionPath(f, first);
     const before = await snapshot(firstRevision);
     await f.file('blocked.txt', 'second');
-    await Deno.chmod(dirname(firstRevision), 0o555);
+    await chmod(dirname(firstRevision), 0o555);
     const good = await f.file('good.txt');
     const items = report(await f.admit([blocked, good]), 1);
     assertEquals(
@@ -790,12 +837,12 @@ Deno.test('raw import US4: a publication failure keeps other items and can be re
       ['failed', 'admitted'],
     );
     assertEquals(await snapshot(firstRevision), before);
-    assertEquals(Array.from(Deno.readDirSync(f.staging())), []);
+    assertEquals(Array.from(readDir(f.staging())), []);
     assertEquals(JSON.parse((await f.run('verify')).stdout), {
       count: 2,
       invalid: [],
     });
-    await Deno.chmod(dirname(firstRevision), 0o700);
+    await chmod(dirname(firstRevision), 0o700);
     const retried = report(await f.admit([blocked, good]));
     assertEquals(
       retried.map(item => item.outcome),
@@ -805,11 +852,11 @@ Deno.test('raw import US4: a publication failure keeps other items and can be re
       count: 3,
       invalid: [],
     });
-    assertEquals(Array.from(Deno.readDirSync(f.staging())), []);
+    assertEquals(Array.from(readDir(f.staging())), []);
   });
 });
 
-Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
+test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
   await fixture(async f => {
     await f.init();
     const small = await f.file('finished.txt');
@@ -819,9 +866,9 @@ Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL relea
       {path: small, kind: 'files'},
       {path: large, kind: 'files'},
     ]);
-    const child = f.command('admit', '--selection', selection).spawn();
+    const child = f.command('admit', '--selection', selection);
     let exited = false;
-    const finished = child.output().finally(() => {
+    const finished = output(child).finally(() => {
       exited = true;
     });
     let pid: number | undefined;
@@ -830,11 +877,11 @@ Deno.test('raw import US4: concurrent admission writes nothing and SIGKILL relea
         f.env.XDG_STATE_HOME,
         'verbose-broccoli/vaults/work/raw-import.lock',
       );
-      // Python observes the Linux lock owner because Deno restricts direct /proc reads.
+      // Python observes the Linux lock owner while the import is held.
       const paused = await output(
-        new Deno.Command(python, {
-          env: f.env,
-          args: [
+        spawn(
+          python,
+          [
             '-c',
             `
 import os, signal, sys, time
@@ -862,7 +909,8 @@ sys.exit('timed out observing the import lock')
             script,
             selection,
           ],
-        }),
+          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
+        ),
       );
       assertEquals(paused.code, 0, paused.stderr);
       pid = Number(paused.stdout.trim());
@@ -877,7 +925,7 @@ sys.exit('timed out observing the import lock')
         before,
       );
     } finally {
-      if (pid !== undefined) Deno.kill(pid, 'SIGKILL');
+      if (pid !== undefined) process.kill(pid, 'SIGKILL');
       else if (!exited) child.kill('SIGTERM');
       await finished;
     }
@@ -885,27 +933,27 @@ sys.exit('timed out observing the import lock')
     const items = report(await f.run('admit', '--selection', selection));
     assertEquals(items[0].outcome, 'already_admitted');
     assert(['admitted', 'already_admitted'].includes(items[1].outcome));
-    assertEquals(Array.from(Deno.readDirSync(f.staging())), []);
+    assertEquals(Array.from(readDir(f.staging())), []);
     const verified = await f.run('verify');
     assertEquals(verified.code, 0, verified.stderr);
     assertEquals(JSON.parse(verified.stdout), {count: 2, invalid: []});
   });
 });
 
-Deno.test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
+test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
   await fixture(async f => {
     const initialized = await f.init();
     assert(initialized.created.length > 0);
     for (const path of initialized.created) {
       assert(path.startsWith(f.home));
-      await Deno.stat(path);
+      await stat(path);
     }
     assertEquals(
-      await Deno.readFile(join(f.instance, 'AGENTS.md')),
-      await Deno.readFile(join(dirname(script), '../assets/AGENTS.md')),
+      await readFile(join(f.instance, 'AGENTS.md')),
+      await readFile(join(dirname(script), '../assets/AGENTS.md')),
     );
     for (const name of ['index.md', 'overview.md', 'log.md'])
-      assertEquals(await Deno.readTextFile(join(f.instance, 'wiki', name)), '');
+      assertEquals(await readText(join(f.instance, 'wiki', name)), '');
     const layout = (await snapshot(f.instance))
       .map(entry => entry.path)
       .filter(path => !path.startsWith('.git/'));
@@ -931,9 +979,9 @@ Deno.test('raw import US5: init copies the schema and creates an uncommitted Wik
     report(await f.admit([path]));
     const git = (...args: string[]) =>
       output(
-        new Deno.Command('git', {
-          args: ['-C', f.instance, ...args],
-          env: f.env,
+        spawn('git', ['-C', f.instance, ...args], {
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
         }),
       );
     const status = await git('status', '--porcelain', '--ignored');
@@ -944,7 +992,7 @@ Deno.test('raw import US5: init copies the schema and creates an uncommitted Wik
   });
 });
 
-Deno.test('raw import US5: unnamed commands use the work vault under vaults', async () => {
+test('raw import US5: unnamed commands use the work vault under vaults', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('work-vault.txt');
@@ -971,7 +1019,7 @@ Deno.test('raw import US5: unnamed commands use the work vault under vaults', as
     for (const root of [f.env.XDG_DATA_HOME, f.env.XDG_STATE_HOME]) {
       assertEquals(
         Array.from(
-          Deno.readDirSync(join(root, 'verbose-broccoli')),
+          readDir(join(root, 'verbose-broccoli')),
           entry => entry.name,
         ),
         ['vaults'],
@@ -980,28 +1028,19 @@ Deno.test('raw import US5: unnamed commands use the work vault under vaults', as
   });
 });
 
-Deno.test('raw import US5: repeated init preserves every byte and modification time', async () => {
+test('raw import US5: repeated init preserves every byte and modification time', async () => {
   await fixture(async f => {
     await f.init();
-    await Deno.writeTextFile(
-      join(f.instance, 'AGENTS.md'),
-      'existing schema\n',
-    );
-    await Deno.writeTextFile(
-      join(f.instance, 'wiki/index.md'),
-      'existing catalog\n',
-    );
-    await Deno.writeTextFile(
-      join(f.instance, '.gitignore'),
-      '/raw/\n/custom/\n',
-    );
+    await writeFile(join(f.instance, 'AGENTS.md'), 'existing schema\n');
+    await writeFile(join(f.instance, 'wiki/index.md'), 'existing catalog\n');
+    await writeFile(join(f.instance, '.gitignore'), '/raw/\n/custom/\n');
     const before = await snapshot(f.instance, true);
     assertEquals(await f.init(), {created: []});
     assertEquals(await snapshot(f.instance, true), before);
   });
 });
 
-Deno.test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
+test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
   await fixture(async f => {
     const initialized = await f.run('--wiki', 'selected', 'init');
     assertEquals(initialized.code, 0, initialized.stderr);
@@ -1020,35 +1059,35 @@ Deno.test('raw import US5: named Wiki and all four kinds use their own roots', a
     );
     for (let i = 0; i < items.length; i++) {
       assertEquals(
-        await Deno.readFile(
+        await readFile(
           join(
             revisionPath(f, admitted[i], items[i].kind),
             'data',
             basename(items[i].path),
           ),
         ),
-        await Deno.readFile(items[i].path),
+        await readFile(items[i].path),
       );
     }
     assertEquals(
       JSON.parse((await f.run('verify', '--wiki', 'selected')).stdout),
       {count: 4, invalid: []},
     );
-    await Deno.stat(
+    await stat(
       join(
         f.env.XDG_STATE_HOME,
         'verbose-broccoli/vaults/selected/raw-import.lock',
       ),
     );
-    assertEquals(Array.from(Deno.readDirSync(f.staging('selected'))), []);
+    assertEquals(Array.from(readDir(f.staging('selected'))), []);
     assertEquals(
-      Array.from(Deno.readDirSync(dirname(f.instance)), entry => entry.name),
+      Array.from(readDir(dirname(f.instance)), entry => entry.name),
       ['selected'],
     );
   });
 });
 
-Deno.test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
+test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
   await fixture(async f => {
     const path = join(f.home, 'Documents/chatgpt/chatgpt-export.zip');
     await f.fileAt(path, '');
@@ -1071,7 +1110,13 @@ Deno.test('raw import US1-US3: a synthetic ChatGPT export gives chat and work tw
       },
     });
     const python = (...args: string[]) =>
-      output(new Deno.Command('python3', {args, cwd: f.home, env: f.env}));
+      output(
+        spawn('python3', args, {
+          cwd: f.home,
+          env: {...process.env, ...f.env},
+          stdio: ['ignore', 'pipe', 'pipe'],
+        }),
+      );
     const saveExport = async (conversations: unknown[]) => {
       const result = await python(
         '-c',
@@ -1088,10 +1133,10 @@ with zipfile.ZipFile(path, "w") as archive:
         JSON.stringify(conversations),
       );
       assertEquals(result.code, 0, result.stderr);
-      const bytes = await Deno.readFile(path);
+      const bytes = await readFile(path);
       f.originals.set(path, {
         bytes,
-        mtime: (await Deno.stat(path)).mtime?.getTime(),
+        mtime: (await stat(path)).mtime?.getTime(),
       });
       return bytes;
     };
@@ -1110,7 +1155,7 @@ with zipfile.ZipFile(path, "w") as archive:
       f.home,
       'Documents/chatgpt/chatgpt-export-truncated.zip',
     );
-    await Deno.writeFile(
+    await writeFile(
       truncatedPath,
       firstBytes.slice(0, Math.floor(firstBytes.length / 2)),
     );
@@ -1169,7 +1214,7 @@ with zipfile.ZipFile(path, "w") as archive:
       f.raw = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults', wiki, 'raw');
       const source = dirname(revisionPath(f, first));
       assertEquals(
-        Array.from(Deno.readDirSync(source), entry => entry.name).sort(),
+        Array.from(readDir(source), entry => entry.name).sort(),
         [first.revision, second.revision].sort(),
       );
       for (const [item, bytes] of [
@@ -1177,9 +1222,7 @@ with zipfile.ZipFile(path, "w") as archive:
         [second, secondBytes],
       ] as const) {
         assertEquals(
-          await Deno.readFile(
-            join(revisionPath(f, item), 'data', basename(path)),
-          ),
+          await readFile(join(revisionPath(f, item), 'data', basename(path))),
           bytes,
         );
       }
@@ -1187,43 +1230,43 @@ with zipfile.ZipFile(path, "w") as archive:
       assertEquals(verified.code, 0, verified.stderr);
       assertEquals(JSON.parse(verified.stdout), {count: 2, invalid: []});
     }
-    assertEquals(await Deno.readFile(path), secondBytes);
+    assertEquals(await readFile(path), secondBytes);
   });
 });
 
 for (const value of ['unset', '', 'relative']) {
-  Deno.test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
+  test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
     await fixture(async f => {
       for (const name of ['DATA', 'STATE', 'CACHE', 'CONFIG']) {
         if (value === 'unset') delete f.env[`XDG_${name}_HOME`];
         else f.env[`XDG_${name}_HOME`] = value;
       }
       // Clear the inherited roots for the unset case too.
-      const inherited = {...Deno.env.toObject(), ...f.env};
+      const inherited = {...process.env, ...f.env};
       if (value === 'unset')
         for (const name of ['DATA', 'STATE', 'CACHE', 'CONFIG'])
           delete inherited[`XDG_${name}_HOME`];
       const command = (...args: string[]) =>
         output(
-          new Deno.Command('uv', {
-            args: ['run', '--locked', '--offline', '--script', script, ...args],
-            cwd: f.home,
-            env: inherited,
-            clearEnv: true,
-          }),
+          spawn(
+            'uv',
+            ['run', '--locked', '--offline', '--script', script, ...args],
+            {
+              cwd: f.home,
+              env: inherited,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            },
+          ),
         );
       assertEquals((await command('init')).code, 0);
       f.instance = join(f.home, '.local/share/verbose-broccoli/vaults/work');
       f.raw = join(f.instance, 'raw');
-      await Deno.stat(join(f.instance, 'AGENTS.md'));
+      await stat(join(f.instance, 'AGENTS.md'));
       const path = await f.file('default-roots.txt');
       const selection = join(f.home, 'selection.jsonl');
-      await Deno.writeTextFile(
-        selection,
-        `${JSON.stringify({path, kind: 'files'})}\n`,
-      );
+      await writeFile(selection, `${JSON.stringify({path, kind: 'files'})}\n`);
       report(await command('admit', '--selection', selection));
-      await Deno.stat(
+      await stat(
         join(
           f.home,
           '.local/state/verbose-broccoli/vaults/work/raw-import.lock',
@@ -1231,15 +1274,13 @@ for (const value of ['unset', '', 'relative']) {
       );
       assertEquals(
         Array.from(
-          Deno.readDirSync(
-            join(f.home, '.cache/verbose-broccoli/raw-import/work'),
-          ),
+          readDir(join(f.home, '.cache/verbose-broccoli/raw-import/work')),
         ),
         [],
       );
       const config = join(f.home, '.config/verbose-broccoli/config.toml');
-      await Deno.mkdir(dirname(config), {recursive: true});
-      await Deno.writeTextFile(
+      await mkdir(dirname(config), {recursive: true});
+      await writeFile(
         config,
         `[wiki.raw_import]\nexclude = [${JSON.stringify(dirname(path))}]\n`,
       );
@@ -1256,7 +1297,7 @@ for (const value of ['unset', '', 'relative']) {
   });
 }
 
-Deno.test('raw import: invalid arguments and Wiki names write nothing', async () => {
+test('raw import: invalid arguments and Wiki names write nothing', async () => {
   await fixture(async f => {
     for (const args of [
       [],

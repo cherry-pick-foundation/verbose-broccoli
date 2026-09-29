@@ -121,7 +121,7 @@ async def served_session(plugin: Path, uv: str):
 def test_built_copies_install_offline_serve_and_remain_independent():
     uv = shutil.which("uv")
     assert uv is not None, (
-        "Run deno task backfire:install to prepare uv and its caches."
+        "Run npm run backfire:install to prepare uv and its caches."
     )
     uv = str(Path(uv).resolve())
     with TemporaryDirectory(prefix="backfire-load-") as temporary:
@@ -140,8 +140,7 @@ def test_built_copies_install_offline_serve_and_remain_independent():
                 timeout=60,
             )
             assert result.returncode == 0, result.stderr + (
-                "\nRun deno task backfire:install to prepare "
-                "the offline caches."
+                "\nRun npm run backfire:install to prepare the offline caches."
             )
             assert_own_import(plugin)
         asyncio.run(served_session(copies[0], uv))

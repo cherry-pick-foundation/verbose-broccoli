@@ -21,20 +21,20 @@ jobs:
           git init --quiet --template= .
           git -c credential.helper= -c 'credential.helper=!f() { printf "%s\n" "username=x-access-token" "password=$CHECK_TOKEN"; }; f' fetch --no-tags --depth=1 "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" "$CHECK_REVISION"
           git checkout --detach FETCH_HEAD
-      - name: Prepare standalone Deno 2.9.6
+      - name: Prepare Node.js 24.19.0 with npm
         run: |
-          curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output "$RUNNER_TEMP/deno.zip"
-          echo "394f07f4da2bebe6ce6f1e7ce0fa16429b29b08c35e3fac3fe25972676dff4b2  $RUNNER_TEMP/deno.zip" | sha256sum --check --strict
-          unzip -q "$RUNNER_TEMP/deno.zip" -d "$RUNNER_TEMP/deno"
-          echo "$RUNNER_TEMP/deno" >> "$GITHUB_PATH"
+          curl --fail --silent --show-error --location https://nodejs.org/dist/v24.19.0/node-v24.19.0-linux-x64.tar.xz --output "$RUNNER_TEMP/node.tar.xz"
+          echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647  $RUNNER_TEMP/node.tar.xz" | sha256sum --check --strict
+          tar -xJf "$RUNNER_TEMP/node.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/node-v24.19.0-linux-x64/bin" >> "$GITHUB_PATH"
       - name: Audit workspace dependencies
         if: ${{ !cancelled() }}
         run: |
-          deno install --frozen --no-prompt
-          deno audit
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit
       - name: Audit clean-code dependencies
         if: ${{ !cancelled() }}
         working-directory: plugins/code/skills/clean-code
         run: |
-          deno install --frozen --no-prompt
-          deno audit
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm audit

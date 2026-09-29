@@ -3,7 +3,7 @@ import conventionalChangelog from 'conventional-changelog-conventionalcommits';
 import {constitutionVersionRule} from './constitution_version.ts';
 
 const parserOpts = conventionalChangelog().parser;
-const commitMode = Deno.env.get('CONSTITUTION_VERSION_COMMIT') !== undefined;
+const commitMode = process.env.CONSTITUTION_VERSION_COMMIT !== undefined;
 
 export default {
   ...conventionalConfig,

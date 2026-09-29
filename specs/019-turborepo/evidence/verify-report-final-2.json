@@ -1,0 +1,247 @@
+{
+  "tool": "backfire_verify",
+  "date": "2026-09-29",
+  "note": "Round 2 checked the claims added or changed after the last reviews. Claim 5 (CHE-26) was contradicted at 0.65 with thin evidence (the diffstat left out the tests and the skill diff); round 3 rechecked it with the pyproject diff, the full diffstat and the skill diff and verified it.",
+  "rounds": [
+    {
+      "arguments": {
+        "claims": [
+          "86 files changed against develop f444287 outside specs/: 11,646 lines added and 7,384 removed; without lock files, the generated docs/reference/ and the CLI snapshot, 74 files: 3,358 added and 2,037 removed.",
+          "Locally owned code: 39,854 lines in 181 files on develop, 41,130 in 184 files on the branch (+1,276).",
+          "CHE-29 brought ruff.toml, tools/ruff, Ruff steps in the Deno lint and format tasks, a test:ruff suite (scripts/ruff_test.ts) and a Ruff environment check in the doctor.",
+          "This feature moved the Ruff steps and test:ruff into npm scripts and the Turborepo graph, converted scripts/ruff_test.ts to node:test, and fixed the seven Ruff findings in code this feature had added.",
+          "CHE-26 brought new rules and tests in wiki-consistency, a dependency of wiki-consistency on backfire[education], and new install steps in the work plugin's wiki-consistency skill.",
+          "In the uv workspace, wiki-consistency's backfire dependency is a workspace source, and the plugin build rewrites both it and doc-regions in the copied project.",
+          "CHE-35 changed only wiki-consistency code, tests and prose.",
+          "CR4 found that the fix for installed IO packages never fired, because the import graph skipped node_modules, and commit 5405399 fixed it together with one stale doc line.",
+          "npm run verify finished VERIFIED after the last fix, with the deno executable removed from PATH."
+        ],
+        "evidence": [
+          {
+            "id": "numstat",
+            "text": "Sum of specs/019-turborepo/evidence/logs/numstat-f444287.txt (git diff --no-renames --numstat f444287 HEAD -- . ':!specs'): 86 files, 11646 added, 7384 removed. Without *.lock, package-lock.json, *.snap, *.snapshot and docs/reference/: 74 files, 3358 added, 2037 removed."
+          },
+          {
+            "id": "loc",
+            "text": "HEAD: 184 files 41130 lines\nf444287: 181 files 39854 lines\n"
+          },
+          {
+            "id": "che29",
+            "text": "CHE-29 (feature/python-ruff) merged into develop as 8ce9b2a; its changes to the named files:\n deno.json                 |  12 +-\n ruff.toml                 | 272 ++++++++++++++++++++++++++++++++++++++++++++++\n scripts/doctor.ts         |   2 +\n scripts/ruff_test.ts      | 196 +++++++++++++++++++++++++++++++++\n tools/ruff/pyproject.toml |   9 ++\n tools/ruff/uv.lock        |  39 +++++++\n 6 files changed, 525 insertions(+), 5 deletions(-)\n\n12:    \"test:ruff\": \"deno test --frozen --cached-only --no-prompt --allow-read --allow-write=/tmp --allow-run=uv scripts/ruff_test.ts\",\n21:    \"lint\": \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings . && uv run --project tools/ruff --frozen --offline \n58:        \"lint\",\n70:    \"format\": \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format --write . && deno fmt .github/ orca.yaml && uv run --project tools/r\n76:        \"test:ruff\",\n"
+          },
+          {
+            "id": "che26",
+            "text": "CHE-26 (feature/vault-rule-checks) merged into develop as 07ebf47; its changes:\n packages/wiki-consistency/pyproject.toml           |   2 +\n .../wiki-consistency/src/wiki_consistency/lint.py  |   2 +\n .../wiki-consistency/src/wiki_consistency/rules.py | 431 +++++++++++++++++++++\n plugins/work/skills/wiki-consistency/SKILL.md      |  25 +-\n 4 files changed, 457 insertions(+), 3 deletions(-)\n\n10:  \"backfire[education]\",\n27:backfire = { path = \"../backfire\", editable = true }\n30:# Keep install metadata inside .venv, as backfire does.\n"
+          },
+          {
+            "id": "che35",
+            "text": "CHE-35 (feature/vault-link-targets) merged into develop as f444287; everything it changed:\n .specify/bugs/vault-link-targets/assessment.md     | 169 ++++++++++++++\n .specify/bugs/vault-link-targets/fix.md            | 119 ++++++++++\n .specify/bugs/vault-link-targets/test.md           | 101 +++++++++\n docs/architecture.md                               |   7 +-\n .../wiki-consistency/src/wiki_consistency/rules.py |  94 +++++---\n packages/wiki-consistency/tests/test_rules.py      | 250 ++++++++++++++++++++-\n plugins/work/skills/wiki-consistency/SKILL.md      |   9 +-\n .../work/skills/wiki-raw-import/assets/AGENTS.md   |   8 +-\n .../017-vault-rule-checks/contracts/page-rules.md  |  53 +++--\n specs/017-vault-rule-checks/spec.md                |  40 ++--\n 10 files changed, 769 insertions(+), 81 deletions(-)\n"
+          },
+          {
+            "id": "feature",
+            "text": "This branch at HEAD:\npackage.json:12:    \"test:ruff\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process\npackage.json:21:    \"lint\": \"NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome lint --err\npackage.json:43:    \"lint:fix\": \"NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome lint -\npackage.json:44:    \"format\": \"NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome format -\npackage.json:45:    \"format:check\": \"NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process' biome fo\nturbo.json:38:    \"//#test:ruff\": { \"cache\": false },\nturbo.json:132:        \"//#test:ruff\",\n\n27:backfire = { workspace = true }\n28:doc-regions = { workspace = true }\n\n240:                for dependency in (\"doc-regions\", \"backfire\"):\n\nimport {spawnSync} from 'node:child_process';\nimport {test} from 'node:test';\nimport {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';\nimport {assert, assertMatch} from '@std/assert';\nimport {fromFileUrl, join} from '@std/path';\n\nconst root = fromFileUrl(new URL('../', import.meta.url));\nconst project = join(root, 'tools/ruff');\nconst config = join(root, 'ruff.toml');\n\nfunction ruff(args: string[], cwd = root) {\n  const result = spawnSync(\n\nworker-T012.md: 'fixes Ruff rows RUFF:packages/backfire/src/backfire_tools/build.py:34, :37, :78, :194, :236 and :241' and 'RUFF:packages/backfire/tests/test_build.py:129' (seven selected Ruff rows)."
+          },
+          {
+            "id": "cr4",
+            "text": "specs/019-turborepo/evidence/review-CR4.md (start):\n# CHE-32 final review CR4: the review-fix commit and the second develop merge\n\nReviewer: Claude Code (Opus 5.5), read-only. Branch `feature/turborepo` at\n`34cd6df`. Scope: commit `b795b61` against the fix briefs F1, F2 and F3\n(`evidence/method/specs/`), their shared rules in `common3.md`, decisions D19\nand D20 in `research.md`; and merge commit `b96f154` (`develop` `f444287` into\n`ec786ed`).\n\nResult: one blocker, one should-fix and four notes. The merge keeps both\nsides' changes. All suites and checks named in the three briefs pass.\n\n## Findings\n\n### B1 (blocker): the installed-IO-package rule (V03) never fires\n\n`scripts/clean_architecture.ts:26` adds `resolvedIOImport` and line 104 adds\nit to the `no-io-packages-in-inner-layers` rule. But `analyzeImportGraph`\npasses `exclude: '(^|/)node_modules/|^scripts/vendor/|\\\\.md$'`\n(`scripts/clean_architecture.ts:248`). dependency-cruiser drops every module\nmatching `exclude`, including the edge to it, so an import that resolves to\n`node_modules/<io-package>/...` never reaches the rule. The gap V03 reported\nis still open.\n\nEvidence: a scratch fixture with `@electric-sql/pglite` installed under\n`node_modules` and `plugins/a/src/domain/installed.ts` re-exporting it\n(the same fixture the new test uses), run through `analyzeImportGraph`\nand through `cruise` with `importRules(root)`:\n\n```text\nanalyzeImportGraph violations: []\ninstalled.ts dependencies: []\ncruise, exclude as committed:              []\ncruise, node_modules removed from exclude: [[\"plugins/a/src/domain/installed.ts\",\"node_modules/@electric-sql/pglite/index.js\",\"no-io-packages-in-inner-layers\"]]\n```\n\nThe test does not catch this. `scripts/clean_architecture_test.ts:124-134`\nonly checks that the rule's regex matches the string\n`node_modules/@electric-sql/pglite/index.js`, and the expected-violation list\nat lines 135-153 does not include `plugins/a/src/domain/installed.ts`.\n`evidence/worker-F2.md` (\"The first graph-based V03 fixture also did not\nproduce a dependency edge because the analyzer excludes `node_modules`; I\nchanged the case to test the generated path matcher\") shows the worker saw\nthe missing edge and changed the test instead of asking, which `common3.md`\nrequires when a fix needs a change at another line.\n\nSuggested resolution (verified in a scratch run, not applied): drop\n`(^|/)node_modules/` from `exclude` and add it to `doNotFollow` instead, for\nexample `path: '^(?!(?:plugins|packages|scripts|tests)/)|(^|/)node_modules/'`\n(and the same alternative in the `entryPaths` branch). With that change the\nfixture reports the violation above, and the real repository still has 0\nviolations (80 modules cruised instead of 63; the extra ones are\n`node_modules` leaves that are not followed). Simply removing `node_modules`\nfrom `exclude` without the `doNotFollow` change is wrong: it crawls\n`packages/wiki-consistency/node_modules` (3103 modules, many `no-cycles`\nviolations). Then add `['plugins/a/src/domain/installed.ts',\n'no-io-packages-in-inner-layers']` to the expected-violation list, so the\ntest fails without the fix.\n\n### S1 (should-fix): `docs/architecture.md` still says the doctor checks Node 22\n\n`docs/architecture.md:253`: \"`npm run doctor` checks them and Node 22.\"\nDecision D19 raised the doctor's floor to Node.js 24.12.0\n(`scripts/doctor.ts:207-208`, `turbo.json:22`,\n`scripts/git-hooks/commit-msg:15`), so this sentence is now false. The\nF1 brief listed only the doctor, `turbo.json` and the hook, so the stale line\nis a gap in the bri"
+          },
+          {
+            "id": "f4",
+            "text": "Commit 5405399:\ncommit 5405399ca5c1a9327b1a7953acfe9241fff5492a\nAuthor: Choi Eunchang <72055539+choiec@users.noreply.github.com>\nDate:   Tue Sep 29 16:29:11 2026 +0900\n\n    fix(clean-architecture): catch IO packages installed in node_modules\n    \n    The import graph excluded node_modules, so an import that resolved into an\n    installed IO package never reached the no-io-packages-in-inner-layers rule.\n    node_modules modules are now leaves that the graph does not follow, and the\n    test expects the violation from an installed package. The architecture\n    guide gives the doctor's Node.js 24.12 floor.\n    \n    Spec-Kit-Task: T019\n    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>\n\n docs/architecture.md               |  2 +-\n scripts/clean_architecture.ts      |  6 +++---\n scripts/clean_architecture_test.ts | 11 +++++++++++\n 3 files changed, 15 insertions(+), 4 deletions(-)\n"
+          },
+          {
+            "id": "verify",
+            "text": "npm run verify after 5405399 with deno removed from PATH: stderr 'which deno: not found (deno hidden)'; exit 0; phase VERIFIED; Turborepo 'Tasks: 27 successful, 27 total'."
+          }
+        ]
+      },
+      "result": {
+        "tool": "backfire_verify",
+        "model": "deepseek-ai/deepseek-v4.1-flash",
+        "provider": "compatible",
+        "auto_accept": 0.8,
+        "summary": {
+          "verified": 8,
+          "contradicted": 1,
+          "unsupported": 0,
+          "needs_review": 1
+        },
+        "results": [
+          {
+            "id": "claim0",
+            "claim": "86 files changed against develop f444287 outside specs/: 11,646 lines added and 7,384 removed; without lock files, the generated docs/reference/ and the CLI snapshot, 74 files: 3,358 added and 2,037 removed.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.99,
+              "contradicts": 0,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.985,
+            "action": "auto",
+            "supporting_evidence": "numstat"
+          },
+          {
+            "id": "claim1",
+            "claim": "Locally owned code: 39,854 lines in 181 files on develop, 41,130 in 184 files on the branch (+1,276).",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.99,
+              "contradicts": 0,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.985,
+            "action": "auto",
+            "supporting_evidence": "loc"
+          },
+          {
+            "id": "claim2",
+            "claim": "CHE-29 brought ruff.toml, tools/ruff, Ruff steps in the Deno lint and format tasks, a test:ruff suite (scripts/ruff_test.ts) and a Ruff environment check in the doctor.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.99,
+              "contradicts": 0,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.985,
+            "action": "auto",
+            "supporting_evidence": "che29"
+          },
+          {
+            "id": "claim3",
+            "claim": "This feature moved the Ruff steps and test:ruff into npm scripts and the Turborepo graph, converted scripts/ruff_test.ts to node:test, and fixed the seven Ruff findings in code this feature had added.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.95,
+              "contradicts": 0.02,
+              "says_nothing": 0.03
+            },
+            "confidence": 0.9249999999999999,
+            "action": "auto",
+            "supporting_evidence": "feature"
+          },
+          {
+            "id": "claim4",
+            "claim": "CHE-26 brought new rules and tests in wiki-consistency, a dependency of wiki-consistency on backfire[education], and new install steps in the work plugin's wiki-consistency skill.",
+            "verdict": "contradicted",
+            "probabilities": {
+              "supports": 0.25,
+              "contradicts": 0.65,
+              "says_nothing": 0.1
+            },
+            "confidence": 0.47500000000000003,
+            "action": "review",
+            "supporting_evidence": "che26"
+          },
+          {
+            "id": "claim5",
+            "claim": "In the uv workspace, wiki-consistency's backfire dependency is a workspace source, and the plugin build rewrites both it and doc-regions in the copied project.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.99,
+              "contradicts": 0,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.985,
+            "action": "auto",
+            "supporting_evidence": "feature"
+          },
+          {
+            "id": "claim6",
+            "claim": "CHE-35 changed only wiki-consistency code, tests and prose.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.95,
+              "contradicts": 0.02,
+              "says_nothing": 0.03
+            },
+            "confidence": 0.9249999999999999,
+            "action": "auto",
+            "supporting_evidence": "che35"
+          },
+          {
+            "id": "claim7",
+            "claim": "CR4 found that the fix for installed IO packages never fired, because the import graph skipped node_modules, and commit 5405399 fixed it together with one stale doc line.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.98,
+              "contradicts": 0.01,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.97,
+            "action": "auto",
+            "supporting_evidence": null
+          },
+          {
+            "id": "claim8",
+            "claim": "npm run verify finished VERIFIED after the last fix, with the deno executable removed from PATH.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 0.99,
+              "contradicts": 0,
+              "says_nothing": 0.01
+            },
+            "confidence": 0.985,
+            "action": "auto",
+            "supporting_evidence": "verify"
+          }
+        ],
+        "usage": {
+          "input_tokens": 8052,
+          "output_tokens": 10693
+        }
+      }
+    },
+    {
+      "arguments": {
+        "claims": [
+          "CHE-26 brought new rules and tests in wiki-consistency, a dependency of wiki-consistency on backfire[education], and new install steps in the work plugin's wiki-consistency skill."
+        ],
+        "evidence": [
+          {
+            "id": "che26-stat",
+            "text": "git diff --stat 3627cb2 07ebf47 -- packages/wiki-consistency plugins/work/skills/wiki-consistency (07ebf47 is the merge of feature/vault-rule-checks, CHE-26, into develop):\n packages/wiki-consistency/pyproject.toml           |   2 +\n .../wiki-consistency/src/wiki_consistency/lint.py  |   2 +\n .../wiki-consistency/src/wiki_consistency/rules.py | 431 ++++++++++++++++\n packages/wiki-consistency/tests/conftest.py        |  10 +-\n packages/wiki-consistency/tests/test_rules.py      | 541 +++++++++++++++++++++\n packages/wiki-consistency/uv.lock                  | 454 +++++++++++++++++\n plugins/work/skills/wiki-consistency/SKILL.md      |  25 +-\n 7 files changed, 1458 insertions(+), 7 deletions(-)\n"
+          },
+          {
+            "id": "che26-pyproject",
+            "text": "git diff 3627cb2 07ebf47 -- packages/wiki-consistency/pyproject.toml:\ndiff --git a/packages/wiki-consistency/pyproject.toml b/packages/wiki-consistency/pyproject.toml\nindex 65b5ac1..59b9c9d 100644\n--- a/packages/wiki-consistency/pyproject.toml\n+++ b/packages/wiki-consistency/pyproject.toml\n@@ -7,6 +7,7 @@ name = \"wiki-consistency\"\n version = \"0.1.0\"\n requires-python = \">=3.14\"\n dependencies = [\n+  \"backfire[education]\",\n   \"bagit==1.9.0\",\n   \"doc-regions\",\n   \"markitdown[docx,pdf,pptx]==0.1.8\",\n@@ -23,6 +24,7 @@ dev = [\"jsonschema==4.26.0\", \"pytest==9.1.1\"]\n required-version = \">=0.11.32\"\n \n [tool.uv.sources]\n+backfire = { path = \"../backfire\", editable = true }\n doc-regions = { path = \"../doc-regions\", editable = true }\n \n # Keep install metadata inside .venv, as backfire does.\n\nCommit in that range: 5028f2e build(wiki-consistency): depend on backfire education\n"
+          },
+          {
+            "id": "che26-skill",
+            "text": "git diff 3627cb2 07ebf47 -- plugins/work/skills/wiki-consistency/SKILL.md (install section):\ndiff --git a/plugins/work/skills/wiki-consistency/SKILL.md b/plugins/work/skills/wiki-consistency/SKILL.md\nindex d53ec31..fb4d43c 100644\n--- a/plugins/work/skills/wiki-consistency/SKILL.md\n+++ b/plugins/work/skills/wiki-consistency/SKILL.md\n@@ -31,16 +31,18 @@ Install it once after the plugin is installed or updated:\n \n ```sh\n uv sync --project ../../doc-regions --frozen --no-dev\n+uv sync --project ../../backfire --frozen --no-dev --extra education\n uv sync --project ../../wiki-consistency --frozen --no-dev\n npm ci --ignore-scripts --no-audit --no-fund --prefix ../../wiki-consistency\n ```\n \n-The first line gives `doc-regions`, which the tool uses as a library, the\n-`.venv/` its build needs.\n+The first two lines give `doc-regions` and `backfire`, which the tool uses\n+as libraries, the `.venv/` their builds need; `check` reads the roster and\n+finds names, phone numbers and email addresses with backfire's code.\n \n | Command | What it does | Network | Writes |\n | --- | --- | --- | --- |\n-| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags and that `log.md` only grew; lists orphan pages and stale citations | none | nothing |\n+| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags, that `log.md` only grew, and the page rules a pattern can test (below); lists orphan pages and stale citations | none | nothing |\n | `update` | Regenerates stale mechanical regions | none | region text in `wiki/` |\n | `convert [--scope changed\\|lint]` | Converts cited raw revisions to Markdown | none | `CACHE/wiki-evidence/` |\n | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |\n@@ -51,6 +53,23 @@ execution failure exits 1 and invalid arguments exit 2; both print their\n details on stderr only.\n `check` needs Git and lychee; `index` and `prepare` need Node 22 or later.\n \n+The page rules that `check` tests, in every page except `log.md`, outside\n+mechanical regions and outside the front matter's `sources` field: no\n+phone numbers, email or postal addresses, or registration numbers; each\n+page directly in `wiki/students/` is named after a student in the roster;\n+no Hangul, Chinese or Japanese text except roster names and one quote of at\n+most 100 characters with its English translation on the same line, as\n+`\"<original>\" (<translation>)` or `\"<translation>\" (\"<original>\")`, with\n+`\"…\"`, `“…”`, `‘…’`, `「…」` or `『…』` as quotation marks; no roster school\n+name in Hangul outside such a quote and no romanized name ending in\n+`Elementary School`, `Middle School` or `High School`; dates as YYYY-MM-DD\n+and times with `Z`, an offset from `-14:00` to `+14:00` (a minus offset\n+only in an ISO date-time), or a UTC form. A failure names the page, line\n+and rule but not the matched text. `check` reads the roster through\n+backfire's `education.toml` only when a student page or such text exists;\n+it then fails if the file is missing. The instance's `AGENTS.md` lists the\n+rules that stay with the judgment step.\n+\n ## After an operation that changed the Wiki\n \n 1. Run `update`, then `check`. Fix every failure `check` names; it gives page\n"
+          }
+        ]
+      },
+      "result": {
+        "tool": "backfire_verify",
+        "model": "deepseek-ai/deepseek-v4.1-flash",
+        "provider": "compatible",
+        "auto_accept": 0.8,
+        "summary": {
+          "verified": 1,
+          "contradicted": 0,
+          "unsupported": 0,
+          "needs_review": 0
+        },
+        "results": [
+          {
+            "id": "claim0",
+            "claim": "CHE-26 brought new rules and tests in wiki-consistency, a dependency of wiki-consistency on backfire[education], and new install steps in the work plugin's wiki-consistency skill.",
+            "verdict": "verified",
+            "probabilities": {
+              "supports": 1,
+              "contradicts": 0,
+              "says_nothing": 0
+            },
+            "confidence": 1,
+            "action": "auto",
+            "supporting_evidence": null
+          }
+        ],
+        "usage": {
+          "input_tokens": 2334,
+          "output_tokens": 2390
+        }
+      }
+    }
+  ]
+}

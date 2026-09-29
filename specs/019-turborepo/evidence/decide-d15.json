@@ -1,0 +1,68 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should scripts/cli_contract_test.ts keep its help-text snapshot check on Node.js 24.19, where @std/testing/snapshot cannot load the existing snapshot file?",
+  "evidence": "Measured 2026-09-29: npm run test:cli-contract passes 9 of 14 tests; the 5 help-and-invalid-argument tests fail in @std/testing/snapshot's assertSnapshot with 'TypeError [ERR_UNKNOWN_FILE_EXTENSION]: Unknown file extension \".snap\" for scripts/__snapshots__/cli_contract_test.ts.snap', because the library loads the snapshot file with a dynamic import() (snapshot.js:323) and Node's module loader has no format for the .snap extension (Deno loads it as JavaScript). The snapshot file is a JavaScript module ('export const snapshot = {}; snapshot[`CLI doctor: help and invalid arguments 1`] = `...`'). Options: node:test's built-in t.assert.snapshot writes its own <file>.snapshot format, so the five help texts would be regenerated once (--test-update-snapshots) and the old .snap removed; a Node module hook registered in the preload (module.registerHooks, about six lines) could load .snap files as ES modules so the existing library and snapshot file keep working unchanged.",
+  "candidates": [
+   {
+    "id": "node_snapshot",
+    "description": "Replace assertSnapshot with node:test's t.assert.snapshot at the one call site, regenerate the five help-text snapshots in Node's format once, check that their text equals the old snapshot, and delete the old .snap file."
+   },
+   {
+    "id": "loader_hook",
+    "description": "Add a module load hook to the preload that loads .snap files as ES modules, keeping @std/testing/snapshot, the call site and the snapshot file unchanged."
+   }
+  ],
+  "requirements": [
+   "Adds no locally owned implementation.",
+   "Keeps the snapshot content that the user reviewed."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "node_snapshot",
+   "escaped": false,
+   "confidence": 0.65,
+   "probabilities": {
+    "node_snapshot": 0.72,
+    "loader_hook": 0.22,
+    "ask_user": 0.03,
+    "investigate": 0.02,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "node_snapshot",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "node_snapshot",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "loader_hook",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "loader_hook",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 1969,
+   "output_tokens": 2749
+  }
+ }
+}

@@ -3,8 +3,8 @@ import {
   createReport,
   runCli,
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
-import {existsSync, expandGlobSync} from '@std/fs';
-import {dirname, fromFileUrl, relative, resolve} from '@std/path';
+import {existsSync, globSync} from 'node:fs';
+import {fromFileUrl, join, relative, resolve} from '@std/path';
 import {
   cruise,
   type IConfiguration,
@@ -12,63 +12,88 @@ import {
 } from 'dependency-cruiser';
 import ts from 'typescript';
 
-interface DenoConfig {
+interface PackageConfig {
   name?: string;
   imports?: Record<string, string>;
   exports?: string | Record<string, string>;
-  importMap?: string;
-  scopes?: unknown;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 }
 
 const ioPackages =
   '(@hono/hono|hono|@electric-sql/pglite|@kysely/kysely|kysely|drizzle-orm|@modelcontextprotocol/sdk|webdav)';
 const ioImport = `^(?:(?:npm|jsr):)?${ioPackages}(?:@|/|$)`;
+const resolvedIOImport = `(^|/)node_modules/${ioPackages}/`;
 const escapeRegExp = RegExp.escape;
 
-function readConfig(path: string): DenoConfig {
+function readPackageConfig(path: string): PackageConfig {
+  if (!existsSync(path)) return {};
   const result = ts.readConfigFile(path, ts.sys.readFile);
-  if (result.error) throw new Error(`Cannot parse Deno configuration: ${path}`);
-  const config = result.config as DenoConfig;
-  if (config.importMap || config.scopes) {
-    throw new Error(
-      `External import maps and scoped aliases need resolver support: ${path}`,
-    );
-  }
-  return config;
+  if (result.error)
+    throw new Error(`Cannot parse package configuration: ${path}`);
+  const config = result.config as PackageConfig;
+  return {
+    name: config.name,
+    exports: config.exports,
+    imports: {
+      ...Object.fromEntries(
+        Object.entries({...config.dependencies, ...config.devDependencies}).map(
+          ([name, specifier]) => [
+            name,
+            specifier.startsWith('npm:')
+              ? specifier
+              : `npm:${name}@${specifier}`,
+          ],
+        ),
+      ),
+      ...Object.fromEntries(
+        Object.entries(config.imports ?? {}).map(([name, target]) => [
+          name,
+          /^(?:\.{1,2}\/|\/|file:|npm:|jsr:|node:|https?:|#)/.test(target)
+            ? target
+            : `npm:${target}`,
+        ]),
+      ),
+    },
+  };
 }
 
 export function importRules(cwd: string) {
   const configs = [
-    'deno.json',
-    'deno.jsonc',
-    'plugins/**/deno.json',
-    'plugins/**/deno.jsonc',
-    'packages/**/deno.json',
-    'packages/**/deno.jsonc',
-  ]
-    .flatMap(pattern => [
-      ...expandGlobSync(pattern, {
-        root: cwd,
-        followSymlinks: false,
-        exclude: ['**/node_modules/**', '**/.deno/**'],
-      }),
-    ])
-    .filter(entry => !entry.isSymlink)
-    .map(entry => ({
-      directory: dirname(entry.path),
-      value: readConfig(entry.path),
-    }));
-  for (const pattern of ['plugins/*', 'packages/*']) {
-    for (const entry of expandGlobSync(pattern, {
-      root: cwd,
-      followSymlinks: false,
+    {
+      directory: cwd,
+      value: readPackageConfig(resolve(cwd, 'package.json')),
+    },
+  ];
+  for (const pattern of [
+    'plugins/**/package.json',
+    'packages/**/package.json',
+  ]) {
+    for (const entry of globSync(pattern, {
+      cwd,
+      exclude: ['**/node_modules/**'],
+      withFileTypes: true,
     })) {
+      if (!entry.isFile() || entry.isSymbolicLink()) continue;
+      const path = join(entry.parentPath, entry.name);
+      configs.push({
+        directory: entry.parentPath,
+        value: readPackageConfig(path),
+      });
+    }
+  }
+  for (const pattern of ['plugins/*', 'packages/*']) {
+    for (const entry of globSync(pattern, {
+      cwd,
+      withFileTypes: true,
+    })) {
+      const path = join(entry.parentPath, entry.name);
       if (
-        entry.isDirectory &&
-        !entry.isSymlink &&
-        !configs.some(config => config.directory === entry.path)
+        entry.isDirectory() &&
+        !entry.isSymbolicLink() &&
+        !configs.some(config => config.directory === path)
       ) {
-        configs.push({directory: entry.path, value: {}});
+        configs.push({directory: path, value: {}});
       }
     }
   }
@@ -76,7 +101,7 @@ export function importRules(cwd: string) {
   const external = ['^(?:npm|jsr|node|https?):'];
   const externalAliases: {name: string; pattern: RegExp}[] = [];
   const localNames = new Set<string>();
-  const forbiddenIO = [ioImport];
+  const forbiddenIO = [ioImport, resolvedIOImport];
   const forbidden: NonNullable<IConfiguration['forbidden']> = [
     {name: 'no-cycles', severity: 'error', from: {}, to: {circular: true}},
     {
@@ -205,7 +230,7 @@ export function importRules(cwd: string) {
 }
 
 export async function analyzeImportGraph(
-  cwd = Deno.cwd(),
+  cwd = process.cwd(),
   entryPaths?: string[],
 ) {
   const {alias, forbidden} = importRules(cwd);
@@ -220,11 +245,11 @@ export async function analyzeImportGraph(
       ruleSet: {forbidden},
       validate: true,
       tsPreCompilationDeps: true,
-      exclude: '(^|/)(node_modules|\\.deno)/|^scripts/vendor/|\\.md$',
+      exclude: '^scripts/vendor/|\\.md$',
       doNotFollow: {
         path: entryPaths
-          ? `^(?!(?:${entryPaths.map(escapeRegExp).join('|')})$)`
-          : '^(?!(?:plugins|packages|scripts|tests)/)',
+          ? `^(?!(?:${entryPaths.map(escapeRegExp).join('|')})$)|(^|/)node_modules/`
+          : '^(?!(?:plugins|packages|scripts|tests)/)|(^|/)node_modules/',
       },
     },
     {alias},
@@ -243,6 +268,6 @@ if (import.meta.main) {
         const {violations, error, totalCruised} = result.summary;
         createReport({violations, error, totalCruised}, error > 0);
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

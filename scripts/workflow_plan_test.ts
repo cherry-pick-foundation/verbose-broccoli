@@ -1,5 +1,9 @@
+import {test} from 'node:test';
 import {assert, assertEquals, assertRejects} from '@std/assert';
 import {dirname, join} from '@std/path';
+import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {analyzePlan} from './workflow_plan.ts';
 import {selectWorkMode, inspectChanges} from './workflow.ts';
 
@@ -20,19 +24,19 @@ async function fixture(
   files: Record<string, string>,
   run: (root: string) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'workflow-plan-'});
+  const root = await mkdtemp(join(tmpdir(), 'workflow-plan-'));
   try {
     for (const [path, content] of Object.entries(files)) {
-      await Deno.mkdir(dirname(join(root, path)), {recursive: true});
-      await Deno.writeTextFile(join(root, path), content);
+      await mkdir(dirname(join(root, path)), {recursive: true});
+      await writeFile(join(root, path), content);
     }
     await run(root);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
-Deno.test('workflow plan: one bounded task delegates; two independent tasks run in parallel', async () => {
+test('workflow plan: one bounded task delegates; two independent tasks run in parallel', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -48,7 +52,7 @@ Deno.test('workflow plan: one bounded task delegates; two independent tasks run 
   );
 });
 
-Deno.test('workflow plan: shared unchanged dependency permits parallel file edits', async () => {
+test('workflow plan: shared unchanged dependency permits parallel file edits', async () => {
   await fixture(
     {
       [first]: "export {shared as first} from './shared.ts';",
@@ -64,7 +68,7 @@ Deno.test('workflow plan: shared unchanged dependency permits parallel file edit
   );
 });
 
-Deno.test('workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits', async () => {
+test('workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits', async () => {
   const cases: Record<string, string>[] = [
     {[first]: "export {second as first} from './second.ts';"},
     {
@@ -73,9 +77,9 @@ Deno.test('workflow plan: direct, transitive, alias and shared consumer dependen
         "export {second as middle} from './second.ts';",
     },
     {
-      [first]: "export {second as first} from '@second';",
-      'deno.json': JSON.stringify({
-        imports: {'@second': './plugins/demo/src/second.ts'},
+      [first]: "export {second as first} from '#second';",
+      'package.json': JSON.stringify({
+        imports: {'#second': './plugins/demo/src/second.ts'},
       }),
     },
     {
@@ -99,7 +103,7 @@ Deno.test('workflow plan: direct, transitive, alias and shared consumer dependen
   }
 });
 
-Deno.test('workflow plan: root and tests consumers prevent parallel edits across scan roots', async () => {
+test('workflow plan: root and tests consumers prevent parallel edits across scan roots', async () => {
   const cases: Record<string, string>[] = [
     {
       'consumer.ts':
@@ -120,7 +124,7 @@ Deno.test('workflow plan: root and tests consumers prevent parallel edits across
       {
         [first]: 'export const first = 1;',
         [second]: 'export const second = 2;',
-        'plugins/demo/deno.json': JSON.stringify({
+        'plugins/demo/package.json': JSON.stringify({
           exports: {
             './first': './src/first.ts',
             './second': './src/second.ts',
@@ -144,7 +148,7 @@ Deno.test('workflow plan: root and tests consumers prevent parallel edits across
   }
 });
 
-Deno.test('workflow plan: repository scan keeps tool, vendor and agent cache exclusions', async () => {
+test('workflow plan: repository scan keeps tool, vendor and agent cache exclusions', async () => {
   const excluded = [
     'tools/consumer.ts',
     'scripts/vendor/consumer.ts',
@@ -177,7 +181,7 @@ Deno.test('workflow plan: repository scan keeps tool, vendor and agent cache exc
   );
 });
 
-Deno.test('workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits', async () => {
+test('workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -191,7 +195,7 @@ Deno.test('workflow plan: overlap, missing files, unsupported sources and unreso
         });
         assertEquals(selectWorkMode(unchanged, result).mode, 'REVIEW', file);
       }
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, second),
         "export {missing} from './missing.ts';",
       );
@@ -203,17 +207,14 @@ Deno.test('workflow plan: overlap, missing files, unsupported sources and unreso
   );
 });
 
-Deno.test('workflow plan: symlink aliases cannot give two agents the same writable file', async () => {
+test('workflow plan: symlink aliases cannot give two agents the same writable file', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
       [second]: 'export const second = 2;',
     },
     async root => {
-      await Deno.symlink(
-        join(root, first),
-        join(root, 'plugins/demo/src/alias.ts'),
-      );
+      await symlink(join(root, first), join(root, 'plugins/demo/src/alias.ts'));
       const plan = {
         tasks: [tasks[0], {id: 'alias', files: ['plugins/demo/src/alias.ts']}],
       };
@@ -233,7 +234,7 @@ Deno.test('workflow plan: symlink aliases cannot give two agents the same writab
           'REVIEW',
         );
       }
-      await Deno.symlink(join(root, 'plugins/demo/src'), join(root, 'alias'));
+      await symlink(join(root, 'plugins/demo/src'), join(root, 'alias'));
       assertEquals(
         selectWorkMode(
           unchanged,
@@ -256,7 +257,7 @@ Deno.test('workflow plan: symlink aliases cannot give two agents the same writab
   );
 });
 
-Deno.test('workflow plan: invalid or ambiguous task scopes fail validation', async () => {
+test('workflow plan: invalid or ambiguous task scopes fail validation', async () => {
   await fixture({}, async root => {
     for (const input of [
       {},
@@ -275,7 +276,7 @@ Deno.test('workflow plan: invalid or ambiguous task scopes fail validation', asy
   });
 });
 
-Deno.test('workflow plan: risky planned paths and scope growth still require review', () => {
+test('workflow plan: risky planned paths and scope growth still require review', () => {
   const plan = {tasks, reasons: []};
   assertEquals(
     selectWorkMode(
@@ -285,7 +286,7 @@ Deno.test('workflow plan: risky planned paths and scope growth still require rev
     'REVIEW',
   );
   for (const path of [
-    'deno.jsonc',
+    'package.json',
     'plugins/demo/src/mod.ts',
     'plugins/demo/migrations/001.sql',
   ]) {
@@ -303,7 +304,7 @@ Deno.test('workflow plan: risky planned paths and scope growth still require rev
   );
 });
 
-Deno.test('workflow plan: Git integration routes a clean plan then rejects changes outside its scope', async () => {
+test('workflow plan: Git integration routes a clean plan then rejects changes outside its scope', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -327,18 +328,17 @@ Deno.test('workflow plan: Git integration routes a clean plan then rejects chang
           'fixture',
         ],
       ]) {
-        const result = await new Deno.Command('git', {
+        const result = spawnSync('git', args, {
           cwd: root,
-          args,
-          stdout: 'piped',
-          stderr: 'piped',
-        }).output();
-        assert(result.success, new TextDecoder().decode(result.stderr));
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        if (result.error) throw result.error;
+        assert(result.status === 0, new TextDecoder().decode(result.stderr));
       }
       const result = await inspectChanges(root, 'HEAD', {tasks});
       assertEquals(result.mode, 'PARALLEL');
       assertEquals(result.tasks, tasks);
-      await Deno.writeTextFile(join(root, 'outside.txt'), 'outside\n');
+      await writeFile(join(root, 'outside.txt'), 'outside\n');
       assertEquals(
         (await inspectChanges(root, 'HEAD', {tasks})).mode,
         'REVIEW',

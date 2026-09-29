@@ -109,7 +109,9 @@ def _versions() -> dict[str, str | None]:
 
 
 def _installation_problem(versions: dict[str, str | None]) -> str | None:
-    if Path(sys.prefix).resolve() != (_ROOT / ".venv").resolve():
+    project_root = _project_root()
+    workspace = project_root != _ROOT
+    if Path(sys.prefix).resolve() != (project_root / ".venv").resolve():
         return "Python is not running from this component's .venv."
     try:
         expected_python = (
@@ -152,14 +154,16 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
         if (_ROOT / "src" / "backfire_education").is_dir()
         else []
     )
+    all_packages = ["--all-packages"] if workspace else []
     base = [
         "uv",
         "sync",
         "--project",
-        str(_ROOT),
+        str(project_root),
         "--check",
         "--frozen",
         "--offline",
+        *all_packages,
         *education_extra,
     ]
     for extra in ([], ["--no-dev"]):
@@ -177,6 +181,16 @@ def _installation_problem(versions: dict[str, str | None]) -> str | None:
         if result.returncode == 0:
             return None
     return "This component's .venv does not match uv.lock."
+
+
+def _project_root() -> Path:
+    workspace_root = _ROOT.parent.parent
+    return (
+        workspace_root
+        if _ROOT.parent.name == "packages"
+        and (workspace_root / "pyproject.toml").is_file()
+        else _ROOT
+    )
 
 
 async def _direct_judgment():
@@ -470,9 +484,15 @@ def main() -> int:
             if (_ROOT / "src" / "backfire_education").is_dir()
             else ""
         )
+        project_root = _project_root()
+        if project_root != _ROOT:
+            command = f"uv sync --locked --all-packages{education_extra}"
+            location = "from the repository root"
+        else:
+            command = f"uv sync --frozen --no-dev{education_extra}"
+            location = "in this component"
         print(
-            f"Readiness failed: run `uv sync --frozen --no-dev"
-            f"{education_extra}` in this component, then retry.",
+            f"Readiness failed: run `{command}` {location}, then retry.",
             file=sys.stderr,
         )
         return 1

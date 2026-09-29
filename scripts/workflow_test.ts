@@ -1,5 +1,9 @@
+import {test} from 'node:test';
 import {assert, assertEquals, assertRejects, assertThrows} from '@std/assert';
 import {dirname, join} from '@std/path';
+import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {
   assessDifficulty,
   buildWorkModeInstructions,
@@ -10,9 +14,9 @@ import {
 } from './workflow.ts';
 
 async function git(root: string, ...args: string[]) {
-  const result = await new Deno.Command('git', {
-    cwd: root,
-    args: [
+  const result = spawnSync(
+    'git',
+    [
       '-c',
       'core.hooksPath=/dev/null',
       '-c',
@@ -23,11 +27,18 @@ async function git(root: string, ...args: string[]) {
       'commit.gpgsign=false',
       ...args,
     ],
-    env: {GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null'},
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
-  assert(result.success, new TextDecoder().decode(result.stderr));
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        GIT_CONFIG_NOSYSTEM: '1',
+        GIT_CONFIG_GLOBAL: '/dev/null',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+  if (result.error) throw result.error;
+  assert(result.status === 0, new TextDecoder().decode(result.stderr));
   return new TextDecoder().decode(result.stdout).trim();
 }
 
@@ -35,22 +46,22 @@ async function repository(
   files: Record<string, string>,
   run: (root: string) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'workflow-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'workflow-test-'));
   try {
     await git(root, 'init', '--quiet', '--template=', '--initial-branch=main');
     for (const [path, source] of Object.entries(files)) {
-      await Deno.mkdir(dirname(join(root, path)), {recursive: true});
-      await Deno.writeTextFile(join(root, path), source);
+      await mkdir(dirname(join(root, path)), {recursive: true});
+      await writeFile(join(root, path), source);
     }
     await git(root, 'add', '--all');
     await git(root, 'commit', '--quiet', '--allow-empty', '-m', 'Fixture');
     await run(root);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
-Deno.test('workflow: size boundaries and mandatory review signals', () => {
+test('workflow: size boundaries and mandatory review signals', () => {
   const small = {
     paths: ['src/a.ts', 'src/b.ts'],
     statuses: ['M', 'A'],
@@ -69,9 +80,12 @@ Deno.test('workflow: size boundaries and mandatory review signals', () => {
   );
   for (const path of [
     'AGENTS.md',
-    'deno.jsonc',
-    'deno.lock',
     'package.json',
+    'package-lock.json',
+    'turbo.json',
+    'uv.lock',
+    'pyproject.toml',
+    '.npmrc',
     'plugins/demo/plugin.json',
     'plugins/demo/mcp.json',
     'src/migrations/001.sql',
@@ -101,7 +115,7 @@ Deno.test('workflow: size boundaries and mandatory review signals', () => {
   );
 });
 
-Deno.test('workflow: NUL records preserve filenames and rename statistics', () => {
+test('workflow: NUL records preserve filenames and rename statistics', () => {
   assertEquals(
     parseNameStatus('M\0src/a\tb.ts\0R100\0old\nname.ts\0new\tname.ts\0'),
     {
@@ -119,7 +133,7 @@ Deno.test('workflow: NUL records preserve filenames and rename statistics', () =
   assertThrows(() => sumNumstatLines('invalid\0'), Error, 'numstat');
 });
 
-Deno.test('workflow: staged, unstaged and untracked changes include odd filenames', async () => {
+test('workflow: staged, unstaged and untracked changes include odd filenames', async () => {
   await repository(
     {
       '.gitignore': 'ignored.txt\n',
@@ -127,11 +141,11 @@ Deno.test('workflow: staged, unstaged and untracked changes include odd filename
       'src/unstaged.ts': 'before\n',
     },
     async root => {
-      await Deno.writeTextFile(join(root, 'src/staged.ts'), 'after\n');
+      await writeFile(join(root, 'src/staged.ts'), 'after\n');
       await git(root, 'add', '--', 'src/staged.ts');
-      await Deno.writeTextFile(join(root, 'src/unstaged.ts'), 'after\n');
-      await Deno.writeTextFile(join(root, 'src/new\tline\n.ts'), 'new\n');
-      await Deno.writeTextFile(join(root, 'ignored.txt'), 'ignored\n');
+      await writeFile(join(root, 'src/unstaged.ts'), 'after\n');
+      await writeFile(join(root, 'src/new\tline\n.ts'), 'new\n');
+      await writeFile(join(root, 'ignored.txt'), 'ignored\n');
       const result = await inspectChanges(join(root, 'src'));
       assertEquals(result.paths, [
         'src/new\tline\n.ts',
@@ -146,11 +160,11 @@ Deno.test('workflow: staged, unstaged and untracked changes include odd filename
   );
 });
 
-Deno.test('workflow: worktree reversal cannot conceal staged changes', async () => {
+test('workflow: worktree reversal cannot conceal staged changes', async () => {
   await repository({'src/value.ts': 'before\n'}, async root => {
-    await Deno.writeTextFile(join(root, 'src/value.ts'), 'after\n');
+    await writeFile(join(root, 'src/value.ts'), 'after\n');
     await git(root, 'add', '--', 'src/value.ts');
-    await Deno.writeTextFile(join(root, 'src/value.ts'), 'before\n');
+    await writeFile(join(root, 'src/value.ts'), 'before\n');
     const result = await inspectChanges(root);
     assertEquals(result.paths, ['src/value.ts']);
     assertEquals(result.statuses, ['M', 'M']);
@@ -159,7 +173,7 @@ Deno.test('workflow: worktree reversal cannot conceal staged changes', async () 
   });
 });
 
-Deno.test('workflow: Git rename and deletion require review', async () => {
+test('workflow: Git rename and deletion require review', async () => {
   await repository({'src/old\tname.ts': 'one\ntwo\nthree\n'}, async root => {
     await git(root, 'mv', '--', 'src/old\tname.ts', 'src/new\nname.ts');
     const renamed = await inspectChanges(root);
@@ -169,7 +183,7 @@ Deno.test('workflow: Git rename and deletion require review', async () => {
     assertEquals(renamed.mode, 'REVIEW');
   });
   await repository({'src/removed.ts': 'value\n'}, async root => {
-    await Deno.remove(join(root, 'src/removed.ts'));
+    await rm(join(root, 'src/removed.ts'));
     const deleted = await inspectChanges(root);
     assertEquals(deleted.statuses, ['D']);
     assertEquals(deleted.changed_lines, 1);
@@ -177,29 +191,29 @@ Deno.test('workflow: Git rename and deletion require review', async () => {
   });
 });
 
-Deno.test('workflow: binary and symlink additions cannot become direct work', async () => {
+test('workflow: binary and symlink additions cannot become direct work', async () => {
   await repository({'src/value.ts': 'value\n'}, async root => {
-    await Deno.writeFile(join(root, 'binary.dat'), new Uint8Array([0, 1, 2]));
+    await writeFile(join(root, 'binary.dat'), new Uint8Array([0, 1, 2]));
     const binary = await inspectChanges(root);
     assertEquals(binary.changed_lines, null);
     assertEquals(binary.mode, 'REVIEW');
-    await Deno.remove(join(root, 'binary.dat'));
-    await Deno.symlink('src/value.ts', join(root, 'alias.ts'));
-    const symlink = await inspectChanges(root);
-    assertEquals(symlink.paths, ['alias.ts']);
-    assertEquals(symlink.changed_lines, null);
-    assertEquals(symlink.mode, 'REVIEW');
+    await rm(join(root, 'binary.dat'));
+    await symlink('src/value.ts', join(root, 'alias.ts'));
+    const link = await inspectChanges(root);
+    assertEquals(link.paths, ['alias.ts']);
+    assertEquals(link.changed_lines, null);
+    assertEquals(link.mode, 'REVIEW');
   });
 });
 
-Deno.test('workflow: Deno exports identify nonstandard public entry filenames', async () => {
+test('workflow: package exports identify nonstandard public entry filenames', async () => {
   await repository(
     {
-      'plugins/demo/deno.json': JSON.stringify({exports: './src/api.ts'}),
+      'plugins/demo/package.json': JSON.stringify({exports: './src/api.ts'}),
       'plugins/demo/src/api.ts': 'export const value = 1;\n',
     },
     async root => {
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, 'plugins/demo/src/api.ts'),
         'export const value = 2;\n',
       );
@@ -210,10 +224,10 @@ Deno.test('workflow: Deno exports identify nonstandard public entry filenames', 
   );
 });
 
-Deno.test('workflow: explicit baseline includes commits and invalid refs fail', async () => {
+test('workflow: explicit baseline includes commits and invalid refs fail', async () => {
   await repository({'src/value.ts': 'before\n'}, async root => {
     const initial = await git(root, 'rev-parse', 'HEAD');
-    await Deno.writeTextFile(join(root, 'src/value.ts'), 'after\n');
+    await writeFile(join(root, 'src/value.ts'), 'after\n');
     await git(root, 'add', '--', 'src/value.ts');
     await git(root, 'commit', '--quiet', '-m', 'Fixture update');
     assertEquals((await inspectChanges(root)).paths, []);
@@ -225,7 +239,7 @@ Deno.test('workflow: explicit baseline includes commits and invalid refs fail', 
   });
 });
 
-Deno.test('workflow: difficulty thresholds are independent of review mode', () => {
+test('workflow: difficulty thresholds are independent of review mode', () => {
   const sample = {
     paths: ['src/a.ts'],
     statuses: ['M'],
@@ -272,18 +286,15 @@ Deno.test('workflow: difficulty thresholds are independent of review mode', () =
     assessDifficulty({...sample, statuses: ['R100']}).level,
     'difficult',
   );
-  const config = {...sample, paths: ['deno.jsonc']};
+  const config = {...sample, paths: ['package.json']};
   assertEquals(selectWorkMode(config).mode, 'REVIEW');
   assertEquals(assessDifficulty(config).level, 'very_easy');
 });
 
-Deno.test('workflow: task difficulty excludes unrelated binary changes without weakening review', async () => {
+test('workflow: task difficulty excludes unrelated binary changes without weakening review', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
-    await Deno.writeTextFile(join(root, 'src/a.ts'), 'after\n');
-    await Deno.writeFile(
-      join(root, 'unrelated.dat'),
-      new Uint8Array([0, 1, 2]),
-    );
+    await writeFile(join(root, 'src/a.ts'), 'after\n');
+    await writeFile(join(root, 'unrelated.dat'), new Uint8Array([0, 1, 2]));
     const result = await inspectChanges(root, 'HEAD', {
       tasks: [{id: 'small', files: ['src/a.ts']}],
     });
@@ -299,7 +310,7 @@ Deno.test('workflow: task difficulty excludes unrelated binary changes without w
   });
 });
 
-Deno.test('workflow: planned work with no observed diff remains unassessed', async () => {
+test('workflow: planned work with no observed diff remains unassessed', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
     const result = await inspectChanges(root, 'HEAD', {
       tasks: [{id: 'future', files: ['src/a.ts']}],
@@ -308,9 +319,9 @@ Deno.test('workflow: planned work with no observed diff remains unassessed', asy
   });
 });
 
-Deno.test('workflow: invalid directory scopes are not collected for difficulty', async () => {
+test('workflow: invalid directory scopes are not collected for difficulty', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
-    await Deno.writeTextFile(join(root, 'src/a.ts'), 'after\n');
+    await writeFile(join(root, 'src/a.ts'), 'after\n');
     const result = await inspectChanges(root, 'HEAD', {
       tasks: [{id: 'invalid', files: ['src']}],
     });
@@ -320,7 +331,7 @@ Deno.test('workflow: invalid directory scopes are not collected for difficulty',
   });
 });
 
-Deno.test('workflow: per-task observations keep literal paths and independent levels', async () => {
+test('workflow: per-task observations keep literal paths and independent levels', async () => {
   const first = 'plugins/demo/small\tname.ts';
   const second = 'plugins/demo/large.ts';
   await repository(
@@ -329,8 +340,8 @@ Deno.test('workflow: per-task observations keep literal paths and independent le
       [second]: 'export const large = 1;\n',
     },
     async root => {
-      await Deno.writeTextFile(join(root, first), 'export const small = 2;\n');
-      await Deno.writeTextFile(
+      await writeFile(join(root, first), 'export const small = 2;\n');
+      await writeFile(
         join(root, second),
         `export const large = 2;\n${'// comment\n'.repeat(101)}`,
       );
@@ -361,12 +372,12 @@ Deno.test('workflow: per-task observations keep literal paths and independent le
   );
 });
 
-Deno.test('workflow: scoped observations include staged, unstaged and untracked changes', async () => {
+test('workflow: scoped observations include staged, unstaged and untracked changes', async () => {
   await repository({'src/a.ts': 'original\n'}, async root => {
-    await Deno.writeTextFile(join(root, 'src/a.ts'), 'staged\n');
+    await writeFile(join(root, 'src/a.ts'), 'staged\n');
     await git(root, 'add', 'src/a.ts');
-    await Deno.writeTextFile(join(root, 'src/a.ts'), 'unstaged\n');
-    await Deno.writeTextFile(join(root, 'src/new.ts'), 'new\n');
+    await writeFile(join(root, 'src/a.ts'), 'unstaged\n');
+    await writeFile(join(root, 'src/new.ts'), 'new\n');
     const result = await inspectChanges(root, 'HEAD', {
       tasks: [{id: 'mixed', files: ['src/a.ts', 'src/new.ts']}],
     });
@@ -376,7 +387,7 @@ Deno.test('workflow: scoped observations include staged, unstaged and untracked 
   });
 });
 
-Deno.test('workflow: review eligibility does not suppress measurable task difficulty', async () => {
+test('workflow: review eligibility does not suppress measurable task difficulty', async () => {
   const first = 'plugins/demo/first.ts';
   const second = 'plugins/demo/second.ts';
   await repository(
@@ -385,11 +396,11 @@ Deno.test('workflow: review eligibility does not suppress measurable task diffic
       [second]: 'export const value = 1;\n',
     },
     async root => {
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, first),
         "export {value} from './second.ts';\n// changed\n",
       );
-      await Deno.writeTextFile(join(root, second), 'export const value = 2;\n');
+      await writeFile(join(root, second), 'export const value = 2;\n');
       const result = await inspectChanges(root, 'HEAD', {
         tasks: [
           {id: 'first', files: [first]},
@@ -410,7 +421,7 @@ Deno.test('workflow: review eligibility does not suppress measurable task diffic
   );
 });
 
-Deno.test('workflow: destination-only task retains observed rename metadata', async () => {
+test('workflow: destination-only task retains observed rename metadata', async () => {
   await repository({'src/old.ts': 'export const value = 1;\n'}, async root => {
     await git(root, 'mv', 'src/old.ts', 'src/new.ts');
     const result = await inspectChanges(root, 'HEAD', {
@@ -423,19 +434,19 @@ Deno.test('workflow: destination-only task retains observed rename metadata', as
   });
 });
 
-Deno.test('workflow: staged and tracked symlinks remain unassessed', async () => {
+test('workflow: staged and tracked symlinks remain unassessed', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
-    await Deno.symlink('src/a.ts', join(root, 'alias.ts'));
+    await symlink('src/a.ts', join(root, 'alias.ts'));
     await git(root, 'add', 'alias.ts');
     assertEquals((await inspectChanges(root)).difficulty[0].level, null);
     await git(root, 'commit', '--quiet', '-m', 'Link fixture');
-    await Deno.remove(join(root, 'alias.ts'));
-    await Deno.symlink('src/missing.ts', join(root, 'alias.ts'));
+    await rm(join(root, 'alias.ts'));
+    await symlink('src/missing.ts', join(root, 'alias.ts'));
     assertEquals((await inspectChanges(root)).difficulty[0].level, null);
   });
 });
 
-Deno.test('workflow: delegation instructions use Orca workers', () => {
+test('workflow: delegation instructions use Orca workers', () => {
   for (const mode of ['DELEGATE', 'PARALLEL'] as const) {
     const lines = buildWorkModeInstructions(mode, true);
     assert(lines.some(line => line.includes('Orca orchestration')));
@@ -443,13 +454,13 @@ Deno.test('workflow: delegation instructions use Orca workers', () => {
   }
 });
 
-Deno.test('workflow: review instructions time independent review at merge', () => {
+test('workflow: review instructions time independent review at merge', () => {
   const lines = buildWorkModeInstructions('REVIEW', true);
   assert(
     lines.some(
       line =>
         line.includes(
-          'Before the develop merge review, run `deno task doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `deno task doc-regions:audit`',
+          'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`',
         ) &&
         line.includes(
           'Send each printed request to the backfire tool it names',
@@ -482,7 +493,7 @@ Deno.test('workflow: review instructions time independent review at merge', () =
   assert(!lines.some(line => line.includes('separate read-only diff review')));
 });
 
-Deno.test('workflow: every mode prints the Linear completion order', () => {
+test('workflow: every mode prints the Linear completion order', () => {
   for (const mode of ['DIRECT', 'DELEGATE', 'PARALLEL', 'REVIEW'] as const) {
     const lines = buildWorkModeInstructions(mode, false);
     assert(

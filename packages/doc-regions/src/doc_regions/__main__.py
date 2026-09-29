@@ -22,9 +22,6 @@ def positive(value):
 def main(argv=None):
     """Run the doc-regions command for the current document root."""
     argv = list(sys.argv[1:] if argv is None else argv)
-    # Deno task forwards its separator after the configured positional path.
-    if len(argv) > 2 and argv[0] == "prepare" and argv[2] == "--":
-        del argv[2]
     parser = argparse.ArgumentParser(prog="doc-regions")
     commands = parser.add_subparsers(dest="command", required=True)
     for command in ("check", "update", "prepare", "audit"):

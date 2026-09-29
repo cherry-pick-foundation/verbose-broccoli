@@ -1,5 +1,6 @@
 import {z} from '@zod/zod';
 import {format, type ICruiseResult} from 'dependency-cruiser';
+import {realpath} from 'node:fs/promises';
 import {analyzeImportGraph} from './clean_architecture.ts';
 import {
   getFileAccessError,
@@ -42,7 +43,7 @@ export async function analyzePlan(
   }
   if (reasons.length) return {tasks, reasons};
   try {
-    const realRoot = await Deno.realPath(root);
+    const realRoot = await realpath(root);
     for (const path of owners.keys()) {
       const reason = await getFileAccessError(realRoot, path, tasks.length > 1);
       if (reason) reasons.push(reason);

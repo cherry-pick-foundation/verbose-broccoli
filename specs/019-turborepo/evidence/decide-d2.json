@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should Node.js 24.19 execute the repository's TypeScript files, which Deno ran directly?",
+  "evidence": "Node 24.19.0 reports process.features.typescript = 'strip': it runs .ts files by erasing types, and rejects syntax that needs transformation (ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX). The repository's TS code already imports with explicit .ts extensions. tsc 6.0.3 with --erasableSyntaxOnly over scripts/*.ts and plugins/**/*.ts reports non-erasable syntax in exactly two repository files: plugins/code/skills/clean-code/scripts/cli.ts (one constructor parameter property, 'constructor(readonly details: unknown)') and scripts/wiki_raw_import_test.ts (one construct). Node's --experimental-transform-types flag runs those files unchanged; with it, scripts/validate_plugins.ts ran and passed. tsx (npm) is an esbuild-based loader that runs all TypeScript syntax; it would be a new dependency. Node does not strip types in files under node_modules; the JSR packages installed through npm.jsr.io ship compiled JavaScript entry points.",
+  "candidates": [
+   {
+    "id": "strip_only",
+    "description": "Use Node's default type stripping; rewrite the two non-erasable constructs in cli.ts and wiki_raw_import_test.ts into erasable syntax, and have tsc check with erasableSyntaxOnly so new ones are caught."
+   },
+   {
+    "id": "transform_flag",
+    "description": "Run every script with Node's --experimental-transform-types flag so the two files stay unchanged."
+   },
+   {
+    "id": "tsx_loader",
+    "description": "Add tsx as a dev dependency and run scripts through it."
+   }
+  ],
+  "requirements": [
+   "Uses no experimental runtime flag.",
+   "Adds no new dependency."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "strip_only",
+   "escaped": false,
+   "confidence": 0.856,
+   "probabilities": {
+    "strip_only": 0.88,
+    "transform_flag": 0.05,
+    "tsx_loader": 0.02,
+    "ask_user": 0.02,
+    "investigate": 0.02,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "strip_only",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "strip_only",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "transform_flag",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "transform_flag",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "tsx_loader",
+    "requirement": 0,
+    "answer": "unknown"
+   },
+   {
+    "candidate": "tsx_loader",
+    "requirement": 1,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2280,
+   "output_tokens": 2774
+  }
+ }
+}

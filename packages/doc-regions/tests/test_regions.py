@@ -60,7 +60,7 @@ def test_stale_has_cog_diff_line_and_update_command(workspace, unchanged):
     assert problems[0]["line"] == 5
     assert "-fresh" in problems[0]["message"]
     assert "+new" in problems[0]["message"]
-    assert "deno task doc-regions:update" in problems[0]["message"]
+    assert "npm run doc-regions:update" in problems[0]["message"]
 
 
 def test_stale_names_caller_supplied_update_command(workspace, unchanged):

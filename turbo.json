@@ -1,0 +1,182 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "agentGuidance": false,
+  "globalPassThroughEnv": [
+    "HOME",
+    "PATH",
+    "XDG_*",
+    "UV_*",
+    "PYTHONDONTWRITEBYTECODE",
+    "TMPDIR",
+    "CI",
+    "CONSTITUTION_VERSION_COMMIT",
+    "CONSTITUTION_VERSION_AMEND",
+    "VERBOSE_BROCCOLI_CONFIG"
+  ],
+  "futureFlags": {
+    "experimentalPythonWorkspaces": true,
+    "experimentalTaskCommand": true
+  },
+  "tasks": {
+    "//#doctor": {
+      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies",
+      "cache": false
+    },
+    "//#format:check": { "cache": false },
+    "//#lint": { "cache": false },
+    "//#lint:shell": { "cache": false },
+    "//#typecheck": { "cache": false },
+    "//#plugins:validate": { "cache": false },
+    "//#clean-code": { "cache": false },
+    "//#clean-architecture": { "cache": false },
+    "//#docs:check": { "cache": false },
+    "//#doc-regions:check": {
+      "description": "Check mechanical regions and local links in the target documents, offline and without writing",
+      "cache": false
+    },
+    "//#test:doctor": { "cache": false },
+    "//#test:ruff": { "cache": false },
+    "//#test:git-flow": { "cache": false },
+    "//#test:worktree-branch": { "cache": false },
+    "//#test:commit-msg": { "cache": false },
+    "//#test:plugin-skills": { "cache": false },
+    "//#test:clean-code": { "cache": false },
+    "//#test:clean-architecture": { "cache": false },
+    "//#test:workflow": { "cache": false },
+    "//#test:cli-contract": { "cache": false },
+    "//#test:docs": { "cache": false },
+    "backfire#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "backfire",
+        "pytest",
+        "packages/backfire/tests",
+        "-m",
+        "not slow"
+      ],
+      "cache": false
+    },
+    "backfire#test:slow": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "backfire",
+        "pytest",
+        "packages/backfire/tests",
+        "-m",
+        "slow"
+      ],
+      "cache": false
+    },
+    "doc-regions#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "doc-regions",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/doc-regions/tests",
+        "scripts/doc_sources_test.py"
+      ],
+      "cache": false
+    },
+    "wiki-consistency#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "wiki-consistency",
+        "pytest",
+        "packages/wiki-consistency/tests"
+      ],
+      "cache": false
+    },
+    "//#test:wiki-raw-import": { "cache": false },
+    "verbose-broccoli-python#test": {
+      "command": ["true"],
+      "dependsOn": [
+        "//#test:doctor",
+        "//#test:ruff",
+        "//#test:git-flow",
+        "//#test:worktree-branch",
+        "//#test:commit-msg",
+        "//#test:plugin-skills",
+        "//#test:clean-code",
+        "//#test:clean-architecture",
+        "//#test:workflow",
+        "//#test:cli-contract",
+        "//#test:docs",
+        "backfire#test",
+        "doc-regions#test",
+        "wiki-consistency#test",
+        "//#test:wiki-raw-import"
+      ],
+      "cache": false
+    },
+    "//#doc-regions:update": {
+      "description": "Regenerate stale mechanical regions in the target documents",
+      "cache": false
+    },
+    "//#doc-regions:prepare": {
+      "description": "Print backfire requests for the agent regions before a develop merge review (pass --base and --max-evidence-chars)",
+      "cache": false
+    },
+    "//#doc-regions:audit": {
+      "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
+      "cache": false
+    },
+    "verbose-broccoli-python#check": {
+      "command": ["true"],
+      "dependsOn": [
+        "//#doctor",
+        "//#format:check",
+        "//#lint",
+        "//#lint:shell",
+        "//#typecheck",
+        "//#plugins:validate",
+        "//#clean-code",
+        "//#clean-architecture",
+        "verbose-broccoli-python#test",
+        "//#docs:check",
+        "//#doc-regions:check"
+      ],
+      "cache": false
+    },
+    "backfire#check": { "command": ["true"], "cache": false },
+    "doc-regions#check": { "command": ["true"], "cache": false },
+    "wiki-consistency#check": { "command": ["true"], "cache": false }
+  }
+}

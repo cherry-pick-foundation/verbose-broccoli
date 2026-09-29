@@ -1,10 +1,12 @@
 """Build a plugin with its selected Backfire packages and profile."""
 
+import json
 import os
 from pathlib import Path
 import shutil
 import signal
 import stat
+import subprocess
 import sys
 import tempfile
 
@@ -27,6 +29,67 @@ def refuse_existing(output: Path) -> None:
     except FileNotFoundError:
         return
     raise FileExistsError(f"Output already exists: {output}")
+
+
+def lock_copy(
+    project: str, directory: Path, *, extra: tuple[str, ...] = ()
+) -> None:
+    """Create an offline lock for a copied project."""
+    exported = subprocess.run(
+        [
+            "uv",
+            "export",
+            "--package",
+            project,
+            "--frozen",
+            "--no-hashes",
+            "--no-emit-workspace",
+            *extra,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if exported.returncode:
+        raise ValueError(
+            exported.stderr.strip() or f"uv export failed for {project}"
+        )
+    pins = [
+        line.strip()
+        for line in exported.stdout.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    pyproject = directory / "pyproject.toml"
+    original = pyproject.read_bytes()
+    setting = f"constraint-dependencies = {json.dumps(pins)}\n".encode()
+    lines = original.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.startswith(b"constraint-dependencies ="):
+            lines[index] = setting
+            break
+    else:
+        section = b"[tool.uv]\n"
+        try:
+            index = lines.index(section) + 1
+        except ValueError as error:
+            raise ValueError(f"Missing [tool.uv] in {pyproject}") from error
+        lines.insert(index, setting)
+    pyproject.write_bytes(b"".join(lines))
+    try:
+        result = subprocess.run(
+            ["uv", "lock", "--offline"],
+            cwd=directory,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode:
+            raise ValueError(
+                result.stderr.strip() or f"uv lock failed for {project}"
+            )
+    finally:
+        pyproject.write_bytes(original)
 
 
 def build(output: str | Path, *, plugin: str = "code") -> Path:
@@ -127,8 +190,22 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         package = ROOT / "packages/backfire"
         runtime = partial / "backfire"
         runtime.mkdir()
-        for path in ("pyproject.toml", ".python-version", "uv.lock"):
+        for path in ("pyproject.toml", ".python-version"):
             copy_file(package / path, runtime / path)
+        pyproject = runtime / "pyproject.toml"
+        content = pyproject.read_bytes()
+        modules = (
+            b'module-name = ["backfire", "backfire_tools", '
+            b'"backfire_education"]'
+        )
+        module_list = ", ".join('"' + name + '"' for name in packages)
+        replacement = f"module-name = [{module_list}]".encode()
+        updated = content.replace(modules, replacement, 1)
+        if updated == content:
+            raise ValueError(
+                "Could not select copied backfire modules in pyproject.toml"
+            )
+        pyproject.write_bytes(updated)
         for name in packages:
             copy_tree(
                 package / "src" / name,
@@ -150,6 +227,33 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
                     "tests",
                 ),
             )
+        lock_copy(
+            "backfire",
+            runtime,
+            extra=("--extra", "education") if plugin == "work" else (),
+        )
+        for name in projects:
+            copied = partial / name
+            if name == "wiki-consistency":
+                pyproject = copied / "pyproject.toml"
+                content = pyproject.read_text(encoding="utf-8")
+                for dependency in ("doc-regions", "backfire"):
+                    source = f"{dependency} = {{ workspace = true }}"
+                    if source not in content:
+                        raise ValueError(
+                            "Could not replace workspace source in copied "
+                            "wiki-consistency pyproject.toml"
+                        )
+                    content = content.replace(
+                        source,
+                        (
+                            f'{dependency} = {{ path = "../{dependency}", '
+                            "editable = true }"
+                        ),
+                        1,
+                    )
+                pyproject.write_text(content, encoding="utf-8")
+            lock_copy(name, copied)
         if interrupted:
             raise InterruptedError("Build interrupted")
         refuse_existing(output)
@@ -173,7 +277,7 @@ def main() -> int:
     try:
         if len(args) != 2 or not all(args):
             raise ValueError(
-                "Usage: deno task backfire:build -- <plugin> <output>"
+                "Usage: npm run backfire:build -- <plugin> <output>"
             )
         print(build(args[1], plugin=args[0]))
         return 0

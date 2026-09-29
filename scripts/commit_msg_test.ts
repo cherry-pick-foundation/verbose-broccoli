@@ -1,23 +1,60 @@
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {spawnSync} from 'node:child_process';
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {test} from 'node:test';
+import {assert, assertEquals, assertMatch, assertThrows} from '@std/assert';
 import {join} from '@std/path';
 import {constitutionVersion, isBreakingCommit} from './constitution_version.ts';
 
 const repository = new URL('../', import.meta.url);
 const repositoryRoot = decodeURIComponent(repository.pathname);
-const git = (await new Deno.Command('which', {args: ['git']}).output()).stdout;
+const git = commandOutput('which', {args: ['git']}).stdout;
 const gitPath = new TextDecoder().decode(git).trim();
-const home = Deno.env.get('HOME') ?? '/tmp';
-const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');
-const path = Deno.env.get('PATH') ?? '/usr/bin:/bin';
+const path = process.env.PATH ?? '/usr/bin:/bin';
 const constitution = (version: string, text = 'Policy text.') =>
   `${text}\n\n**Version**: ${version} | **Ratified**: 2026-09-12 | **Last Amended**: 2026-09-27\n`;
 const baseEnv = {
-  DENO_DIR: denoDir,
   GIT_CONFIG_GLOBAL: '/dev/null',
   GIT_CONFIG_NOSYSTEM: '1',
   PATH: path,
 };
 const oldText = constitution('0.22.0');
+
+function commandOutput(
+  command: string,
+  options: {args: string[]; cwd?: string; env?: Record<string, string>},
+) {
+  const result = spawnSync(command, options.args, {
+    cwd: options.cwd,
+    env: options.env ? {...process.env, ...options.env} : undefined,
+    encoding: null,
+  });
+  if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
+  return {
+    code: result.status ?? 1,
+    success: result.status === 0,
+    stdout: result.stdout ?? Buffer.alloc(0),
+    stderr: result.stderr ?? Buffer.alloc(0),
+  };
+}
+
+test('commit-msg test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
+    Error,
+    'SIGTERM',
+  );
+});
 
 function check(
   type: string | null | undefined,
@@ -28,7 +65,7 @@ function check(
   return constitutionVersion(type, breaking, before, after);
 }
 
-Deno.test('constitution version rule: table and edge cases', () => {
+test('constitution version rule: table and edge cases', () => {
   const minor = constitution('0.23.0', 'Policy text updated.');
   const patch = constitution('0.22.1', 'Policy text updated.');
   const major = constitution('1.0.0', 'Policy text updated.');
@@ -95,29 +132,24 @@ Deno.test('constitution version rule: table and edge cases', () => {
   );
 });
 
-Deno.test('constitution version rule: Git errors refuse changed commits', async () => {
-  const root = await Deno.makeTempDir({prefix: 'commit-msg-git-error-'});
+test('constitution version rule: Git errors refuse changed commits', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'commit-msg-git-error-'));
   try {
     const moduleUrl = new URL('./constitution_version.ts', import.meta.url)
       .href;
     const probe = `import {constitutionVersionRule} from ${JSON.stringify(moduleUrl)}; console.log(JSON.stringify(await constitutionVersionRule({type: 'feat'})));`;
-    const result = await new Deno.Command(Deno.execPath(), {
-      args: [
-        'eval',
-        '--allow-read',
-        '--allow-env=PATH',
-        '--allow-run=git',
-        probe,
-      ],
+    const result = commandOutput(process.execPath, {
+      args: ['--input-type=module', '-e', probe],
       cwd: root,
-      env: {DENO_DIR: denoDir, PATH: path},
-      stdout: 'piped',
-      stderr: 'piped',
-    }).output();
+      env: {
+        NODE_OPTIONS: '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+        PATH: path,
+      },
+    });
     assert(result.success, output(result));
     assertMatch(output(result), /Could not check HEAD/);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true, force: true});
   }
 });
 
@@ -131,18 +163,16 @@ async function runGit(
   args: string[],
   extraEnv: Record<string, string> = {},
 ) {
-  return await new Deno.Command(gitPath, {
+  return commandOutput(gitPath, {
     args: ['-C', repo.root, ...args],
     env: {
       ...repo.env,
       ...extraEnv,
     },
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  });
 }
 
-function output(result: Deno.CommandOutput) {
+function output(result: ReturnType<typeof commandOutput>) {
   return (
     new TextDecoder().decode(result.stdout) +
     new TextDecoder().decode(result.stderr)
@@ -150,40 +180,37 @@ function output(result: Deno.CommandOutput) {
 }
 
 async function createRepo(): Promise<Repo> {
-  const root = await Deno.makeTempDir({prefix: 'commit-msg-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'commit-msg-test-'));
   const tempHome = join(root, 'home');
-  await Deno.mkdir(tempHome);
+  await mkdir(tempHome);
   const repo = {
     root,
     env: {...baseEnv, HOME: tempHome},
   };
-  await Deno.mkdir(join(root, 'scripts', 'git-hooks'), {recursive: true});
-  await Deno.mkdir(join(root, '.specify', 'memory'), {recursive: true});
-  await Deno.copyFile(
-    join(repositoryRoot, 'deno.json'),
-    join(root, 'deno.json'),
-  );
-  await Deno.copyFile(
-    join(repositoryRoot, 'deno.lock'),
-    join(root, 'deno.lock'),
-  );
-  for (const file of ['commitlint.config.mjs', 'constitution_version.ts']) {
-    await Deno.copyFile(
-      join(repositoryRoot, 'scripts', file),
-      join(root, 'scripts', file),
-    );
+  await mkdir(join(root, 'scripts', 'git-hooks'), {recursive: true});
+  await mkdir(join(root, '.specify', 'memory'), {recursive: true});
+  for (const file of [
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'scripts/commitlint.config.mjs',
+    'scripts/constitution_version.ts',
+  ]) {
+    await copyFile(join(repositoryRoot, file), join(root, file));
   }
+  await symlink(
+    join(repositoryRoot, 'node_modules'),
+    join(root, 'node_modules'),
+    'dir',
+  );
   const hook = join(root, 'scripts', 'git-hooks', 'commit-msg');
-  await Deno.copyFile(
+  await copyFile(
     join(repositoryRoot, 'scripts', 'git-hooks', 'commit-msg'),
     hook,
   );
-  await Deno.chmod(hook, 0o755);
-  await Deno.writeTextFile(
-    join(root, '.specify', 'memory', 'constitution.md'),
-    oldText,
-  );
-  await Deno.writeTextFile(join(root, 'tracked.txt'), 'seed\n');
+  await chmod(hook, 0o755);
+  await writeFile(join(root, '.specify', 'memory', 'constitution.md'), oldText);
+  await writeFile(join(root, 'tracked.txt'), 'seed\n');
 
   const init = await runGit(repo, ['init', '--quiet', '--initial-branch=main']);
   assert(init.success, output(init));
@@ -212,12 +239,12 @@ async function withRepo(run: (repo: Repo) => Promise<void>) {
   try {
     await run(repo);
   } finally {
-    await Deno.remove(repo.root, {recursive: true});
+    await rm(repo.root, {recursive: true, force: true});
   }
 }
 
 async function writeConstitution(repo: Repo, text: string) {
-  await Deno.writeTextFile(
+  await writeFile(
     join(repo.root, '.specify', 'memory', 'constitution.md'),
     text,
   );
@@ -234,7 +261,7 @@ async function commit(
   return await runGit(repo, ['commit', ...args, '-m', message], extraEnv);
 }
 
-Deno.test('commit-msg hook: amendments use the parent constitution version', async () => {
+test('commit-msg hook: amendments use the parent constitution version', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -344,7 +371,7 @@ Deno.test('commit-msg hook: amendments use the parent constitution version', asy
   });
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'docs.txt'), 'first\n');
+    await writeFile(join(repo.root, 'docs.txt'), 'first\n');
     const add = await runGit(repo, ['add', 'docs.txt']);
     assert(add.success, output(add));
     const first = await commit(repo, 'docs: update docs');
@@ -400,7 +427,7 @@ Deno.test('commit-msg hook: amendments use the parent constitution version', asy
   });
 });
 
-Deno.test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
+test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -424,9 +451,9 @@ Deno.test('commit-msg hook: inherited commit ref does not replace the index chec
   });
 });
 
-Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {
+test('commit-msg hook: real commits, index handling, and Node lookup', async () => {
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'invalid.txt'), 'change\n');
+    await writeFile(join(repo.root, 'invalid.txt'), 'change\n');
     await runGit(repo, ['add', 'invalid.txt']);
     const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
     const invalid = await commit(repo, 'Update files');
@@ -436,23 +463,24 @@ Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', asyn
   });
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'trailers.txt'), 'accepted\n');
+    await writeFile(join(repo.root, 'trailers.txt'), 'accepted\n');
     await runGit(repo, ['add', 'trailers.txt']);
     const result = await commit(
       repo,
       'feat: accept review trailers\n\nSpec-Kit-Task: T006\nReviewed-by: Reviewer\nReviewed-commit: abcdef123\nCo-Authored-By: Author <author@example.invalid>\nSigned-off-by: Commit Test <commit-test@example.invalid>',
     );
     assert(result.success, output(result));
+    assert(!output(result).includes('SecurityWarning'), output(result));
   });
 
   await withRepo(async repo => {
     await runGit(repo, ['checkout', '-b', 'feature']);
-    await Deno.writeTextFile(join(repo.root, 'feature.txt'), 'feature\n');
+    await writeFile(join(repo.root, 'feature.txt'), 'feature\n');
     await runGit(repo, ['add', 'feature.txt']);
     const feature = await commit(repo, 'feat: add feature change');
     assert(feature.success, output(feature));
     await runGit(repo, ['checkout', 'main']);
-    await Deno.writeTextFile(join(repo.root, 'main.txt'), 'main\n');
+    await writeFile(join(repo.root, 'main.txt'), 'main\n');
     await runGit(repo, ['add', 'main.txt']);
     const main = await commit(repo, 'docs: add main change');
     assert(main.success, output(main));
@@ -513,12 +541,12 @@ Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', asyn
   }
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'tracked.txt'), 'updated\n');
+    await writeFile(join(repo.root, 'tracked.txt'), 'updated\n');
     await writeConstitution(
       repo,
       constitution('0.22.1', 'Staged wrong version.'),
     );
-    await Deno.writeTextFile(
+    await writeFile(
       join(repo.root, '.specify', 'memory', 'constitution.md'),
       constitution('0.23.0', 'Policy text updated.'),
     );
@@ -537,22 +565,22 @@ Deno.test('commit-msg hook: real commits, index handling, and Deno lookup', asyn
   });
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'missing-deno.txt'), 'change\n');
-    await runGit(repo, ['add', 'missing-deno.txt']);
+    await writeFile(join(repo.root, 'missing-node.txt'), 'change\n');
+    await runGit(repo, ['add', 'missing-node.txt']);
     const before = output(await runGit(repo, ['rev-parse', 'HEAD']));
-    const missing = await commit(repo, 'feat: commit without deno', [], {
+    const missing = await commit(repo, 'feat: commit without node', [], {
       PATH: join(repo.root, 'empty-path'),
     });
     assert(!missing.success);
     assertMatch(
       output(missing),
-      /Commit refused: Deno 2\.9\.6 was not found\./,
+      /Commit refused: Node\.js 24\.12\.0 or later was not found\./,
     );
     assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
   });
 
   await withRepo(async repo => {
-    await Deno.writeTextFile(join(repo.root, 'timed.txt'), 'timing\n');
+    await writeFile(join(repo.root, 'timed.txt'), 'timing\n');
     await runGit(repo, ['add', 'timed.txt']);
     const started = performance.now();
     const result = await commit(repo, 'test: measure hook runtime');

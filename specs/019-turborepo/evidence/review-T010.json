@@ -1,0 +1,141 @@
+{
+  "note": "Two backfire_review calls (the patch exceeds the 50,000-character diff limit). Part 1 (docs_test.ts) escalated with low confidence (correctness 0.95 at confidence 0.33). The coordinator checked the part-1 risk by hand: the builtin stubs (readFile, rename) are asserted as called (docs_test.ts lines 446, 535, 570, 605, 638), so they intercept docs.ts's named imports, and npm run test:docs passes 14 of 14.",
+  "part1_docs_test": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.1,
+    "scores": {
+      "correctness": {
+        "score": 0.9500000000000001,
+        "confidence": 0.32499999999999996,
+        "probabilities": {
+          "0": 0.25,
+          "1": 0.55,
+          "2": 0.2
+        }
+      },
+      "spec_match": {
+        "score": 1.05,
+        "confidence": 0.475,
+        "probabilities": {
+          "0": 0.15,
+          "1": 0.65,
+          "2": 0.2
+        }
+      },
+      "test_gap": {
+        "score": 1.5,
+        "confidence": 0.25,
+        "probabilities": {
+          "0": 0.1,
+          "1": 0.3,
+          "2": 0.6
+        }
+      },
+      "blast_radius": {
+        "score": 0.25,
+        "confidence": 0.625,
+        "probabilities": {
+          "0": 0.8,
+          "1": 0.15,
+          "2": 0.05
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "escalate",
+    "composite": 0.51625,
+    "reason_codes": [
+      "confidence_below_review",
+      "safe_to_apply_below_review"
+    ],
+    "limiting_rubrics": [
+      "test_gap"
+    ],
+    "usage": {
+      "input_tokens": 12472,
+      "output_tokens": 13600
+    }
+  },
+  "part2_other_files": {
+    "tool": "backfire_review",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "truncated": false,
+    "safe_to_apply": 0.72,
+    "scores": {
+      "correctness": {
+        "score": 1.77,
+        "confidence": 0.655,
+        "probabilities": {
+          "0": 0.03,
+          "1": 0.17,
+          "2": 0.8
+        }
+      },
+      "spec_match": {
+        "score": 1.72,
+        "confidence": 0.58,
+        "probabilities": {
+          "0": 0.04,
+          "1": 0.2,
+          "2": 0.76
+        }
+      },
+      "test_gap": {
+        "score": 0.30000000000000004,
+        "confidence": 0.5499999999999999,
+        "probabilities": {
+          "0": 0.75,
+          "1": 0.2,
+          "2": 0.05
+        }
+      },
+      "blast_radius": {
+        "score": 0.18,
+        "confidence": 0.73,
+        "probabilities": {
+          "0": 0.85,
+          "1": 0.12,
+          "2": 0.03
+        }
+      }
+    },
+    "weights": {
+      "correctness": 0.4,
+      "spec_match": 0.3,
+      "test_gap": 0.15,
+      "blast_radius": 0.15
+    },
+    "thresholds": {
+      "auto_accept": 0.8,
+      "review_at": 0.5,
+      "composite_floor": 0.7
+    },
+    "action": "review",
+    "composite": 0.8760000000000001,
+    "reason_codes": [
+      "safe_to_apply_below_auto_accept",
+      "confidence_below_auto_accept"
+    ],
+    "limiting_rubrics": [
+      "test_gap"
+    ],
+    "usage": {
+      "input_tokens": 18326,
+      "output_tokens": 8789
+    }
+  }
+}

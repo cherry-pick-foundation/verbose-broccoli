@@ -1,0 +1,5 @@
+# CHE-32 final review CR3: the uv workspace and the Python packages (read-only)
+
+**Report file**: `specs/019-turborepo/evidence/review-CR3.md`.
+
+**Scope** (`git diff 8ce9b2a 9d8af61 -- <path>`): the root `pyproject.toml`, `.python-version` and `uv.lock` (compare locked versions with develop's per-package `packages/*/uv.lock` rather than reading the lock line by line), `packages/backfire/pyproject.toml`, `packages/doc-regions/pyproject.toml`, `packages/wiki-consistency/pyproject.toml`, `packages/backfire/src/backfire/ready.py`, `packages/backfire/src/backfire_tools/build.py`, `packages/doc-regions/src/doc_regions/__main__.py`, `packages/doc-regions/src/doc_regions/regions.py`, and their changed tests (`packages/backfire/tests/test_build.py`, `test_education_e2e.py`, `test_load.py`, `test_ready.py`, `packages/doc-regions/tests/test_regions.py`), plus the Python members' tasks in `turbo.json`. FR-005, FR-006 and FR-013 matter most here. You may run `npm run test:backfire`, `npm run test:doc-regions` and `npm run test:wiki-consistency`, and build a plugin into a temporary directory (`npm run backfire:build -- code <tmp>`).

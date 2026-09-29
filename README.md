@@ -1,6 +1,6 @@
 # verbose-broccoli
 
-A personal Deno workspace of three agent plugins for education and knowledge
+A personal workspace of three agent plugins for education and knowledge
 work: `code`, `work` and `chat`. The [plugin reference](docs/reference/plugins.md)
 lists their contents, and [docs/architecture.md](docs/architecture.md) describes
 the layout and repository tasks.

@@ -367,19 +367,3 @@ def test_cli_check_update_and_failures(repository, unchanged):
     assert result.returncode == 1
     assert "doc.md" in result.stderr and "missing.md" in result.stderr
     assert not result.stdout
-
-
-def test_cli_accepts_deno_task_separator(repository, unchanged):
-    with unchanged(repository):
-        result = cli(
-            repository,
-            "prepare",
-            "config.toml",
-            "--",
-            "--base",
-            "develop",
-            "--max-evidence-chars",
-            "20000",
-        )
-    assert result.returncode == 0, result.stderr
-    valid(json.loads(result.stdout)["requests"])

@@ -1,0 +1,5440 @@
+{
+ "tool": "backfire_classify",
+ "date": "2026-09-29",
+ "purpose": "Select the change sites for removing Deno completely from this repository after the develop merge; only must_change and delete sites will be edited.",
+ "classes": [
+  {
+   "id": "must_change",
+   "description": "The site must be edited for the target state to work: left as it is, a check, test, hook, build, installed environment or documented command would fail, or would run Deno where the target state runs Node or Turborepo, or would assume a per-package Python .venv or uv.lock. Examples: a new Deno.Command(...) call; a Deno.test(...) registration; Deno.execPath() spawned with 'run' or 'test'; a test asserting the text 'deno task backfire:install' in a message that the code changes; a deno.json task whose command must move to package.json or turbo.json; egg_base in a member pyproject; ready.py comparing sys.prefix with the package's own .venv; the commit-msg hook calling deno task commitlint. Takes precedence over can_stay when any part of the site must change. Excludes sites that only need deletion as a whole (use delete) and prose in historical records (use can_stay)."
+  },
+  {
+   "id": "can_stay",
+   "description": "The site keeps working without an edit in the target state, or is outside the trial's scope. Examples: a Deno.readTextFile or Deno.env.get call that the @deno/shim-deno preload serves; import.meta.main; anything inside the shipped clean-code skill that stays on Deno; tools/spec-kit or tools/shellcheck paths; a test fixture string that merely contains the word deno as data and is not tied to a changed message; historical records in specs/ or .specify/. Does not apply when the site names a command, file or path that the target state removes or renames and a reader or check depends on it (use must_change)."
+  },
+  {
+   "id": "delete",
+   "description": "The whole site becomes obsolete and should be removed rather than edited: a file or configuration entry whose job moves elsewhere. Examples: a per-package packages/<name>/uv.lock replaced by the root uv.lock; a deno.json top-level key such as nodeModulesDir or workspace whose job ends with the root deno.json; a .gitignore comment about Deno's cache. Use must_change instead when some of the site's content must be kept in a new form."
+  },
+  {
+   "id": "manual_review",
+   "description": "The evidence in the item is not enough to decide between the other classes, or the site is a governance or scope question that the user must decide (for example a sentence in AGENTS.md or the constitution naming deno task workflow)."
+  }
+ ],
+ "batches": [
+  {
+   "batch": "20",
+   "context": "Feature CHE-32 on branch feature/turborepo, now the real change (the user's decision of 2026-09-29), after merging develop 8ce9b2a. Target state:\n- No Deno anywhere in the repository: no deno executable is required or invoked; no deno.json, deno.lock, plugins/code/deno.json or the clean-code skill's deno.json and deno.lock; no @deno/shim-deno and no Deno-API shim or preload (scripts/deno_shim.ts goes away and no command loads it); no Deno in the doctor, orca.yaml or the GitHub workflows.\n- Every Deno.* call site in scripts/ and in the clean-code skill is rewritten to Node.js 24 built-ins: node:fs/promises and node:fs (readFile, writeFile, mkdir, rm, stat, lstat, mkdtemp, symlink, rename, readdir, copyFile, chmod, realpath, readlink, open), process (argv, env, exit, exitCode, cwd, chdir, kill, execPath, version, platform), node:child_process (already used where Deno.Command was), node:test, and Node types in place of Deno.FileInfo and similar. Deno.errors.NotFound checks become checks of the Node error code (ENOENT, EEXIST).\n- @std/fs (walk, copy, exists, expandGlob, expandGlobSync, existsSync) calls the Deno global at runtime, so its imports are replaced with Node's fs (fs.glob or readdir with recursive, cp, existsSync). @std/path, @std/assert, @std/testing/mock, @cliffy/command, @eemeli/yaml and @zod/zod work on Node unchanged and stay.\n- The clean-code skill runs on Node: it has its own package.json, package-lock.json and .npmrc; users run 'npm ci --prefix <skill-root>' once and then 'node <skill-root>/scripts/clean_code.ts'; its SKILL.md, the repository scripts that run it, and the copied-skill tests follow (decision D16).\n- Tasks are root package.json scripts run by Turborepo; develop's Ruff checks (ruff check, ruff format --check, test:ruff) and its wiki-consistency:install change move into package.json and turbo.json; develop's new Deno tests (scripts/ruff_test.ts, the doctor's Ruff test) move to node:test.\n- Python: one root uv workspace (unchanged decisions D6, D7, D10); the work plugin build must rewrite every workspace source of the copied wiki-consistency project, now including backfire; Ruff findings in the code the change added must be fixed.\n- AGENTS.md and the constitution get the governance wording in a separate step (not code sites). Historical records in specs/ and .specify/ stay unchanged. Words such as 'Deno' in test names, comments or messages that describe behavior that no longer exists are must_change; mentions of Deno as history or of the removed tool in records are can_stay.\n",
+   "items": [
+    {
+     "id": "X001",
+     "file": "scripts/workflow_files.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      47
+     ],
+     "text": "scripts/workflow_files.ts — deno_api_fs — 1 match(es) at lines 47\nSamples:\n47: const info = await Deno.lstat(target);"
+    },
+    {
+     "id": "X002",
+     "file": "scripts/workflow_skills_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      64,
+      68,
+      69,
+      75,
+      240,
+      253,
+      268,
+      311,
+      365
+     ],
+     "text": "scripts/workflow_skills_test.ts — deno_api_fs — 9 match(es) at lines 64,68,69,75,240,253,268,311,365\nSamples:\n64: const root = await Deno.makeTempDir({prefix: 'workflow-skills-test-'});\n68: await Deno.mkdir(dirname(join(root, file)), {recursive: true});\n69: await Deno.writeTextFile(join(root, file), source);\n75: await Deno.remove(root, {recursive: true});"
+    },
+    {
+     "id": "X003",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      45,
+      56,
+      57,
+      61,
+      64,
+      73,
+      74,
+      75,
+      79,
+      86,
+      93,
+      100,
+      109,
+      111,
+      119,
+      124,
+      157,
+      176,
+      255,
+      256,
+      257,
+      261,
+      287,
+      297,
+      322,
+      335,
+      336,
+      338,
+      340,
+      354,
+      359,
+      364,
+      365,
+      369,
+      373,
+      398,
+      431,
+      433,
+      471,
+      485,
+      498,
+      517,
+      533,
+      549,
+      562,
+      566,
+      574,
+      578,
+      598,
+      599,
+      638,
+      654,
+      657,
+      672,
+      703
+     ],
+     "text": "scripts/docs_test.ts — deno_api_fs — 55 match(es) at lines 45,56,57,61,64,73,74,75,79,86,93,100,109,111,119,124,157,176,255,256,257,261,287,297,322,335,336,338,340,354,359,364,365,369,373,398,431,433,471,485\nSamples:\n45: const repo = await Deno.makeTempDir({prefix: 'docs-test-'});\n56: await Deno.copyFile(join(root, name), join(repo, name));\n57: await Deno.symlink(join(root, 'node_modules'), join(repo, 'node_modules'), {\n61: await Deno.mkdir(join(repo, 'plugins', name), {recursive: true});"
+    },
+    {
+     "id": "X004",
+     "file": "scripts/clean_architecture_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      28,
+      29,
+      94,
+      95,
+      97,
+      137,
+      138,
+      143,
+      145,
+      146,
+      147,
+      153,
+      158,
+      176,
+      181,
+      182,
+      199,
+      204,
+      206,
+      232,
+      236,
+      242,
+      251,
+      262
+     ],
+     "text": "scripts/clean_architecture_test.ts — deno_api_fs — 24 match(es) at lines 28,29,94,95,97,137,138,143,145,146,147,153,158,176,181,182,199,204,206,232,236,242,251,262\nSamples:\n28: const cwd = Deno.cwd();\n29: const root = await Deno.makeTempDir({prefix: 'architecture-'});\n94: await Deno.mkdir(join(file, '..'), {recursive: true});\n95: await Deno.writeTextFile(file, source);"
+    },
+    {
+     "id": "X005",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      87,
+      106,
+      119,
+      123,
+      127,
+      128,
+      130,
+      131,
+      133,
+      136,
+      141,
+      142,
+      145,
+      153,
+      158,
+      159,
+      163,
+      178,
+      186,
+      230,
+      394,
+      537
+     ],
+     "text": "scripts/git_flow_test.ts — deno_api_fs — 22 match(es) at lines 87,106,119,123,127,128,130,131,133,136,141,142,145,153,158,159,163,178,186,230,394,537\nSamples:\n87: await Deno.writeTextFile(join(feature, 'reviewed.txt'), 'changed\\n');\n106: await Deno.writeTextFile(\n119: const tempRoot = await Deno.makeTempDir({prefix: 'git-flow-test-'});\n123: await Deno.mkdir(repo);"
+    },
+    {
+     "id": "X006",
+     "file": "scripts/workflow.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      266,
+      475,
+      486,
+      487
+     ],
+     "text": "scripts/workflow.ts — deno_api_fs — 4 match(es) at lines 266,475,486,487\nSamples:\n266: const info = await Deno.lstat(`${root}/${path}`);\n475: const text = await Deno.readTextFile(args.plan);\n486: const snapshot = await snapshotWorkingTree(Deno.cwd());\n487: const routing = await inspectChanges(Deno.cwd(), args.base, plan);"
+    },
+    {
+     "id": "X007",
+     "file": "scripts/workflow_plan.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      45
+     ],
+     "text": "scripts/workflow_plan.ts — deno_api_fs — 1 match(es) at lines 45\nSamples:\n45: const realRoot = await Deno.realPath(root);"
+    },
+    {
+     "id": "X008",
+     "file": "scripts/workflow_symbol.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      24
+     ],
+     "text": "scripts/workflow_symbol.ts — deno_api_fs — 1 match(es) at lines 24\nSamples:\n24: texts.set(name, await Deno.readTextFile(name));"
+    },
+    {
+     "id": "X009",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      35,
+      39,
+      45,
+      57,
+      97,
+      98,
+      102,
+      103,
+      105,
+      106,
+      127,
+      130,
+      175,
+      193,
+      202,
+      221,
+      224,
+      227,
+      229,
+      441,
+      442,
+      450,
+      464,
+      470,
+      496,
+      497,
+      512,
+      517,
+      563,
+      574
+     ],
+     "text": "scripts/doctor_test.ts — deno_api_fs — 30 match(es) at lines 35,39,45,57,97,98,102,103,105,106,127,130,175,193,202,221,224,227,229,441,442,450,464,470,496,497,512,517,563,574\nSamples:\n35: const root = await Deno.makeTempDir({prefix: 'doctor-test-'});\n39: await Deno.remove(root, {recursive: true});\n45: await Deno.writeTextFile(path, `#!${executable} run\\n${code}\\n`, {\n57: await Deno.writeTextFile("
+    },
+    {
+     "id": "X010",
+     "file": "scripts/plugin_skills_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      12,
+      17,
+      24,
+      28,
+      31,
+      38,
+      69,
+      77,
+      78
+     ],
+     "text": "scripts/plugin_skills_test.ts — deno_api_fs — 9 match(es) at lines 12,17,24,28,31,38,69,77,78\nSamples:\n12: () => Deno.lstat(join(ROOT, path)),\n17: await Deno.realPath(join(ROOT, '.agents/ponytail')),\n24: const temp = await Deno.makeTempDir();\n28: await Deno.mkdir(target);"
+    },
+    {
+     "id": "X011",
+     "file": "scripts/validate_plugins.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      28,
+      31
+     ],
+     "text": "scripts/validate_plugins.ts — deno_api_fs — 2 match(es) at lines 28,31\nSamples:\n28: const info = await Deno.lstat(path);\n31: values[filename] = JSON.parse(await Deno.readTextFile(path));"
+    },
+    {
+     "id": "X012",
+     "file": "scripts/workflow_verify.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      60,
+      98,
+      169,
+      185,
+      199,
+      202,
+      233
+     ],
+     "text": "scripts/workflow_verify.ts — deno_api_fs — 7 match(es) at lines 60,98,169,185,199,202,233\nSamples:\n60: const text = await Deno.readTextFile(path).catch(error => {\n98: await Deno.writeTextFile(path, `${JSON.stringify(validate(record))}\\n`, {\n169: await Deno.writeTextFile(start.log_path, log, {mode: 0o600});\n185: root: await Deno.realPath(root),"
+    },
+    {
+     "id": "X013",
+     "file": "scripts/workflow_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      47,
+      51,
+      52,
+      58,
+      139,
+      141,
+      142,
+      143,
+      160,
+      162,
+      181,
+      191,
+      195,
+      196,
+      211,
+      225,
+      291,
+      292,
+      322,
+      341,
+      342,
+      375,
+      377,
+      378,
+      397,
+      401,
+      437,
+      441,
+      442
+     ],
+     "text": "scripts/workflow_test.ts — deno_api_fs — 29 match(es) at lines 47,51,52,58,139,141,142,143,160,162,181,191,195,196,211,225,291,292,322,341,342,375,377,378,397,401,437,441,442\nSamples:\n47: const root = await Deno.makeTempDir({prefix: 'workflow-test-'});\n51: await Deno.mkdir(dirname(join(root, path)), {recursive: true});\n52: await Deno.writeTextFile(join(root, path), source);\n58: await Deno.remove(root, {recursive: true});"
+    },
+    {
+     "id": "X014",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      119,
+      138,
+      169,
+      171,
+      176,
+      177,
+      186,
+      188,
+      194,
+      198,
+      199,
+      203,
+      232,
+      237,
+      364,
+      446,
+      456,
+      467,
+      472,
+      533,
+      538,
+      557,
+      572
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_api_fs — 23 match(es) at lines 119,138,169,171,176,177,186,188,194,198,199,203,232,237,364,446,456,467,472,533,538,557,572\nSamples:\n119: const root = await Deno.makeTempDir({prefix: 'commit-msg-git-error-'});\n138: await Deno.remove(root, {recursive: true});\n169: const root = await Deno.makeTempDir({prefix: 'commit-msg-test-'});\n171: await Deno.mkdir(tempHome);"
+    },
+    {
+     "id": "X015",
+     "file": "scripts/wiki_raw_import_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      54,
+      58,
+      66,
+      74,
+      77,
+      144,
+      145,
+      148,
+      155,
+      158,
+      167,
+      168,
+      278,
+      280,
+      281,
+      300,
+      301,
+      304,
+      321,
+      342,
+      343,
+      345,
+      368,
+      373,
+      409,
+      419,
+      438,
+      439,
+      440,
+      442,
+      443,
+      452,
+      453,
+      479,
+      484,
+      485,
+      486,
+      487,
+      489,
+      523,
+      524,
+      529,
+      531,
+      559,
+      561,
+      564,
+      565,
+      619,
+      690,
+      718,
+      719,
+      764,
+      766,
+      767,
+      772,
+      778,
+      779,
+      784,
+      799,
+      807,
+      812,
+      822,
+      903,
+      916,
+      919,
+      920,
+      923,
+      989,
+      1001,
+      1005,
+      1009,
+      1038,
+      1045,
+      1052,
+      1058,
+      1060,
+      1112,
+      1115,
+      1134,
+      1193,
+      1201,
+      1211,
+      1242,
+      1245,
+      1250,
+      1258,
+      1265,
+      1266
+     ],
+     "text": "scripts/wiki_raw_import_test.ts — deno_api_fs — 88 match(es) at lines 54,58,66,74,77,144,145,148,155,158,167,168,278,280,281,300,301,304,321,342,343,345,368,373,409,419,438,439,440,442,443,452,453,479,484,485,486,487,489,523\nSamples:\n54: const stat = await Deno.lstat(entry.path);\n58: bytes: stat.isFile ? Array.from(await Deno.readFile(entry.path)) : null,\n66: const home = await Deno.makeTempDir({prefix: 'wiki-raw-import-'});\n74: await Deno.chmod(entry.path, entry.isDirectory ? 0o700 : 0o600);"
+    },
+    {
+     "id": "X016",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      129,
+      132,
+      133,
+      134,
+      135,
+      149,
+      187,
+      189,
+      235,
+      242,
+      271,
+      272,
+      280,
+      281,
+      284,
+      288,
+      307
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_api_fs — 17 match(es) at lines 129,132,133,134,135,149,187,189,235,242,271,272,280,281,284,288,307\nSamples:\n129: const directory = await Deno.makeTempDir({prefix: 'cli-contract-'});\n132: await Deno.mkdir(join(repo, 'scripts'), {recursive: true});\n133: await Deno.copyFile(join(root, 'package.json'), join(repo, 'package.json'));\n134: await Deno.writeTextFile(join(repo, 'deno.json'), '{}\\n');"
+    },
+    {
+     "id": "X017",
+     "file": "scripts/clean_architecture.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      245
+     ],
+     "text": "scripts/clean_architecture.ts — deno_api_fs — 1 match(es) at lines 245\nSamples:\n245: cwd = Deno.cwd(),"
+    },
+    {
+     "id": "X018",
+     "file": "scripts/ruff_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      34,
+      40,
+      55,
+      76,
+      80,
+      103,
+      117,
+      129,
+      144,
+      145,
+      170,
+      171,
+      172,
+      173,
+      177,
+      181,
+      194
+     ],
+     "text": "scripts/ruff_test.ts — deno_api_fs — 17 match(es) at lines 34,40,55,76,80,103,117,129,144,145,170,171,172,173,177,181,194\nSamples:\n34: const temp = await Deno.makeTempDir({\n40: await Deno.writeTextFile(\n55: await Deno.writeTextFile(\n76: await Deno.writeTextFile("
+    },
+    {
+     "id": "X019",
+     "file": "scripts/workflow_verify_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      46,
+      49,
+      50,
+      54,
+      56,
+      70,
+      75,
+      113,
+      132,
+      152,
+      159,
+      200,
+      226,
+      228,
+      244,
+      264,
+      276,
+      282
+     ],
+     "text": "scripts/workflow_verify_test.ts — deno_api_fs — 18 match(es) at lines 46,49,50,54,56,70,75,113,132,152,159,200,226,228,244,264,276,282\nSamples:\n46: const root = await Deno.makeTempDir({prefix: 'workflow-verify-test-'});\n49: await Deno.mkdir(join(root, 'src'));\n50: await Deno.writeTextFile(\n54: await Deno.writeTextFile(join(root, 'fixture-check.ts'), check);"
+    },
+    {
+     "id": "X020",
+     "file": "scripts/workflow_graph.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      104
+     ],
+     "text": "scripts/workflow_graph.ts — deno_api_fs — 1 match(es) at lines 104\nSamples:\n104: const root = await Deno.realPath(cwd);"
+    },
+    {
+     "id": "X021",
+     "file": "scripts/workflow_git.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      69,
+      80,
+      90
+     ],
+     "text": "scripts/workflow_git.ts — deno_api_fs — 3 match(es) at lines 69,80,90\nSamples:\n69: info = await Deno.lstat(target);\n80: target: await Deno.readLink(target),\n90: hash: await sha256(await Deno.readFile(target)),"
+    },
+    {
+     "id": "X022",
+     "file": "scripts/workflow_graph_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      44,
+      48,
+      49,
+      55,
+      159,
+      292,
+      293,
+      418,
+      422,
+      460,
+      463,
+      467,
+      487,
+      529
+     ],
+     "text": "scripts/workflow_graph_test.ts — deno_api_fs — 14 match(es) at lines 44,48,49,55,159,292,293,418,422,460,463,467,487,529\nSamples:\n44: const root = await Deno.makeTempDir({prefix: 'workflow-graph-test-'});\n48: await Deno.mkdir(dirname(join(root, path)), {recursive: true});\n49: await Deno.writeTextFile(join(root, path), content);\n55: await Deno.remove(root, {recursive: true});"
+    },
+    {
+     "id": "X023",
+     "file": "scripts/worktree_branch_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      55,
+      72,
+      81,
+      87,
+      194
+     ],
+     "text": "scripts/worktree_branch_test.ts — deno_api_fs — 5 match(es) at lines 55,72,81,87,194\nSamples:\n55: const root = await Deno.makeTempDir({prefix: 'worktree-branch-test-'});\n72: await Deno.mkdir(repo);\n81: await Deno.writeTextFile(join(repo, 'seed.txt'), 'seed\\n');\n87: await Deno.remove(root, {recursive: true});"
+    },
+    {
+     "id": "X024",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      177,
+      192
+     ],
+     "text": "scripts/workflow_skills.ts — deno_api_fs — 2 match(es) at lines 177,192\nSamples:\n177: if (choices.length) await Deno.mkdir(directory, {recursive: true});\n192: await Deno.writeTextFile(join(directory, `${id}.json`), record, {"
+    },
+    {
+     "id": "X025",
+     "file": "scripts/docs.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      52,
+      55,
+      73,
+      163,
+      437,
+      450,
+      454,
+      499,
+      500,
+      503,
+      504,
+      509,
+      541,
+      543,
+      552,
+      555,
+      643,
+      650,
+      655,
+      657,
+      664,
+      667
+     ],
+     "text": "scripts/docs.ts — deno_api_fs — 22 match(es) at lines 52,55,73,163,437,450,454,499,500,503,504,509,541,543,552,555,643,650,655,657,664,667\nSamples:\n52: const value = await Deno.lstat(join(root, path));\n55: (await Deno.realPath(join(root, path))) !== join(root, path)\n73: text: decoder.decode(await Deno.readFile(join(root, path))),\n163: `--allow-fs-read=${await Deno.realPath(scope)}`,"
+    },
+    {
+     "id": "X026",
+     "file": "scripts/doctor.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      19,
+      54,
+      62,
+      223,
+      224,
+      286,
+      299,
+      301
+     ],
+     "text": "scripts/doctor.ts — deno_api_fs — 8 match(es) at lines 19,54,62,223,224,286,299,301\nSamples:\n19: deno: resolve(Deno.env.get('HOME') ?? Deno.cwd(), '.deno/bin/deno'),\n54: const canonical = await Deno.realPath(selected);\n62: const info = await Deno.stat(canonical);\n223: Deno.readTextFile(resolve(root, project, 'package-lock.json')),"
+    },
+    {
+     "id": "X027",
+     "file": "scripts/workflow_plan_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      25,
+      28,
+      29,
+      33,
+      196,
+      215,
+      238,
+      342
+     ],
+     "text": "scripts/workflow_plan_test.ts — deno_api_fs — 8 match(es) at lines 25,28,29,33,196,215,238,342\nSamples:\n25: const root = await Deno.makeTempDir({prefix: 'workflow-plan-'});\n28: await Deno.mkdir(dirname(join(root, path)), {recursive: true});\n29: await Deno.writeTextFile(join(root, path), content);\n33: await Deno.remove(root, {recursive: true});"
+    },
+    {
+     "id": "X028",
+     "file": "plugins/code/skills/clean-code/scripts/clean_code.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      243,
+      337
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/clean_code.ts — deno_api_fs — 2 match(es) at lines 243,337\nSamples:\n243: source: await Deno.readTextFile(file),\n337: resolve(Deno.cwd()),"
+    },
+    {
+     "id": "X029",
+     "file": "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+     "kind": "deno_api_fs",
+     "lines": [
+      134,
+      149,
+      152,
+      168,
+      197,
+      202,
+      204,
+      205,
+      214,
+      219,
+      230,
+      231,
+      233,
+      237,
+      238,
+      250,
+      255,
+      257,
+      258,
+      273
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/clean_code_test.ts — deno_api_fs — 20 match(es) at lines 134,149,152,168,197,202,204,205,214,219,230,231,233,237,238,250,255,257,258,273\nSamples:\n134: const cwd = Deno.cwd();\n149: const cwd = await Deno.makeTempDir({prefix: 'clean-code-test-'});\n152: await Deno.mkdir(directory);\n168: await Deno.writeTextFile(join(directory, name), source);"
+    },
+    {
+     "id": "X030",
+     "file": "scripts/deno_shim.ts",
+     "kind": "deno_api_types",
+     "lines": [
+      7,
+      8
+     ],
+     "text": "scripts/deno_shim.ts — deno_api_types — 2 match(es) at lines 7,8\nSamples:\n7: type DirEntry = import('@deno/shim-deno').Deno.DirEntry;\n8: type FileInfo = import('@deno/shim-deno').Deno.FileInfo;"
+    },
+    {
+     "id": "X031",
+     "file": "scripts/workflow_git.ts",
+     "kind": "deno_api_types",
+     "lines": [
+      67
+     ],
+     "text": "scripts/workflow_git.ts — deno_api_types — 1 match(es) at lines 67\nSamples:\n67: let info: Deno.FileInfo;"
+    },
+    {
+     "id": "X032",
+     "file": "scripts/workflow_graph_test.ts",
+     "kind": "deno_api_types",
+     "lines": [
+      334,
+      446
+     ],
+     "text": "scripts/workflow_graph_test.ts — deno_api_types — 2 match(es) at lines 334,446\nSamples:\n334: 'src/types.ts': 'export type Stats = Deno.FileInfo;\\n',\n446: column: 'export type Stats = Deno.FileInfo;'.indexOf('FileInfo') + 1,"
+    },
+    {
+     "id": "X033",
+     "file": "scripts/ruff_test.ts",
+     "kind": "deno_api_types",
+     "lines": [
+      26
+     ],
+     "text": "scripts/ruff_test.ts — deno_api_types — 1 match(es) at lines 26\nSamples:\n26: function output(result: Deno.CommandOutput) {"
+    },
+    {
+     "id": "X034",
+     "file": "scripts/ruff_test.ts",
+     "kind": "deno_api_test",
+     "lines": [
+      33
+     ],
+     "text": "scripts/ruff_test.ts — deno_api_test — 1 match(es) at lines 33\nSamples:\n33: Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {"
+    },
+    {
+     "id": "X035",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_api_test",
+     "lines": [
+      375
+     ],
+     "text": "scripts/doctor_test.ts — deno_api_test — 1 match(es) at lines 375\nSamples:\n375: Deno.test('doctor: a missing or stale Ruff environment fails with sync guidance', async () => {"
+    },
+    {
+     "id": "X036",
+     "file": "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+     "kind": "deno_api_test",
+     "lines": [
+      133,
+      148,
+      201,
+      218,
+      254
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/clean_code_test.ts — deno_api_test — 5 match(es) at lines 133,148,201,218,254\nSamples:\n133: Deno.test(`scope: ${name}`, async () => {\n148: Deno.test('same selection, exact length boundary, and quality failures', async () => {\n201: Deno.test('parse errors remain errors and never become exclusions', async () => {\n218: Deno.test('discovery applies fixed paths and excludes declaration files and symlinks', async () => {"
+    },
+    {
+     "id": "X037",
+     "file": "scripts/workflow_files.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      52
+     ],
+     "text": "scripts/workflow_files.ts — deno_api_process — 1 match(es) at lines 52\nSamples:\n52: if (!existingCode && error instanceof Deno.errors.NotFound) return;"
+    },
+    {
+     "id": "X038",
+     "file": "scripts/workflow_skills_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      253
+     ],
+     "text": "scripts/workflow_skills_test.ts — deno_api_process — 1 match(es) at lines 253\nSamples:\n253: await assertRejects(() => Deno.stat(directory), Deno.errors.NotFound);"
+    },
+    {
+     "id": "X039",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      69,
+      88,
+      280,
+      282,
+      305,
+      309,
+      310,
+      318,
+      319,
+      486
+     ],
+     "text": "scripts/docs_test.ts — deno_api_process — 10 match(es) at lines 69,88,280,282,305,309,310,318,319,486\nSamples:\n69: if (!(error instanceof Deno.errors.NotFound)) throw error;\n88: `if (Deno.args.join() !== '--help') throw new Error('business action');\\nconsole.log(${JSON.stringify(`Usage: ${name}\\n\\nOptions:\\n  --help - Show help.\\n`)});\\n`,\n280: 'Deno.exit(1);',\n282: 'Deno.stdout.writeSync(new Uint8Array([255]));',"
+    },
+    {
+     "id": "X040",
+     "file": "scripts/clean_architecture_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      160,
+      162,
+      173
+     ],
+     "text": "scripts/clean_architecture_test.ts — deno_api_process — 3 match(es) at lines 160,162,173\nSamples:\n160: \"Deno.env.get('KEY');\",\n162: \"globalThis.Deno.env.get('KEY');\",\n173: ['plugins/demo/infrastructure/value.ts', \"Deno.env.get('KEY');\"],"
+    },
+    {
+     "id": "X041",
+     "file": "scripts/workflow.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      569
+     ],
+     "text": "scripts/workflow.ts — deno_api_process — 1 match(es) at lines 569\nSamples:\n569: .parse(Deno.args),"
+    },
+    {
+     "id": "X042",
+     "file": "scripts/plugin_skills_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      13
+     ],
+     "text": "scripts/plugin_skills_test.ts — deno_api_process — 1 match(es) at lines 13\nSamples:\n13: Deno.errors.NotFound,"
+    },
+    {
+     "id": "X043",
+     "file": "scripts/wiki_raw_import_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      895,
+      1223
+     ],
+     "text": "scripts/wiki_raw_import_test.ts — deno_api_process — 2 match(es) at lines 895,1223\nSamples:\n895: if (pid !== undefined) Deno.kill(pid, 'SIGKILL');\n1223: const inherited = {...Deno.env.toObject(), ...f.env};"
+    },
+    {
+     "id": "X044",
+     "file": "scripts/ruff_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      9
+     ],
+     "text": "scripts/ruff_test.ts — deno_api_process — 1 match(es) at lines 9\nSamples:\n9: return await new Deno.Command('uv', {"
+    },
+    {
+     "id": "X045",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      11,
+      12,
+      13
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_api_process — 3 match(es) at lines 11,12,13\nSamples:\n11: const home = Deno.env.get('HOME') ?? '/tmp';\n12: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');\n13: const path = Deno.env.get('PATH') ?? '/usr/bin:/bin';"
+    },
+    {
+     "id": "X046",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      44,
+      55,
+      244
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_api_process — 3 match(es) at lines 44,55,244\nSamples:\n44: PATH: `${Deno.execPath().slice(0, Deno.execPath().lastIndexOf('/'))}:${Deno.env.get('PATH') ?? ''}`,\n55: Deno.execPath(),\n244: Deno.execPath(),"
+    },
+    {
+     "id": "X047",
+     "file": "scripts/docs.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      60,
+      138,
+      175,
+      176,
+      712
+     ],
+     "text": "scripts/docs.ts — deno_api_process — 5 match(es) at lines 60,138,175,176,712\nSamples:\n60: if (error instanceof Deno.errors.NotFound) return null;\n138: const value = Deno.env.get(key);\n175: ? Deno.env.get('HOME')\n176: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')"
+    },
+    {
+     "id": "X048",
+     "file": "scripts/validate_plugins.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      33,
+      82
+     ],
+     "text": "scripts/validate_plugins.ts — deno_api_process — 2 match(es) at lines 33,82\nSamples:\n33: if (filename === 'mcp.json' && error instanceof Deno.errors.NotFound)\n82: .parse(Deno.args),"
+    },
+    {
+     "id": "X049",
+     "file": "scripts/doctor.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      19,
+      407
+     ],
+     "text": "scripts/doctor.ts — deno_api_process — 2 match(es) at lines 19,407\nSamples:\n19: deno: resolve(Deno.env.get('HOME') ?? Deno.cwd(), '.deno/bin/deno'),\n407: .parse(Deno.args),"
+    },
+    {
+     "id": "X050",
+     "file": "scripts/constitution_version.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      133,
+      134
+     ],
+     "text": "scripts/constitution_version.ts — deno_api_process — 2 match(es) at lines 133,134\nSamples:\n133: const commit = Deno.env.get('CONSTITUTION_VERSION_COMMIT');\n134: const amend = Deno.env.get('CONSTITUTION_VERSION_AMEND');"
+    },
+    {
+     "id": "X051",
+     "file": "scripts/workflow_verify_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      125,
+      159
+     ],
+     "text": "scripts/workflow_verify_test.ts — deno_api_process — 2 match(es) at lines 125,159\nSamples:\n125: await repository('Deno.exit(1);', async (root, options) => {\n159: await Deno.writeTextFile(join(root, 'fixture-check.ts'), 'Deno.exit(1);');"
+    },
+    {
+     "id": "X052",
+     "file": "scripts/workflow_git.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      71
+     ],
+     "text": "scripts/workflow_git.ts — deno_api_process — 1 match(es) at lines 71\nSamples:\n71: if (error instanceof Deno.errors.NotFound) return {path, type: 'missing'};"
+    },
+    {
+     "id": "X053",
+     "file": "scripts/clean_architecture.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      283
+     ],
+     "text": "scripts/clean_architecture.ts — deno_api_process — 1 match(es) at lines 283\nSamples:\n283: .parse(Deno.args),"
+    },
+    {
+     "id": "X054",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      65,
+      66,
+      197
+     ],
+     "text": "scripts/workflow_skills.ts — deno_api_process — 3 match(es) at lines 65,66,197\nSamples:\n65: Deno.env.get('HOME')\n66: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')\n197: if (!(error instanceof Deno.errors.AlreadyExists)) throw error;"
+    },
+    {
+     "id": "X055",
+     "file": "scripts/commitlint.config.mjs",
+     "kind": "deno_api_process",
+     "lines": [
+      6
+     ],
+     "text": "scripts/commitlint.config.mjs — deno_api_process — 1 match(es) at lines 6\nSamples:\n6: const commitMode = Deno.env.get('CONSTITUTION_VERSION_COMMIT') !== undefined;"
+    },
+    {
+     "id": "X056",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      12,
+      13
+     ],
+     "text": "scripts/git_flow_test.ts — deno_api_process — 2 match(es) at lines 12,13\nSamples:\n12: const home = Deno.env.get('HOME') ?? '/tmp';\n13: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');"
+    },
+    {
+     "id": "X057",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      8,
+      83,
+      112,
+      202,
+      242,
+      247,
+      291,
+      324,
+      335,
+      350,
+      365,
+      380,
+      395,
+      410,
+      426,
+      457,
+      500,
+      515,
+      563
+     ],
+     "text": "scripts/doctor_test.ts — deno_api_process — 19 match(es) at lines 8,83,112,202,242,247,291,324,335,350,365,380,395,410,426,457,500,515,563\nSamples:\n8: const executable = Deno.execPath();\n83: env: {PATH: `${root}:${Deno.env.get('PATH')}`},\n112: PATH: `${dirname(join(directory, '.deno/bin/deno'))}:${Deno.env.get('PATH')}`,\n202: await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);"
+    },
+    {
+     "id": "X058",
+     "file": "scripts/workflow_verify.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      61,
+      188
+     ],
+     "text": "scripts/workflow_verify.ts — deno_api_process — 2 match(es) at lines 61,188\nSamples:\n61: if (error instanceof Deno.errors.NotFound) return '';\n188: deno_version: Deno.version.deno,"
+    },
+    {
+     "id": "X059",
+     "file": "plugins/code/skills/clean-code/scripts/clean_code.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      346
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/clean_code.ts — deno_api_process — 1 match(es) at lines 346\nSamples:\n346: .parse(Deno.args),"
+    },
+    {
+     "id": "X060",
+     "file": "plugins/code/skills/clean-code/scripts/cli.ts",
+     "kind": "deno_api_process",
+     "lines": [
+      29,
+      47
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/cli.ts — deno_api_process — 2 match(es) at lines 29,47\nSamples:\n29: if (Deno.args.some(arg => arg === '' || /^--[^=]+=$/.test(arg)))\n47: Deno.exitCode = input ? 2 : 1;"
+    },
+    {
+     "id": "X061",
+     "file": "scripts/workflow_files.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      1
+     ],
+     "text": "scripts/workflow_files.ts — std_fs_import — 1 match(es) at lines 1\nSamples:\n1: import {expandGlobSync} from '@std/fs';"
+    },
+    {
+     "id": "X062",
+     "file": "scripts/docs_test.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      12
+     ],
+     "text": "scripts/docs_test.ts — std_fs_import — 1 match(es) at lines 12\nSamples:\n12: import {copy, walk} from '@std/fs';"
+    },
+    {
+     "id": "X063",
+     "file": "scripts/plugin_skills_test.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      4
+     ],
+     "text": "scripts/plugin_skills_test.ts — std_fs_import — 1 match(es) at lines 4\nSamples:\n4: import {copy, exists, walk} from '@std/fs';"
+    },
+    {
+     "id": "X064",
+     "file": "scripts/wiki_raw_import_test.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      4
+     ],
+     "text": "scripts/wiki_raw_import_test.ts — std_fs_import — 1 match(es) at lines 4\nSamples:\n4: import {copy, walk} from '@std/fs';"
+    },
+    {
+     "id": "X065",
+     "file": "scripts/clean_architecture.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      6
+     ],
+     "text": "scripts/clean_architecture.ts — std_fs_import — 1 match(es) at lines 6\nSamples:\n6: import {existsSync, expandGlobSync} from '@std/fs';"
+    },
+    {
+     "id": "X066",
+     "file": "plugins/code/skills/clean-code/scripts/clean_code.ts",
+     "kind": "std_fs_import",
+     "lines": [
+      2
+     ],
+     "text": "plugins/code/skills/clean-code/scripts/clean_code.ts — std_fs_import — 1 match(es) at lines 2\nSamples:\n2: import {expandGlob} from '@std/fs';"
+    },
+    {
+     "id": "X067",
+     "file": "tsconfig.json",
+     "kind": "deno_shim",
+     "lines": [
+      12
+     ],
+     "text": "tsconfig.json — deno_shim — 1 match(es) at lines 12\nSamples:\n12: \"scripts/deno_shim.ts\","
+    },
+    {
+     "id": "X068",
+     "file": "scripts/workflow_skills_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      263,
+      279
+     ],
+     "text": "scripts/workflow_skills_test.ts — deno_shim — 2 match(es) at lines 263,279\nSamples:\n263: check: `node --import \"${fromFileUrl(new URL('./deno_shim.ts', import.meta.url))}\" ${first}`,\n279: fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),"
+    },
+    {
+     "id": "X069",
+     "file": "scripts/workflow_graph_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      82
+     ],
+     "text": "scripts/workflow_graph_test.ts — deno_shim — 1 match(es) at lines 82\nSamples:\n82: fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),"
+    },
+    {
+     "id": "X070",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      617,
+      736
+     ],
+     "text": "scripts/docs_test.ts — deno_shim — 2 match(es) at lines 617,736\nSamples:\n617: join(root, 'scripts/deno_shim.ts'),\n736: join(repo, 'scripts/deno_shim.ts'),"
+    },
+    {
+     "id": "X071",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      151
+     ],
+     "text": "scripts/git_flow_test.ts — deno_shim — 1 match(es) at lines 151\nSamples:\n151: 'deno_shim.ts',"
+    },
+    {
+     "id": "X072",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      127,
+      182
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_shim — 2 match(es) at lines 127,182\nSamples:\n127: join(repositoryRoot, 'scripts/deno_shim.ts'),\n182: 'scripts/deno_shim.ts',"
+    },
+    {
+     "id": "X073",
+     "file": "scripts/deno_shim.ts",
+     "kind": "deno_shim",
+     "lines": [
+      1,
+      7,
+      8
+     ],
+     "text": "scripts/deno_shim.ts — deno_shim — 3 match(es) at lines 1,7,8\nSamples:\n1: import {Deno as deno} from '@deno/shim-deno';\n7: type DirEntry = import('@deno/shim-deno').Deno.DirEntry;\n8: type FileInfo = import('@deno/shim-deno').Deno.FileInfo;"
+    },
+    {
+     "id": "X074",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      77
+     ],
+     "text": "scripts/doctor_test.ts — deno_shim — 1 match(es) at lines 77\nSamples:\n77: fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),"
+    },
+    {
+     "id": "X075",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      83
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_shim — 1 match(es) at lines 83\nSamples:\n83: join(root, 'scripts/deno_shim.ts'),"
+    },
+    {
+     "id": "X076",
+     "file": "scripts/workflow_verify_test.ts",
+     "kind": "deno_shim",
+     "lines": [
+      55
+     ],
+     "text": "scripts/workflow_verify_test.ts — deno_shim — 1 match(es) at lines 55\nSamples:\n55: const shim = fromFileUrl(new URL('./deno_shim.ts', import.meta.url));"
+    },
+    {
+     "id": "X077",
+     "file": "scripts/docs.ts",
+     "kind": "deno_shim",
+     "lines": [
+      200
+     ],
+     "text": "scripts/docs.ts — deno_shim — 1 match(es) at lines 200\nSamples:\n200: join(root, 'scripts/deno_shim.ts'),"
+    },
+    {
+     "id": "X078",
+     "file": "package.json",
+     "kind": "deno_shim",
+     "lines": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      18,
+      19,
+      23,
+      24,
+      45,
+      47,
+      48,
+      49,
+      50,
+      57
+     ],
+     "text": "package.json — deno_shim — 18 match(es) at lines 9,10,11,12,13,14,15,16,18,19,23,24,45,47,48,49,50,57\nSamples:\n9: \"doctor\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=pyproject.toml \n10: \"test:plugin-skills\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno\n11: \"test:doctor\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.t\n12: \"test:git-flow\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim"
+    },
+    {
+     "id": "X079",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_cli",
+     "lines": [
+      689
+     ],
+     "text": "scripts/docs_test.ts — deno_cli — 1 match(es) at lines 689\nSamples:\n689: 'deno install --config plugins/code/skills/clean-code/deno.json --frozen',"
+    },
+    {
+     "id": "X080",
+     "file": "scripts/ruff_test.ts",
+     "kind": "deno_cli",
+     "lines": [
+      14
+     ],
+     "text": "scripts/ruff_test.ts — deno_cli — 1 match(es) at lines 14\nSamples:\n14: '--frozen',"
+    },
+    {
+     "id": "X081",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_cli",
+     "lines": [
+      50,
+      74,
+      75,
+      76,
+      99
+     ],
+     "text": "scripts/workflow_skills.ts — deno_cli — 5 match(es) at lines 50,74,75,76,99\nSamples:\n50: throw new Error('Clean Code scope failed; run deno task clean-code:scope.');\n74: '--frozen',\n75: '--cached-only',\n76: '--no-prompt',"
+    },
+    {
+     "id": "X082",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_cli",
+     "lines": [
+      61,
+      62,
+      63,
+      250,
+      251,
+      252
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_cli — 6 match(es) at lines 61,62,63,250,251,252\nSamples:\n61: '--frozen',\n62: '--cached-only',\n63: '--no-prompt',\n250: '--frozen',"
+    },
+    {
+     "id": "X083",
+     "file": "scripts/docs.ts",
+     "kind": "deno_cli",
+     "lines": [
+      185,
+      186,
+      187
+     ],
+     "text": "scripts/docs.ts — deno_cli — 3 match(es) at lines 185,186,187\nSamples:\n185: '--frozen',\n186: '--cached-only',\n187: '--no-prompt',"
+    },
+    {
+     "id": "X084",
+     "file": ".github/workflows/audit.yml",
+     "kind": "deno_cli",
+     "lines": [
+      45,
+      46
+     ],
+     "text": ".github/workflows/audit.yml — deno_cli — 2 match(es) at lines 45,46\nSamples:\n45: deno install --frozen --no-prompt\n46: deno audit"
+    },
+    {
+     "id": "X085",
+     "file": ".github/workflows/docs-check.yml",
+     "kind": "deno_cli",
+     "lines": [
+      36
+     ],
+     "text": ".github/workflows/docs-check.yml — deno_cli — 1 match(es) at lines 36\nSamples:\n36: deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt"
+    },
+    {
+     "id": "X086",
+     "file": ".github/workflows/check.yml",
+     "kind": "deno_cli",
+     "lines": [
+      56
+     ],
+     "text": ".github/workflows/check.yml — deno_cli — 1 match(es) at lines 56\nSamples:\n56: deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt"
+    },
+    {
+     "id": "X087",
+     "file": "package.json",
+     "kind": "deno_cli",
+     "lines": [
+      25,
+      27
+     ],
+     "text": "package.json — deno_cli — 2 match(es) at lines 25,27\nSamples:\n25: \"clean-code\": \"deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-co\n27: \"test:clean-code\": \"deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/ski"
+    },
+    {
+     "id": "X088",
+     "file": "AGENTS.md",
+     "kind": "deno_cli",
+     "lines": [
+      50,
+      51
+     ],
+     "text": "AGENTS.md — deno_cli — 2 match(es) at lines 50,51\nSamples:\n50: `deno task workflow` and follow the execution instructions it prints.\n51: - Before completion, `deno task verify` must pass; it runs all checks and"
+    },
+    {
+     "id": "X089",
+     "file": "plugins/code/skills/clean-code/SKILL.md",
+     "kind": "deno_cli",
+     "lines": [
+      16,
+      27
+     ],
+     "text": "plugins/code/skills/clean-code/SKILL.md — deno_cli — 2 match(es) at lines 16,27\nSamples:\n16: From the target workspace root, run `deno task clean-code:scope` before using\n27: deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --sc"
+    },
+    {
+     "id": "X090",
+     "file": "orca.yaml",
+     "kind": "deno_executable",
+     "lines": [
+      9,
+      10,
+      11,
+      12,
+      36,
+      39
+     ],
+     "text": "orca.yaml — deno_executable — 6 match(es) at lines 9,10,11,12,36,39\nSamples:\n9: if [ -x \"$HOME/.deno/bin/deno\" ]; then\n10: deno_bin=\"$HOME/.deno/bin/deno\"\n11: elif command -v deno >/dev/null 2>&1; then\n12: deno_bin=\"$(command -v deno)\""
+    },
+    {
+     "id": "X091",
+     "file": "docs/architecture.md",
+     "kind": "deno_executable",
+     "lines": [
+      497
+     ],
+     "text": "docs/architecture.md — deno_executable — 1 match(es) at lines 497\nSamples:\n497: differs. The hook finds Deno at `~/.deno/bin/deno` or on `PATH` and refuses"
+    },
+    {
+     "id": "X092",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_executable",
+     "lines": [
+      66,
+      67
+     ],
+     "text": "scripts/workflow_skills.ts — deno_executable — 2 match(es) at lines 66,67\nSamples:\n66: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')\n67: : 'deno',"
+    },
+    {
+     "id": "X093",
+     "file": "package.json",
+     "kind": "deno_executable",
+     "lines": [
+      9,
+      47,
+      48
+     ],
+     "text": "package.json — deno_executable — 3 match(es) at lines 9,47,48\nSamples:\n9: \"doctor\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=pyproject.toml \n47: \"docs:generate\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\\\"$(realpath node_modules)\\\" --allow-fs-re\n48: \"docs:check\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\\\"$(realpath node_modules)\\\" --allow-fs-read="
+    },
+    {
+     "id": "X094",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_executable",
+     "lines": [
+      13
+     ],
+     "text": "scripts/git_flow_test.ts — deno_executable — 1 match(es) at lines 13\nSamples:\n13: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');"
+    },
+    {
+     "id": "X095",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_executable",
+     "lines": [
+      101,
+      104,
+      112,
+      195,
+      228,
+      281
+     ],
+     "text": "scripts/doctor_test.ts — deno_executable — 6 match(es) at lines 101,104,112,195,228,281\nSamples:\n101: const binary = join(installed, '.deno/bin/deno');\n104: const aliasBinary = join(alias, '.deno/bin/deno');\n112: PATH: `${dirname(join(directory, '.deno/bin/deno'))}:${Deno.env.get('PATH')}`,\n195: {deno: 'deno'},"
+    },
+    {
+     "id": "X096",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_executable",
+     "lines": [
+      12
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_executable — 1 match(es) at lines 12\nSamples:\n12: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');"
+    },
+    {
+     "id": "X097",
+     "file": "scripts/docs.ts",
+     "kind": "deno_executable",
+     "lines": [
+      176,
+      177
+     ],
+     "text": "scripts/docs.ts — deno_executable — 2 match(es) at lines 176,177\nSamples:\n176: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')\n177: : 'deno'"
+    },
+    {
+     "id": "X098",
+     "file": "scripts/doctor.ts",
+     "kind": "deno_executable",
+     "lines": [
+      19,
+      59,
+      308,
+      331
+     ],
+     "text": "scripts/doctor.ts — deno_executable — 4 match(es) at lines 19,59,308,331\nSamples:\n19: deno: resolve(Deno.env.get('HOME') ?? Deno.cwd(), '.deno/bin/deno'),\n59: if (tool === 'deno' && /(^|[\\\\/])quarto(?:-[^\\\\/]+)?([\\\\/]|$)/i.test(path))\n308: const deno = await executable(options.deno ?? defaults.deno, 'deno');\n331: probeVersion(deno.canonical, 'deno'),"
+    },
+    {
+     "id": "X099",
+     "file": "turbo.json",
+     "kind": "deno_env",
+     "lines": [
+      10
+     ],
+     "text": "turbo.json — deno_env — 1 match(es) at lines 10\nSamples:\n10: \"DENO_DIR\","
+    },
+    {
+     "id": "X100",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_env",
+     "lines": [
+      12,
+      17,
+      133
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_env — 3 match(es) at lines 12,17,133\nSamples:\n12: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');\n17: DENO_DIR: denoDir,\n133: env: {DENO_DIR: denoDir, PATH: path},"
+    },
+    {
+     "id": "X101",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_env",
+     "lines": [
+      43
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_env — 1 match(es) at lines 43\nSamples:\n43: DENO_NO_UPDATE_CHECK: '1',"
+    },
+    {
+     "id": "X102",
+     "file": "scripts/docs.ts",
+     "kind": "deno_env",
+     "lines": [
+      137,
+      143
+     ],
+     "text": "scripts/docs.ts — deno_env — 2 match(es) at lines 137,143\nSamples:\n137: ['HOME', 'DENO_DIR', 'SYSTEMROOT'].flatMap(key => {\n143: DENO_NO_UPDATE_CHECK: '1',"
+    },
+    {
+     "id": "X103",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_env",
+     "lines": [
+      13,
+      24
+     ],
+     "text": "scripts/git_flow_test.ts — deno_env — 2 match(es) at lines 13,24\nSamples:\n13: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');\n24: DENO_DIR: denoDir,"
+    },
+    {
+     "id": "X104",
+     "file": "orca.yaml",
+     "kind": "deno_config",
+     "lines": [
+      39
+     ],
+     "text": "orca.yaml — deno_config — 1 match(es) at lines 39\nSamples:\n39: \"$deno_bin\" install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt"
+    },
+    {
+     "id": "X105",
+     "file": "scripts/docs.ts",
+     "kind": "deno_config",
+     "lines": [
+      86,
+      87,
+      88,
+      132,
+      184
+     ],
+     "text": "scripts/docs.ts — deno_config — 5 match(es) at lines 86,87,88,132,184\nSamples:\n86: 'plugins/code/deno.json',\n87: `${skill}/deno.json`,\n88: `${skill}/deno.lock`,\n132: const allowed = ['scripts', skill, 'deno.json', 'deno.lock', 'biome.json']"
+    },
+    {
+     "id": "X106",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      62,
+      689
+     ],
+     "text": "scripts/docs_test.ts — deno_config — 2 match(es) at lines 62,689\nSamples:\n62: for (const file of ['plugin.json', 'mcp.json', 'deno.json']) {\n689: 'deno install --config plugins/code/skills/clean-code/deno.json --frozen',"
+    },
+    {
+     "id": "X107",
+     "file": "biome.json",
+     "kind": "deno_config",
+     "lines": [
+      9
+     ],
+     "text": "biome.json — deno_config — 1 match(es) at lines 9\nSamples:\n9: \"!**/deno.lock\","
+    },
+    {
+     "id": "X108",
+     "file": "scripts/clean_architecture_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      32,
+      41,
+      76,
+      148,
+      237,
+      252
+     ],
+     "text": "scripts/clean_architecture_test.ts — deno_config — 6 match(es) at lines 32,41,76,148,237,252\nSamples:\n32: 'plugins/a/deno.json': JSON.stringify({\n41: 'plugins/b/deno.json': '{}',\n76: 'packages/shared/deno.json': JSON.stringify({\n148: join(root, 'plugins/a/deno.json'),"
+    },
+    {
+     "id": "X109",
+     "file": "scripts/clean_architecture.ts",
+     "kind": "deno_config",
+     "lines": [
+      77,
+      78,
+      79,
+      80
+     ],
+     "text": "scripts/clean_architecture.ts — deno_config — 4 match(es) at lines 77,78,79,80\nSamples:\n77: 'plugins/**/deno.json',\n78: 'plugins/**/deno.jsonc',\n79: 'packages/**/deno.json',\n80: 'packages/**/deno.jsonc',"
+    },
+    {
+     "id": "X110",
+     "file": "scripts/workflow_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      81,
+      82,
+      207,
+      284
+     ],
+     "text": "scripts/workflow_test.ts — deno_config — 4 match(es) at lines 81,82,207,284\nSamples:\n81: 'deno.jsonc',\n82: 'deno.lock',\n207: 'plugins/demo/deno.json': JSON.stringify({exports: './src/api.ts'}),\n284: const config = {...sample, paths: ['deno.jsonc']};"
+    },
+    {
+     "id": "X111",
+     "file": "scripts/workflow_graph_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      103,
+      336
+     ],
+     "text": "scripts/workflow_graph_test.ts — deno_config — 2 match(es) at lines 103,336\nSamples:\n103: 'plugins/demo/deno.json': JSON.stringify({exports: './src/api.ts'}),\n336: 'packages/math/deno.json': JSON.stringify({"
+    },
+    {
+     "id": "X112",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_config",
+     "lines": [
+      71,
+      73
+     ],
+     "text": "scripts/workflow_skills.ts — deno_config — 2 match(es) at lines 71,73\nSamples:\n71: join(skill, 'deno.json'),\n73: join(skill, 'deno.lock'),"
+    },
+    {
+     "id": "X113",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      60,
+      134,
+      237,
+      238,
+      249
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_config — 5 match(es) at lines 60,134,237,238,249\nSamples:\n60: join(skill, 'deno.json'),\n134: await Deno.writeTextFile(join(repo, 'deno.json'), '{}\\n');\n237: 'deno.json',\n238: 'deno.lock',"
+    },
+    {
+     "id": "X114",
+     "file": "scripts/workflow_plan_test.ts",
+     "kind": "deno_config",
+     "lines": [
+      125
+     ],
+     "text": "scripts/workflow_plan_test.ts — deno_config — 1 match(es) at lines 125\nSamples:\n125: 'plugins/demo/deno.json': JSON.stringify({"
+    },
+    {
+     "id": "X115",
+     "file": ".github/workflows/docs-check.yml",
+     "kind": "deno_config",
+     "lines": [
+      36
+     ],
+     "text": ".github/workflows/docs-check.yml — deno_config — 1 match(es) at lines 36\nSamples:\n36: deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt"
+    },
+    {
+     "id": "X116",
+     "file": ".github/workflows/check.yml",
+     "kind": "deno_config",
+     "lines": [
+      56
+     ],
+     "text": ".github/workflows/check.yml — deno_config — 1 match(es) at lines 56\nSamples:\n56: deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt"
+    },
+    {
+     "id": "X117",
+     "file": "package.json",
+     "kind": "deno_config",
+     "lines": [
+      25,
+      27,
+      47,
+      48
+     ],
+     "text": "package.json — deno_config — 4 match(es) at lines 25,27,47,48\nSamples:\n25: \"clean-code\": \"deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-co\n27: \"test:clean-code\": \"deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/ski\n47: \"docs:generate\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\\\"$(realpath node_modules)\\\" --allow-fs-re\n48: \"docs:check\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\\\"$(realpath node_modules)\\\" --allow-fs-read="
+    },
+    {
+     "id": "X118",
+     "file": "plugins/code/skills/clean-code/SKILL.md",
+     "kind": "deno_config",
+     "lines": [
+      27
+     ],
+     "text": "plugins/code/skills/clean-code/SKILL.md — deno_config — 1 match(es) at lines 27\nSamples:\n27: deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --sc"
+    },
+    {
+     "id": "X119",
+     "file": "turbo.json",
+     "kind": "deno_version",
+     "lines": [
+      23
+     ],
+     "text": "turbo.json — deno_version — 1 match(es) at lines 23\nSamples:\n23: \"description\": \"Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, doc-region"
+    },
+    {
+     "id": "X120",
+     "file": "orca.yaml",
+     "kind": "deno_version",
+     "lines": [
+      14
+     ],
+     "text": "orca.yaml — deno_version — 1 match(es) at lines 14\nSamples:\n14: echo 'Deno 2.9.6 was not found.' >&2"
+    },
+    {
+     "id": "X121",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_version",
+     "lines": [
+      684
+     ],
+     "text": "scripts/docs_test.ts — deno_version — 1 match(es) at lines 684\nSamples:\n684: assert(steps.some(step => step.run?.includes('v2.9.6/deno-')));"
+    },
+    {
+     "id": "X122",
+     "file": "docs/reference/commands.md",
+     "kind": "deno_version",
+     "lines": [
+      24
+     ],
+     "text": "docs/reference/commands.md — deno_version — 1 match(es) at lines 24\nSamples:\n24: | doctor                   | npm run doctor                   | Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 2"
+    },
+    {
+     "id": "X123",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_version",
+     "lines": [
+      132,
+      207,
+      281
+     ],
+     "text": "scripts/doctor_test.ts — deno_version — 3 match(es) at lines 132,207,281\nSamples:\n132: assertEquals(report.deno.version, '2.9.6');\n207: 'deno must report version 2.9.6',\n281: await assertRejects(() => probeVersion(wrong, 'deno'), Error, '2.9.6');"
+    },
+    {
+     "id": "X124",
+     "file": "scripts/doctor.ts",
+     "kind": "deno_version",
+     "lines": [
+      24,
+      323,
+      360
+     ],
+     "text": "scripts/doctor.ts — deno_version — 3 match(es) at lines 24,323,360\nSamples:\n24: deno: '2.9.6',\n323: denoVersion,\n360: deno: {...deno, version: denoVersion},"
+    },
+    {
+     "id": "X125",
+     "file": "scripts/workflow_verify.ts",
+     "kind": "deno_version",
+     "lines": [
+      27,
+      188
+     ],
+     "text": "scripts/workflow_verify.ts — deno_version — 2 match(es) at lines 27,188\nSamples:\n27: deno_version: string;\n188: deno_version: Deno.version.deno,"
+    },
+    {
+     "id": "X126",
+     "file": "scripts/workflow-evidence.schema.json",
+     "kind": "deno_version",
+     "lines": [
+      29,
+      37
+     ],
+     "text": "scripts/workflow-evidence.schema.json — deno_version — 2 match(es) at lines 29,37\nSamples:\n29: \"deno_version\",\n37: \"deno_version\": { \"type\": \"string\", \"minLength\": 1 },"
+    },
+    {
+     "id": "X127",
+     "file": ".github/workflows/audit.yml",
+     "kind": "deno_version",
+     "lines": [
+      30,
+      32
+     ],
+     "text": ".github/workflows/audit.yml — deno_version — 2 match(es) at lines 30,32\nSamples:\n30: - name: Prepare standalone Deno 2.9.6\n32: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/deno.zip\""
+    },
+    {
+     "id": "X128",
+     "file": ".github/workflows/check.yml",
+     "kind": "deno_version",
+     "lines": [
+      31,
+      33
+     ],
+     "text": ".github/workflows/check.yml — deno_version — 2 match(es) at lines 31,33\nSamples:\n31: - name: Prepare standalone Deno 2.9.6\n33: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/deno.zip\""
+    },
+    {
+     "id": "X129",
+     "file": ".github/workflows/docs-check.yml",
+     "kind": "deno_version",
+     "lines": [
+      28,
+      30
+     ],
+     "text": ".github/workflows/docs-check.yml — deno_version — 2 match(es) at lines 28,30\nSamples:\n28: - name: Prepare standalone Deno 2.9.6\n30: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/docs-deno."
+    },
+    {
+     "id": "X130",
+     "file": "scripts/docs.ts",
+     "kind": "deno_permission_flags",
+     "lines": [
+      188,
+      189,
+      190
+     ],
+     "text": "scripts/docs.ts — deno_permission_flags — 3 match(es) at lines 188,189,190\nSamples:\n188: `--allow-read=${allowed}`,\n189: '--allow-env',\n190: '--allow-sys',"
+    },
+    {
+     "id": "X131",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_permission_flags",
+     "lines": [
+      64,
+      65,
+      66,
+      67,
+      68,
+      253,
+      254
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_permission_flags — 7 match(es) at lines 64,65,66,67,68,253,254\nSamples:\n64: '--allow-read',\n65: '--allow-write',\n66: '--allow-env',\n67: '--allow-sys',"
+    },
+    {
+     "id": "X132",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_permission_flags",
+     "lines": [
+      77,
+      78
+     ],
+     "text": "scripts/workflow_skills.ts — deno_permission_flags — 2 match(es) at lines 77,78\nSamples:\n77: '--allow-read',\n78: '--allow-env',"
+    },
+    {
+     "id": "X133",
+     "file": "package.json",
+     "kind": "deno_permission_flags",
+     "lines": [
+      25,
+      27
+     ],
+     "text": "package.json — deno_permission_flags — 2 match(es) at lines 25,27\nSamples:\n25: \"clean-code\": \"deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-co\n27: \"test:clean-code\": \"deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/ski"
+    },
+    {
+     "id": "X134",
+     "file": "plugins/code/skills/clean-code/SKILL.md",
+     "kind": "deno_permission_flags",
+     "lines": [
+      27
+     ],
+     "text": "plugins/code/skills/clean-code/SKILL.md — deno_permission_flags — 1 match(es) at lines 27\nSamples:\n27: deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --sc"
+    },
+    {
+     "id": "X135",
+     "file": "turbo.json",
+     "kind": "deno_prose",
+     "lines": [
+      23
+     ],
+     "text": "turbo.json — deno_prose — 1 match(es) at lines 23\nSamples:\n23: \"description\": \"Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, doc-region"
+    },
+    {
+     "id": "X136",
+     "file": "packages/doc-regions/src/doc_regions/__main__.py",
+     "kind": "deno_prose",
+     "lines": [
+      25
+     ],
+     "text": "packages/doc-regions/src/doc_regions/__main__.py — deno_prose — 1 match(es) at lines 25\nSamples:\n25: # Deno task forwards its separator after the configured positional path."
+    },
+    {
+     "id": "X137",
+     "file": "orca.yaml",
+     "kind": "deno_prose",
+     "lines": [
+      9,
+      10,
+      11,
+      12,
+      14
+     ],
+     "text": "orca.yaml — deno_prose — 5 match(es) at lines 9,10,11,12,14\nSamples:\n9: if [ -x \"$HOME/.deno/bin/deno\" ]; then\n10: deno_bin=\"$HOME/.deno/bin/deno\"\n11: elif command -v deno >/dev/null 2>&1; then\n12: deno_bin=\"$(command -v deno)\""
+    },
+    {
+     "id": "X138",
+     "file": "AGENTS.md",
+     "kind": "deno_prose",
+     "lines": [
+      3,
+      50,
+      51
+     ],
+     "text": "AGENTS.md — deno_prose — 3 match(es) at lines 3,50,51\nSamples:\n3: A personal Deno workspace of three agent plugins for education and knowledge\n50: `deno task workflow` and follow the execution instructions it prints.\n51: - Before completion, `deno task verify` must pass; it runs all checks and"
+    },
+    {
+     "id": "X139",
+     "file": "scripts/clean_architecture.ts",
+     "kind": "deno_prose",
+     "lines": [
+      35,
+      86,
+      260
+     ],
+     "text": "scripts/clean_architecture.ts — deno_prose — 3 match(es) at lines 35,86,260\nSamples:\n35: if (result.error) throw new Error(`Cannot parse Deno configuration: ${path}`);\n86: exclude: ['**/node_modules/**', '**/.deno/**'],\n260: exclude: '(^|/)(node_modules|\\\\.deno)/|^scripts/vendor/|\\\\.md$',"
+    },
+    {
+     "id": "X140",
+     "file": "biome.json",
+     "kind": "deno_prose",
+     "lines": [
+      8,
+      51
+     ],
+     "text": "biome.json — deno_prose — 2 match(es) at lines 8,51\nSamples:\n8: \"!**/.deno\",\n51: \"Deno\": \"Domain code must not use runtime or I/O globals.\","
+    },
+    {
+     "id": "X141",
+     "file": "docs/architecture.md",
+     "kind": "deno_prose",
+     "lines": [
+      11,
+      22,
+      27,
+      48,
+      264,
+      295,
+      497
+     ],
+     "text": "docs/architecture.md — deno_prose — 7 match(es) at lines 11,22,27,48,264,295,497\nSamples:\n11: `skills/`. Only `code` has a Deno workspace configuration. Current versions and MCP declarations come from\n22: has no skills, Deno configuration, MCP declaration or scripts, and its\n27: Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins\n48: selected standalone Deno/Quarto executables, uv, git-flow and lychee from"
+    },
+    {
+     "id": "X142",
+     "file": "scripts/cli_contract_test.ts.snapshot",
+     "kind": "deno_prose",
+     "lines": [
+      10
+     ],
+     "text": "scripts/cli_contract_test.ts.snapshot — deno_prose — 1 match(es) at lines 10\nSamples:\n10: \"\\\\nUsage: doctor\\\\n\\\\nDescription:\\\\n\\\\n  Check runtime identities, versions and locked dependencies.\\\\n\\\\nOptions:\\\\n\\\\n  -h, --help          - Show this help.         "
+    },
+    {
+     "id": "X143",
+     "file": "scripts/workflow_skills.ts",
+     "kind": "deno_prose",
+     "lines": [
+      50,
+      66,
+      67,
+      99
+     ],
+     "text": "scripts/workflow_skills.ts — deno_prose — 4 match(es) at lines 50,66,67,99\nSamples:\n50: throw new Error('Clean Code scope failed; run deno task clean-code:scope.');\n66: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')\n67: : 'deno',\n99: `Clean Code scope failed (${result.code}); run deno task clean-code:scope. ${new TextDecoder().decode(result.stderr).trim()}`,"
+    },
+    {
+     "id": "X144",
+     "file": "docs/backfire.md",
+     "kind": "deno_prose",
+     "lines": [
+      5
+     ],
+     "text": "docs/backfire.md — deno_prose — 1 match(es) at lines 5\nSamples:\n5: server process. The server uses Python 3.14.4 and uv 0.11.32 or later; Deno and"
+    },
+    {
+     "id": "X145",
+     "file": "scripts/workflow_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      204
+     ],
+     "text": "scripts/workflow_test.ts — deno_prose — 1 match(es) at lines 204\nSamples:\n204: test('workflow: Deno exports identify nonstandard public entry filenames', async () => {"
+    },
+    {
+     "id": "X146",
+     "file": "scripts/workflow_plan_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      157
+     ],
+     "text": "scripts/workflow_plan_test.ts — deno_prose — 1 match(es) at lines 157\nSamples:\n157: '.deno/cache/consumer.ts',"
+    },
+    {
+     "id": "X147",
+     "file": "scripts/docs_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      375,
+      472,
+      500,
+      535,
+      563,
+      684,
+      689
+     ],
+     "text": "scripts/docs_test.ts — deno_prose — 7 match(es) at lines 375,472,500,535,563,684,689\nSamples:\n375: using reads = stub(Deno, 'readFile', (path, options) => {\n472: using rename = stub(Deno, 'rename', (from, to) => {\n500: using rename = stub(Deno, 'rename', (from, to) => {\n535: using rename = stub(Deno, 'rename', (from, to) => {"
+    },
+    {
+     "id": "X148",
+     "file": "scripts/workflow_symbol.ts",
+     "kind": "deno_prose",
+     "lines": [
+      163
+     ],
+     "text": "scripts/workflow_symbol.ts — deno_prose — 1 match(es) at lines 163\nSamples:\n163: 'External package declarations, standard libraries and Deno globals are not loaded; inferred types and member resolution may be incomplete.',"
+    },
+    {
+     "id": "X149",
+     "file": "docs/reference/commands.md",
+     "kind": "deno_prose",
+     "lines": [
+      24,
+      93
+     ],
+     "text": "docs/reference/commands.md — deno_prose — 2 match(es) at lines 24,93\nSamples:\n24: | doctor                   | npm run doctor                   | Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 2\n93: --deno      <path>  - Absolute path to standalone Deno."
+    },
+    {
+     "id": "X150",
+     "file": "scripts/deno_shim.ts",
+     "kind": "deno_prose",
+     "lines": [
+      1,
+      3,
+      6,
+      7,
+      8,
+      10,
+      13,
+      20
+     ],
+     "text": "scripts/deno_shim.ts — deno_prose — 8 match(es) at lines 1,3,6,7,8,10,13,20\nSamples:\n1: import {Deno as deno} from '@deno/shim-deno';\n3: type DenoShim = typeof deno & {exitCode?: number};\n6: namespace Deno {\n7: type DirEntry = import('@deno/shim-deno').Deno.DirEntry;"
+    },
+    {
+     "id": "X151",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      184,
+      209
+     ],
+     "text": "scripts/cli_contract_test.ts — deno_prose — 2 match(es) at lines 184,209\nSamples:\n184: if (item.name === 'doctor') failureArgs = ['--deno', missing];\n209: ['doctor', ['--deno', 'relative']],"
+    },
+    {
+     "id": "X152",
+     "file": "scripts/workflow_verify.ts",
+     "kind": "deno_prose",
+     "lines": [
+      188
+     ],
+     "text": "scripts/workflow_verify.ts — deno_prose — 1 match(es) at lines 188\nSamples:\n188: deno_version: Deno.version.deno,"
+    },
+    {
+     "id": "X153",
+     "file": "scripts/git_flow_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      13
+     ],
+     "text": "scripts/git_flow_test.ts — deno_prose — 1 match(es) at lines 13\nSamples:\n13: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');"
+    },
+    {
+     "id": "X154",
+     "file": "scripts/commit_msg_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      12,
+      444
+     ],
+     "text": "scripts/commit_msg_test.ts — deno_prose — 2 match(es) at lines 12,444\nSamples:\n12: const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');\n444: test('commit-msg hook: real commits, index handling, and Deno lookup', async () => {"
+    },
+    {
+     "id": "X155",
+     "file": "scripts/docs.ts",
+     "kind": "deno_prose",
+     "lines": [
+      176,
+      177
+     ],
+     "text": "scripts/docs.ts — deno_prose — 2 match(es) at lines 176,177\nSamples:\n176: ? join(Deno.env.get('HOME')!, '.deno/bin/deno')\n177: : 'deno'"
+    },
+    {
+     "id": "X156",
+     "file": "scripts/doctor_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      101,
+      104,
+      112,
+      189,
+      190,
+      195,
+      196,
+      197,
+      205,
+      207,
+      223,
+      228,
+      231,
+      280,
+      281,
+      523
+     ],
+     "text": "scripts/doctor_test.ts — deno_prose — 16 match(es) at lines 101,104,112,189,190,195,196,197,205,207,223,228,231,280,281,523\nSamples:\n101: const binary = join(installed, '.deno/bin/deno');\n104: const aliasBinary = join(alias, '.deno/bin/deno');\n112: PATH: `${dirname(join(directory, '.deno/bin/deno'))}:${Deno.env.get('PATH')}`,\n189: 'other-deno',"
+    },
+    {
+     "id": "X157",
+     "file": "scripts/clean_architecture_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      27,
+      161,
+      163,
+      171
+     ],
+     "text": "scripts/clean_architecture_test.ts — deno_prose — 4 match(es) at lines 27,161,163,171\nSamples:\n27: test('architecture: dependency directions, cycles, public APIs and Deno aliases', async () => {\n161: 'const {env} = Deno;',\n163: \"globalThis['Deno'].env.get('KEY');\",\n171: 'export function value(Deno) { return Deno; }',"
+    },
+    {
+     "id": "X158",
+     "file": "scripts/workflow.ts",
+     "kind": "deno_prose",
+     "lines": [
+      28
+     ],
+     "text": "scripts/workflow.ts — deno_prose — 1 match(es) at lines 28\nSamples:\n28: /(^|\\/)(AGENTS\\.md|deno\\.jsonc?|deno\\.lock|package\\.json|package-lock\\.json|yarn\\.lock|pnpm-lock\\.yaml|plugin\\.json|mcp\\.json|tsconfig[^/]*\\.json|biome\\.jsonc?|eslint[^/]"
+    },
+    {
+     "id": "X159",
+     "file": "scripts/doctor.ts",
+     "kind": "deno_prose",
+     "lines": [
+      19,
+      24,
+      36,
+      59,
+      60,
+      308,
+      331,
+      360,
+      386,
+      394,
+      400
+     ],
+     "text": "scripts/doctor.ts — deno_prose — 11 match(es) at lines 19,24,36,59,60,308,331,360,386,394,400\nSamples:\n19: deno: resolve(Deno.env.get('HOME') ?? Deno.cwd(), '.deno/bin/deno'),\n24: deno: '2.9.6',\n36: deno?: string;\n59: if (tool === 'deno' && /(^|[\\\\/])quarto(?:-[^\\\\/]+)?([\\\\/]|$)/i.test(path))"
+    },
+    {
+     "id": "X160",
+     "file": "scripts/wiki_raw_import_test.ts",
+     "kind": "deno_prose",
+     "lines": [
+      847
+     ],
+     "text": "scripts/wiki_raw_import_test.ts — deno_prose — 1 match(es) at lines 847\nSamples:\n847: // Python observes the Linux lock owner because Deno restricts direct /proc reads."
+    },
+    {
+     "id": "X161",
+     "file": "scripts/workflow_graph.ts",
+     "kind": "deno_prose",
+     "lines": [
+      166
+     ],
+     "text": "scripts/workflow_graph.ts — deno_prose — 1 match(es) at lines 166\nSamples:\n166: 'RESOLVED_LOCAL means dependency-cruiser resolved a local file, not that Deno or runtime behavior has been verified. EXTERNAL packages are not indexed or verified; OUTSID"
+    },
+    {
+     "id": "X162",
+     "file": ".github/workflows/audit.yml",
+     "kind": "deno_prose",
+     "lines": [
+      30,
+      32,
+      34,
+      35,
+      45,
+      46
+     ],
+     "text": ".github/workflows/audit.yml — deno_prose — 6 match(es) at lines 30,32,34,35,45,46\nSamples:\n30: - name: Prepare standalone Deno 2.9.6\n32: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/deno.zip\"\n34: unzip -q \"$RUNNER_TEMP/deno.zip\" -d \"$RUNNER_TEMP/deno\"\n35: echo \"$RUNNER_TEMP/deno\" >> \"$GITHUB_PATH\""
+    },
+    {
+     "id": "X163",
+     "file": ".github/workflows/docs-check.yml",
+     "kind": "deno_prose",
+     "lines": [
+      28,
+      30,
+      31,
+      32,
+      36
+     ],
+     "text": ".github/workflows/docs-check.yml — deno_prose — 5 match(es) at lines 28,30,31,32,36\nSamples:\n28: - name: Prepare standalone Deno 2.9.6\n30: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/docs-deno.\n31: unzip -q \"$RUNNER_TEMP/docs-deno.zip\" -d \"$RUNNER_TEMP/docs-deno\"\n32: echo \"$RUNNER_TEMP/docs-deno\" >> \"$GITHUB_PATH\""
+    },
+    {
+     "id": "X164",
+     "file": ".github/workflows/check.yml",
+     "kind": "deno_prose",
+     "lines": [
+      31,
+      33,
+      35,
+      36,
+      56
+     ],
+     "text": ".github/workflows/check.yml — deno_prose — 5 match(es) at lines 31,33,35,36,56\nSamples:\n31: - name: Prepare standalone Deno 2.9.6\n33: curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/deno.zip\"\n35: unzip -q \"$RUNNER_TEMP/deno.zip\" -d \"$RUNNER_TEMP/deno\"\n36: echo \"$RUNNER_TEMP/deno\" >> \"$GITHUB_PATH\""
+    },
+    {
+     "id": "X165",
+     "file": ".gitignore",
+     "kind": "deno_prose",
+     "lines": [
+      1,
+      5
+     ],
+     "text": ".gitignore — deno_prose — 2 match(es) at lines 1,5\nSamples:\n1: # Deno\n5: .deno/"
+    },
+    {
+     "id": "X166",
+     "file": "package.json",
+     "kind": "deno_prose",
+     "lines": [
+      9,
+      25,
+      27,
+      47,
+      48,
+      57
+     ],
+     "text": "package.json — deno_prose — 6 match(es) at lines 9,25,27,47,48,57\nSamples:\n9: \"doctor\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=pyproject.toml \n25: \"clean-code\": \"deno run --quiet --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-env plugins/code/skills/clean-co\n27: \"test:clean-code\": \"deno test --config plugins/code/skills/clean-code/deno.json --frozen --cached-only --no-prompt --allow-read --allow-write --allow-env plugins/code/ski\n47: \"docs:generate\": \"node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\\\"$(realpath node_modules)\\\" --allow-fs-re"
+    },
+    {
+     "id": "X167",
+     "file": "README.md",
+     "kind": "deno_prose",
+     "lines": [
+      3
+     ],
+     "text": "README.md — deno_prose — 1 match(es) at lines 3\nSamples:\n3: A personal Deno workspace of three agent plugins for education and knowledge"
+    },
+    {
+     "id": "X168",
+     "file": "plugins/code/skills/clean-code/SKILL.md",
+     "kind": "deno_prose",
+     "lines": [
+      16,
+      27
+     ],
+     "text": "plugins/code/skills/clean-code/SKILL.md — deno_prose — 2 match(es) at lines 16,27\nSamples:\n16: From the target workspace root, run `deno task clean-code:scope` before using\n27: deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --sc"
+    },
+    {
+     "id": "P:task:doctor",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'doctor' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: {\"description\": \"Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies\", \"command\": \"doctor_deno=$(realpath \\\"$(which deno)\\\") && \\\"$doctor_deno\\\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,\\\"$doctor_deno\\\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\\\"$doctor_deno\\\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts\"}\ndevelop: {\"description\": \"Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, Ruff 0.16.9, doc-regions and wiki-consistency environments and locked dependencies\", \"command\": \"doctor_deno=$(realpath \\\"$(which deno)\\\") && \\\"$doctor_deno\\\" run --frozen --cached-only --no-prompt --allow-read=deno.lock,packages/wiki-consistency/package-lock.json,packages/wiki-consistency/node_modules/.package-lock.json,\\\"$doctor_deno\\\",/usr/local/bin/quarto,/opt/quarto/bin/quarto --allow-run=\\\"$doctor_deno\\\",/usr/local/bin/quarto,/opt/quarto/bin/quarto,uv,git-flow,git,lychee,node,npm scripts/doctor.ts\"}"
+    },
+    {
+     "id": "P:task:format",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'format' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format --write . && deno fmt .github/ orca.yaml\"\ndevelop: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format --write . && deno fmt .github/ orca.yaml && uv run --project tools/ruff --frozen --offline --no-sync ruff format --no-cache .\""
+    },
+    {
+     "id": "P:task:format:check",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'format:check' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format . && deno fmt --check .github/ orca.yaml\"\ndevelop: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 format . && deno fmt --check .github/ orca.yaml && uv run --project tools/ruff --frozen --offline --no-sync ruff format --check --no-cache .\""
+    },
+    {
+     "id": "P:task:lint",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'lint' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings .\"\ndevelop: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --error-on-warnings . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --no-cache .\""
+    },
+    {
+     "id": "P:task:lint:fix",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'lint:fix' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --write --error-on-warnings .\"\ndevelop: \"deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run npm:@biomejs/biome@2.5.14 lint --write --error-on-warnings . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --fix --no-cache .\""
+    },
+    {
+     "id": "P:task:test",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'test' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: {\"dependencies\": [\"test:doctor\", \"test:git-flow\", \"test:worktree-branch\", \"test:commit-msg\", \"test:plugin-skills\", \"test:clean-code\", \"test:clean-architecture\", \"test:workflow\", \"test:cli-contract\", \"test:docs\", \"test:backfire\", \"test:doc-regions\", \"test:wiki-consistency\", \"test:wiki-raw-import\"]}\ndevelop: {\"dependencies\": [\"test:doctor\", \"test:ruff\", \"test:git-flow\", \"test:worktree-branch\", \"test:commit-msg\", \"test:plugin-skills\", \"test:clean-code\", \"test:clean-architecture\", \"test:workflow\", \"test:cli-contract\", \"test:docs\", \"test:backfire\", \"test:doc-regions\", \"test:wiki-consistency\", \"test:wiki-raw-import\"]}"
+    },
+    {
+     "id": "P:task:test:ruff",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'test:ruff' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: null\ndevelop: \"deno test --frozen --cached-only --no-prompt --allow-read --allow-write=/tmp --allow-run=uv scripts/ruff_test.ts\""
+    },
+    {
+     "id": "P:task:wiki-consistency:install",
+     "file": "package.json",
+     "kind": "develop_task_delta",
+     "lines": [
+      1
+     ],
+     "text": "develop 8ce9b2a changed the deno.json task 'wiki-consistency:install' after the trial's base; the merge kept the trial's deno.json, so this change is not yet in package.json or turbo.json.\nbase: \"uv sync --locked --project packages/wiki-consistency && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency\"\ndevelop: \"uv sync --locked --project packages/backfire --extra education && uv sync --locked --project packages/wiki-consistency && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency\""
+    },
+    {
+     "id": "W2:deno.json",
+     "file": "deno.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "Root deno.json, now containing only {\"compilerOptions\": {\"types\": [\"npm:@types/node@22.20.2\"]}} (a Deno configuration file)."
+    },
+    {
+     "id": "W2:plugins/code/deno.json",
+     "file": "plugins/code/deno.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "plugins/code/deno.json: {\"publish\": false, \"exports\": {\"./cli\": \"./skills/clean-code/scripts/cli.ts\"}}, a Deno workspace member file."
+    },
+    {
+     "id": "W2:plugins/code/skills/clean-code/deno.json",
+     "file": "plugins/code/skills/clean-code/deno.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "plugins/code/skills/clean-code/deno.json: the shipped skill's Deno configuration with its import map (eslint 10.10.0, typescript-eslint 8.70.0, typescript 6.0.3, @typescript-eslint/utils 8.70.0, @std/fs 1.0.24, @std/path 1.1.6, @std/assert 1, @cliffy/command 1.2.1)."
+    },
+    {
+     "id": "W2:plugins/code/skills/clean-code/deno.lock",
+     "file": "plugins/code/skills/clean-code/deno.lock",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "plugins/code/skills/clean-code/deno.lock: the shipped skill's Deno lock file."
+    },
+    {
+     "id": "W2:scripts/deno_shim.ts",
+     "file": "scripts/deno_shim.ts",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "scripts/deno_shim.ts: the Node preload that sets globalThis.Deno from @deno/shim-deno, bridges Deno.exitCode and declares Deno namespace types; every Node script command loads it with --import."
+    },
+    {
+     "id": "W2:tsconfig.json#files",
+     "file": "tsconfig.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "tsconfig.json lists scripts/deno_shim.ts among the type-checked files so tsc sees the global Deno type."
+    },
+    {
+     "id": "W2:package.json#devDependencies:@deno/shim-deno",
+     "file": "package.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "package.json devDependencies contains \"@deno/shim-deno\": \"0.19.2\"."
+    },
+    {
+     "id": "W2:package.json#devDependencies:@std/fs",
+     "file": "package.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "package.json devDependencies contains \"@std/fs\": \"npm:@jsr/std__fs@1.0.24\"; @std/fs calls the Deno global at runtime (measured: 'Deno is not defined' on Node without the shim)."
+    },
+    {
+     "id": "W2:packages/wiki-consistency/pyproject.toml#backfire-source",
+     "file": "packages/wiki-consistency/pyproject.toml",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "packages/wiki-consistency/pyproject.toml now declares backfire = { workspace = true } (develop added the backfire[education] dependency); packages/backfire/src/backfire_tools/build.py rewrites only the doc-regions workspace source to a path in the copied work-plugin wiki-consistency/pyproject.toml, so the copied project keeps a workspace source for backfire that has no workspace in the built plugin."
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:34",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      34
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:34:5: D103 Missing docstring in public function"
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:37",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      37
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:37:16: PLW1510 `subprocess.run` without explicit `check` argument"
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:78",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      78
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:78:18: PLW1510 `subprocess.run` without explicit `check` argument"
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:194",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      194
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:194:81: E501 Line too long (87 > 80)"
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:236",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      236
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:236:81: E501 Line too long (81 > 80)"
+    },
+    {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:241",
+     "file": "packages/backfire/src/backfire_tools/build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      241
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/src/backfire_tools/build.py:241:81: E501 Line too long (102 > 80)"
+    },
+    {
+     "id": "RUFF:packages/backfire/tests/test_build.py:129",
+     "file": "packages/backfire/tests/test_build.py",
+     "kind": "ruff_finding",
+     "lines": [
+      129
+     ],
+     "text": "Ruff 0.16.9 (develop's lint check, now part of npm run check after porting) reports on the merged tree: packages/backfire/tests/test_build.py:129:81: E501 Line too long (86 > 80)"
+    }
+   ],
+   "results": {
+    "X009": {
+     "id": "X009",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X010": {
+     "id": "X010",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X011": {
+     "id": "X011",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X012": {
+     "id": "X012",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X013": {
+     "id": "X013",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X014": {
+     "id": "X014",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X015": {
+     "id": "X015",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X016": {
+     "id": "X016",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X001": {
+     "id": "X001",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X002": {
+     "id": "X002",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X003": {
+     "id": "X003",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X004": {
+     "id": "X004",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X005": {
+     "id": "X005",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X006": {
+     "id": "X006",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X007": {
+     "id": "X007",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X008": {
+     "id": "X008",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X017": {
+     "id": "X017",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X018": {
+     "id": "X018",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.005,
+      "delete": 0.01,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X019": {
+     "id": "X019",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X020": {
+     "id": "X020",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X021": {
+     "id": "X021",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X022": {
+     "id": "X022",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X023": {
+     "id": "X023",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X024": {
+     "id": "X024",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X025": {
+     "id": "X025",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X026": {
+     "id": "X026",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X027": {
+     "id": "X027",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X028": {
+     "id": "X028",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.02,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.96,
+     "margin": 0.95,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X029": {
+     "id": "X029",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.02,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.96,
+     "margin": 0.95,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X030": {
+     "id": "X030",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.01,
+      "can_stay": 0.01,
+      "delete": 0.97,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X031": {
+     "id": "X031",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X032": {
+     "id": "X032",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.1,
+      "can_stay": 0.85,
+      "delete": 0.02,
+      "manual_review": 0.03
+     },
+     "confidence": 0.7999999999999999,
+     "margin": 0.75,
+     "top_probability": 0.85,
+     "decision": "auto"
+    },
+    "X041": {
+     "id": "X041",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X042": {
+     "id": "X042",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X043": {
+     "id": "X043",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X044": {
+     "id": "X044",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X045": {
+     "id": "X045",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X046": {
+     "id": "X046",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X047": {
+     "id": "X047",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X048": {
+     "id": "X048",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X033": {
+     "id": "X033",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X034": {
+     "id": "X034",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X035": {
+     "id": "X035",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X036": {
+     "id": "X036",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X037": {
+     "id": "X037",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X038": {
+     "id": "X038",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X039": {
+     "id": "X039",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X040": {
+     "id": "X040",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X049": {
+     "id": "X049",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X050": {
+     "id": "X050",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X051": {
+     "id": "X051",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X052": {
+     "id": "X052",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X053": {
+     "id": "X053",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X054": {
+     "id": "X054",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X055": {
+     "id": "X055",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X056": {
+     "id": "X056",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X065": {
+     "id": "X065",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X066": {
+     "id": "X066",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X067": {
+     "id": "X067",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.08,
+      "can_stay": 0.02,
+      "delete": 0.87,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8266666666666667,
+     "margin": 0.79,
+     "top_probability": 0.87,
+     "decision": "auto"
+    },
+    "X068": {
+     "id": "X068",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.02,
+      "delete": 0.04,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X069": {
+     "id": "X069",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.02,
+      "delete": 0.04,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X070": {
+     "id": "X070",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.02,
+      "delete": 0.04,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X071": {
+     "id": "X071",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.05,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X072": {
+     "id": "X072",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.05,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X057": {
+     "id": "X057",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X058": {
+     "id": "X058",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X059": {
+     "id": "X059",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X060": {
+     "id": "X060",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X061": {
+     "id": "X061",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X062": {
+     "id": "X062",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X063": {
+     "id": "X063",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X064": {
+     "id": "X064",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X073": {
+     "id": "X073",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0,
+      "delete": 0.94,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8899999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X074": {
+     "id": "X074",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.01,
+      "delete": 0.04,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X075": {
+     "id": "X075",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.01,
+      "delete": 0.04,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X076": {
+     "id": "X076",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.01,
+      "delete": 0.04,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X077": {
+     "id": "X077",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.01,
+      "delete": 0.04,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X078": {
+     "id": "X078",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.005,
+      "delete": 0.03,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X079": {
+     "id": "X079",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.02,
+      "delete": 0.04,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X080": {
+     "id": "X080",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.03,
+      "delete": 0.04,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X081": {
+     "id": "X081",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.05,
+      "delete": 0.04,
+      "manual_review": 0.03
+     },
+     "confidence": 0.84,
+     "margin": 0.83,
+     "top_probability": 0.88,
+     "decision": "auto"
+    },
+    "X082": {
+     "id": "X082",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.86,
+      "can_stay": 0.06,
+      "delete": 0.05,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8133333333333334,
+     "margin": 0.8,
+     "top_probability": 0.86,
+     "decision": "auto"
+    },
+    "X083": {
+     "id": "X083",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.05,
+      "delete": 0.04,
+      "manual_review": 0.03
+     },
+     "confidence": 0.84,
+     "margin": 0.83,
+     "top_probability": 0.88,
+     "decision": "auto"
+    },
+    "X084": {
+     "id": "X084",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X085": {
+     "id": "X085",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X086": {
+     "id": "X086",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X087": {
+     "id": "X087",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.03,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.89,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X088": {
+     "id": "X088",
+     "classification": "manual_review",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.03,
+      "delete": 0.02,
+      "manual_review": 0.9
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X089": {
+     "id": "X089",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.03,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X090": {
+     "id": "X090",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.93,
+      "can_stay": 0.03,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.9,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "X091": {
+     "id": "X091",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.06,
+      "delete": 0.02,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8400000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X092": {
+     "id": "X092",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X093": {
+     "id": "X093",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X094": {
+     "id": "X094",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.03,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X095": {
+     "id": "X095",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X096": {
+     "id": "X096",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.03,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X105": {
+     "id": "X105",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.03,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.9099999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X106": {
+     "id": "X106",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X107": {
+     "id": "X107",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.15,
+      "can_stay": 0.05,
+      "delete": 0.75,
+      "manual_review": 0.05
+     },
+     "confidence": 0.6666666666666666,
+     "margin": 0.6,
+     "top_probability": 0.75,
+     "decision": "review"
+    },
+    "X108": {
+     "id": "X108",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.88,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X109": {
+     "id": "X109",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X110": {
+     "id": "X110",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.93,
+      "can_stay": 0.03,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.9,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "X111": {
+     "id": "X111",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.93,
+      "can_stay": 0.03,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.9,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "X112": {
+     "id": "X112",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.94,
+      "can_stay": 0.03,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.9099999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "X097": {
+     "id": "X097",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.93,
+      "can_stay": 0.02,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.9,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "X098": {
+     "id": "X098",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.03,
+      "delete": 0.05,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X099": {
+     "id": "X099",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.23,
+      "can_stay": 0.05,
+      "delete": 0.7,
+      "manual_review": 0.02
+     },
+     "confidence": 0.6,
+     "margin": 0.47,
+     "top_probability": 0.7,
+     "decision": "review"
+    },
+    "X100": {
+     "id": "X100",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.03,
+      "delete": 0.07,
+      "manual_review": 0.02
+     },
+     "confidence": 0.84,
+     "margin": 0.81,
+     "top_probability": 0.88,
+     "decision": "auto"
+    },
+    "X101": {
+     "id": "X101",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.4,
+      "can_stay": 0.08,
+      "delete": 0.5,
+      "manual_review": 0.02
+     },
+     "confidence": 0.3333333333333333,
+     "margin": 0.09999999999999998,
+     "top_probability": 0.5,
+     "decision": "review"
+    },
+    "X102": {
+     "id": "X102",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.03,
+      "delete": 0.05,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X103": {
+     "id": "X103",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.03,
+      "delete": 0.07,
+      "manual_review": 0.02
+     },
+     "confidence": 0.84,
+     "margin": 0.81,
+     "top_probability": 0.88,
+     "decision": "auto"
+    },
+    "X104": {
+     "id": "X104",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.02,
+      "delete": 0.06,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8400000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X129": {
+     "id": "X129",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.25,
+      "can_stay": 0.05,
+      "delete": 0.65,
+      "manual_review": 0.05
+     },
+     "confidence": 0.5333333333333333,
+     "margin": 0.4,
+     "top_probability": 0.65,
+     "decision": "review"
+    },
+    "X130": {
+     "id": "X130",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X131": {
+     "id": "X131",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X132": {
+     "id": "X132",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.01,
+      "manual_review": 0.02
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X133": {
+     "id": "X133",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X134": {
+     "id": "X134",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X135": {
+     "id": "X135",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.04,
+      "delete": 0.03,
+      "manual_review": 0.03
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X136": {
+     "id": "X136",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.8,
+      "can_stay": 0.1,
+      "delete": 0.02,
+      "manual_review": 0.08
+     },
+     "confidence": 0.7333333333333334,
+     "margin": 0.7000000000000001,
+     "top_probability": 0.8,
+     "decision": "review"
+    },
+    "X113": {
+     "id": "X113",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X114": {
+     "id": "X114",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.1,
+      "can_stay": 0.85,
+      "delete": 0,
+      "manual_review": 0.05
+     },
+     "confidence": 0.7999999999999999,
+     "margin": 0.75,
+     "top_probability": 0.85,
+     "decision": "auto"
+    },
+    "X115": {
+     "id": "X115",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X116": {
+     "id": "X116",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X117": {
+     "id": "X117",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X118": {
+     "id": "X118",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "X119": {
+     "id": "X119",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0,
+      "delete": 0.05,
+      "manual_review": 0.05
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X120": {
+     "id": "X120",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.15,
+      "can_stay": 0,
+      "delete": 0.8,
+      "manual_review": 0.05
+     },
+     "confidence": 0.7333333333333334,
+     "margin": 0.65,
+     "top_probability": 0.8,
+     "decision": "review"
+    },
+    "X121": {
+     "id": "X121",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.01,
+      "delete": 0.08,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X122": {
+     "id": "X122",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.01,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X123": {
+     "id": "X123",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.01,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X124": {
+     "id": "X124",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.01,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X125": {
+     "id": "X125",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.01,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X126": {
+     "id": "X126",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.01,
+      "delete": 0.08,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X127": {
+     "id": "X127",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.08,
+      "can_stay": 0.01,
+      "delete": 0.9,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X128": {
+     "id": "X128",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.08,
+      "can_stay": 0.01,
+      "delete": 0.9,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X145": {
+     "id": "X145",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.03,
+      "delete": 0.07,
+      "manual_review": 0
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8300000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X146": {
+     "id": "X146",
+     "classification": "can_stay",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.92,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.87,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X147": {
+     "id": "X147",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X148": {
+     "id": "X148",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.05,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X149": {
+     "id": "X149",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.03,
+      "delete": 0.05,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X150": {
+     "id": "X150",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.01,
+      "can_stay": 0.01,
+      "delete": 0.98,
+      "manual_review": 0
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X151": {
+     "id": "X151",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.01,
+      "delete": 0.03,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X152": {
+     "id": "X152",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X137": {
+     "id": "X137",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.92,
+      "can_stay": 0.03,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8933333333333334,
+     "margin": 0.89,
+     "top_probability": 0.92,
+     "decision": "auto"
+    },
+    "X138": {
+     "id": "X138",
+     "classification": "manual_review",
+     "probabilities": {
+      "must_change": 0.12,
+      "can_stay": 0.03,
+      "delete": 0.02,
+      "manual_review": 0.83
+     },
+     "confidence": 0.7733333333333333,
+     "margin": 0.71,
+     "top_probability": 0.83,
+     "decision": "review"
+    },
+    "X139": {
+     "id": "X139",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.04,
+      "delete": 0.04,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.86,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X140": {
+     "id": "X140",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.5,
+      "can_stay": 0.1,
+      "delete": 0.35,
+      "manual_review": 0.05
+     },
+     "confidence": 0.3333333333333333,
+     "margin": 0.15000000000000002,
+     "top_probability": 0.5,
+     "decision": "review"
+    },
+    "X141": {
+     "id": "X141",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.03,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X142": {
+     "id": "X142",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.07,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.84,
+     "margin": 0.81,
+     "top_probability": 0.88,
+     "decision": "auto"
+    },
+    "X143": {
+     "id": "X143",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X144": {
+     "id": "X144",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.85,
+      "can_stay": 0.1,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.7999999999999999,
+     "margin": 0.75,
+     "top_probability": 0.85,
+     "decision": "auto"
+    },
+    "X153": {
+     "id": "X153",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X154": {
+     "id": "X154",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X155": {
+     "id": "X155",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.01,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X156": {
+     "id": "X156",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X157": {
+     "id": "X157",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "X158": {
+     "id": "X158",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.85,
+      "can_stay": 0.1,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.7999999999999999,
+     "margin": 0.75,
+     "top_probability": 0.85,
+     "decision": "auto"
+    },
+    "X159": {
+     "id": "X159",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.98,
+      "can_stay": 0.01,
+      "delete": 0.005,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9733333333333333,
+     "margin": 0.97,
+     "top_probability": 0.98,
+     "decision": "auto"
+    },
+    "X160": {
+     "id": "X160",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.03,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X161": {
+     "id": "X161",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.8,
+      "can_stay": 0.12,
+      "delete": 0.03,
+      "manual_review": 0.05
+     },
+     "confidence": 0.7333333333333334,
+     "margin": 0.68,
+     "top_probability": 0.8,
+     "decision": "review"
+    },
+    "X162": {
+     "id": "X162",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.99,
+      "can_stay": 0.005,
+      "delete": 0.003,
+      "manual_review": 0.002
+     },
+     "confidence": 0.9866666666666667,
+     "margin": 0.985,
+     "top_probability": 0.99,
+     "decision": "auto"
+    },
+    "X163": {
+     "id": "X163",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.99,
+      "can_stay": 0.005,
+      "delete": 0.003,
+      "manual_review": 0.002
+     },
+     "confidence": 0.9866666666666667,
+     "margin": 0.985,
+     "top_probability": 0.99,
+     "decision": "auto"
+    },
+    "X164": {
+     "id": "X164",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.99,
+      "can_stay": 0.005,
+      "delete": 0.003,
+      "manual_review": 0.002
+     },
+     "confidence": 0.9866666666666667,
+     "margin": 0.985,
+     "top_probability": 0.99,
+     "decision": "auto"
+    },
+    "X165": {
+     "id": "X165",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.1,
+      "can_stay": 0.05,
+      "delete": 0.8,
+      "manual_review": 0.05
+     },
+     "confidence": 0.7333333333333334,
+     "margin": 0.7000000000000001,
+     "top_probability": 0.8,
+     "decision": "review"
+    },
+    "X166": {
+     "id": "X166",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.96,
+      "can_stay": 0.02,
+      "delete": 0.015,
+      "manual_review": 0.005
+     },
+     "confidence": 0.9466666666666667,
+     "margin": 0.94,
+     "top_probability": 0.96,
+     "decision": "auto"
+    },
+    "X167": {
+     "id": "X167",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.05,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X168": {
+     "id": "X168",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.97,
+      "can_stay": 0.01,
+      "delete": 0.01,
+      "manual_review": 0.01
+     },
+     "confidence": 0.96,
+     "margin": 0.96,
+     "top_probability": 0.97,
+     "decision": "auto"
+    },
+    "P:task:doctor": {
+     "id": "P:task:doctor",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:format": {
+     "id": "P:task:format",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:format:check": {
+     "id": "P:task:format:check",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:lint": {
+     "id": "P:task:lint",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:lint:fix": {
+     "id": "P:task:lint:fix",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:test": {
+     "id": "P:task:test",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:test:ruff": {
+     "id": "P:task:test:ruff",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "P:task:wiki-consistency:install": {
+     "id": "P:task:wiki-consistency:install",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "W2:packages/wiki-consistency/pyproject.toml#backfire-source": {
+     "id": "W2:packages/wiki-consistency/pyproject.toml#backfire-source",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:34": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:34",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:37": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:37",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:78": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:78",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:194": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:194",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:236": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:236",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/src/backfire_tools/build.py:241": {
+     "id": "RUFF:packages/backfire/src/backfire_tools/build.py:241",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "RUFF:packages/backfire/tests/test_build.py:129": {
+     "id": "RUFF:packages/backfire/tests/test_build.py:129",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    },
+    "W2:deno.json": {
+     "id": "W2:deno.json",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.01,
+      "delete": 0.93,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.88,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "W2:plugins/code/deno.json": {
+     "id": "W2:plugins/code/deno.json",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.01,
+      "delete": 0.93,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9066666666666667,
+     "margin": 0.88,
+     "top_probability": 0.93,
+     "decision": "auto"
+    },
+    "W2:plugins/code/skills/clean-code/deno.json": {
+     "id": "W2:plugins/code/skills/clean-code/deno.json",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.07,
+      "can_stay": 0.01,
+      "delete": 0.9,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8300000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "W2:plugins/code/skills/clean-code/deno.lock": {
+     "id": "W2:plugins/code/skills/clean-code/deno.lock",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.03,
+      "can_stay": 0.01,
+      "delete": 0.95,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9199999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "W2:scripts/deno_shim.ts": {
+     "id": "W2:scripts/deno_shim.ts",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.04,
+      "can_stay": 0.01,
+      "delete": 0.94,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9199999999999999,
+     "margin": 0.8999999999999999,
+     "top_probability": 0.94,
+     "decision": "auto"
+    },
+    "W2:tsconfig.json#files": {
+     "id": "W2:tsconfig.json#files",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.02,
+      "delete": 0.06,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.8400000000000001,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "W2:package.json#devDependencies:@deno/shim-deno": {
+     "id": "W2:package.json#devDependencies:@deno/shim-deno",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.25,
+      "can_stay": 0.02,
+      "delete": 0.71,
+      "manual_review": 0.02
+     },
+     "confidence": 0.6133333333333333,
+     "margin": 0.45999999999999996,
+     "top_probability": 0.71,
+     "decision": "review"
+    },
+    "W2:package.json#devDependencies:@std/fs": {
+     "id": "W2:package.json#devDependencies:@std/fs",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.22,
+      "can_stay": 0.03,
+      "delete": 0.73,
+      "manual_review": 0.02
+     },
+     "confidence": 0.64,
+     "margin": 0.51,
+     "top_probability": 0.73,
+     "decision": "review"
+    }
+   }
+  },
+  {
+   "batch": "21",
+   "context": "Feature CHE-32 on branch feature/turborepo, now the real change (the user's decision of 2026-09-29), after merging develop 8ce9b2a. Target state:\n- No Deno anywhere in the repository: no deno executable is required or invoked; no deno.json, deno.lock, plugins/code/deno.json or the clean-code skill's deno.json and deno.lock; no @deno/shim-deno and no Deno-API shim or preload (scripts/deno_shim.ts goes away and no command loads it); no Deno in the doctor, orca.yaml or the GitHub workflows.\n- Every Deno.* call site in scripts/ and in the clean-code skill is rewritten to Node.js 24 built-ins: node:fs/promises and node:fs (readFile, writeFile, mkdir, rm, stat, lstat, mkdtemp, symlink, rename, readdir, copyFile, chmod, realpath, readlink, open), process (argv, env, exit, exitCode, cwd, chdir, kill, execPath, version, platform), node:child_process (already used where Deno.Command was), node:test, and Node types in place of Deno.FileInfo and similar. Deno.errors.NotFound checks become checks of the Node error code (ENOENT, EEXIST).\n- @std/fs (walk, copy, exists, expandGlob, expandGlobSync, existsSync) calls the Deno global at runtime, so its imports are replaced with Node's fs (fs.glob or readdir with recursive, cp, existsSync). @std/path, @std/assert, @std/testing/mock, @cliffy/command, @eemeli/yaml and @zod/zod work on Node unchanged and stay.\n- The clean-code skill runs on Node: it has its own package.json, package-lock.json and .npmrc; users run 'npm ci --prefix <skill-root>' once and then 'node <skill-root>/scripts/clean_code.ts'; its SKILL.md, the repository scripts that run it, and the copied-skill tests follow (decision D16).\n- Tasks are root package.json scripts run by Turborepo; develop's Ruff checks (ruff check, ruff format --check, test:ruff) and its wiki-consistency:install change move into package.json and turbo.json; develop's new Deno tests (scripts/ruff_test.ts, the doctor's Ruff test) move to node:test.\n- Python: one root uv workspace (unchanged decisions D6, D7, D10); the work plugin build must rewrite every workspace source of the copied wiki-consistency project, now including backfire; Ruff findings in the code the change added must be fixed.\n- AGENTS.md and the constitution get the governance wording in a separate step (not code sites). Historical records in specs/ and .specify/ stay unchanged. Words such as 'Deno' in test names, comments or messages that describe behavior that no longer exists are must_change; mentions of Deno as history or of the removed tool in records are can_stay.\n",
+   "items": [
+    {
+     "id": "X099#ctx",
+     "file": "turbo.json",
+     "kind": "deno_env",
+     "lines": [
+      10
+     ],
+     "text": "turbo.json lines 10 (re-asked with context)\n8:     \"UV_*\",\n9:     \"PYTHONDONTWRITEBYTECODE\",\n10:     \"DENO_DIR\",\n11:     \"TMPDIR\",\n12:     \"CI\",\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X101#ctx",
+     "file": "scripts/cli_contract_test.ts",
+     "kind": "deno_env",
+     "lines": [
+      43
+     ],
+     "text": "scripts/cli_contract_test.ts lines 43 (re-asked with context)\n41:   return commandOutput(command, args, cwd, {\n42:     NO_COLOR: '1',\n43:     DENO_NO_UPDATE_CHECK: '1',\n44:     PATH: `${Deno.execPath().slice(0, Deno.execPath().lastIndexOf('/'))}:${Deno.env.get('PATH') ?? ''}`,\n45:     // Keep host Git config, such as a runner's global LFS filters, out of\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X107#ctx",
+     "file": "biome.json",
+     "kind": "deno_config",
+     "lines": [
+      9
+     ],
+     "text": "biome.json lines 9 (re-asked with context)\n7:       \"!**/node_modules\",\n8:       \"!**/.deno\",\n9:       \"!**/deno.lock\",\n10:       \"!**/*.md\",\n11:       \"!.agents\",\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X120#ctx",
+     "file": "orca.yaml",
+     "kind": "deno_version",
+     "lines": [
+      14
+     ],
+     "text": "orca.yaml lines 14 (re-asked with context)\n12:       deno_bin=\"$(command -v deno)\"\n13:     else\n14:       echo 'Deno 2.9.6 was not found.' >&2\n15:       exit 127\n16:     fi\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X129#ctx",
+     "file": ".github/workflows/docs-check.yml",
+     "kind": "deno_version",
+     "lines": [
+      28,
+      30
+     ],
+     "text": ".github/workflows/docs-check.yml lines 28,30 (re-asked with context)\n26:           tar -xJf \"$RUNNER_TEMP/docs-node.tar.xz\" -C \"$RUNNER_TEMP\"\n27:           echo \"$RUNNER_TEMP/node-v24.19.0-linux-x64/bin\" >> \"$GITHUB_PATH\"\n28:       - name: Prepare standalone Deno 2.9.6\n29:         run: |\n30:           curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output \"$RUNNER_TEMP/docs-deno.zip\"\n31:           unzip -q \"$RUNNER_TEMP/docs-deno.zip\" -d \"$RUNNER_TEMP/docs-deno\"\n32:           echo \"$RUNNER_TEMP/docs-deno\" >> \"$GITHUB_PATH\"\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X136#ctx",
+     "file": "packages/doc-regions/src/doc_regions/__main__.py",
+     "kind": "deno_prose",
+     "lines": [
+      25
+     ],
+     "text": "packages/doc-regions/src/doc_regions/__main__.py lines 25 (re-asked with context)\n23:     \"\"\"Run the doc-regions command for the current document root.\"\"\"\n24:     argv = list(sys.argv[1:] if argv is None else argv)\n25:     # Deno task forwards its separator after the configured positional path.\n26:     if len(argv) > 2 and argv[0] == \"prepare\" and argv[2] == \"--\":\n27:         del argv[2]\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X140#ctx",
+     "file": "biome.json",
+     "kind": "deno_prose",
+     "lines": [
+      8,
+      51
+     ],
+     "text": "biome.json lines 8,51 (re-asked with context)\n6:       \"**\",\n7:       \"!**/node_modules\",\n8:       \"!**/.deno\",\n9:       \"!**/deno.lock\",\n10:       \"!**/*.md\",\n49:               \"options\": {\n50:                 \"deniedGlobals\": {\n51:                   \"Deno\": \"Domain code must not use runtime or I/O globals.\",\n52:                   \"Bun\": \"Domain code must not use runtime or I/O globals.\",\n53:                   \"process\": \"Domain code must not use runtime or I/O globals.\",\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X161#ctx",
+     "file": "scripts/workflow_graph.ts",
+     "kind": "deno_prose",
+     "lines": [
+      166
+     ],
+     "text": "scripts/workflow_graph.ts lines 166 (re-asked with context)\n164:     limitations: [\n165:       'Fresh static index of Git-versionable JS/TS files using the Biome file exclusions; symlinks, ignored untracked files, tools, vendor, and agent caches are outside scope.',\n166:       'RESOLVED_LOCAL means dependency-cruiser resolved a local file, not that Deno or runtime behavior has been verified. EXTERNAL packages are not indexed or verified; OUTSIDE_SCOPE local edges are not followed.',\n167:       'Computed imports, dynamic dispatch, runtime DI, reflection, and external types may hide relationships. An empty result does not prove there are no consumers.',\n168:       'Test candidates use static import reachability and test/test-directory naming; this does not prove coverage and does not replace the full check suite.',\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "X165#ctx",
+     "file": ".gitignore",
+     "kind": "deno_prose",
+     "lines": [
+      1,
+      5
+     ],
+     "text": ".gitignore lines 1,5 (re-asked with context)\n1: # Deno\n2: # https://deno.com/\n3: \n4: # https://docs.deno.com/runtime/fundamentals/setup/#deno_dir\n5: .deno/\n6: \n7: # Coverage reports\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "W2:package.json#devDependencies:@deno/shim-deno#ctx",
+     "file": "package.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "package.json devDependencies entry \"@deno/shim-deno\": \"0.19.2\" (re-asked with context). Every script command loads it through --import ./scripts/deno_shim.ts. In the target state every Deno.* call site is rewritten to Node built-ins and scripts/deno_shim.ts is removed, so nothing imports the package.\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    },
+    {
+     "id": "W2:package.json#devDependencies:@std/fs#ctx",
+     "file": "package.json",
+     "kind": "whole_file",
+     "lines": [
+      1
+     ],
+     "text": "package.json devDependencies entry \"@std/fs\": \"npm:@jsr/std__fs@1.0.24\" (re-asked with context). Measured on Node 24.19 without the shim: importing @std/fs and calling exists() fails with 'Deno is not defined', because @std/fs calls the Deno global. In the target state its six import sites (walk, copy, exists, expandGlob, expandGlobSync, existsSync) are replaced with Node's fs, so nothing imports it.\nRequirement FR-011 (user decision 2026-09-29): no part of the repository may require or invoke Deno; no deno.json or deno.lock files, no @deno/shim-deno or other Deno-API shim, and no Deno in the doctor, orca.yaml or the GitHub workflows."
+    }
+   ],
+   "results": {
+    "X099#ctx": {
+     "id": "X099#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.25,
+      "can_stay": 0.05,
+      "delete": 0.65,
+      "manual_review": 0.05
+     },
+     "confidence": 0.5333333333333333,
+     "margin": 0.4,
+     "top_probability": 0.65,
+     "decision": "review"
+    },
+    "X101#ctx": {
+     "id": "X101#ctx",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.95,
+      "can_stay": 0.02,
+      "delete": 0.02,
+      "manual_review": 0.01
+     },
+     "confidence": 0.9333333333333332,
+     "margin": 0.9299999999999999,
+     "top_probability": 0.95,
+     "decision": "auto"
+    },
+    "X107#ctx": {
+     "id": "X107#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.3,
+      "can_stay": 0.05,
+      "delete": 0.6,
+      "manual_review": 0.05
+     },
+     "confidence": 0.4666666666666666,
+     "margin": 0.3,
+     "top_probability": 0.6,
+     "decision": "review"
+    },
+    "X120#ctx": {
+     "id": "X120#ctx",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.7,
+      "can_stay": 0.05,
+      "delete": 0.2,
+      "manual_review": 0.05
+     },
+     "confidence": 0.6,
+     "margin": 0.49999999999999994,
+     "top_probability": 0.7,
+     "decision": "review"
+    },
+    "X129#ctx": {
+     "id": "X129#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.25,
+      "can_stay": 0.05,
+      "delete": 0.65,
+      "manual_review": 0.05
+     },
+     "confidence": 0.5333333333333333,
+     "margin": 0.4,
+     "top_probability": 0.65,
+     "decision": "review"
+    },
+    "X136#ctx": {
+     "id": "X136#ctx",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.9,
+      "can_stay": 0.05,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "X140#ctx": {
+     "id": "X140#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.1,
+      "can_stay": 0.25,
+      "delete": 0.6,
+      "manual_review": 0.05
+     },
+     "confidence": 0.4666666666666666,
+     "margin": 0.35,
+     "top_probability": 0.6,
+     "decision": "review"
+    },
+    "X161#ctx": {
+     "id": "X161#ctx",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.85,
+      "can_stay": 0.1,
+      "delete": 0.03,
+      "manual_review": 0.02
+     },
+     "confidence": 0.7999999999999999,
+     "margin": 0.75,
+     "top_probability": 0.85,
+     "decision": "auto"
+    },
+    "X165#ctx": {
+     "id": "X165#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.05,
+      "can_stay": 0.03,
+      "delete": 0.9,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8666666666666667,
+     "margin": 0.85,
+     "top_probability": 0.9,
+     "decision": "auto"
+    },
+    "W2:package.json#devDependencies:@deno/shim-deno#ctx": {
+     "id": "W2:package.json#devDependencies:@deno/shim-deno#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.07,
+      "can_stay": 0.02,
+      "delete": 0.89,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8533333333333334,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.89,
+     "decision": "auto"
+    },
+    "W2:package.json#devDependencies:@std/fs#ctx": {
+     "id": "W2:package.json#devDependencies:@std/fs#ctx",
+     "classification": "delete",
+     "probabilities": {
+      "must_change": 0.07,
+      "can_stay": 0.02,
+      "delete": 0.89,
+      "manual_review": 0.02
+     },
+     "confidence": 0.8533333333333334,
+     "margin": 0.8200000000000001,
+     "top_probability": 0.89,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "22",
+   "context": "Feature CHE-32 on branch feature/turborepo, now the real change (the user's decision of 2026-09-29), after merging develop 8ce9b2a. Target state:\n- No Deno anywhere in the repository: no deno executable is required or invoked; no deno.json, deno.lock, plugins/code/deno.json or the clean-code skill's deno.json and deno.lock; no @deno/shim-deno and no Deno-API shim or preload (scripts/deno_shim.ts goes away and no command loads it); no Deno in the doctor, orca.yaml or the GitHub workflows.\n- Every Deno.* call site in scripts/ and in the clean-code skill is rewritten to Node.js 24 built-ins: node:fs/promises and node:fs (readFile, writeFile, mkdir, rm, stat, lstat, mkdtemp, symlink, rename, readdir, copyFile, chmod, realpath, readlink, open), process (argv, env, exit, exitCode, cwd, chdir, kill, execPath, version, platform), node:child_process (already used where Deno.Command was), node:test, and Node types in place of Deno.FileInfo and similar. Deno.errors.NotFound checks become checks of the Node error code (ENOENT, EEXIST).\n- @std/fs (walk, copy, exists, expandGlob, expandGlobSync, existsSync) calls the Deno global at runtime, so its imports are replaced with Node's fs (fs.glob or readdir with recursive, cp, existsSync). @std/path, @std/assert, @std/testing/mock, @cliffy/command, @eemeli/yaml and @zod/zod work on Node unchanged and stay.\n- The clean-code skill runs on Node: it has its own package.json, package-lock.json and .npmrc; users run 'npm ci --prefix <skill-root>' once and then 'node <skill-root>/scripts/clean_code.ts'; its SKILL.md, the repository scripts that run it, and the copied-skill tests follow (decision D16).\n- Tasks are root package.json scripts run by Turborepo; develop's Ruff checks (ruff check, ruff format --check, test:ruff) and its wiki-consistency:install change move into package.json and turbo.json; develop's new Deno tests (scripts/ruff_test.ts, the doctor's Ruff test) move to node:test.\n- Python: one root uv workspace (unchanged decisions D6, D7, D10); the work plugin build must rewrite every workspace source of the copied wiki-consistency project, now including backfire; Ruff findings in the code the change added must be fixed.\n- AGENTS.md and the constitution get the governance wording in a separate step (not code sites). Historical records in specs/ and .specify/ stay unchanged. Words such as 'Deno' in test names, comments or messages that describe behavior that no longer exists are must_change; mentions of Deno as history or of the removed tool in records are can_stay.\n",
+   "items": [
+    {
+     "id": "X114#t011",
+     "file": "scripts/workflow_plan_test.ts",
+     "lines": [
+      125
+     ],
+     "kind": "worker_question",
+     "text": "scripts/workflow_plan_test.ts:125-131 (row X114, re-asked with new evidence from T011, 2026-09-29): a test fixture that writes plugins/demo/deno.json with 'exports' so the workflow's import graph sees package exports.\n123:     await fixture(\n124:       {\n125:         [first]: 'export const first = 1;',\n126:         [second]: 'export const second = 2;',\n127:         'plugins/demo/deno.json': JSON.stringify({\n128:           exports: {\n129:             './first': './src/first.ts',\n130:             './second': './src/second.ts',\n131:           },\n132:         }),\n133:         ...extra,\nEvidence: in the target state no deno.json exists anywhere and scripts/clean_architecture.ts (T009a) no longer reads deno.json files, only package.json. With this fixture unchanged, npm run test:workflow fails at scripts/workflow_plan_test.ts:137 with 'Architecture graph has 2 errors', because the fixture's exports are no longer recognized. The fixture's purpose (a plugin package that exports two entry points) now needs a package.json with the same exports."
+    }
+   ],
+   "results": {
+    "X114#t011": {
+     "id": "X114#t011",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 1,
+      "can_stay": 0,
+      "delete": 0,
+      "manual_review": 0
+     },
+     "confidence": 1,
+     "margin": 1,
+     "top_probability": 1,
+     "decision": "auto"
+    }
+   }
+  },
+  {
+   "batch": "23",
+   "context": "Feature CHE-32 on branch feature/turborepo, now the real change (the user's decision of 2026-09-29), after merging develop 8ce9b2a. Target state:\n- No Deno anywhere in the repository: no deno executable is required or invoked; no deno.json, deno.lock, plugins/code/deno.json or the clean-code skill's deno.json and deno.lock; no @deno/shim-deno and no Deno-API shim or preload (scripts/deno_shim.ts goes away and no command loads it); no Deno in the doctor, orca.yaml or the GitHub workflows.\n- Every Deno.* call site in scripts/ and in the clean-code skill is rewritten to Node.js 24 built-ins: node:fs/promises and node:fs (readFile, writeFile, mkdir, rm, stat, lstat, mkdtemp, symlink, rename, readdir, copyFile, chmod, realpath, readlink, open), process (argv, env, exit, exitCode, cwd, chdir, kill, execPath, version, platform), node:child_process (already used where Deno.Command was), node:test, and Node types in place of Deno.FileInfo and similar. Deno.errors.NotFound checks become checks of the Node error code (ENOENT, EEXIST).\n- @std/fs (walk, copy, exists, expandGlob, expandGlobSync, existsSync) calls the Deno global at runtime, so its imports are replaced with Node's fs (fs.glob or readdir with recursive, cp, existsSync). @std/path, @std/assert, @std/testing/mock, @cliffy/command, @eemeli/yaml and @zod/zod work on Node unchanged and stay.\n- The clean-code skill runs on Node: it has its own package.json, package-lock.json and .npmrc; users run 'npm ci --prefix <skill-root>' once and then 'node <skill-root>/scripts/clean_code.ts'; its SKILL.md, the repository scripts that run it, and the copied-skill tests follow (decision D16).\n- Tasks are root package.json scripts run by Turborepo; develop's Ruff checks (ruff check, ruff format --check, test:ruff) and its wiki-consistency:install change move into package.json and turbo.json; develop's new Deno tests (scripts/ruff_test.ts, the doctor's Ruff test) move to node:test.\n- Python: one root uv workspace (unchanged decisions D6, D7, D10); the work plugin build must rewrite every workspace source of the copied wiki-consistency project, now including backfire; Ruff findings in the code the change added must be fixed.\n- AGENTS.md and the constitution get the governance wording in a separate step (not code sites). Historical records in specs/ and .specify/ stay unchanged. Words such as 'Deno' in test names, comments or messages that describe behavior that no longer exists are must_change; mentions of Deno as history or of the removed tool in records are can_stay.\n",
+   "items": [
+    {
+     "id": "X169",
+     "file": "scripts/backfire/fixtures/upstream-0.9.0/README.md",
+     "lines": [
+      35,
+      36,
+      37,
+      38
+     ],
+     "kind": "deno_cli",
+     "text": "scripts/backfire/fixtures/upstream-0.9.0/README.md:35-38 (found by T009b's final residual search, 2026-09-29; the candidate searches skipped fixture directories): repository-authored instructions for regenerating the captured upstream fixtures; after the capture, they format two JSON files by running Biome through Deno. The repository's root package.json already has Biome as a dependency (node_modules/.bin/biome), and Deno is no longer installed by setup.\n27: Regenerate from the repository root (network is needed for the pinned source\n28: and npm packages):\n29: \n30: ```sh\n31: PATH=\"$HOME/.local/share/mise/installs/node/24.19.0/bin:$PATH\" \\\n32:   PYTHONDONTWRITEBYTECODE=1 \\\n33:   uv run --project packages/backfire --frozen --offline --no-sync \\\n34:   python -m backfire_tools.acceptance.capture_upstream\n35: deno run --frozen --cached-only --no-prompt --allow-read --allow-env --allow-run \\\n36:   npm:@biomejs/biome@2.5.14 format --write \\\n37:   scripts/backfire/fixtures/upstream-0.9.0/metadata.json \\\n38:   scripts/backfire/fixtures/upstream-0.9.0/tools-list.json\n39: ```\n40: \n41: The capture downloads a fresh source tree into a temporary directory, runs"
+    }
+   ],
+   "results": {
+    "X169": {
+     "id": "X169",
+     "classification": "must_change",
+     "probabilities": {
+      "must_change": 0.88,
+      "can_stay": 0.04,
+      "delete": 0.04,
+      "manual_review": 0.04
+     },
+     "confidence": 0.84,
+     "margin": 0.84,
+     "top_probability": 0.88,
+     "decision": "auto"
+    }
+   }
+  }
+ ],
+ "user_rule": {
+  "rows": [
+   "X099",
+   "X107",
+   "X120",
+   "X129",
+   "X140"
+  ],
+  "rule": "The user's decision of 2026-09-29, relayed by develop-bf: remove Deno completely; no deno.json, deno.lock, plugins/code/deno.json, @deno/shim-deno or other Deno-API shim, no Deno in doctor, orca.yaml or the GitHub workflows. Applied to rows whose re-asked classification stayed 'review'."
+ }
+}

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools==80.9.0"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "doc-regions"
@@ -20,13 +20,9 @@ dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
 [tool.uv]
 required-version = ">=0.11.32"
 
-# Keep install metadata inside .venv, as backfire does.
-[tool.distutils.egg_info]
-egg_base = ".venv"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["doc_regions", "doc_regions.*"]
+[tool.uv.build-backend]
+module-name = "doc_regions"
+module-root = "src"
 
 [tool.pytest.ini_options]
 addopts = ["-p", "no:cacheprovider"]

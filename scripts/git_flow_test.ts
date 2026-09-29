@@ -1,4 +1,17 @@
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {spawnSync} from 'node:child_process';
+import {test} from 'node:test';
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {assert, assertEquals, assertMatch, assertThrows} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
@@ -7,30 +20,52 @@ const sharedHook = join(root, 'scripts/git-flow-hooks/pre-flow-feature-finish');
 const featureName = 'flow-test';
 const featureBranch = `feature/${featureName}`;
 const decoder = new TextDecoder();
-const home = Deno.env.get('HOME') ?? '/tmp';
-const denoDir = Deno.env.get('DENO_DIR') ?? join(home, '.cache', 'deno');
-
 async function runGit(
   cwd: string,
   args: string[],
   extraEnv: Record<string, string> = {},
 ) {
-  return await new Deno.Command('git', {
+  return commandOutput('git', {
     args,
     cwd,
     env: {
-      DENO_DIR: denoDir,
       GIT_CONFIG_GLOBAL: join(dirname(cwd), '.gitconfig'),
       GIT_CONFIG_NOSYSTEM: '1',
       HOME: dirname(cwd),
       ...extraEnv,
     },
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+  });
 }
 
-function output(result: Deno.CommandOutput) {
+function commandOutput(
+  command: string,
+  options: {args: string[]; cwd?: string; env?: Record<string, string>},
+) {
+  const result = spawnSync(command, options.args, {
+    cwd: options.cwd,
+    env: options.env ? {...process.env, ...options.env} : undefined,
+    encoding: null,
+  });
+  if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
+  return {
+    code: result.status ?? 1,
+    success: result.status === 0,
+    stdout: result.stdout ?? Buffer.alloc(0),
+    stderr: result.stderr ?? Buffer.alloc(0),
+  };
+}
+
+test('git-flow test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
+    Error,
+    'SIGTERM',
+  );
+});
+
+function output(result: ReturnType<typeof commandOutput>) {
   return decoder.decode(result.stdout) + decoder.decode(result.stderr);
 }
 
@@ -66,7 +101,7 @@ async function addReviewRecord(
     `Reviewed-commit: ${options.reviewedCommit ?? parent}`,
   ];
   if (options.changedFile) {
-    await Deno.writeTextFile(join(feature, 'reviewed.txt'), 'changed\n');
+    await writeFile(join(feature, 'reviewed.txt'), 'changed\n');
     await git(feature, 'add', 'reviewed.txt');
   }
   await git(
@@ -85,7 +120,7 @@ async function addConstitutionCommit(
   version: string,
   message: string,
 ) {
-  await Deno.writeTextFile(
+  await writeFile(
     join(feature, '.specify/memory/constitution.md'),
     `Policy text updated.\n\n**Version**: ${version}\n`,
   );
@@ -98,46 +133,50 @@ async function temporary(
   run: (root: string, develop: string, feature: string) => Promise<void>,
   verifyExit = 0,
 ) {
-  const tempRoot = await Deno.makeTempDir({prefix: 'git-flow-test-'});
+  const tempRoot = await mkdtemp(join(tmpdir(), 'git-flow-test-'));
   const repo = join(tempRoot, 'develop');
   const feature = join(tempRoot, 'feature');
   try {
-    await Deno.mkdir(repo);
+    await mkdir(repo);
     await git(repo, 'init', '--initial-branch=develop');
     await git(repo, 'config', 'user.name', 'Git Flow Test');
     await git(repo, 'config', 'user.email', 'git-flow-test@example.invalid');
-    await Deno.mkdir(join(repo, 'scripts/git-flow-hooks'), {recursive: true});
-    await Deno.copyFile(sharedConfig, join(repo, '.gitflow'));
+    await mkdir(join(repo, 'scripts/git-flow-hooks'), {recursive: true});
+    await copyFile(sharedConfig, join(repo, '.gitflow'));
     const hook = join(repo, 'scripts/git-flow-hooks/pre-flow-feature-finish');
-    await Deno.copyFile(sharedHook, hook);
-    await Deno.chmod(hook, 0o755);
-    const denoConfig = JSON.parse(
-      await Deno.readTextFile(join(root, 'deno.json')),
-    ) as {tasks: Record<string, unknown>};
-    denoConfig.tasks.verify = `deno eval 'Deno.exit(${verifyExit})'`;
-    await Deno.writeTextFile(
-      join(repo, 'deno.json'),
-      JSON.stringify(denoConfig),
+    await copyFile(sharedHook, hook);
+    await chmod(hook, 0o755);
+    const packageConfig = JSON.parse(
+      await readFile(join(root, 'package.json'), 'utf8'),
+    ) as {scripts: Record<string, string>};
+    packageConfig.scripts.verify = `node -e "process.exit(${verifyExit})"`;
+    await writeFile(join(repo, 'package.json'), JSON.stringify(packageConfig));
+    for (const file of ['.gitignore', 'package-lock.json'])
+      await copyFile(join(root, file), join(repo, file));
+    await symlink(
+      join(root, 'node_modules'),
+      join(repo, 'node_modules'),
+      'dir',
     );
-    await Deno.copyFile(join(root, 'deno.lock'), join(repo, 'deno.lock'));
+    await writeFile(join(repo, '.gitignore'), '\nnode_modules\n', {
+      flag: 'a',
+    });
     for (const file of ['commitlint.config.mjs', 'constitution_version.ts']) {
-      await Deno.copyFile(
-        join(root, 'scripts', file),
-        join(repo, 'scripts', file),
-      );
+      await copyFile(join(root, 'scripts', file), join(repo, 'scripts', file));
     }
-    await Deno.mkdir(join(repo, '.specify/memory'), {recursive: true});
-    await Deno.writeTextFile(
+    await mkdir(join(repo, '.specify/memory'), {recursive: true});
+    await writeFile(
       join(repo, '.specify/memory/constitution.md'),
       'Policy text.\n\n**Version**: 1.0.0\n',
     );
-    await Deno.writeTextFile(join(repo, 'seed.txt'), 'seed\n');
+    await writeFile(join(repo, 'seed.txt'), 'seed\n');
     await git(
       repo,
       'add',
       '.gitflow',
-      'deno.json',
-      'deno.lock',
+      '.gitignore',
+      'package.json',
+      'package-lock.json',
       'scripts',
       '.specify/memory/constitution.md',
       'seed.txt',
@@ -145,7 +184,7 @@ async function temporary(
     await git(repo, 'commit', '-m', 'initial');
     await git(repo, 'branch', 'main');
     await git(repo, 'worktree', 'add', '-b', featureBranch, feature, 'develop');
-    await Deno.writeTextFile(join(feature, 'feature.txt'), 'feature\n');
+    await writeFile(join(feature, 'feature.txt'), 'feature\n');
     await git(feature, 'add', 'feature.txt');
     await git(feature, 'commit', '-m', 'feature change');
     await git(repo, 'config', 'gitflow.shared.trustHooks', 'true');
@@ -153,7 +192,7 @@ async function temporary(
     await git(repo, 'flow', 'config', 'status');
     await run(tempRoot, repo, feature);
   } finally {
-    await Deno.remove(tempRoot, {recursive: true});
+    await rm(tempRoot, {recursive: true});
   }
 }
 
@@ -181,7 +220,7 @@ async function snapshot(repo: string, feature: string) {
   };
 }
 
-Deno.test('git-flow: feature worktree invocation is refused without changing branches or worktrees', async () => {
+test('git-flow: feature worktree invocation is refused without changing branches or worktrees', async () => {
   await temporary(async (_root, develop, feature) => {
     const before = await snapshot(develop, feature);
     const result = await attemptFinish(feature);
@@ -195,9 +234,9 @@ Deno.test('git-flow: feature worktree invocation is refused without changing bra
   });
 });
 
-Deno.test('git-flow: finish is refused when develop has a commit the feature lacks', async () => {
+test('git-flow: finish is refused when develop has a commit the feature lacks', async () => {
   await temporary(async (_root, develop, feature) => {
-    await Deno.writeTextFile(join(develop, 'develop-only.txt'), 'develop\n');
+    await writeFile(join(develop, 'develop-only.txt'), 'develop\n');
     await git(develop, 'add', 'develop-only.txt');
     await git(develop, 'commit', '-m', 'develop advances');
     const before = await snapshot(develop, feature);
@@ -211,7 +250,7 @@ Deno.test('git-flow: finish is refused when develop has a commit the feature lac
   });
 });
 
-Deno.test('git-flow: finish is refused when feature verification fails', async () => {
+test('git-flow: finish is refused when feature verification fails', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature);
     const before = await snapshot(develop, feature);
@@ -237,7 +276,7 @@ async function assertRefusedUnchanged(
   assertEquals(await snapshot(develop, feature), before);
 }
 
-Deno.test('git-flow: finish is refused when the feature tip has no review record', async () => {
+test('git-flow: finish is refused when the feature tip has no review record', async () => {
   await temporary(async (_root, develop, feature) => {
     await assertRefusedUnchanged(
       develop,
@@ -247,7 +286,7 @@ Deno.test('git-flow: finish is refused when the feature tip has no review record
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-commit is not the record parent', async () => {
+test('git-flow: finish is refused when Reviewed-commit is not the record parent', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {
       reviewedCommit: await git(develop, 'rev-parse', 'HEAD'),
@@ -260,7 +299,7 @@ Deno.test('git-flow: finish is refused when Reviewed-commit is not the record pa
   });
 });
 
-Deno.test('git-flow: finish is refused when the review record changes the tree', async () => {
+test('git-flow: finish is refused when the review record changes the tree', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {changedFile: true});
     await assertRefusedUnchanged(
@@ -271,7 +310,7 @@ Deno.test('git-flow: finish is refused when the review record changes the tree',
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-by is missing', async () => {
+test('git-flow: finish is refused when Reviewed-by is missing', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -281,7 +320,7 @@ Deno.test('git-flow: finish is refused when Reviewed-by is missing', async () =>
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-commit is missing', async () => {
+test('git-flow: finish is refused when Reviewed-commit is missing', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {
       trailers: ['Reviewed-by: Claude Code'],
@@ -290,7 +329,7 @@ Deno.test('git-flow: finish is refused when Reviewed-commit is missing', async (
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
+test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -308,7 +347,7 @@ Deno.test('git-flow: finish is refused when Reviewed-by is duplicated', async ()
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-by is empty', async () => {
+test('git-flow: finish is refused when Reviewed-by is empty', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -322,7 +361,7 @@ Deno.test('git-flow: finish is refused when Reviewed-by is empty', async () => {
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-by has an empty duplicate', async () => {
+test('git-flow: finish is refused when Reviewed-by has an empty duplicate', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -340,7 +379,7 @@ Deno.test('git-flow: finish is refused when Reviewed-by has an empty duplicate',
   });
 });
 
-Deno.test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', async () => {
+test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -358,10 +397,10 @@ Deno.test('git-flow: finish is refused when Reviewed-commit has an empty duplica
   });
 });
 
-Deno.test('git-flow: finish is refused after develop is merged after the review record', async () => {
+test('git-flow: finish is refused after develop is merged after the review record', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature);
-    await Deno.writeTextFile(join(develop, 'develop-only.txt'), 'develop\n');
+    await writeFile(join(develop, 'develop-only.txt'), 'develop\n');
     await git(develop, 'add', 'develop-only.txt');
     await git(develop, 'commit', '-m', 'develop advances');
     await git(feature, 'merge', 'develop', '--no-edit');
@@ -373,7 +412,7 @@ Deno.test('git-flow: finish is refused after develop is merged after the review 
   });
 });
 
-Deno.test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
+test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     const record = await addReviewRecord(feature, {
@@ -392,7 +431,7 @@ Deno.test('git-flow: abbreviated Reviewed-commit values are accepted', async () 
   });
 });
 
-Deno.test('git-flow: lower-case review trailer keys are accepted', async () => {
+test('git-flow: lower-case review trailer keys are accepted', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     const record = await addReviewRecord(feature, {
@@ -407,7 +446,7 @@ Deno.test('git-flow: lower-case review trailer keys are accepted', async () => {
   });
 });
 
-Deno.test('git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree', async () => {
+test('git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree', async () => {
   await temporary(async (_root, develop, feature) => {
     const reviewedCommit = await git(feature, 'rev-parse', 'HEAD');
     const reviewRecord = await addReviewRecord(feature);
@@ -489,22 +528,22 @@ async function assertRebasedBumpsRefused(action: 'fixup' | 'squash') {
   });
 }
 
-Deno.test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
+test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
   await assertRebasedBumpsRefused('fixup');
 });
 
-Deno.test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
+test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
   await assertRebasedBumpsRefused('squash');
 });
 
-Deno.test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
+test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
   await temporary(async (_root, develop, feature) => {
     const first = await addConstitutionCommit(
       feature,
       '1.0.1',
       'docs: first wording',
     );
-    await Deno.writeTextFile(
+    await writeFile(
       join(feature, '.specify/memory/constitution.md'),
       'Policy text updated again.\n\n**Version**: 1.0.2\n',
     );
@@ -526,7 +565,7 @@ Deno.test('git-flow: unsquashed fixup commit that changes the constitution is re
   });
 });
 
-Deno.test('git-flow: one correct constitution bump still finishes', async () => {
+test('git-flow: one correct constitution bump still finishes', async () => {
   await temporary(async (_root, develop, feature) => {
     await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
     await addReviewRecord(feature);

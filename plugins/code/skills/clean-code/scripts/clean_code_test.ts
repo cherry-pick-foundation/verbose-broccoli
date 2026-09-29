@@ -1,5 +1,8 @@
 import {assert, assertEquals} from '@std/assert';
 import {join} from '@std/path';
+import {test} from 'node:test';
+import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {checkCleanCode, classifyFile} from './clean_code.ts';
 
 const examples = [
@@ -130,8 +133,8 @@ const examples = [
 ] as const;
 
 for (const [name, source, expected] of examples) {
-  Deno.test(`scope: ${name}`, async () => {
-    const cwd = Deno.cwd();
+  test(`scope: ${name}`, async () => {
+    const cwd = process.cwd();
     const report = await classifyFile(join(cwd, 'example.tsx'), source, cwd);
     assertEquals(report.status, expected, JSON.stringify(report.reasons));
   });
@@ -145,11 +148,11 @@ function sizedFunction(lines: number, filler = '  value++;\n') {
   );
 }
 
-Deno.test('same selection, exact length boundary, and quality failures', async () => {
-  const cwd = await Deno.makeTempDir({prefix: 'clean-code-test-'});
+test('same selection, exact length boundary, and quality failures', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'clean-code-test-'));
   try {
     const directory = join(cwd, 'packages');
-    await Deno.mkdir(directory);
+    await mkdir(directory);
     const sources = {
       'twenty.ts': sizedFunction(20),
       'twenty-one.ts': sizedFunction(21),
@@ -165,7 +168,7 @@ Deno.test('same selection, exact length boundary, and quality failures', async (
         'export function run(n: number) { return n; } const schema = {};',
     };
     for (const [name, source] of Object.entries(sources)) {
-      await Deno.writeTextFile(join(directory, name), source);
+      await writeFile(join(directory, name), source);
     }
     const scope = await checkCleanCode(cwd, true);
     const checked = await checkCleanCode(cwd);
@@ -194,15 +197,15 @@ Deno.test('same selection, exact length boundary, and quality failures', async (
     }
     assert(!checked.selected.includes('packages/mixed.ts'));
   } finally {
-    await Deno.remove(cwd, {recursive: true});
+    await rm(cwd, {recursive: true});
   }
 });
 
-Deno.test('parse errors remain errors and never become exclusions', async () => {
-  const cwd = await Deno.makeTempDir({prefix: 'clean-code-error-'});
+test('parse errors remain errors and never become exclusions', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'clean-code-error-'));
   try {
-    await Deno.mkdir(join(cwd, 'plugins'));
-    await Deno.writeTextFile(
+    await mkdir(join(cwd, 'plugins'));
+    await writeFile(
       join(cwd, 'plugins', 'broken.ts'),
       "export function broken( { return 'SQL'; }",
     );
@@ -211,12 +214,12 @@ Deno.test('parse errors remain errors and never become exclusions', async () => 
     assertEquals(report.selected, []);
     assert(report.scope[0].reasons.length > 0);
   } finally {
-    await Deno.remove(cwd, {recursive: true});
+    await rm(cwd, {recursive: true});
   }
 });
 
-Deno.test('discovery applies fixed paths and excludes declaration files and symlinks', async () => {
-  const cwd = await Deno.makeTempDir({prefix: 'clean-code-paths-'});
+test('discovery applies fixed paths and excludes declaration files and symlinks', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'clean-code-paths-'));
   const good = 'export function run(value: number) { return value + 1; }';
   try {
     for (const directory of [
@@ -227,15 +230,12 @@ Deno.test('discovery applies fixed paths and excludes declaration files and syml
       'packages/node_modules',
       'tools',
     ]) {
-      await Deno.mkdir(join(cwd, directory), {recursive: true});
-      await Deno.writeTextFile(join(cwd, directory, 'sample.ts'), good);
+      await mkdir(join(cwd, directory), {recursive: true});
+      await writeFile(join(cwd, directory, 'sample.ts'), good);
     }
-    await Deno.writeTextFile(
-      join(cwd, 'plugins', 'ignored.d.ts'),
-      'invalid TS',
-    );
-    await Deno.writeTextFile(join(cwd, 'plugins', 'ignored.mdx'), 'invalid TS');
-    await Deno.symlink(
+    await writeFile(join(cwd, 'plugins', 'ignored.d.ts'), 'invalid TS');
+    await writeFile(join(cwd, 'plugins', 'ignored.mdx'), 'invalid TS');
+    await symlink(
       join(cwd, 'tools', 'sample.ts'),
       join(cwd, 'plugins', 'linked.ts'),
     );
@@ -247,15 +247,15 @@ Deno.test('discovery applies fixed paths and excludes declaration files and syml
     ]);
     assertEquals(report.scope.length, 3);
   } finally {
-    await Deno.remove(cwd, {recursive: true});
+    await rm(cwd, {recursive: true});
   }
 });
 
-Deno.test('excluded-only scope is explicitly not applicable, not a quality pass', async () => {
-  const cwd = await Deno.makeTempDir({prefix: 'clean-code-no-scope-'});
+test('excluded-only scope is explicitly not applicable, not a quality pass', async () => {
+  const cwd = await mkdtemp(join(tmpdir(), 'clean-code-no-scope-'));
   try {
-    await Deno.mkdir(join(cwd, 'plugins'));
-    await Deno.writeTextFile(
+    await mkdir(join(cwd, 'plugins'));
+    await writeFile(
       join(cwd, 'plugins', 'adapter.ts'),
       "export function message() { return 'ordinary text'; }",
     );
@@ -270,6 +270,6 @@ Deno.test('excluded-only scope is explicitly not applicable, not a quality pass'
     assertEquals(result.selected, []);
     assertEquals(result.diagnostics, []);
   } finally {
-    await Deno.remove(cwd, {recursive: true});
+    await rm(cwd, {recursive: true});
   }
 });

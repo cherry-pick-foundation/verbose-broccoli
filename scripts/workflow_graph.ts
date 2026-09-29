@@ -1,5 +1,6 @@
 import {z} from '@zod/zod';
 import {format, type ICruiseResult, type IDependency} from 'dependency-cruiser';
+import {realpath} from 'node:fs/promises';
 import {analyzeImportGraph} from './clean_architecture.ts';
 import {
   getFileAccessError,
@@ -17,7 +18,7 @@ export const graphCommands = [
   {
     choice: 'impact',
     when: 'Before changing an existing file or checking its consumers after an edit.',
-    command: 'deno task workflow --task <id> --graph impact --file <path>',
+    command: 'npm run workflow -- --task <id> --graph impact --file <path>',
     returns:
       'Direct imports, transitive dependents, test candidates, and repository import-policy violations.',
   },
@@ -25,14 +26,14 @@ export const graphCommands = [
     choice: 'symbol',
     when: 'Before changing or removing a symbol; select its identifier by 1-based line and UTF-16 column.',
     command:
-      'deno task workflow --task <id> --graph symbol --file <path> --line <n> --column <n>',
+      'npm run workflow -- --task <id> --graph symbol --file <path> --line <n> --column <n>',
     returns:
       'File impact plus local definitions, references, incoming calls, and outgoing calls in one report.',
   },
   {
     choice: 'policy',
     when: 'After imports, package boundaries, or file structure change, including deletions.',
-    command: 'deno task workflow --task <id> --graph policy',
+    command: 'npm run workflow -- --task <id> --graph policy',
     returns:
       'Repository-wide static import-policy checks; violations cause exit code 1.',
   },
@@ -101,7 +102,7 @@ async function impact(
 
 export async function inspectGraph(cwd: string, input: unknown) {
   const options = request.parse(input);
-  const root = await Deno.realPath(cwd);
+  const root = await realpath(cwd);
   if ('file' in options) {
     const error = await getFileAccessError(root, options.file, true);
     if (error) throw new Error(error);
@@ -163,10 +164,10 @@ export async function inspectGraph(cwd: string, input: unknown) {
     },
     limitations: [
       'Fresh static index of Git-versionable JS/TS files using the Biome file exclusions; symlinks, ignored untracked files, tools, vendor, and agent caches are outside scope.',
-      'RESOLVED_LOCAL means dependency-cruiser resolved a local file, not that Deno or runtime behavior has been verified. EXTERNAL packages are not indexed or verified; OUTSIDE_SCOPE local edges are not followed.',
+      'RESOLVED_LOCAL means dependency-cruiser resolved a local file, not that runtime behavior has been verified. EXTERNAL packages are not indexed or verified; OUTSIDE_SCOPE local edges are not followed.',
       'Computed imports, dynamic dispatch, runtime DI, reflection, and external types may hide relationships. An empty result does not prove there are no consumers.',
       'Test candidates use static import reachability and test/test-directory naming; this does not prove coverage and does not replace the full check suite.',
-      'Policy PASS covers static import rules only. Run deno task verify for actual Deno resolution, type checks, other policies, and tests. Rerun this graph command after edits; do not reuse it for a different snapshot.',
+      'Policy PASS covers static import rules only. Run npm run verify for actual Node resolution, type checks, other policies, and tests. Rerun this graph command after edits; do not reuse it for a different snapshot.',
     ],
   };
 }

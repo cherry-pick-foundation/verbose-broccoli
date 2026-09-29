@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "types": ["node"]
+  },
+  "files": [
+    "scripts/clean_architecture_test.ts",
+    "scripts/cli_contract_test.ts",
+    "scripts/commit_msg_test.ts",
+    "scripts/docs_test.ts",
+    "scripts/doctor_test.ts",
+    "scripts/git_flow_test.ts",
+    "scripts/plugin_skills_test.ts",
+    "scripts/ruff_test.ts",
+    "scripts/wiki_raw_import_test.ts",
+    "scripts/workflow_graph_test.ts",
+    "scripts/workflow_plan_test.ts",
+    "scripts/workflow_skills_test.ts",
+    "scripts/workflow_test.ts",
+    "scripts/workflow_verify_test.ts",
+    "scripts/worktree_branch_test.ts",
+    "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+    "scripts/validate_plugins.ts",
+    "scripts/clean_architecture.ts",
+    "scripts/workflow.ts",
+    "scripts/docs.ts",
+    "scripts/constitution_version.ts"
+  ]
+}

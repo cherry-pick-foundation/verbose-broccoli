@@ -1,0 +1,19 @@
+exports[`CLI clean-architecture: help and invalid arguments 1`] = `
+"\\nUsage: clean-architecture\\n\\nDescription:\\n\\n  Check import directions, cycles and public package boundaries from the workspace root.\\n\\nOptions:\\n\\n  -h, --help  - Show this help.  \\n\\n"
+`;
+
+exports[`CLI clean-code: help and invalid arguments 1`] = `
+"\\nUsage: clean-code\\n\\nDescription:\\n\\n  Check the mechanically selected Clean Code subset from the target workspace root.\\n\\nOptions:\\n\\n  -h, --help  - Show this help.                                   \\n  --scope     - Report the shared skill/checker file scope only.  \\n\\n"
+`;
+
+exports[`CLI doctor: help and invalid arguments 1`] = `
+"\\nUsage: doctor\\n\\nDescription:\\n\\n  Check runtime identities, versions and locked dependencies.\\n\\nOptions:\\n\\n  -h, --help          - Show this help.                                       \\n  --quarto    <path>  - Absolute path to Quarto.                              \\n  --report    <path>  - Create a new JSON report; requires write permission.  \\n\\n"
+`;
+
+exports[`CLI plugins:validate: help and invalid arguments 1`] = `
+"\\nUsage: plugins:validate [roots...]\\n\\nDescription:\\n\\n  Validate portable plugin and MCP manifests against the pinned schemas.\\n\\nOptions:\\n\\n  -h, --help  - Show this help.  \\n\\n"
+`;
+
+exports[`CLI workflow: help and invalid arguments 1`] = `
+"\\nUsage: workflow\\n\\nDescription:\\n\\n  Select work mode, inspect code graphs and verify the current Git snapshot.\\n\\nOptions:\\n\\n  -h, --help            - Show this help.                                                  \\n  --task      <id>      - Task identity for the evidence loop.       (Default: \\"workspace\\")\\n  --base      <ref>     - Baseline Git commit or reference.          (Default: \\"HEAD\\")     \\n  --plan      <path>    - JSON plan with exact files for each task.                        \\n  --verify              - Run all checks and retain evidence.        (Default: false)      \\n  --graph     <choice>  - Inspect impact, symbol or policy.                                \\n  --file      <path>    - Repository-relative graph target file.                           \\n  --line      <line>    - Positive 1-based symbol line.                                    \\n  --column    <column>  - Positive 1-based UTF-16 symbol column.                           \\n\\n"
+`;

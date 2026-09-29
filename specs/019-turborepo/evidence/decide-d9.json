@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "Which commands should replace 'deno task workflow', 'deno task verify' and 'deno task check' as the entry points agents and hooks run on the trial branch?",
+  "evidence": "AGENTS.md and the constitution name 'deno task workflow' and 'deno task verify'; they must not be edited in this trial, and the wording the trial needs goes to the develop session, which asks the user. scripts/workflow.ts prints execution instructions and, with --verify, runs 'deno task check' (scripts/workflow_verify.ts:122) and records evidence whose schema fixes the command to 'deno task check' (scripts/workflow-evidence.schema.json:38). The git flow finish hook (scripts/git-flow-hooks/pre-flow-feature-finish:80) runs 'deno task --quiet verify' and :75 'deno task --quiet commitlint'; the commit-msg hook runs 'deno task --quiet commitlint'. Turborepo runs tasks through the package manager's root package.json scripts ('//#name' root tasks) and passes arguments after '--'; workflow takes per-call arguments such as --task, --base and --plan, and must not be cached. npm scripts run with 'npm run <name> -- <args>'.",
+  "candidates": [
+   {
+    "id": "npm_scripts",
+    "description": "Root package.json scripts: 'workflow' runs scripts/workflow.ts on Node, 'verify' runs workflow with --verify, 'check' runs 'turbo run check'; hooks call 'npm run --silent verify' and the commitlint script; the report proposes AGENTS.md and constitution wording with 'npm run workflow' and 'npm run verify'."
+   },
+   {
+    "id": "turbo_tasks",
+    "description": "Make workflow and verify Turborepo tasks too ('turbo run workflow -- ...' with cache:false) and use turbo for every entry point."
+   },
+   {
+    "id": "keep_deno_aliases",
+    "description": "Keep deno.json with thin 'workflow', 'verify' and 'check' aliases that call the Node and Turborepo commands, so AGENTS.md and the constitution stay literally true during the trial."
+   }
+  ],
+  "requirements": [
+   "Removes Deno from the entry points.",
+   "Needs no edit to AGENTS.md or the constitution before the user decides."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "npm_scripts",
+   "escaped": false,
+   "confidence": 0.64,
+   "probabilities": {
+    "npm_scripts": 0.7,
+    "turbo_tasks": 0.16,
+    "keep_deno_aliases": 0.06,
+    "ask_user": 0.04,
+    "investigate": 0.03,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "npm_scripts",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "npm_scripts",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "turbo_tasks",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "turbo_tasks",
+    "requirement": 1,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "keep_deno_aliases",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "keep_deno_aliases",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2461,
+   "output_tokens": 5777
+  }
+ }
+}

@@ -1,0 +1,67 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "Which Conventional Commits type should the constitution amendment for CHE-32 use, given that the type decides the version bump (breaking: major and needs the user's approval; feat: minor; docs or fix: patch)?",
+  "evidence": "The amendment, applying the wording the user asked for on 2026-09-29: (1) Development Workflow: 'Follow the existing `deno task workflow` execution instructions' becomes '`npm run workflow`'; (2) the feature-finish rule '... and the feature passes `deno task verify`' becomes '`npm run verify`'; (3) principle IX's example 'A package joins a toolchain workspace, such as Deno's, ...' becomes '... such as the uv workspace, ...' and 'no Deno/MCP declarations or scripts' becomes 'no MCP declaration or scripts'; (4) a Governance sentence records the user's 2026-09-29 decision to replace Deno with Node.js and Turborepo and to make the Python packages one uv workspace. The required checks, the review and the verification gate stay the same; only the commands that run them and a stale example change. With Deno removed from the repository, the old commands no longer work. The constitution's Governance: each commit that changes it raises the version exactly once by its type; a breaking change needs the user's approval; the repository's commit-msg hook enforces the rule. Earlier amendments: 'feat(constitution): admit ChatGPT exports into the work vault too' (2.0.0 to 2.1.0, a changed rule) and 'feat(constitution)!: keep the Wiki in four vaults under vaults/' (a redefined layout).",
+  "candidates": [
+   {
+    "id": "docs_patch",
+    "description": "docs(constitution): a wording change that names the new commands; version 2.1.0 to 2.1.1."
+   },
+   {
+    "id": "feat_minor",
+    "description": "feat(constitution): the workflow and verification rules now name the npm commands, a changed rule that stays compatible; version 2.1.0 to 2.2.0."
+   },
+   {
+    "id": "breaking_major",
+    "description": "feat(constitution)!: the old commands stop working, so the change is incompatible; version 3.0.0, which needs the user's approval before the commit."
+   }
+  ],
+  "requirements": [
+   "Matches how earlier amendments of the same kind were typed."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "feat_minor",
+   "escaped": false,
+   "confidence": 0.5800000000000001,
+   "probabilities": {
+    "docs_patch": 0.25,
+    "feat_minor": 0.65,
+    "breaking_major": 0.05,
+    "ask_user": 0.03,
+    "investigate": 0.02,
+    "none": 0
+   }
+  },
+  "requirements_checked": 1,
+  "checks": [
+   {
+    "candidate": "docs_patch",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "feat_minor",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "breaking_major",
+    "requirement": 0,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 1914,
+   "output_tokens": 5305
+  }
+ }
+}

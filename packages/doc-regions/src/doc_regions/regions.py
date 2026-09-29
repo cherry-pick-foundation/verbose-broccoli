@@ -188,7 +188,7 @@ def cog(
     document,
     generator_path,
     update,
-    fix_command="deno task doc-regions:update",
+    fix_command="npm run doc-regions:update",
 ):
     """Run Cog over a document in check or update mode."""
     options = (
@@ -257,7 +257,7 @@ def process(
     generator_path,
     updating=False,
     *,
-    fix_command="deno task doc-regions:update",
+    fix_command="npm run doc-regions:update",
 ):
     """Check or update configured Cog regions and local links."""
     root = Path(root).resolve()
@@ -352,7 +352,7 @@ def check(
     generators,
     generator_path,
     *,
-    fix_command="deno task doc-regions:update",
+    fix_command="npm run doc-regions:update",
 ):
     """Check configured Cog regions and local links."""
     return process(

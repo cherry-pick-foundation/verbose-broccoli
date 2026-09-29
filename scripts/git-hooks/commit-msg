@@ -11,13 +11,10 @@ else
 fi
 if [ "${amend}" = 1 ]; then export CONSTITUTION_VERSION_AMEND=1; else unset CONSTITUTION_VERSION_AMEND; fi
 
-if [ -x "${HOME}/.deno/bin/deno" ]; then
-  deno="${HOME}/.deno/bin/deno"
-elif command -v deno >/dev/null 2>&1; then
-  deno=$(command -v deno)
-else
-  printf '%s\n' 'Commit refused: Deno 2.9.6 was not found.' >&2
+if ! command -v node >/dev/null 2>&1; then
+  printf '%s\n' 'Commit refused: Node.js 24.12.0 or later was not found.' >&2
   exit 1
 fi
 
-exec "${deno}" task --quiet commitlint --edit "$1"
+export NODE_OPTIONS="${NODE_OPTIONS:+${NODE_OPTIONS} }--disable-warning=SecurityWarning"
+exec npm run --silent commitlint -- --edit "$1"

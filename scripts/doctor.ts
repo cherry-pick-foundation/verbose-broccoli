@@ -1,3 +1,5 @@
+import {execFile} from 'node:child_process';
+import {readFile, realpath, stat, writeFile} from 'node:fs/promises';
 import {
   createCommand,
   createReport,
@@ -15,12 +17,10 @@ import {
 import {sha256} from './hash.ts';
 
 const defaults = {
-  deno: Deno.execPath(),
   quarto: '/usr/local/bin/quarto',
   lychee: 'lychee',
 };
 const versions = {
-  deno: '2.9.6',
   quarto: '1.10.18',
   uv: '0.11.32',
   'git-flow': '2.1.0',
@@ -29,10 +29,16 @@ const versions = {
 type Tool = keyof typeof versions;
 interface NpmLock {
   lockfileVersion?: number;
-  packages?: Record<string, {version?: string}>;
+  packages?: Record<
+    string,
+    {
+      version?: string;
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }
+  >;
 }
 interface Options {
-  deno?: string;
   quarto?: string;
   uv?: string;
   gitFlow?: string;
@@ -50,27 +56,69 @@ function rejectReadme(path: string) {
 async function executable(selected: string, tool: Tool) {
   rejectReadme(selected);
   if (!isAbsolute(selected)) throw new Error(`${tool} path must be absolute`);
-  const canonical = await Deno.realPath(selected);
+  const canonical = await realpath(selected);
   rejectReadme(canonical);
   for (const path of [selected, canonical]) {
     if (/(^|[\\/])\.venv([\\/]|$)/i.test(path))
       throw new Error(`${tool} must be outside .venv`);
-    if (tool === 'deno' && /(^|[\\/])quarto(?:-[^\\/]+)?([\\/]|$)/i.test(path))
-      throw new Error('Deno must be standalone, outside Quarto');
   }
-  const info = await Deno.stat(canonical);
-  if (!info.isFile || (info.mode !== null && (info.mode & 0o111) === 0))
+  const info = await stat(canonical);
+  if (!info.isFile() || (info.mode & 0o111) === 0)
     throw new Error(`${tool} must be an executable regular file`);
   return {selected, canonical};
 }
 
+function command(
+  file: string,
+  args: string[],
+  options: {
+    cwd?: string;
+    signal?: AbortSignal;
+    stdout?: 'piped' | 'null';
+    stderr?: 'piped' | 'null';
+  } = {},
+) {
+  return new Promise<{
+    success: boolean;
+    code: number;
+    stdout: Buffer;
+    stderr: Buffer;
+  }>((resolve, reject) => {
+    execFile(
+      file,
+      args,
+      {
+        cwd: options.cwd,
+        signal: options.signal,
+        encoding: 'buffer',
+        maxBuffer: Infinity,
+      },
+      (error, stdout, stderr) => {
+        if (error && !Number.isInteger(error.code)) {
+          reject(error);
+          return;
+        }
+        resolve({
+          success: !error,
+          code: error ? (error.code as number) : 0,
+          stdout: options.stdout === 'null' ? Buffer.alloc(0) : stdout,
+          stderr: options.stderr === 'null' ? Buffer.alloc(0) : stderr,
+        });
+      },
+    );
+  });
+}
+
 export async function probeVersion(path: string, tool: Tool) {
-  const result = await new Deno.Command(path, {
-    args: [tool === 'git-flow' ? 'version' : '--version'],
-    signal: AbortSignal.timeout(5000),
-    stdout: 'piped',
-    stderr: 'null',
-  }).output();
+  const result = await command(
+    path,
+    [tool === 'git-flow' ? 'version' : '--version'],
+    {
+      signal: AbortSignal.timeout(5000),
+      stdout: 'piped',
+      stderr: 'null',
+    },
+  );
   if (!result.success || result.stdout.length > 4096)
     throw new Error(`${tool} version probe failed`);
   const output = new TextDecoder().decode(result.stdout).trim();
@@ -90,13 +138,16 @@ async function checkUvEnvironment(
   project: string,
   repair = `uv sync --locked --project ${project}`,
 ) {
-  const result = await new Deno.Command(uv, {
-    args: ['sync', '--locked', '--check', '--project', project],
-    cwd: fromFileUrl(new URL('../', import.meta.url)),
-    signal: AbortSignal.timeout(30_000),
-    stdout: 'null',
-    stderr: 'null',
-  }).output();
+  const result = await command(
+    uv,
+    ['sync', '--locked', '--check', '--project', project],
+    {
+      cwd: fromFileUrl(new URL('../', import.meta.url)),
+      signal: AbortSignal.timeout(30_000),
+      stdout: 'null',
+      stderr: 'null',
+    },
+  );
   if (!result.success)
     throw new Error(
       `${project} environment is missing or out of sync with uv.lock; run ${repair}.`,
@@ -108,19 +159,41 @@ async function checkUvEnvironment(
   };
 }
 
+async function checkUvWorkspace(uv: string) {
+  const result = await command(
+    uv,
+    ['sync', '--locked', '--check', '--all-packages', '--extra', 'education'],
+    {
+      cwd: fromFileUrl(new URL('../', import.meta.url)),
+      signal: AbortSignal.timeout(30_000),
+      stdout: 'null',
+      stderr: 'null',
+    },
+  );
+  if (!result.success)
+    throw new Error(
+      'Python workspace is missing or out of sync with uv.lock; run uv sync --locked --all-packages --extra education.',
+    );
+  return {project: '.', python: '.venv/bin/python', sync: 'PASS' as const};
+}
+
 async function probeNodeVersion(path: string) {
-  let result: Deno.CommandOutput;
+  let result: Awaited<ReturnType<typeof command>>;
   try {
-    result = await new Deno.Command(path, {
-      args: ['--version'],
+    result = await command(path, ['--version'], {
       signal: AbortSignal.timeout(5000),
       stdout: 'piped',
       stderr: 'null',
-    }).output();
+    });
   } catch (error) {
-    if (error instanceof Deno.errors.NotFound)
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'ENOENT'
+    )
       throw new Error(
-        'Node.js 22 or later is required, but node was not found.',
+        'Node.js 24.12.0 or later is required, but node was not found.',
       );
     throw error;
   }
@@ -129,27 +202,33 @@ async function probeNodeVersion(path: string) {
   const output = new TextDecoder().decode(result.stdout).trim();
   const version = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(output);
   if (!version) throw new Error('node version probe failed');
-  if (Number(version[1]) < 22)
-    throw new Error(`Node.js 22 or later is required (found ${output}).`);
+  const major = Number(version[1]);
+  const minor = Number(version[2]);
+  if (major < 24 || (major === 24 && minor < 12))
+    throw new Error(`Node.js 24.12.0 or later is required (found ${output}).`);
   return output.replace(/^v/, '');
 }
 
-export async function checkNpmEnvironment(npm: string, project: string) {
+export async function checkNpmEnvironment(
+  npm: string,
+  project: string,
+  repair = 'npm ci',
+) {
   const root = fromFileUrl(new URL('../', import.meta.url));
-  const result = await new Deno.Command(npm, {
-    args: ['ls', '--all', '--prefix', project],
+  const result = await command(npm, ['ls', '--all', '--prefix', project], {
     cwd: root,
     signal: AbortSignal.timeout(30_000),
     stdout: 'null',
     stderr: 'null',
-  }).output();
-  const message = `${project} node_modules is missing or out of sync with package-lock.json; run deno task wiki-consistency:install.`;
+  });
+  const message = `${project} node_modules is missing or out of sync with package-lock.json; run ${repair}.`;
   if (!result.success) throw new Error(message);
   try {
     const [lockText, installedText] = await Promise.all([
-      Deno.readTextFile(resolve(root, project, 'package-lock.json')),
-      Deno.readTextFile(
+      readFile(resolve(root, project, 'package-lock.json'), 'utf8'),
+      readFile(
         resolve(root, project, 'node_modules', '.package-lock.json'),
+        'utf8',
       ),
     ]);
     const lock = JSON.parse(lockText) as NpmLock;
@@ -176,13 +255,12 @@ export async function checkNpmEnvironment(npm: string, project: string) {
 }
 
 async function checkGitFlowConfig(gitFlow: string) {
-  const result = await new Deno.Command(gitFlow, {
-    args: ['config', 'status'],
+  const result = await command(gitFlow, ['config', 'status'], {
     cwd: fromFileUrl(new URL('../', import.meta.url)),
     signal: AbortSignal.timeout(5000),
     stdout: 'null',
     stderr: 'null',
-  }).output();
+  });
   if (!result.success)
     throw new Error(
       result.code === 6
@@ -193,13 +271,12 @@ async function checkGitFlowConfig(gitFlow: string) {
 }
 
 async function checkGitHooksPath(git: string) {
-  const result = await new Deno.Command(git, {
-    args: ['config', '--get', 'core.hooksPath'],
+  const result = await command(git, ['config', '--get', 'core.hooksPath'], {
     cwd: fromFileUrl(new URL('../', import.meta.url)),
     signal: AbortSignal.timeout(5000),
     stdout: 'piped',
     stderr: 'null',
-  }).output();
+  });
   const value = result.success
     ? new TextDecoder().decode(result.stdout).replace(/\r?\n$/, '')
     : undefined;
@@ -210,40 +287,59 @@ async function checkGitHooksPath(git: string) {
   return value;
 }
 
-async function dependencies() {
-  const path = fromFileUrl(new URL('../deno.lock', import.meta.url));
-  const bytes = await Deno.readFile(path);
-  const lock = JSON.parse(new TextDecoder().decode(bytes)) as {
-    workspace: {dependencies: string[]};
-    specifiers: Record<string, string>;
+export function lockedDependencies(packages: NonNullable<NpmLock['packages']>) {
+  const direct = {
+    ...(packages['']?.dependencies ?? {}),
+    ...(packages['']?.devDependencies ?? {}),
   };
-  const selected = Object.fromEntries(
-    lock.workspace.dependencies.map(specifier => {
-      const resolved = lock.specifiers[specifier];
-      if (!resolved) throw new Error(`Missing locked dependency: ${specifier}`);
-      return [specifier, resolved.split('_')[0]];
+  return Object.fromEntries(
+    Object.keys(direct).map(name => {
+      const version = packages[`node_modules/${name}`]?.version;
+      if (!version) throw new Error(`Missing locked dependency: ${name}`);
+      return [name, version];
     }),
   );
+}
+
+async function dependencies() {
+  const path = fromFileUrl(new URL('../package-lock.json', import.meta.url));
+  const bytes = await readFile(path);
+  const lock = JSON.parse(new TextDecoder().decode(bytes)) as NpmLock;
+  const selected = lockedDependencies(lock.packages ?? {});
   return {path, sha256: await sha256(bytes), dependencies: selected};
+}
+
+export async function probeTurboVersion(path: string, expected: string) {
+  let result: Awaited<ReturnType<typeof command>>;
+  try {
+    result = await command(path, ['--version'], {
+      signal: AbortSignal.timeout(5000),
+      stdout: 'piped',
+      stderr: 'null',
+    });
+  } catch {
+    throw new Error('turbo version probe failed; run npm ci.');
+  }
+  if (!result.success || result.stdout.length > 4096)
+    throw new Error('turbo version probe failed; run npm ci.');
+  const output = new TextDecoder().decode(result.stdout).trim();
+  if (output !== expected)
+    throw new Error(`turbo must report version ${expected}; run npm ci.`);
+  return output;
 }
 
 async function writeReport(path: string, contents: string) {
   rejectReadme(path);
   const absolute = resolve(path);
-  const parent = await Deno.realPath(dirname(absolute));
+  const parent = await realpath(dirname(absolute));
   rejectReadme(parent);
-  await Deno.writeTextFile(join(parent, basename(absolute)), contents, {
-    createNew: true,
+  await writeFile(join(parent, basename(absolute)), contents, {
+    flag: 'wx',
     mode: 0o600,
   });
 }
 
 export async function runDoctor(options: Options = {}) {
-  const deno = await executable(options.deno ?? defaults.deno, 'deno');
-  if (deno.canonical !== (await Deno.realPath(Deno.execPath())))
-    throw new Error('Configured Deno differs from the executing Deno');
-  if (Deno.version.deno !== versions.deno)
-    throw new Error(`Executing Deno must be ${versions.deno}`);
   const quarto = await executable(options.quarto ?? defaults.quarto, 'quarto');
   const uv = options.uv
     ? await executable(options.uv, 'uv')
@@ -258,7 +354,6 @@ export async function runDoctor(options: Options = {}) {
   };
   const npm = options.npm ?? 'npm';
   const [
-    denoVersion,
     quartoVersion,
     uvVersion,
     gitFlowVersion,
@@ -266,7 +361,6 @@ export async function runDoctor(options: Options = {}) {
     nodeVersion,
     lock,
   ] = await Promise.all([
-    probeVersion(deno.canonical, 'deno'),
     probeVersion(quarto.canonical, 'quarto'),
     probeVersion(uv.canonical, 'uv'),
     probeVersion(gitFlow.canonical, 'git-flow'),
@@ -274,37 +368,44 @@ export async function runDoctor(options: Options = {}) {
     probeNodeVersion(node.canonical),
     dependencies(),
   ]);
+  const root = fromFileUrl(new URL('../', import.meta.url));
+  const turboVersion = await probeTurboVersion(
+    join(root, 'node_modules/.bin/turbo'),
+    lock.dependencies.turbo,
+  );
   const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
   const shellCheck = await checkUvEnvironment(uv.canonical, 'tools/shellcheck');
   const ruff = await checkUvEnvironment(uv.canonical, 'tools/ruff');
-  const docRegions = await checkUvEnvironment(
-    uv.canonical,
-    'packages/doc-regions',
-  );
-  const wikiConsistency = {
-    ...(await checkUvEnvironment(
-      uv.canonical,
+  const [uvWorkspace, rootNpm, wikiConsistency] = await Promise.all([
+    checkUvWorkspace(uv.canonical),
+    checkNpmEnvironment(npm, '.'),
+    checkNpmEnvironment(
+      npm,
       'packages/wiki-consistency',
-      'deno task wiki-consistency:install',
-    )),
-    ...(await checkNpmEnvironment(npm, 'packages/wiki-consistency')),
-  };
+      'npm run wiki-consistency:install',
+    ),
+  ]);
   const gitFlowConfig = await checkGitFlowConfig(gitFlow.canonical);
   const gitHooksPath = await checkGitHooksPath(options.git ?? 'git');
   const report = {
     status: 'PASS' as const,
-    runtime: {version: Deno.version, build: Deno.build},
-    deno: {...deno, version: denoVersion},
+    runtime: {
+      version: process.version,
+      platform: process.platform,
+      arch: process.arch,
+    },
     quarto: {...quarto, version: quartoVersion},
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
     lychee: {...lychee, version: lycheeVersion},
+    turbo: {path: 'node_modules/.bin/turbo', version: turboVersion},
     node: {...node, version: nodeVersion},
     gitHooksPath,
     specKit,
     shellCheck,
     ruff,
-    docRegions,
+    uvWorkspace,
+    rootNpm,
     wikiConsistency,
     lock,
   };
@@ -319,27 +420,22 @@ if (import.meta.main) {
       'doctor',
       'Check runtime identities, versions and locked dependencies.',
     )
-      .option('--deno <path:string>', 'Absolute path to standalone Deno.')
       .option('--quarto <path:string>', 'Absolute path to Quarto.')
       .option(
         '--report <path:string>',
         'Create a new JSON report; requires write permission.',
       )
       .action(async options => {
-        if (
-          [options.deno, options.quarto, options.report].some(
-            value => value === '',
-          )
-        )
+        if ([options.quarto, options.report].some(value => value === ''))
           throw new ValidationError('Option values must not be empty.');
         if (
-          [options.deno, options.quarto].some(
+          [options.quarto].some(
             value => value !== undefined && !isAbsolute(value),
           )
         )
           throw new ValidationError('Executable paths must be absolute.');
         createReport(await runDoctor(options));
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

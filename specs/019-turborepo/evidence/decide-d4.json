@@ -1,0 +1,57 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "What should happen to the scoped Deno permission flags (--allow-read=<paths>, --allow-write, --allow-env=<names>, --allow-run=<programs>, --allow-sys) that 23 deno.json tasks pass today, when those tasks run on Node.js 24.19?",
+  "evidence": "23 deno.json tasks pass scoped permission flags, for example docs:check with --allow-read limited to named files and --allow-run=deno, and test:git-flow with --allow-env=HOME,DENO_DIR and --allow-run=git. Node 24.19's permission model is stable: 'node --permission' denies file-system, child-process, worker and native-addon access unless allowed; --allow-fs-read and --allow-fs-write take paths; --allow-child-process allows all child processes with no program list; there is no environment-variable permission. Many tasks spawn git, uv, node or npm, so they need --allow-child-process, and a child process runs without the parent's restrictions. The permission flags are not a check that fails the build; they limit what a task can touch. Dropping them changes a safety property the user set up.",
+  "candidates": [
+   {
+    "id": "node_permission",
+    "description": "Translate each task's flags to Node's model: --permission with --allow-fs-read/--allow-fs-write paths, and --allow-child-process where the task spawns programs; record which Deno scopes (env names, program lists) have no Node equivalent."
+   },
+   {
+    "id": "no_permissions",
+    "description": "Run tasks on Node without the permission model."
+   }
+  ],
+  "requirements": [
+   "Keeps a file-system restriction for tasks that had one."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "node_permission",
+   "escaped": false,
+   "confidence": 0.8124999999999999,
+   "probabilities": {
+    "node_permission": 0.85,
+    "no_permissions": 0.01,
+    "ask_user": 0.09,
+    "investigate": 0.04,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 1,
+  "checks": [
+   {
+    "candidate": "node_permission",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "no_permissions",
+    "requirement": 0,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 1546,
+   "output_tokens": 2627
+  }
+ }
+}

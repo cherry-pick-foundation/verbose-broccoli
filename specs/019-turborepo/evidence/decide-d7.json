@@ -1,0 +1,83 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "Where should a built backfire plugin (deno task backfire:build today) get its own lock file once packages/backfire/uv.lock is replaced by the root workspace uv.lock?",
+  "evidence": "packages/backfire/src/backfire_tools/build.py:107 copies pyproject.toml, .python-version and uv.lock from packages/backfire into the built copy. The copy is installed with 'uv sync --frozen --no-dev' (docs/backfire.md:31, with --extra education for the work build) and started with 'uv --directory ${PLUGIN_ROOT}/backfire run --frozen --offline --no-sync backfire serve-mcp' (docs/backfire.md:41, plugins/code/mcp.json, plugins/work/mcp.json). specs/008-doc-consistency/research.md:127-131 records why per-package locks exist: each built plugin is self-contained. The root uv.lock also contains doc-regions and wiki-consistency, so copying it does not give a standalone project lock. Probes on 2026-09-29: 'uv export --package backfire --frozen --no-dev --extra education --format pylock.toml --no-emit-workspace' writes a 38-package pylock.toml; installing from it needs 'uv venv' plus 'uv pip sync pylock.toml' plus installing the project, which changes the documented install command. Writing the exported pins (uv export ... --no-hashes) as [tool.uv] constraint-dependencies into the copy and running 'uv lock --offline' there produced a standalone uv.lock with exactly the same 45 package versions as today's packages/backfire/uv.lock, so the documented install and start commands stay the same.",
+  "candidates": [
+   {
+    "id": "lock_in_copy",
+    "description": "build.py exports backfire's pinned versions from the root lock and runs 'uv lock --offline' in the built copy with those pins as constraints, so the copy has its own uv.lock and keeps the documented install and start commands."
+   },
+   {
+    "id": "pylock_install",
+    "description": "build.py writes 'uv export --format pylock.toml' into the copy, and the documented install changes to 'uv venv', 'uv pip sync pylock.toml' and a project install."
+   },
+   {
+    "id": "keep_second_lock",
+    "description": "Keep a separately maintained packages/backfire/uv.lock next to the root uv.lock and copy it as today."
+   }
+  ],
+  "requirements": [
+   "Keeps the built plugin's documented install and start commands unchanged.",
+   "Keeps one source of pinned versions in the repository."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "lock_in_copy",
+   "escaped": false,
+   "confidence": 0.856,
+   "probabilities": {
+    "lock_in_copy": 0.88,
+    "pylock_install": 0.04,
+    "keep_second_lock": 0.04,
+    "ask_user": 0.01,
+    "investigate": 0.02,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "lock_in_copy",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "lock_in_copy",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "pylock_install",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "pylock_install",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "keep_second_lock",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "keep_second_lock",
+    "requirement": 1,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2513,
+   "output_tokens": 2061
+  }
+ }
+}

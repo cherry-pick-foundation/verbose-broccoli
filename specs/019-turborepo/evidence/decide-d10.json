@@ -1,0 +1,68 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the work plugin build give its copied doc-regions and wiki-consistency projects their lock files and wiki-consistency's dependency on doc-regions, once both are members of the repository's root uv workspace?",
+  "evidence": "packages/backfire/src/backfire_tools/build.py copies, for the work plugin only, the whole packages/doc-regions and packages/wiki-consistency directories (excluding .venv, node_modules, __pycache__, .pytest_cache, tests) to <plugin>/doc-regions and <plugin>/wiki-consistency, including each package's own uv.lock today; packages/backfire/tests/test_build.py:119 expects pyproject.toml, uv.lock and src in each copied project. plugins/work/skills/wiki-consistency/SKILL.md tells agents to install with 'uv sync --project ../../doc-regions --frozen --no-dev', 'uv sync --project ../../wiki-consistency --frozen --no-dev' and 'npm ci ... --prefix ../../wiki-consistency', and to run 'uv run --project ../../wiki-consistency --frozen --offline --no-sync wiki-consistency <command>'. Today wiki-consistency's pyproject declares doc-regions = { path = \"../doc-regions\", editable = true }. Inside a uv workspace, uv refuses that: 'doc-regions is included as a workspace member, but references a path in tool.uv.sources. Workspace members must be declared as workspace sources (e.g., doc-regions = { workspace = true })' (uv 0.11.32, probe 2026-09-29). Outside a workspace, as in the built copy, workspace = true has nothing to refer to. D7 already chose, for backfire's copy, to export pins from the root lock and run 'uv lock --offline' in the copy (probe: identical versions). With uv_build (D6), doc-regions no longer needs a .venv directory for wiki-consistency's build.",
+  "candidates": [
+   {
+    "id": "per_project_locks",
+    "description": "As in D7: build.py writes each copied project's standalone uv.lock with 'uv lock --offline' and pins exported from the root lock; in the copied wiki-consistency pyproject only, it replaces doc-regions = { workspace = true } with the path source ../doc-regions. SKILL.md's install and run commands stay unchanged."
+   },
+   {
+    "id": "plugin_workspace",
+    "description": "build.py writes a small workspace pyproject at the work plugin's root with members doc-regions and wiki-consistency (backfire excluded) and one lock generated from the root pins; SKILL.md's install becomes one 'uv sync --frozen --no-dev --all-packages' at the plugin root, and the run command keeps --project ../../wiki-consistency."
+   }
+  ],
+  "requirements": [
+   "Keeps the documented install and run commands of the shipped skills unchanged.",
+   "Adds no plugin-root configuration file beyond the Agent Plugins manifest files."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "per_project_locks",
+   "escaped": false,
+   "confidence": 0.8249999999999998,
+   "probabilities": {
+    "per_project_locks": 0.86,
+    "plugin_workspace": 0.04,
+    "ask_user": 0.02,
+    "investigate": 0.05,
+    "none": 0.03
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "per_project_locks",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "per_project_locks",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "plugin_workspace",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "plugin_workspace",
+    "requirement": 1,
+    "answer": "contradicted"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2272,
+   "output_tokens": 1832
+  }
+ }
+}

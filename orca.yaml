@@ -6,15 +6,6 @@ scripts:
     cd "$project_root"
     sh scripts/worktree-branch.sh
 
-    if [ -x "$HOME/.deno/bin/deno" ]; then
-      deno_bin="$HOME/.deno/bin/deno"
-    elif command -v deno >/dev/null 2>&1; then
-      deno_bin="$(command -v deno)"
-    else
-      echo 'Deno 2.9.6 was not found.' >&2
-      exit 127
-    fi
-
     if [ -x "$HOME/.local/bin/uv" ]; then
       uv_bin="$HOME/.local/bin/uv"
     elif command -v uv >/dev/null 2>&1; then
@@ -33,20 +24,17 @@ scripts:
       exit 127
     fi
 
-    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$(dirname "$deno_bin"):$PATH"
+    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$PATH"
 
-    "$deno_bin" install --frozen --no-prompt
-    "$deno_bin" install --frozen --cached-only --no-prompt
+    npm ci --ignore-scripts --no-audit --no-fund
+    "$uv_bin" sync --locked --all-packages --extra education
     "$uv_bin" sync --locked --project tools/spec-kit
     "$uv_bin" sync --locked --project tools/shellcheck
     "$uv_bin" sync --locked --project tools/ruff
-    "$uv_bin" sync --locked --project packages/doc-regions
-    "$uv_bin" sync --locked --project packages/backfire --extra education
-    "$uv_bin" sync --locked --project packages/wiki-consistency
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
     "$uv_bin" sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
     git config gitflow.shared.trustHooks true
     git config core.hooksPath scripts/git-hooks
     git flow config sync
-    "$deno_bin" task doctor
+    npm run doctor
 setupAgentStartupPolicy: wait-for-setup

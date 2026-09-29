@@ -1,3 +1,6 @@
+import {execFile} from 'node:child_process';
+import {mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
 import {join} from '@std/path';
 import {Ajv2020} from 'ajv/dist/2020.js';
 import canonicalize from 'canonicalize';
@@ -5,13 +8,24 @@ import {sha256} from './hash.ts';
 import {runGit, snapshotWorkingTree} from './workflow_git.ts';
 import schema from './workflow-evidence.schema.json' with {type: 'json'};
 
+const lockfile = createRequire(import.meta.url)('proper-lockfile') as {
+  lock(
+    path: string,
+    options?: {
+      retries?:
+        | number
+        | {retries: number; minTimeout: number; maxTimeout: number};
+    },
+  ): Promise<() => Promise<void>>;
+};
+
 type State = Awaited<ReturnType<typeof snapshotWorkingTree>>;
 interface Context {
   task_id: string;
   root: string;
   base: string;
   plan_hash: string;
-  deno_version: string;
+  node_version: string;
   command: string;
 }
 export interface EvidenceRecord {
@@ -44,8 +58,8 @@ function validate(value: unknown): EvidenceRecord {
 }
 
 async function load(path: string) {
-  const text = await Deno.readTextFile(path).catch(error => {
-    if (error instanceof Deno.errors.NotFound) return '';
+  const text = await readFile(path, 'utf8').catch(error => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
     throw error;
   });
   if (text && !text.endsWith('\n'))
@@ -53,7 +67,19 @@ async function load(path: string) {
   const records = text
     .split('\n')
     .filter(Boolean)
-    .map(line => validate(JSON.parse(line)));
+    .map(line => JSON.parse(line) as unknown)
+    .filter(value => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('context' in value) ||
+        typeof value.context !== 'object' ||
+        value.context === null
+      )
+        return true;
+      return !('deno_version' in value.context);
+    })
+    .map(validate);
   const started = new Map<string, EvidenceRecord>();
   for (const record of records) {
     if (record.event === 'STARTED') started.set(record.run_id, record);
@@ -82,8 +108,8 @@ async function load(path: string) {
 }
 
 async function append(path: string, record: EvidenceRecord) {
-  await Deno.writeTextFile(path, `${JSON.stringify(validate(record))}\n`, {
-    append: true,
+  await writeFile(path, `${JSON.stringify(validate(record))}\n`, {
+    flag: 'a',
     mode: 0o600,
   });
 }
@@ -119,13 +145,30 @@ async function verify(
   let log = '';
   let after = null;
   try {
-    const result = await new Deno.Command(Deno.execPath(), {
-      cwd: context.root,
-      args: ['task', 'check'],
-      stdin: 'null',
-      stdout: 'piped',
-      stderr: 'piped',
-    }).output();
+    const result = await new Promise<{
+      success: boolean;
+      code: number;
+      stdout: Buffer;
+      stderr: Buffer;
+    }>((resolve, reject) => {
+      execFile(
+        'npm',
+        ['run', 'check'],
+        {cwd: context.root, encoding: 'buffer', maxBuffer: Infinity},
+        (error, stdout, stderr) => {
+          if (error && !Number.isInteger(error.code)) {
+            reject(error);
+            return;
+          }
+          resolve({
+            success: !error,
+            code: error ? (error.code as number) : 0,
+            stdout,
+            stderr,
+          });
+        },
+      );
+    });
     exit_code = result.code;
     log = `${new TextDecoder().decode(result.stdout)}\n${new TextDecoder().decode(result.stderr)}`;
   } catch (error) {
@@ -136,7 +179,7 @@ async function verify(
   } catch (error) {
     log += `\n${String(error)}`;
   }
-  await Deno.writeTextFile(start.log_path, log, {mode: 0o600});
+  await writeFile(start.log_path, log, {mode: 0o600});
   const finish: EvidenceRecord = {
     ...start,
     event: 'FINISHED',
@@ -152,11 +195,11 @@ async function verify(
 export async function evaluateVerification(root: string, options: Options) {
   const context: Context = {
     task_id: options.taskId,
-    root: await Deno.realPath(root),
+    root: await realpath(root),
     base: options.base,
     plan_hash: await sha256(canonicalize(options.plan) ?? 'null'),
-    deno_version: Deno.version.deno,
-    command: 'deno task check',
+    node_version: process.version,
+    command: 'npm run check',
   };
   const directory = (
     await runGit(root, [
@@ -166,15 +209,14 @@ export async function evaluateVerification(root: string, options: Options) {
       'workflow',
     ])
   ).trim();
-  await Deno.mkdir(directory, {recursive: true, mode: 0o700});
+  await mkdir(directory, {recursive: true, mode: 0o700});
   const evidencePath = join(directory, 'evidence.jsonl');
-  using mutex = await Deno.open(join(directory, 'lock'), {
-    create: true,
-    write: true,
-    read: true,
-    mode: 0o600,
+  const lockPath = join(directory, 'lock');
+  const lockFile = await open(lockPath, 'a', 0o600);
+  await lockFile.close();
+  const release = await lockfile.lock(lockPath, {
+    retries: {retries: 600, minTimeout: 1000, maxTimeout: 1000},
   });
-  await mutex.lock(true);
   try {
     const records = await load(evidencePath);
     if (options.verify)
@@ -196,7 +238,7 @@ export async function evaluateVerification(root: string, options: Options) {
       canonicalize(latest.after) === canonicalize(state);
     const logValid =
       fresh &&
-      (await Deno.readFile(latest.log_path)
+      (await readFile(latest.log_path)
         .then(async data => (await sha256(data)) === latest.log_hash)
         .catch(() => false));
     const phase = !latest
@@ -222,7 +264,7 @@ export async function evaluateVerification(root: string, options: Options) {
           ];
     if (phase !== 'VERIFIED')
       instructions.push(
-        'After workers finish, run deno task verify with the same --task, --base and --plan arguments. Repeat diagnosis → repair → verification until current checks pass.',
+        'After workers finish, run npm run verify with the same --task, --base and --plan arguments. Repeat diagnosis → repair → verification until current checks pass.',
       );
     instructions.push(
       'Evidence is local execution history, not signed provenance or filesystem isolation.',
@@ -235,6 +277,6 @@ export async function evaluateVerification(root: string, options: Options) {
       instructions,
     };
   } finally {
-    await mutex.unlock();
+    await release();
   }
 }

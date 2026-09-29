@@ -13,21 +13,33 @@ A disciplined approach to writing code that communicates intent, minimizes surpr
 
 ## Mechanical Applicability
 
-From the target workspace root, run `deno task clean-code:scope` before using
+Requires Node.js 24.12.0 or later. The scripts use Node's built-in TypeScript
+type stripping, `import.meta.main`, and `fsPromises.glob`; type stripping is
+stable in v24.12.0, `import.meta.main` was added in v24.2.0, and `glob` became
+stable in v24.0.0. See the [TypeScript](https://nodejs.org/download/release/v24.19.0/docs/api/typescript.html),
+[ES modules](https://nodejs.org/download/release/v24.19.0/docs/api/esm.html),
+and [file system](https://nodejs.org/download/release/v24.19.0/docs/api/fs.html)
+documentation.
+
+From the target workspace root, run `npm run clean-code:scope` before using
 this skill. Its `selected` array is the complete shared scope for this skill
 and `clean_code.ts`. Scope errors stop the review. Never select files by their
 names, imported package roles, perceived simplicity, SQL meaning, or expected
 benefit from refactoring. Do not select individual functions from excluded
 files. An empty selection means this skill does not apply.
 
-For a separately installed plugin, run the same script from the target
-workspace root, using the installed skill's absolute paths:
+For a separately installed plugin, from the target workspace root install the
+skill's packages once, then run its scope command with the installed skill's
+absolute path:
 
 ```sh
-deno run --config <skill-root>/deno.json --lock <skill-root>/deno.lock --frozen --cached-only --no-prompt --allow-read --allow-env <skill-root>/scripts/clean_code.ts --scope
+npm ci --prefix <skill-root> --prefer-offline --ignore-scripts --no-audit --no-fund
+node <skill-root>/scripts/clean_code.ts --scope
 ```
 
-After changes, rerun the command without `--scope`. Report scope changes and
+In this repository, run `npm run clean-code:scope` before review and
+`npm run clean-code` after changes. For a separately installed plugin, rerun
+the Node command without `--scope` after changes. Report scope changes and
 check failures. A line-count, type, or unused-code violation never removes a
 file from the scope. Do not introduce excluded syntax merely to evade checks.
 The command owns the function-length limit; do not use upstream line-count

@@ -1,3 +1,6 @@
+import {spawnSync} from 'node:child_process';
+import {test} from 'node:test';
+import {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {assert, assertMatch} from '@std/assert';
 import {fromFileUrl, join} from '@std/path';
 
@@ -5,9 +8,10 @@ const root = fromFileUrl(new URL('../', import.meta.url));
 const project = join(root, 'tools/ruff');
 const config = join(root, 'ruff.toml');
 
-async function ruff(args: string[], cwd = root) {
-  return await new Deno.Command('uv', {
-    args: [
+function ruff(args: string[], cwd = root) {
+  const result = spawnSync(
+    'uv',
+    [
       'run',
       '--project',
       project,
@@ -17,27 +21,28 @@ async function ruff(args: string[], cwd = root) {
       'ruff',
       ...args,
     ],
-    cwd,
-    stdout: 'piped',
-    stderr: 'piped',
-  }).output();
+    {cwd, stdio: ['ignore', 'pipe', 'pipe']},
+  );
+  if (result.error) throw result.error;
+  return {
+    success: result.status === 0,
+    stdout: result.stdout ?? Buffer.alloc(0),
+    stderr: result.stderr ?? Buffer.alloc(0),
+  };
 }
 
-function output(result: Deno.CommandOutput) {
+function output(result: ReturnType<typeof ruff>) {
   return (
     new TextDecoder().decode(result.stdout) +
     new TextDecoder().decode(result.stderr)
   );
 }
 
-Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {
-  const temp = await Deno.makeTempDir({
-    dir: '/tmp',
-    prefix: 'ruff-test-',
-  });
+test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {
+  const temp = await mkdtemp('/tmp/ruff-test-');
   try {
     const publicFunction = join(temp, 'public_api.py');
-    await Deno.writeTextFile(
+    await writeFile(
       publicFunction,
       '"""Synthetic module."""\n\ndef public_api():\n    return None\n',
     );
@@ -52,7 +57,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assertMatch(output(missingDoc), /D103/);
 
     const dummyArguments = join(temp, 'dummy_arguments.py');
-    await Deno.writeTextFile(
+    await writeFile(
       dummyArguments,
       '"""Synthetic module."""\n\n' +
         'def _allows(unused_value):\n    return None\n\n' +
@@ -73,14 +78,8 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     const lineAtLimit = join(temp, 'line_at_limit.py');
     const lineOverLimit = join(temp, 'line_over_limit.py');
     const line = (length: number) => '# ' + 'x'.repeat(length - 2) + '\n';
-    await Deno.writeTextFile(
-      lineAtLimit,
-      '"""Synthetic module."""\n' + line(80),
-    );
-    await Deno.writeTextFile(
-      lineOverLimit,
-      '"""Synthetic module."""\n' + line(81),
-    );
+    await writeFile(lineAtLimit, '"""Synthetic module."""\n' + line(80));
+    await writeFile(lineOverLimit, '"""Synthetic module."""\n' + line(81));
     const boundaryPass = await ruff([
       'check',
       '--no-cache',
@@ -100,10 +99,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assertMatch(output(boundaryFail), /E501/);
 
     const testFunction = join(temp, 'test_example.py');
-    await Deno.writeTextFile(
-      testFunction,
-      'def test_example():\n    assert True\n',
-    );
+    await writeFile(testFunction, 'def test_example():\n    assert True\n');
     const testPass = await ruff([
       'check',
       '--no-cache',
@@ -114,7 +110,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assert(testPass.success, output(testPass));
 
     const unsortedImports = join(temp, 'unsorted_imports.py');
-    await Deno.writeTextFile(unsortedImports, 'import os\nimport json\n');
+    await writeFile(unsortedImports, 'import os\nimport json\n');
     const importOrderFail = await ruff([
       'check',
       '--no-cache',
@@ -126,7 +122,7 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assertMatch(output(importOrderFail), /I001/);
 
     const unformatted = join(temp, 'unformatted.py');
-    await Deno.writeTextFile(unformatted, 'value=[1,2]\n');
+    await writeFile(unformatted, 'value=[1,2]\n');
     const formatFail = await ruff([
       'format',
       '--check',
@@ -141,8 +137,8 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     const formatOverLimit = join(temp, 'format_over_limit.py');
     const call = (length: number) =>
       `result = function("${'x'.repeat(length - 21)}")\n`;
-    await Deno.writeTextFile(formatAtLimit, call(80));
-    await Deno.writeTextFile(formatOverLimit, call(81));
+    await writeFile(formatAtLimit, call(80));
+    await writeFile(formatOverLimit, call(81));
     const formatBoundaryPass = await ruff([
       'format',
       '--check',
@@ -167,21 +163,15 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     const vendorFile = join(vendor, 'synthetic.py');
     const specifyScript = join(temp, '.specify/scripts/synthetic.py');
     const repositoryFile = join(temp, 'synthetic.py');
-    await Deno.copyFile(config, isolatedConfig);
-    await Deno.mkdir(vendor, {recursive: true});
-    await Deno.mkdir(join(temp, '.specify/scripts'), {recursive: true});
-    await Deno.writeTextFile(
-      vendorFile,
-      'def vendor_api():\n    return None\n',
-    );
-    await Deno.writeTextFile(
+    await copyFile(config, isolatedConfig);
+    await mkdir(vendor, {recursive: true});
+    await mkdir(join(temp, '.specify/scripts'), {recursive: true});
+    await writeFile(vendorFile, 'def vendor_api():\n    return None\n');
+    await writeFile(
       specifyScript,
       'def repository_owned():\n    return None\n',
     );
-    await Deno.writeTextFile(
-      repositoryFile,
-      'def repository_api():\n    return None\n',
-    );
+    await writeFile(repositoryFile, 'def repository_api():\n    return None\n');
     const shownFiles = await ruff(
       ['check', '--show-files', '--no-cache', '--config', isolatedConfig, '.'],
       temp,
@@ -191,6 +181,6 @@ Deno.test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     assert(output(shownFiles).includes(specifyScript), output(shownFiles));
     assert(output(shownFiles).includes(repositoryFile), output(shownFiles));
   } finally {
-    await Deno.remove(temp, {recursive: true});
+    await rm(temp, {recursive: true});
   }
 });

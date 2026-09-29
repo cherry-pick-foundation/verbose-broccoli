@@ -1,0 +1,68 @@
+{
+ "tool": "backfire_decide",
+ "date": "2026-09-29",
+ "arguments": {
+  "decision": "How should the unchanged call sites that the @deno/shim-deno preload cannot serve as-is get working behavior: Deno.exitCode assignments and sinon-style stubs that replace Deno namespace functions in tests?",
+  "evidence": "Measured 2026-09-29 on Node 24.19 with @deno/shim-deno 0.19.2 and the two-line preload scripts/deno_shim.ts (globalThis.Deno = shim): Object.getOwnPropertyDescriptor(Deno, 'exitCode') is undefined, so 'Deno.exitCode = 1' only adds a plain property and the process still exits 0. plugins/code/skills/clean-code/scripts/cli.ts:44 sets 'Deno.exitCode = input ? 2 : 1' when a check fails; cli.ts is the shipped clean-code skill, which stays on Deno (D5) for users, but scripts/doctor.ts, docs.ts, workflow.ts, validate_plugins.ts and clean_architecture.ts import it and run on Node, so on Node a failing doctor or docs check would exit 0. The shim's namespace properties are getters that are not configurable (readFile descriptor: {get, configurable: false}), so '@std/testing/mock' stub(Deno, 'readFile', ...) and stub(Deno, 'rename', ...) in scripts/docs_test.ts:337, 415, 443, 478, 506 cannot replace them; the code under test (scripts/docs.ts) calls Deno.readFile and Deno.rename through the global at call time. A preload that assigns a plain copy, globalThis.Deno = {...shim}, makes the functions writable, and one Object.defineProperty for exitCode forwarding to process.exitCode makes the assignment take effect; that is about two more lines of glue in the preload. The alternative rewrites the sites: cli.ts:44 to process.exitCode (Deno 2 also provides the process global, but this changes the shipped skill) and the five test stubs to stub another object.",
+  "candidates": [
+   {
+    "id": "preload_glue",
+    "description": "Keep the sites unchanged; the preload assigns a plain mutable copy of the shim and forwards exitCode to process.exitCode (about two more lines in scripts/deno_shim.ts)."
+   },
+   {
+    "id": "rewrite_sites",
+    "description": "Re-classify cli.ts:44 and the five stub sites as must-change and rewrite them: process.exitCode in the shipped skill's cli.ts, and stubs of another object in docs_test.ts."
+   }
+  ],
+  "requirements": [
+   "Leaves the shipped clean-code skill's code unchanged.",
+   "A failing check run on Node exits with a non-zero status."
+  ],
+  "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, a trial whose result is a report; nothing is merged):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+ },
+ "result": {
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+   "selected": "preload_glue",
+   "escaped": false,
+   "confidence": 0.8749999999999999,
+   "probabilities": {
+    "preload_glue": 0.9,
+    "rewrite_sites": 0.07,
+    "ask_user": 0.01,
+    "investigate": 0.01,
+    "none": 0.01
+   }
+  },
+  "requirements_checked": 2,
+  "checks": [
+   {
+    "candidate": "preload_glue",
+    "requirement": 0,
+    "answer": "supported"
+   },
+   {
+    "candidate": "preload_glue",
+    "requirement": 1,
+    "answer": "supported"
+   },
+   {
+    "candidate": "rewrite_sites",
+    "requirement": 0,
+    "answer": "contradicted"
+   },
+   {
+    "candidate": "rewrite_sites",
+    "requirement": 1,
+    "answer": "supported"
+   }
+  ],
+  "warnings": [],
+  "usage": {
+   "input_tokens": 2119,
+   "output_tokens": 1424
+  }
+ }
+}

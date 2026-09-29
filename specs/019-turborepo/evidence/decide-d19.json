@@ -1,0 +1,83 @@
+{
+  "tool": "backfire_decide",
+  "date": "2026-09-29",
+  "arguments": {
+    "decision": "Which Node.js version should the runtime doctor (scripts/doctor.ts), its Turborepo description and the commit-msg hook's message require, now that Node.js replaced Deno as the repository's TypeScript runtime?",
+    "evidence": "On develop the doctor pinned exact versions for every tool it checks: Deno 2.9.6 (the runtime of every TypeScript script), Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0, lychee 0.24.2; Node.js was checked only as 'Node.js 22 or later' because it ran only wiki-consistency's npm packages. On the branch Node.js runs every script and test: the scripts use RegExp.escape (added in Node.js 24) and TypeScript type stripping (stable in 24.12.0), and the shipped clean-code skill's SKILL.md and package.json engines require Node.js 24.12.0 or later. The GitHub workflows download and checksum Node.js 24.19.0; the user's installed Node.js is 24.19.0, and the feature must not change the user's global tools. The doctor still accepts 22, so it reports PASS on a Node.js where the checks crash. The doctor test on develop asserted the exact Deno version; the branch test asserts only version >= 22. The doctor names a repair for each failure.",
+    "candidates": [
+      {
+        "id": "pin_exact_24_19",
+        "description": "The doctor requires exactly Node.js 24.19.0, as it pinned Deno 2.9.6, and its test asserts that version; the description and hook message say Node.js 24.19.0. A Node.js update then needs a one-line change in the doctor, as a Deno update did."
+      },
+      {
+        "id": "floor_24_12",
+        "description": "The doctor requires Node.js 24.12.0 or later, the floor the shipped skill states, and its test asserts a version below 24.12 fails; the description and hook message say Node.js 24.12 or later."
+      },
+      {
+        "id": "keep_22_record",
+        "description": "Keep 'Node.js 22 or later' and record in the report that the scripts need 24."
+      }
+    ],
+    "requirements": [
+      "The doctor fails on a Node.js that cannot run the repository's scripts.",
+      "The feature does not change the user's global tools."
+    ],
+    "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, the trial is now the real change: Deno is removed completely; this is the fix round after the final reviews, before merging into develop, and a review before develop favors speed):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+  },
+  "result": {
+    "tool": "backfire_decide",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "recommendation": {
+      "selected": "floor_24_12",
+      "escaped": false,
+      "confidence": 0.76,
+      "probabilities": {
+        "pin_exact_24_19": 0.15,
+        "floor_24_12": 0.8,
+        "keep_22_record": 0.02,
+        "ask_user": 0.01,
+        "investigate": 0.01,
+        "none": 0.01
+      }
+    },
+    "requirements_checked": 2,
+    "checks": [
+      {
+        "candidate": "pin_exact_24_19",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "pin_exact_24_19",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "floor_24_12",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "floor_24_12",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "keep_22_record",
+        "requirement": 0,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "keep_22_record",
+        "requirement": 1,
+        "answer": "supported"
+      }
+    ],
+    "warnings": [],
+    "usage": {
+      "input_tokens": 2497,
+      "output_tokens": 3963
+    }
+  }
+}
