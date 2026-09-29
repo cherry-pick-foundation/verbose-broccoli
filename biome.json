@@ -5,8 +5,6 @@
     "includes": [
       "**",
       "!**/node_modules",
-      "!**/.deno",
-      "!**/deno.lock",
       "!**/*.md",
       "!.agents",
       "!.codex",
@@ -48,7 +46,6 @@
               "level": "error",
               "options": {
                 "deniedGlobals": {
-                  "Deno": "Domain code must not use runtime or I/O globals.",
                   "Bun": "Domain code must not use runtime or I/O globals.",
                   "process": "Domain code must not use runtime or I/O globals.",
                   "fetch": "Domain code must not use runtime or I/O globals.",

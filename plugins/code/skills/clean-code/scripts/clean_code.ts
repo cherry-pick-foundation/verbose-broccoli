@@ -1,5 +1,5 @@
 import {createCommand, createReport, runCli} from './cli.ts';
-import {expandGlob} from '@std/fs';
+import {glob, readFile} from 'node:fs/promises';
 import {relative, resolve} from '@std/path';
 import type {TSESLint} from '@typescript-eslint/utils';
 import {ESLint, type Linter} from 'eslint';
@@ -220,17 +220,17 @@ export async function classifyFile(
 async function discover(cwd: string) {
   const paths = new Set<string>();
   for (const directory of ['plugins', 'packages', 'scripts']) {
-    for await (const entry of expandGlob(`${directory}/**/*.{ts,tsx,mts,cts}`, {
-      root: cwd,
-      includeDirs: false,
-      followSymlinks: false,
+    for await (const entry of glob(`${directory}/**/*.{ts,tsx,mts,cts}`, {
+      cwd,
+      withFileTypes: true,
       exclude: [
         '**/node_modules/**',
         'scripts/vendor/**',
         '**/*.d.{ts,mts,cts}',
       ],
     })) {
-      if (!entry.isSymlink) paths.add(entry.path);
+      if (entry.isFile() && !entry.isSymbolicLink())
+        paths.add(resolve(entry.parentPath, entry.name));
     }
   }
   return [...paths].sort();
@@ -240,7 +240,7 @@ export async function checkCleanCode(cwd: string, scopeOnly = false) {
   const snapshots = await Promise.all(
     (await discover(cwd)).map(async file => ({
       file,
-      source: await Deno.readTextFile(file),
+      source: await readFile(file, 'utf8'),
     })),
   );
   const scope = await Promise.all(
@@ -334,7 +334,7 @@ if (import.meta.main) {
       .option('--scope', 'Report the shared skill/checker file scope only.')
       .action(async options => {
         const result = await checkCleanCode(
-          resolve(Deno.cwd()),
+          resolve(process.cwd()),
           options.scope ?? false,
         );
         createReport(
@@ -343,6 +343,6 @@ if (import.meta.main) {
             result.scope.some(file => file.status === 'error'),
         );
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

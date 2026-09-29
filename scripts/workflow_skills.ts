@@ -1,4 +1,5 @@
 import {execFile} from 'node:child_process';
+import {mkdir, writeFile} from 'node:fs/promises';
 import {fromFileUrl, join} from '@std/path';
 import {z} from '@zod/zod';
 import canonicalize from 'canonicalize';
@@ -47,7 +48,7 @@ export function parseCleanCodeScope(output: string) {
           .sort(),
       )
   )
-    throw new Error('Clean Code scope failed; run deno task clean-code:scope.');
+    throw new Error('Clean Code scope failed; run npm run clean-code:scope.');
   return report.selected;
 }
 
@@ -62,23 +63,8 @@ async function cleanCodeScope(root: string) {
     stderr: Buffer;
   }>((resolve, reject) => {
     execFile(
-      Deno.env.get('HOME')
-        ? join(Deno.env.get('HOME')!, '.deno/bin/deno')
-        : 'deno',
-      [
-        'run',
-        '--config',
-        join(skill, 'deno.json'),
-        '--lock',
-        join(skill, 'deno.lock'),
-        '--frozen',
-        '--cached-only',
-        '--no-prompt',
-        '--allow-read',
-        '--allow-env',
-        join(skill, 'scripts/clean_code.ts'),
-        '--scope',
-      ],
+      process.execPath,
+      [join(skill, 'scripts/clean_code.ts'), '--scope'],
       {cwd: root, encoding: 'buffer', maxBuffer: Infinity},
       (error, stdout, stderr) => {
         if (error && !Number.isInteger(error.code)) {
@@ -96,7 +82,7 @@ async function cleanCodeScope(root: string) {
   });
   if (!result.success)
     throw new Error(
-      `Clean Code scope failed (${result.code}); run deno task clean-code:scope. ${new TextDecoder().decode(result.stderr).trim()}`,
+      `Clean Code scope failed (${result.code}); run npm run clean-code:scope. ${new TextDecoder().decode(result.stderr).trim()}`,
     );
   return parseCleanCodeScope(new TextDecoder().decode(result.stdout));
 }
@@ -174,7 +160,7 @@ export async function announceSkillTriggers(
       'workflow/skill-triggers',
     ])
   ).trim();
-  if (choices.length) await Deno.mkdir(directory, {recursive: true});
+  if (choices.length) await mkdir(directory, {recursive: true});
   const triggers = [];
   for (const choice of choices) {
     const context = {
@@ -189,12 +175,15 @@ export async function announceSkillTriggers(
     const id = await sha256(record);
     let status = 'ANNOUNCED';
     try {
-      await Deno.writeTextFile(join(directory, `${id}.json`), record, {
-        createNew: true,
+      await writeFile(join(directory, `${id}.json`), record, {
+        flag: 'wx',
         mode: 0o600,
       });
     } catch (error) {
-      if (!(error instanceof Deno.errors.AlreadyExists)) throw error;
+      if (
+        !(error instanceof Error && 'code' in error && error.code === 'EEXIST')
+      )
+        throw error;
       status = 'ALREADY_ANNOUNCED';
     }
     triggers.push({...choice, id, status});

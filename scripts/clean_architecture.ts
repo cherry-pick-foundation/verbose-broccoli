@@ -3,8 +3,8 @@ import {
   createReport,
   runCli,
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
-import {existsSync, expandGlobSync} from '@std/fs';
-import {dirname, fromFileUrl, relative, resolve} from '@std/path';
+import {existsSync, globSync} from 'node:fs';
+import {fromFileUrl, join, relative, resolve} from '@std/path';
 import {
   cruise,
   type IConfiguration,
@@ -12,17 +12,12 @@ import {
 } from 'dependency-cruiser';
 import ts from 'typescript';
 
-interface DenoConfig {
+interface PackageConfig {
   name?: string;
   imports?: Record<string, string>;
   exports?: string | Record<string, string>;
-  importMap?: string;
-  scopes?: unknown;
-}
-interface PackageConfig {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
-  imports?: Record<string, string>;
 }
 
 const ioPackages =
@@ -30,25 +25,15 @@ const ioPackages =
 const ioImport = `^(?:(?:npm|jsr):)?${ioPackages}(?:@|/|$)`;
 const escapeRegExp = RegExp.escape;
 
-function readConfig(path: string): DenoConfig {
-  const result = ts.readConfigFile(path, ts.sys.readFile);
-  if (result.error) throw new Error(`Cannot parse Deno configuration: ${path}`);
-  const config = result.config as DenoConfig;
-  if (config.importMap || config.scopes) {
-    throw new Error(
-      `External import maps and scoped aliases need resolver support: ${path}`,
-    );
-  }
-  return config;
-}
-
-function readPackageConfig(path: string): DenoConfig {
+function readPackageConfig(path: string): PackageConfig {
   if (!existsSync(path)) return {};
   const result = ts.readConfigFile(path, ts.sys.readFile);
   if (result.error)
     throw new Error(`Cannot parse package configuration: ${path}`);
   const config = result.config as PackageConfig;
   return {
+    name: config.name,
+    exports: config.exports,
     imports: {
       ...Object.fromEntries(
         Object.entries({...config.dependencies, ...config.devDependencies}).map(
@@ -74,38 +59,40 @@ function readPackageConfig(path: string): DenoConfig {
 
 export function importRules(cwd: string) {
   const configs = [
-    'plugins/**/deno.json',
-    'plugins/**/deno.jsonc',
-    'packages/**/deno.json',
-    'packages/**/deno.jsonc',
-  ]
-    .flatMap(pattern => [
-      ...expandGlobSync(pattern, {
-        root: cwd,
-        followSymlinks: false,
-        exclude: ['**/node_modules/**', '**/.deno/**'],
-      }),
-    ])
-    .filter(entry => !entry.isSymlink)
-    .map(entry => ({
-      directory: dirname(entry.path),
-      value: readConfig(entry.path),
-    }));
-  configs.push({
-    directory: cwd,
-    value: readPackageConfig(resolve(cwd, 'package.json')),
-  });
-  for (const pattern of ['plugins/*', 'packages/*']) {
-    for (const entry of expandGlobSync(pattern, {
-      root: cwd,
-      followSymlinks: false,
+    {
+      directory: cwd,
+      value: readPackageConfig(resolve(cwd, 'package.json')),
+    },
+  ];
+  for (const pattern of [
+    'plugins/**/package.json',
+    'packages/**/package.json',
+  ]) {
+    for (const entry of globSync(pattern, {
+      cwd,
+      exclude: ['**/node_modules/**'],
+      withFileTypes: true,
     })) {
+      if (!entry.isFile() || entry.isSymbolicLink()) continue;
+      const path = join(entry.parentPath, entry.name);
+      configs.push({
+        directory: entry.parentPath,
+        value: readPackageConfig(path),
+      });
+    }
+  }
+  for (const pattern of ['plugins/*', 'packages/*']) {
+    for (const entry of globSync(pattern, {
+      cwd,
+      withFileTypes: true,
+    })) {
+      const path = join(entry.parentPath, entry.name);
       if (
-        entry.isDirectory &&
-        !entry.isSymlink &&
-        !configs.some(config => config.directory === entry.path)
+        entry.isDirectory() &&
+        !entry.isSymbolicLink() &&
+        !configs.some(config => config.directory === path)
       ) {
-        configs.push({directory: entry.path, value: {}});
+        configs.push({directory: path, value: {}});
       }
     }
   }
@@ -242,7 +229,7 @@ export function importRules(cwd: string) {
 }
 
 export async function analyzeImportGraph(
-  cwd = Deno.cwd(),
+  cwd = process.cwd(),
   entryPaths?: string[],
 ) {
   const {alias, forbidden} = importRules(cwd);
@@ -257,7 +244,7 @@ export async function analyzeImportGraph(
       ruleSet: {forbidden},
       validate: true,
       tsPreCompilationDeps: true,
-      exclude: '(^|/)(node_modules|\\.deno)/|^scripts/vendor/|\\.md$',
+      exclude: '(^|/)node_modules/|^scripts/vendor/|\\.md$',
       doNotFollow: {
         path: entryPaths
           ? `^(?!(?:${entryPaths.map(escapeRegExp).join('|')})$)`
@@ -280,6 +267,6 @@ if (import.meta.main) {
         const {violations, error, totalCruised} = result.summary;
         createReport({violations, error, totalCruised}, error > 0);
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

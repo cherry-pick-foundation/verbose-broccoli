@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {rejects} from 'node:assert/strict';
 import {
   assert,
   assertEquals,
@@ -8,6 +9,8 @@ import {
 } from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {snapshotWorkingTree} from './workflow_git.ts';
 import {
   parseCleanCodeScope,
@@ -61,18 +64,18 @@ async function repository(
   files: Record<string, string>,
   run: (root: string, context: Input) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'workflow-skills-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'workflow-skills-test-'));
   try {
     await git(root, 'init', '--quiet', '--template=', '--initial-branch=main');
     for (const [file, source] of Object.entries(files)) {
-      await Deno.mkdir(dirname(join(root, file)), {recursive: true});
-      await Deno.writeTextFile(join(root, file), source);
+      await mkdir(dirname(join(root, file)), {recursive: true});
+      await writeFile(join(root, file), source);
     }
     await git(root, 'add', '--all');
     await git(root, 'commit', '--quiet', '-m', 'Skills fixture');
     await run(root, {...input, base: await git(root, 'rev-parse', 'HEAD')});
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
@@ -237,7 +240,7 @@ test('workflow skills: scope errors require review while preserving verification
 test('workflow skills: stale expected snapshots cannot write announcement receipts', async () => {
   await repository({[first]: pure}, async (root, context) => {
     const expected = await snapshotWorkingTree(root);
-    await Deno.writeTextFile(join(root, first), pure.replace('+ 1', '+ 2'));
+    await writeFile(join(root, first), pure.replace('+ 1', '+ 2'));
     await assertRejects(
       () => announceSkillTriggers(root, {...context, paths: [first]}, expected),
       Error,
@@ -250,7 +253,7 @@ test('workflow skills: stale expected snapshots cannot write announcement receip
       '--git-path',
       'workflow/skill-triggers',
     );
-    await assertRejects(() => Deno.stat(directory), Deno.errors.NotFound);
+    await rejects(stat(directory), {code: 'ENOENT'});
   });
 });
 
@@ -260,12 +263,12 @@ test('workflow skills CLI: failed verification and scope errors preserve the evi
       [first]: pure,
       'package.json': JSON.stringify({
         scripts: {
-          check: `node --import "${fromFileUrl(new URL('./deno_shim.ts', import.meta.url))}" ${first}`,
+          check: `node ${first}`,
         },
       }),
     },
     async root => {
-      await Deno.writeTextFile(join(root, first), 'export function broken( {');
+      await writeFile(join(root, first), 'export function broken( {');
       const result = spawnSync(
         process.execPath,
         [
@@ -275,8 +278,6 @@ test('workflow skills CLI: failed verification and scope errors preserve the evi
           '--allow-fs-read=*',
           '--allow-fs-write=*',
           '--allow-child-process',
-          '--import',
-          fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),
           fromFileUrl(new URL('./workflow.ts', import.meta.url)),
           '--task',
           'scope-error-fixture',
@@ -308,7 +309,7 @@ test('workflow skills CLI: failed verification and scope errors preserve the evi
       assert(output.loop.latest);
       assertEquals(output.loop.latest.event, 'FINISHED');
       assertEquals(output.loop.latest.exit_code, 1);
-      assert((await Deno.readTextFile(output.loop.latest.log_path)).length > 0);
+      assert((await readFile(output.loop.latest.log_path, 'utf8')).length > 0);
       assert(
         output.skill_triggers.some(
           trigger => trigger.name === 'verification-before-completion',
@@ -362,7 +363,7 @@ test('workflow skills: task, baseline, complete scope and code changes invalidat
         paths: [first, database, first],
       });
       assertEquals(reordered.triggers[0].status, 'ALREADY_ANNOUNCED');
-      await Deno.writeTextFile(join(root, first), pure.replace('+ 1', '+ 2'));
+      await writeFile(join(root, first), pure.replace('+ 1', '+ 2'));
       const updated = await announceSkillTriggers(root, {
         ...context,
         paths: [first],

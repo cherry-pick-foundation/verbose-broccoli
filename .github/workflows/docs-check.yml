@@ -25,14 +25,8 @@ jobs:
           echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647  $RUNNER_TEMP/docs-node.tar.xz" | sha256sum --check --strict
           tar -xJf "$RUNNER_TEMP/docs-node.tar.xz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/node-v24.19.0-linux-x64/bin" >> "$GITHUB_PATH"
-      - name: Prepare standalone Deno 2.9.6
-        run: |
-          curl --fail --silent --show-error --location https://github.com/denoland/deno/releases/download/v2.9.6/deno-x86_64-unknown-linux-gnu.zip --output "$RUNNER_TEMP/docs-deno.zip"
-          unzip -q "$RUNNER_TEMP/docs-deno.zip" -d "$RUNNER_TEMP/docs-deno"
-          echo "$RUNNER_TEMP/docs-deno" >> "$GITHUB_PATH"
       - name: Prepare frozen dependencies
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
-          deno install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt
       - name: Check generated references
         run: npm run docs:check

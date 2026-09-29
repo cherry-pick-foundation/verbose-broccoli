@@ -1,4 +1,5 @@
 import {execFile} from 'node:child_process';
+import {readFile, realpath, stat, writeFile} from 'node:fs/promises';
 import {
   createCommand,
   createReport,
@@ -16,12 +17,10 @@ import {
 import {sha256} from './hash.ts';
 
 const defaults = {
-  deno: resolve(Deno.env.get('HOME') ?? Deno.cwd(), '.deno/bin/deno'),
   quarto: '/usr/local/bin/quarto',
   lychee: 'lychee',
 };
 const versions = {
-  deno: '2.9.6',
   quarto: '1.10.18',
   uv: '0.11.32',
   'git-flow': '2.1.0',
@@ -33,7 +32,6 @@ interface NpmLock {
   packages?: Record<string, {version?: string}>;
 }
 interface Options {
-  deno?: string;
   quarto?: string;
   uv?: string;
   gitFlow?: string;
@@ -51,16 +49,14 @@ function rejectReadme(path: string) {
 async function executable(selected: string, tool: Tool) {
   rejectReadme(selected);
   if (!isAbsolute(selected)) throw new Error(`${tool} path must be absolute`);
-  const canonical = await Deno.realPath(selected);
+  const canonical = await realpath(selected);
   rejectReadme(canonical);
   for (const path of [selected, canonical]) {
     if (/(^|[\\/])\.venv([\\/]|$)/i.test(path))
       throw new Error(`${tool} must be outside .venv`);
-    if (tool === 'deno' && /(^|[\\/])quarto(?:-[^\\/]+)?([\\/]|$)/i.test(path))
-      throw new Error('Deno must be standalone, outside Quarto');
   }
-  const info = await Deno.stat(canonical);
-  if (!info.isFile || (info.mode !== null && (info.mode & 0o111) === 0))
+  const info = await stat(canonical);
+  if (!info.isFile() || (info.mode & 0o111) === 0)
     throw new Error(`${tool} must be an executable regular file`);
   return {selected, canonical};
 }
@@ -220,9 +216,10 @@ export async function checkNpmEnvironment(
   if (!result.success) throw new Error(message);
   try {
     const [lockText, installedText] = await Promise.all([
-      Deno.readTextFile(resolve(root, project, 'package-lock.json')),
-      Deno.readTextFile(
+      readFile(resolve(root, project, 'package-lock.json'), 'utf8'),
+      readFile(
         resolve(root, project, 'node_modules', '.package-lock.json'),
+        'utf8',
       ),
     ]);
     const lock = JSON.parse(lockText) as NpmLock;
@@ -283,7 +280,7 @@ async function checkGitHooksPath(git: string) {
 
 async function dependencies() {
   const path = fromFileUrl(new URL('../package-lock.json', import.meta.url));
-  const bytes = await Deno.readFile(path);
+  const bytes = await readFile(path);
   const lock = JSON.parse(new TextDecoder().decode(bytes)) as NpmLock;
   const selected = Object.fromEntries(
     Object.entries(lock.packages ?? {})
@@ -296,16 +293,15 @@ async function dependencies() {
 async function writeReport(path: string, contents: string) {
   rejectReadme(path);
   const absolute = resolve(path);
-  const parent = await Deno.realPath(dirname(absolute));
+  const parent = await realpath(dirname(absolute));
   rejectReadme(parent);
-  await Deno.writeTextFile(join(parent, basename(absolute)), contents, {
-    createNew: true,
+  await writeFile(join(parent, basename(absolute)), contents, {
+    flag: 'wx',
     mode: 0o600,
   });
 }
 
 export async function runDoctor(options: Options = {}) {
-  const deno = await executable(options.deno ?? defaults.deno, 'deno');
   const quarto = await executable(options.quarto ?? defaults.quarto, 'quarto');
   const uv = options.uv
     ? await executable(options.uv, 'uv')
@@ -320,7 +316,6 @@ export async function runDoctor(options: Options = {}) {
   };
   const npm = options.npm ?? 'npm';
   const [
-    denoVersion,
     quartoVersion,
     uvVersion,
     gitFlowVersion,
@@ -328,7 +323,6 @@ export async function runDoctor(options: Options = {}) {
     nodeVersion,
     lock,
   ] = await Promise.all([
-    probeVersion(deno.canonical, 'deno'),
     probeVersion(quarto.canonical, 'quarto'),
     probeVersion(uv.canonical, 'uv'),
     probeVersion(gitFlow.canonical, 'git-flow'),
@@ -357,7 +351,6 @@ export async function runDoctor(options: Options = {}) {
       platform: process.platform,
       arch: process.arch,
     },
-    deno: {...deno, version: denoVersion},
     quarto: {...quarto, version: quartoVersion},
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
@@ -383,27 +376,22 @@ if (import.meta.main) {
       'doctor',
       'Check runtime identities, versions and locked dependencies.',
     )
-      .option('--deno <path:string>', 'Absolute path to standalone Deno.')
       .option('--quarto <path:string>', 'Absolute path to Quarto.')
       .option(
         '--report <path:string>',
         'Create a new JSON report; requires write permission.',
       )
       .action(async options => {
-        if (
-          [options.deno, options.quarto, options.report].some(
-            value => value === '',
-          )
-        )
+        if ([options.quarto, options.report].some(value => value === ''))
           throw new ValidationError('Option values must not be empty.');
         if (
-          [options.deno, options.quarto].some(
+          [options.quarto].some(
             value => value !== undefined && !isAbsolute(value),
           )
         )
           throw new ValidationError('Executable paths must be absolute.');
         createReport(await runDoctor(options));
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

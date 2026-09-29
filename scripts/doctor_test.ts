@@ -1,11 +1,22 @@
 import {spawnSync} from 'node:child_process';
 import {test} from 'node:test';
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 import {checkNpmEnvironment, probeVersion, runDoctor} from './doctor.ts';
 import {sha256} from './hash.ts';
 
-const executable = Deno.execPath();
+const executable = process.execPath;
 const realGit = new TextDecoder()
   .decode(commandOutput('which', {args: ['git']}).stdout)
   .trim();
@@ -32,17 +43,17 @@ function commandOutput(
 }
 
 async function temporary(run: (root: string) => Promise<void>) {
-  const root = await Deno.makeTempDir({prefix: 'doctor-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'doctor-test-'));
   try {
     await run(root);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
 async function fixture(root: string, name: string, code: string) {
   const path = join(root, name);
-  await Deno.writeTextFile(path, `#!${executable} run\n${code}\n`, {
+  await writeFile(path, `#!${executable}\n${code}\n`, {
     mode: 0o755,
   });
   return path;
@@ -54,7 +65,7 @@ function shellQuote(value: string) {
 
 async function gitWrapper(root: string) {
   const path = join(root, 'git');
-  await Deno.writeTextFile(
+  await writeFile(
     path,
     `#!/bin/sh\nif [ "$1" = config ] && [ "$2" = --get ] && [ "$3" = core.hooksPath ]; then\nprintf '%s\\n' scripts/git-hooks\nexit 0\nfi\nexec ${shellQuote(realGit)} "$@"\n`,
     {mode: 0o755},
@@ -66,6 +77,7 @@ async function cli(
   root: string,
   args: string[] = [],
   permissions = ['--allow-fs-read=*', '--allow-child-process'],
+  env: Record<string, string> = {},
 ) {
   await gitWrapper(root);
   return commandOutput(process.execPath, {
@@ -73,15 +85,18 @@ async function cli(
       '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
       '--disable-warning=SecurityWarning',
       '--permission',
-      '--import',
-      fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),
       ...permissions,
       script,
       ...args,
     ],
     cwd: root,
-    env: {PATH: `${root}:${Deno.env.get('PATH')}`},
+    env: {PATH: `${root}:${process.env.PATH}`, ...env},
   });
+}
+
+async function assertErrorCode(action: () => Promise<unknown>, code: string) {
+  const error = await assertRejects(action, Error);
+  assertEquals((error as NodeJS.ErrnoException).code, code);
 }
 
 function json(output: ReturnType<typeof commandOutput>) {
@@ -90,31 +105,14 @@ function json(output: ReturnType<typeof commandOutput>) {
   );
 }
 
-test('doctor: root task permits relocated and symlinked runtimes', async () => {
+test('doctor: direct Node CLI works from an empty HOME', async () => {
   await temporary(async root => {
-    const installed = join(root, 'standalone runtime');
-    const alias = join(root, 'alias runtime');
-    await Deno.mkdir(installed);
-    await Deno.mkdir(alias);
-    await gitWrapper(installed);
-    await gitWrapper(alias);
-    const binary = join(installed, '.deno/bin/deno');
-    await Deno.mkdir(dirname(binary), {recursive: true});
-    await Deno.copyFile(executable, binary);
-    const aliasBinary = join(alias, '.deno/bin/deno');
-    await Deno.mkdir(dirname(aliasBinary), {recursive: true});
-    await Deno.symlink(binary, aliasBinary);
-    for (const directory of [installed, alias]) {
-      const output = commandOutput('npm', {
-        args: ['run', '--silent', 'doctor'],
-        env: {
-          HOME: directory,
-          PATH: `${dirname(join(directory, '.deno/bin/deno'))}:${Deno.env.get('PATH')}`,
-        },
-      });
-      assert(output.success, new TextDecoder().decode(output.stderr));
-      assertEquals(json(output).deno.canonical, binary);
-    }
+    const home = join(root, 'empty-home');
+    await mkdir(home);
+    const output = await cli(root, [], undefined, {HOME: home});
+    assert(output.success, new TextDecoder().decode(output.stderr));
+    assertEquals(json(output).status, 'PASS');
+    assertEquals(json(output).runtime.version, process.version);
   });
 });
 
@@ -124,12 +122,10 @@ test('doctor: installed identities, versions and root lock work outside the chec
     assert(output.success, new TextDecoder().decode(output.stderr));
     const report = json(output);
     assertEquals(report.status, 'PASS');
-    assertEquals(report.deno.canonical, await Deno.realPath(executable));
     assertEquals(
       report.quarto.canonical,
-      await Deno.realPath('/usr/local/bin/quarto'),
+      await realpath('/usr/local/bin/quarto'),
     );
-    assertEquals(report.deno.version, '2.9.6');
     assertEquals(report.quarto.version, '1.10.18');
     assertEquals(report.uv.version, '0.11.32');
     assertEquals(report.gitFlow.version, '2.1.0');
@@ -172,7 +168,7 @@ test('doctor: installed identities, versions and root lock work outside the chec
       arch: process.arch,
     });
     assertEquals(report.lock.path, lock);
-    assertEquals(report.lock.sha256, await sha256(await Deno.readFile(lock)));
+    assertEquals(report.lock.sha256, await sha256(await readFile(lock)));
     assertEquals(
       report.lock.dependencies['node_modules/@std/assert'],
       '1.0.19',
@@ -181,56 +177,63 @@ test('doctor: installed identities, versions and root lock work outside the chec
   });
 });
 
-test('doctor: missing, relative, non-executable and wrong-identity paths fail before report creation', async () => {
+test('doctor: invalid Quarto paths fail before report creation', async () => {
   await temporary(async root => {
     const report = join(root, 'report.json');
     const wrong = await fixture(
       root,
-      'other-deno',
-      "console.log('deno 9.9.9');",
+      'wrong-quarto',
+      "console.log('1.10.17');",
     );
     const plain = join(root, 'not-executable');
-    await Deno.writeTextFile(plain, 'not executable', {mode: 0o644});
+    await writeFile(plain, 'not executable', {mode: 0o644});
     for (const options of [
-      {deno: 'deno'},
-      {deno: join(root, 'missing')},
-      {deno: wrong},
+      {quarto: 'quarto'},
+      {quarto: join(root, 'missing')},
+      {quarto: wrong},
       {quarto: root},
       {quarto: plain},
     ]) {
       await assertRejects(() => runDoctor({...options, report}));
-      await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);
+      await assertErrorCode(() => stat(report), 'ENOENT');
     }
     await assertRejects(
-      () => runDoctor({deno: wrong}),
+      () => runDoctor({quarto: wrong}),
       Error,
-      'deno must report version 2.9.6',
+      'quarto must report version 1.10.18',
     );
     await assertRejects(
       () => runDoctor({quarto: executable}),
       Error,
-      'quarto must report',
+      'quarto must report version 1.10.18',
     );
   });
 });
 
-test('doctor: standalone aliases pass but .venv and Quarto runtime paths are refused', async () => {
+test('doctor: Quarto aliases pass while .venv and wrong identities are refused', async () => {
   await temporary(async root => {
     const git = await fakeGit(root, 'scripts/git-hooks');
-    const alias = join(root, 'standalone');
-    await Deno.symlink(executable, alias);
+    const quarto = await fixture(
+      root,
+      'quarto-runtime',
+      "console.log('1.10.18');",
+    );
+    const alias = join(root, 'quarto-alias');
+    await symlink(quarto, alias);
     assertEquals(
-      (await runDoctor({deno: alias, git})).deno.canonical,
-      await Deno.realPath(executable),
+      (await runDoctor({quarto: alias, git})).quarto.canonical,
+      await realpath(quarto),
     );
     for (const directory of ['.venv', 'quarto']) {
-      await Deno.mkdir(join(root, directory));
-      const path = join(root, directory, 'deno');
-      await Deno.symlink(executable, path);
+      await mkdir(join(root, directory));
+      const path = join(root, directory, 'quarto');
+      await symlink(directory === '.venv' ? quarto : executable, path);
       await assertRejects(
-        () => runDoctor({deno: path}),
+        () => runDoctor({quarto: path}),
         Error,
-        directory === '.venv' ? 'outside .venv' : 'outside Quarto',
+        directory === '.venv'
+          ? 'outside .venv'
+          : 'quarto must report version 1.10.18',
       );
     }
   });
@@ -239,12 +242,12 @@ test('doctor: standalone aliases pass but .venv and Quarto runtime paths are ref
 async function fakeGit(root: string, value: string | undefined) {
   const result =
     value === undefined
-      ? 'Deno.exit(1);'
+      ? 'process.exit(1);'
       : `console.log(${JSON.stringify(value)});`;
   return await fixture(
     root,
     'fake-git',
-    `if (Deno.args.join(' ') !== 'config --get core.hooksPath') Deno.exit(2); ${result}`,
+    `if (process.argv.slice(2).join(' ') !== 'config --get core.hooksPath') process.exit(2); ${result}`,
   );
 }
 
@@ -277,8 +280,16 @@ test('doctor: version probes require exact versions, successful exit and bounded
       Error,
       'lychee must report version 0.24.2',
     );
-    const wrong = await fixture(root, 'wrong', "console.log('deno 2.9.5');");
-    await assertRejects(() => probeVersion(wrong, 'deno'), Error, '2.9.6');
+    const wrongQuarto = await fixture(
+      root,
+      'wrong-quarto',
+      "console.log('1.10.17');",
+    );
+    await assertRejects(
+      () => probeVersion(wrongQuarto, 'quarto'),
+      Error,
+      'quarto must report version 1.10.18',
+    );
     const wrongUv = await fixture(
       root,
       'wrong-uv',
@@ -288,7 +299,7 @@ test('doctor: version probes require exact versions, successful exit and bounded
     const failure = await fixture(
       root,
       'failure',
-      "console.log('1.10.18'); Deno.exit(1);",
+      "console.log('1.10.18'); process.exit(1);",
     );
     await assertRejects(
       () => probeVersion(failure, 'quarto'),
@@ -321,7 +332,7 @@ test('doctor: git-flow version and shared configuration status are required', as
     const wrong = await fixture(
       root,
       'wrong-git-flow',
-      "if (Deno.args[0] === 'version') console.log('2.0.0 (git-flow-next)');",
+      "if (process.argv[2] === 'version') console.log('2.0.0 (git-flow-next)');",
     );
     await assertRejects(
       () => runDoctor({gitFlow: wrong}),
@@ -332,7 +343,7 @@ test('doctor: git-flow version and shared configuration status are required', as
     const drifted = await fixture(
       root,
       'drifted-git-flow',
-      "if (Deno.args[0] === 'version') console.log('2.1.0 (git-flow-next)'); else Deno.exit(6);",
+      "if (process.argv[2] === 'version') console.log('2.1.0 (git-flow-next)'); else process.exit(6);",
     );
     await assertRejects(
       () => runDoctor({gitFlow: drifted}),
@@ -347,7 +358,7 @@ test('doctor: a missing or stale Spec Kit environment fails with sync guidance',
     const stale = await fixture(
       root,
       'uv',
-      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else Deno.exit(1);",
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else process.exit(1);",
     );
     await assertRejects(
       () => runDoctor({uv: stale}),
@@ -362,7 +373,7 @@ test('doctor: a missing or stale ShellCheck environment fails with sync guidance
     const stale = await fixture(
       root,
       'uv',
-      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'tools/shellcheck') Deno.exit(1);",
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else if (process.argv.at(-1) === 'tools/shellcheck') process.exit(1);",
     );
     await assertRejects(
       () => runDoctor({uv: stale}),
@@ -372,12 +383,12 @@ test('doctor: a missing or stale ShellCheck environment fails with sync guidance
   });
 });
 
-Deno.test('doctor: a missing or stale Ruff environment fails with sync guidance', async () => {
+test('doctor: a missing or stale Ruff environment fails with sync guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
       'uv',
-      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'tools/ruff') Deno.exit(1);",
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else if (process.argv.at(-1) === 'tools/ruff') process.exit(1);",
     );
     await assertRejects(
       () => runDoctor({uv: stale}),
@@ -392,7 +403,7 @@ test('doctor: a missing or stale doc-regions environment fails with sync guidanc
     const stale = await fixture(
       root,
       'uv',
-      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.includes('--all-packages')) Deno.exit(1);",
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else if (process.argv.includes('--all-packages')) process.exit(1);",
     );
     await assertRejects(
       () => runDoctor({uv: stale}),
@@ -407,7 +418,7 @@ test('doctor: wiki-consistency Python is checked through the root uv workspace',
     const stale = await fixture(
       root,
       'uv',
-      "if (Deno.args[0] === '--version') console.log('uv 0.11.32'); else if (Deno.args.at(-1) === 'packages/wiki-consistency') Deno.exit(1);",
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else if (process.argv.at(-1) === 'packages/wiki-consistency') process.exit(1);",
     );
     const report = await runDoctor({uv: stale});
     assertEquals(report.uvWorkspace, {
@@ -423,7 +434,7 @@ test('doctor: a missing or stale wiki-consistency Node environment fails with in
     const stale = await fixture(
       root,
       'npm',
-      "if (Deno.args.at(-1) !== '.') Deno.exit(1);",
+      "if (process.argv.at(-1) !== '.') process.exit(1);",
     );
     const options = {npm: stale, git: await fakeGit(root, 'scripts/git-hooks')};
     await assertRejects(
@@ -438,8 +449,8 @@ test('doctor: npm ls success does not hide npm package-lock drift', async () => 
   await temporary(async root => {
     const project = join(root, 'wiki-consistency');
     const nodeModules = join(project, 'node_modules');
-    await Deno.mkdir(nodeModules, {recursive: true});
-    await Deno.writeTextFile(
+    await mkdir(nodeModules, {recursive: true});
+    await writeFile(
       join(project, 'package-lock.json'),
       JSON.stringify({
         lockfileVersion: 3,
@@ -447,27 +458,27 @@ test('doctor: npm ls success does not hide npm package-lock drift', async () => 
       }),
     );
     const installedLock = join(nodeModules, '.package-lock.json');
-    await Deno.writeTextFile(
+    await writeFile(
       installedLock,
       JSON.stringify({
         lockfileVersion: 3,
         packages: {'node_modules/qmd': {version: '2.5.0'}},
       }),
     );
-    const npm = await fixture(root, 'npm', 'Deno.exit(0);');
+    const npm = await fixture(root, 'npm', 'process.exit(0);');
 
     await assertRejects(
       () => checkNpmEnvironment(npm, project),
       Error,
       'node_modules is missing or out of sync',
     );
-    await Deno.writeTextFile(installedLock, '{');
+    await writeFile(installedLock, '{');
     await assertRejects(
       () => checkNpmEnvironment(npm, project),
       Error,
       'node_modules is missing or out of sync',
     );
-    await Deno.remove(installedLock);
+    await rm(installedLock);
     await assertRejects(
       () => checkNpmEnvironment(npm, project),
       Error,
@@ -493,12 +504,9 @@ test('doctor: report is private, create-only and refuses README paths and symlin
     const report = join(root, 'report.json');
     const git = await fakeGit(root, 'scripts/git-hooks');
     const result = await runDoctor({report, git});
-    assertEquals(JSON.parse(await Deno.readTextFile(report)), result);
-    assertEquals((await Deno.stat(report)).mode! & 0o777, 0o600);
-    await assertRejects(
-      () => runDoctor({report, git}),
-      Deno.errors.AlreadyExists,
-    );
+    assertEquals(JSON.parse(await readFile(report, 'utf8')), result);
+    assertEquals((await stat(report)).mode & 0o777, 0o600);
+    await assertErrorCode(() => runDoctor({report, git}), 'EEXIST');
     for (const path of [
       join(root, 'README.md'),
       join(root, 'README.md', 'report.json'),
@@ -509,23 +517,21 @@ test('doctor: report is private, create-only and refuses README paths and symlin
         'README',
       );
     const alias = join(root, 'report-link.json');
-    await Deno.symlink(join(root, 'README.md'), alias);
-    await assertRejects(
-      () => runDoctor({report: alias, git}),
-      Deno.errors.AlreadyExists,
-    );
-    assertEquals(JSON.parse(await Deno.readTextFile(report)), result);
+    await symlink(join(root, 'README.md'), alias);
+    await assertErrorCode(() => runDoctor({report: alias, git}), 'EEXIST');
+    assertEquals(JSON.parse(await readFile(report, 'utf8')), result);
   });
 });
 
 test('doctor: CLI rejects invalid flags and missing runtime/report permissions', async () => {
   await temporary(async root => {
-    for (const args of [['--unknown'], ['--deno'], ['unexpected']]) {
+    for (const args of [['--unknown'], ['--node'], ['unexpected']]) {
       const output = await cli(root, args);
       assertEquals(output.code, 2);
       assertEquals(output.stdout.length, 0);
       assertEquals(json(output).error.code, 'INVALID_ARGUMENT');
     }
+    const report = join(root, 'report.json');
     const deniedRun = await cli(root, [], ['--allow-fs-read=*']);
     assertEquals(deniedRun.code, 1);
     assertMatch(
@@ -553,14 +559,13 @@ test('doctor: CLI rejects invalid flags and missing runtime/report permissions',
       json(deniedRead).error.message,
       /--allow-fs-read to manage permissions/,
     );
-    const report = join(root, 'report.json');
     const deniedWrite = await cli(root, ['--report', report]);
     assertEquals(deniedWrite.code, 1);
     assertMatch(
       json(deniedWrite).error.message,
       /--allow-fs-write to manage permissions/,
     );
-    await assertRejects(() => Deno.stat(report), Deno.errors.NotFound);
+    await assertErrorCode(() => stat(report), 'ENOENT');
     const written = await cli(
       root,
       ['--report', report],
@@ -571,7 +576,7 @@ test('doctor: CLI rejects invalid flags and missing runtime/report permissions',
       ],
     );
     assert(written.success);
-    assertEquals(JSON.parse(await Deno.readTextFile(report)), json(written));
+    assertEquals(JSON.parse(await readFile(report, 'utf8')), json(written));
     assertEquals(dirname(report), root);
   });
 });

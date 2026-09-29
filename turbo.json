@@ -7,7 +7,6 @@
     "XDG_*",
     "UV_*",
     "PYTHONDONTWRITEBYTECODE",
-    "DENO_DIR",
     "TMPDIR",
     "CI",
     "CONSTITUTION_VERSION_COMMIT",
@@ -20,7 +19,7 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Verify Deno 2.9.6, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Node 22 or later, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Verify Node 22 or later, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies",
       "cache": false
     },
     "//#format:check": { "cache": false },
@@ -36,6 +35,7 @@
       "cache": false
     },
     "//#test:doctor": { "cache": false },
+    "//#test:ruff": { "cache": false },
     "//#test:git-flow": { "cache": false },
     "//#test:worktree-branch": { "cache": false },
     "//#test:commit-msg": { "cache": false },
@@ -129,6 +129,7 @@
       "command": ["true"],
       "dependsOn": [
         "//#test:doctor",
+        "//#test:ruff",
         "//#test:git-flow",
         "//#test:worktree-branch",
         "//#test:commit-msg",

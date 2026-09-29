@@ -1,6 +1,21 @@
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
 import childProcess from 'node:child_process';
+import fsPromises from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {
+  cp,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readlink,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
 import {test} from 'node:test';
 import {
@@ -9,19 +24,37 @@ import {
   assertRejects,
   assertStringIncludes,
 } from '@std/assert';
-import {copy, walk} from '@std/fs';
 import {fromFileUrl, join, resolve} from '@std/path';
-import {stub} from '@std/testing/mock';
+import {
+  type GetParametersFromProp,
+  type GetReturnFromProp,
+  stub,
+} from '@std/testing/mock';
 import {createProcessor} from '@mdx-js/mdx';
 import remarkGfm from 'remark-gfm';
 import {toString as mdastToString} from 'mdast-util-to-string';
 import {visit} from 'unist-util-visit';
 import {parse} from '@eemeli/yaml';
+import {tmpdir} from 'node:os';
 import {collectHelp, documentedCommands, syncReferenceDocs} from './docs.ts';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
 const decoder = new TextDecoder();
 const referenceFiles = ['commands.md', 'plugins.md'];
+const readText = (path: string) => readFile(path, 'utf8');
+
+async function* walk(root: string) {
+  for (const entry of await readdir(root, {
+    recursive: true,
+    withFileTypes: true,
+  })) {
+    yield {
+      path: join(entry.parentPath, entry.name),
+      isFile: entry.isFile(),
+      isSymlink: entry.isSymbolicLink(),
+    };
+  }
+}
 
 function commandOutput(
   command: string,
@@ -41,11 +74,32 @@ function commandOutput(
   };
 }
 
+function stubBuiltin<T extends object, K extends keyof T>(
+  module: T,
+  method: K,
+  replacement: (
+    this: T,
+    ...args: GetParametersFromProp<T, K>
+  ) => GetReturnFromProp<T, K>,
+) {
+  const value = stub(module, method, replacement);
+  syncBuiltinESMExports();
+  return {
+    get calls() {
+      return value.calls;
+    },
+    restore() {
+      value.restore();
+      syncBuiltinESMExports();
+    },
+  };
+}
+
 async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
-  const repo = await Deno.makeTempDir({prefix: 'docs-test-'});
+  const repo = await mkdtemp(join(tmpdir(), 'docs-test-'));
   try {
     for (const name of ['scripts', 'plugins/code/skills/clean-code'])
-      await copy(join(root, name), join(repo, name));
+      await cp(join(root, name), join(repo, name), {recursive: true});
     for (const name of [
       'package.json',
       'package-lock.json',
@@ -53,52 +107,56 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
       'tsconfig.json',
       'biome.json',
     ])
-      await Deno.copyFile(join(root, name), join(repo, name));
-    await Deno.symlink(join(root, 'node_modules'), join(repo, 'node_modules'), {
-      type: 'dir',
-    });
+      await copyFile(join(root, name), join(repo, name));
+    await symlink(
+      join(root, 'node_modules'),
+      join(repo, 'node_modules'),
+      'dir',
+    );
     for (const name of ['chat', 'code', 'work']) {
-      await Deno.mkdir(join(repo, 'plugins', name), {recursive: true});
-      for (const file of ['plugin.json', 'mcp.json', 'deno.json']) {
+      await mkdir(join(repo, 'plugins', name), {recursive: true});
+      for (const file of ['plugin.json', 'mcp.json']) {
         try {
-          await Deno.copyFile(
+          await copyFile(
             join(root, 'plugins', name, file),
             join(repo, 'plugins', name, file),
           );
         } catch (error) {
-          if (!(error instanceof Deno.errors.NotFound)) throw error;
+          if (
+            !(
+              error instanceof Error &&
+              'code' in error &&
+              error.code === 'ENOENT'
+            )
+          )
+            throw error;
         }
       }
     }
-    await Deno.mkdir(join(repo, 'docs'));
-    await Deno.mkdir(join(repo, 'protected-user-data'));
-    await Deno.writeTextFile(
-      join(repo, 'docs/authored.md'),
-      'Authored sentinel.\n',
-    );
-    await Deno.writeTextFile(
+    await mkdir(join(repo, 'docs'));
+    await mkdir(join(repo, 'protected-user-data'));
+    await writeFile(join(repo, 'docs/authored.md'), 'Authored sentinel.\n');
+    await writeFile(
       join(repo, 'protected-user-data/secret'),
       'User-data sentinel.\n',
     );
     if (!realHelp)
       for (const [name, script] of documentedCommands) {
         if (name !== 'plugins:validate')
-          await Deno.writeTextFile(
+          await writeFile(
             join(repo, script),
-            `if (Deno.args.join() !== '--help') throw new Error('business action');\nconsole.log(${JSON.stringify(`Usage: ${name}\n\nOptions:\n  --help - Show help.\n`)});\n`,
+            `if (process.argv.slice(2).join() !== '--help') throw new Error('business action');\nconsole.log(${JSON.stringify(`Usage: ${name}\n\nOptions:\n  --help - Show help.\n`)});\n`,
           );
       }
     await run(repo);
   } finally {
-    await Deno.remove(repo, {recursive: true});
+    await rm(repo, {recursive: true});
   }
 }
 
 async function pair(repo: string) {
   return await Promise.all(
-    referenceFiles.map(file =>
-      Deno.readTextFile(join(repo, 'docs/reference', file)),
-    ),
+    referenceFiles.map(file => readText(join(repo, 'docs/reference', file))),
   );
 }
 async function changeJson(
@@ -106,23 +164,20 @@ async function changeJson(
   path: string,
   change: (value: Record<string, unknown>) => void,
 ) {
-  const value = JSON.parse(await Deno.readTextFile(join(repo, path)));
+  const value = JSON.parse(await readText(join(repo, path)));
   change(value);
-  await Deno.writeTextFile(join(repo, path), JSON.stringify(value, null, 2));
+  await writeFile(join(repo, path), JSON.stringify(value, null, 2));
 }
 async function tree(repo: string) {
   const values = [];
-  for await (const entry of walk(repo, {followSymlinks: false})) {
+  for await (const entry of walk(repo)) {
     if (entry.isFile)
       values.push([
         entry.path.slice(repo.length),
-        Buffer.from(await Deno.readFile(entry.path)).toString('hex'),
+        Buffer.from(await readFile(entry.path)).toString('hex'),
       ]);
     else if (entry.isSymlink)
-      values.push([
-        entry.path.slice(repo.length),
-        await Deno.readLink(entry.path),
-      ]);
+      values.push([entry.path.slice(repo.length), await readlink(entry.path)]);
     else values.push([entry.path.slice(repo.length), 'directory']);
   }
   return values.sort(([a], [b]) => (a < b ? -1 : 1));
@@ -154,7 +209,7 @@ test('references: real seven help routes, all tasks/plugins and final links are 
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
     const tasks = Object.keys(
-      JSON.parse(await Deno.readTextFile(join(repo, 'package.json'))).scripts,
+      JSON.parse(await readText(join(repo, 'package.json'))).scripts,
     ).sort();
     const invocations: string[] = [];
     visit(parsed(initial[0]), 'tableRow', row => {
@@ -173,7 +228,7 @@ test('references: real seven help routes, all tasks/plugins and final links are 
         links.push(node.url);
       });
       for (const link of links)
-        assert(await Deno.stat(resolve(repo, 'docs/reference', link)));
+        assert(await stat(resolve(repo, 'docs/reference', link)));
       assertEquals(markdown.includes(repo), false);
       assertEquals(markdown.includes('\u001b'), false);
       assert(markdown.endsWith('\n') && !markdown.endsWith('\n\n'));
@@ -252,13 +307,13 @@ test('references: invalid manifests, tasks and duplicate identities retain the p
       ['turbo.json', '{"tasks":{"invalid":1}}'],
     ];
     for (const [path, invalid] of cases) {
-      const saved = await Deno.readTextFile(join(repo, path));
-      if (invalid === null) await Deno.remove(join(repo, path));
-      else await Deno.writeTextFile(join(repo, path), invalid);
+      const saved = await readText(join(repo, path));
+      if (invalid === null) await rm(join(repo, path));
+      else await writeFile(join(repo, path), invalid);
       await assertRejects(() => syncReferenceDocs(repo, 'generate'));
       await checkUnchanged(repo, false);
       assertEquals(await pair(repo), initial);
-      await Deno.writeTextFile(join(repo, path), saved);
+      await writeFile(join(repo, path), saved);
     }
     await changeJson(repo, 'plugins/chat/plugin.json', value => {
       value.name = 'code';
@@ -277,14 +332,14 @@ test('references: every failed help form preserves output and check never repair
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
     for (const script of [
-      'Deno.exit(1);',
+      'process.exit(1);',
       'console.error("unexpected diagnostic"); console.log("Usage: doctor --help");',
-      'Deno.stdout.writeSync(new Uint8Array([255]));',
+      'process.stdout.write(Buffer.from([255]));',
       '',
       'console.log("\\u001b[31mUsage: doctor --help");',
       'console.log("Usage: doctor --help /home/example/private");',
     ]) {
-      await Deno.writeTextFile(join(repo, 'scripts/doctor.ts'), script);
+      await writeFile(join(repo, 'scripts/doctor.ts'), script);
       await assertRejects(() => syncReferenceDocs(repo, 'generate'));
       await checkUnchanged(repo, false);
       assertEquals(await pair(repo), initial);
@@ -294,7 +349,7 @@ test('references: every failed help form preserves output and check never repair
 
 test('references: help cannot write, spawn, use network or read live Wiki configuration', async () => {
   await fixture(async repo => {
-    await Deno.writeTextFile(
+    await writeFile(
       join(repo, 'scripts/doctor.ts'),
       `
       if (
@@ -302,24 +357,24 @@ test('references: help cannot write, spawn, use network or read live Wiki config
         process.permission.has('child') ||
         process.permission.has('fs.read', '${repo}/protected-user-data/secret')
       ) throw new Error('permission widened');
-      if (Deno.env.has('VERBOSE_BROCCOLI_CONFIG') || Deno.args.join() !== '--help') throw new Error('business input');
+      if (process.env.VERBOSE_BROCCOLI_CONFIG !== undefined || process.argv.slice(2).join() !== '--help') throw new Error('business input');
       console.log('Usage: doctor --help');
     `,
     );
-    const old = Deno.env.get('VERBOSE_BROCCOLI_CONFIG');
-    Deno.env.set(
-      'VERBOSE_BROCCOLI_CONFIG',
-      join(repo, 'protected-user-data/secret'),
+    const old = process.env.VERBOSE_BROCCOLI_CONFIG;
+    process.env.VERBOSE_BROCCOLI_CONFIG = join(
+      repo,
+      'protected-user-data/secret',
     );
     try {
       await syncReferenceDocs(repo, 'generate');
       await checkUnchanged(repo, true);
     } finally {
-      if (old === undefined) Deno.env.delete('VERBOSE_BROCCOLI_CONFIG');
-      else Deno.env.set('VERBOSE_BROCCOLI_CONFIG', old);
+      if (old === undefined) delete process.env.VERBOSE_BROCCOLI_CONFIG;
+      else process.env.VERBOSE_BROCCOLI_CONFIG = old;
     }
     assertEquals(
-      await Deno.readTextFile(join(repo, 'protected-user-data/secret')),
+      await readText(join(repo, 'protected-user-data/secret')),
       'User-data sentinel.\n',
     );
   });
@@ -332,12 +387,12 @@ test('references: passing and drifting checks preserve working files and the Git
     await git(repo, ['add', '.']);
     await checkUnchanged(repo, true);
     const commands = join(repo, 'docs/reference/commands.md');
-    const original = await Deno.readTextFile(commands);
-    await Deno.writeTextFile(commands, `${original}Changed.\n`);
+    const original = await readText(commands);
+    await writeFile(commands, `${original}Changed.\n`);
     await checkUnchanged(repo, false);
-    await Deno.remove(commands);
+    await rm(commands);
     await checkUnchanged(repo, false);
-    await Deno.writeTextFile(commands, original);
+    await writeFile(commands, original);
     await changeJson(repo, 'plugins/chat/plugin.json', value => {
       value.description = 'Changed source.';
     });
@@ -351,36 +406,33 @@ test('references: tracked, untracked, ignored, directory and symlink extras are 
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     await git(repo, ['init', '--quiet', '--template=']);
-    await Deno.writeTextFile(
-      join(repo, '.gitignore'),
-      'docs/reference/ignored.md\n',
-    );
+    await writeFile(join(repo, '.gitignore'), 'docs/reference/ignored.md\n');
     for (const name of ['tracked.md', 'untracked.md', 'ignored.md'])
-      await Deno.writeTextFile(
+      await writeFile(
         join(repo, 'docs/reference', name),
         `Protected ${name}.\n`,
       );
     await git(repo, ['add', 'docs/reference/tracked.md']);
-    await Deno.mkdir(join(repo, 'docs/reference/unknown'));
-    await Deno.writeTextFile(
+    await mkdir(join(repo, 'docs/reference/unknown'));
+    await writeFile(
       join(repo, 'docs/reference/unknown/secret'),
       'Nested secret.',
     );
-    await Deno.symlink(
+    await symlink(
       join(repo, 'protected-user-data/secret'),
       join(repo, 'docs/reference/linked.md'),
     );
-    const original = Deno.readFile;
-    {
-      using reads = stub(Deno, 'readFile', (path, options) => {
-        const value = String(path);
-        if (
-          /\/(?:tracked|untracked|ignored|linked)\.md$/.test(value) ||
-          value.includes('/unknown/')
-        )
-          throw new Error('Read an unexpected entry.');
-        return original(path, options);
-      });
+    const original = fsPromises.readFile;
+    const reads = stubBuiltin(fsPromises, 'readFile', (path, options) => {
+      const value = String(path);
+      if (
+        /\/(?:tracked|untracked|ignored|linked)\.md$/.test(value) ||
+        value.includes('/unknown/')
+      )
+        throw new Error('Read an unexpected entry.');
+      return original(path, options);
+    });
+    try {
       await assertRejects(
         () => syncReferenceDocs(repo, 'check'),
         Error,
@@ -392,10 +444,12 @@ test('references: tracked, untracked, ignored, directory and symlink extras are 
         'Unexpected entries',
       );
       assert(reads.calls.length > 0);
+    } finally {
+      reads.restore();
     }
     for (const name of ['tracked.md', 'untracked.md', 'ignored.md'])
       assertStringIncludes(
-        await Deno.readTextFile(join(repo, 'docs/reference', name)),
+        await readText(join(repo, 'docs/reference', name)),
         'Protected',
       );
     await checkUnchanged(repo, false);
@@ -428,10 +482,8 @@ test('references: input and output drift during help collection fail before publ
             (error: Error | null, stdout: Buffer, stderr: Buffer) => {
               if (!changed) {
                 changed = true;
-                void Deno.readTextFile(join(repo, path))
-                  .then(text =>
-                    Deno.writeTextFile(join(repo, path), `${text}\n`),
-                  )
+                void readText(join(repo, path))
+                  .then(text => writeFile(join(repo, path), `${text}\n`))
                   .then(
                     () => finish(error, stdout, stderr),
                     writeError => finish(writeError as Error, stdout, stderr),
@@ -468,23 +520,28 @@ test('references: failed replacement restores the exact previous pair', async ()
     await changeJson(repo, 'plugins/chat/plugin.json', value => {
       value.description = 'Replacement';
     });
-    const original = Deno.rename;
-    using rename = stub(Deno, 'rename', (from, to) => {
+    const original = fsPromises.rename;
+    const renames = stubBuiltin(fsPromises, 'rename', (from, to) => {
       if (String(from).endsWith('/.reference-publication/next'))
         return Promise.reject(new Error('Injected publication failure'));
       return original(from, to);
     });
-    await assertRejects(
-      () => syncReferenceDocs(repo, 'generate'),
-      Error,
-      'Publication failed',
-    );
-    assert(rename.calls.length >= 3);
-    assertEquals(await pair(repo), initial);
-    await assertRejects(
-      () => Deno.stat(join(repo, 'docs/.reference-publication')),
-      Deno.errors.NotFound,
-    );
+    try {
+      await assertRejects(
+        () => syncReferenceDocs(repo, 'generate'),
+        Error,
+        'Publication failed',
+      );
+      assert(renames.calls.length >= 3);
+      assertEquals(await pair(repo), initial);
+      await assertRejects(
+        () => stat(join(repo, 'docs/.reference-publication')),
+        Error,
+        'ENOENT',
+      );
+    } finally {
+      renames.restore();
+    }
   });
 });
 
@@ -495,28 +552,30 @@ test('references: failed rollback retains recovery and the next generation resto
     await changeJson(repo, 'plugins/chat/plugin.json', value => {
       value.description = 'Recovered replacement';
     });
-    const original = Deno.rename;
+    const original = fsPromises.rename;
     {
-      using rename = stub(Deno, 'rename', (from, to) => {
+      const renames = stubBuiltin(fsPromises, 'rename', (from, to) => {
         if (String(from).includes('/.reference-publication/'))
           return Promise.reject(
             new Error('Injected publication and rollback failure'),
           );
         return original(from, to);
       });
-      await assertRejects(
-        () => syncReferenceDocs(repo, 'generate'),
-        Error,
-        'docs/.reference-publication',
-      );
-      assert(rename.calls.length >= 3);
+      try {
+        await assertRejects(
+          () => syncReferenceDocs(repo, 'generate'),
+          Error,
+          'docs/.reference-publication',
+        );
+        assert(renames.calls.length >= 3);
+      } finally {
+        renames.restore();
+      }
     }
     assertEquals(
       await Promise.all(
         referenceFiles.map(file =>
-          Deno.readTextFile(
-            join(repo, 'docs/.reference-publication/previous', file),
-          ),
+          readText(join(repo, 'docs/.reference-publication/previous', file)),
         ),
       ),
       initial,
@@ -530,24 +589,29 @@ test('references: failed rollback retains recovery and the next generation resto
 
 test('references: first-publication failure retains the complete stage for explicit recovery', async () => {
   await fixture(async repo => {
-    const original = Deno.rename;
+    const original = fsPromises.rename;
     {
-      using rename = stub(Deno, 'rename', (from, to) => {
+      const renames = stubBuiltin(fsPromises, 'rename', (from, to) => {
         if (String(from).endsWith('/.reference-publication/next'))
           return Promise.reject(new Error('First publication failed'));
         return original(from, to);
       });
-      await assertRejects(
-        () => syncReferenceDocs(repo, 'generate'),
-        Error,
-        'docs/.reference-publication',
-      );
-      assert(rename.calls.length > 0);
+      try {
+        await assertRejects(
+          () => syncReferenceDocs(repo, 'generate'),
+          Error,
+          'docs/.reference-publication',
+        );
+        assert(renames.calls.length > 0);
+      } finally {
+        renames.restore();
+      }
     }
     for (const file of referenceFiles)
       assert(
-        (await Deno.stat(join(repo, 'docs/.reference-publication/next', file)))
-          .isFile,
+        (
+          await stat(join(repo, 'docs/.reference-publication/next', file))
+        ).isFile(),
       );
     await checkUnchanged(repo, false);
     await syncReferenceDocs(repo, 'generate');
@@ -559,25 +623,27 @@ test('references: another writer appearing between renames is preserved with the
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
-    const original = Deno.rename;
-    using rename = stub(Deno, 'rename', async (from, to) => {
+    const original = fsPromises.rename;
+    const renames = stubBuiltin(fsPromises, 'rename', async (from, to) => {
       await original(from, to);
       if (String(to).endsWith('/.reference-publication/previous'))
-        await Deno.mkdir(join(repo, 'docs/reference'));
+        await mkdir(join(repo, 'docs/reference'));
     });
-    await assertRejects(
-      () => syncReferenceDocs(repo, 'generate'),
-      Error,
-      'docs/.reference-publication',
-    );
-    assert(rename.calls.length > 0);
-    assertEquals([...Deno.readDirSync(join(repo, 'docs/reference'))], []);
+    try {
+      await assertRejects(
+        () => syncReferenceDocs(repo, 'generate'),
+        Error,
+        'docs/.reference-publication',
+      );
+      assert(renames.calls.length > 0);
+      assertEquals(readdirSync(join(repo, 'docs/reference')), []);
+    } finally {
+      renames.restore();
+    }
     assertEquals(
       await Promise.all(
         referenceFiles.map(file =>
-          Deno.readTextFile(
-            join(repo, 'docs/.reference-publication/previous', file),
-          ),
+          readText(join(repo, 'docs/.reference-publication/previous', file)),
         ),
       ),
       initial,
@@ -595,14 +661,17 @@ test('references: actual SIGKILL between directory renames is detected and recov
     });
     const script = `
       import {syncReferenceDocs} from ${JSON.stringify(new URL('./docs.ts', import.meta.url).href)};
-      const rename = Deno.rename;
-      Deno.rename = async (from, to) => {
-        await rename(from, to);
+      import fsPromises from 'node:fs/promises';
+      import {syncBuiltinESMExports} from 'node:module';
+      const original = fsPromises.rename;
+      fsPromises.rename = async (from, to) => {
+        await original(from, to);
         if (String(to).endsWith('/.reference-publication/previous')) {
           console.log('publication-paused');
           await new Promise(() => setInterval(() => {}, 1000));
         }
       };
+      syncBuiltinESMExports();
       await syncReferenceDocs(${JSON.stringify(repo)}, 'generate');
     `;
     const child = spawn(
@@ -613,8 +682,6 @@ test('references: actual SIGKILL between directory renames is detected and recov
         '--allow-fs-read=*',
         '--allow-fs-write=*',
         '--allow-child-process',
-        '--import',
-        join(root, 'scripts/deno_shim.ts'),
         '--input-type=module',
         '-e',
         script,
@@ -635,9 +702,7 @@ test('references: actual SIGKILL between directory renames is detected and recov
     assertEquals(
       await Promise.all(
         referenceFiles.map(file =>
-          Deno.readTextFile(
-            join(repo, 'docs/.reference-publication/previous', file),
-          ),
+          readText(join(repo, 'docs/.reference-publication/previous', file)),
         ),
       ),
       initial,
@@ -650,12 +715,8 @@ test('references: actual SIGKILL between directory renames is detected and recov
 });
 
 test('references: local and PR check entrypoints agree without Node actions', async () => {
-  const packageConfig = JSON.parse(
-    await Deno.readTextFile(join(root, 'package.json')),
-  );
-  const tasks = JSON.parse(
-    await Deno.readTextFile(join(root, 'turbo.json')),
-  ).tasks;
+  const packageConfig = JSON.parse(await readText(join(root, 'package.json')));
+  const tasks = JSON.parse(await readText(join(root, 'turbo.json'))).tasks;
   assertEquals(
     tasks['verbose-broccoli-python#check'].dependsOn.includes('//#docs:check'),
     true,
@@ -669,7 +730,7 @@ test('references: local and PR check entrypoints agree without Node actions', as
     false,
   );
   const workflow = parse(
-    await Deno.readTextFile(join(root, '.github/workflows/docs-check.yml')),
+    await readText(join(root, '.github/workflows/docs-check.yml')),
   ) as {
     on: {pull_request: unknown};
     permissions: {contents: string};
@@ -681,15 +742,7 @@ test('references: local and PR check entrypoints agree without Node actions', as
   assert(steps.every(step => !step.uses));
   assertEquals(steps.at(-1)?.run, 'npm run docs:check');
   assert(steps.some(step => step.run?.includes('v24.19.0-linux-x64')));
-  assert(steps.some(step => step.run?.includes('v2.9.6/deno-')));
   assert(steps.some(step => step.run?.includes('npm ci --ignore-scripts')));
-  assert(
-    steps.some(step =>
-      step.run?.includes(
-        'deno install --config plugins/code/skills/clean-code/deno.json --frozen',
-      ),
-    ),
-  );
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const before = await tree(repo);
@@ -700,7 +753,7 @@ test('references: local and PR check entrypoints agree without Node actions', as
     assertEquals(result.code, 0, decoder.decode(result.stderr));
     assertEquals(JSON.parse(decoder.decode(result.stdout)).status, 'PASS');
     assertEquals(await tree(repo), before);
-    await Deno.remove(join(repo, 'docs/reference/commands.md'));
+    await rm(join(repo, 'docs/reference/commands.md'));
     const missing = await tree(repo);
     const drift = commandOutput('npm', {
       args: ['run', '--silent', 'docs:check'],
@@ -732,8 +785,6 @@ test('references: local and PR check entrypoints agree without Node actions', as
         `--allow-fs-read=${join(repo, 'tsconfig.json')}`,
         `--allow-fs-read=${join(repo, 'biome.json')}`,
         '--allow-child-process',
-        '--import',
-        join(repo, 'scripts/deno_shim.ts'),
         join(repo, 'scripts/docs.ts'),
         'unknown',
       ],

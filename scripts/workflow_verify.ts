@@ -1,4 +1,5 @@
 import {execFile} from 'node:child_process';
+import {mkdir, open, readFile, realpath, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {join} from '@std/path';
 import {Ajv2020} from 'ajv/dist/2020.js';
@@ -24,7 +25,7 @@ interface Context {
   root: string;
   base: string;
   plan_hash: string;
-  deno_version: string;
+  node_version: string;
   command: string;
 }
 export interface EvidenceRecord {
@@ -57,8 +58,8 @@ function validate(value: unknown): EvidenceRecord {
 }
 
 async function load(path: string) {
-  const text = await Deno.readTextFile(path).catch(error => {
-    if (error instanceof Deno.errors.NotFound) return '';
+  const text = await readFile(path, 'utf8').catch(error => {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
     throw error;
   });
   if (text && !text.endsWith('\n'))
@@ -66,7 +67,19 @@ async function load(path: string) {
   const records = text
     .split('\n')
     .filter(Boolean)
-    .map(line => validate(JSON.parse(line)));
+    .map(line => JSON.parse(line) as unknown)
+    .filter(value => {
+      if (
+        typeof value !== 'object' ||
+        value === null ||
+        !('context' in value) ||
+        typeof value.context !== 'object' ||
+        value.context === null
+      )
+        return true;
+      return 'node_version' in value.context;
+    })
+    .map(validate);
   const started = new Map<string, EvidenceRecord>();
   for (const record of records) {
     if (record.event === 'STARTED') started.set(record.run_id, record);
@@ -95,8 +108,8 @@ async function load(path: string) {
 }
 
 async function append(path: string, record: EvidenceRecord) {
-  await Deno.writeTextFile(path, `${JSON.stringify(validate(record))}\n`, {
-    append: true,
+  await writeFile(path, `${JSON.stringify(validate(record))}\n`, {
+    flag: 'a',
     mode: 0o600,
   });
 }
@@ -166,7 +179,7 @@ async function verify(
   } catch (error) {
     log += `\n${String(error)}`;
   }
-  await Deno.writeTextFile(start.log_path, log, {mode: 0o600});
+  await writeFile(start.log_path, log, {mode: 0o600});
   const finish: EvidenceRecord = {
     ...start,
     event: 'FINISHED',
@@ -182,10 +195,10 @@ async function verify(
 export async function evaluateVerification(root: string, options: Options) {
   const context: Context = {
     task_id: options.taskId,
-    root: await Deno.realPath(root),
+    root: await realpath(root),
     base: options.base,
     plan_hash: await sha256(canonicalize(options.plan) ?? 'null'),
-    deno_version: Deno.version.deno,
+    node_version: process.version,
     command: 'npm run check',
   };
   const directory = (
@@ -196,16 +209,11 @@ export async function evaluateVerification(root: string, options: Options) {
       'workflow',
     ])
   ).trim();
-  await Deno.mkdir(directory, {recursive: true, mode: 0o700});
+  await mkdir(directory, {recursive: true, mode: 0o700});
   const evidencePath = join(directory, 'evidence.jsonl');
   const lockPath = join(directory, 'lock');
-  const lockFile = await Deno.open(lockPath, {
-    create: true,
-    write: true,
-    read: true,
-    mode: 0o600,
-  });
-  lockFile.close();
+  const lockFile = await open(lockPath, 'a', 0o600);
+  await lockFile.close();
   const release = await lockfile.lock(lockPath, {
     retries: {retries: 600, minTimeout: 1000, maxTimeout: 1000},
   });
@@ -230,7 +238,7 @@ export async function evaluateVerification(root: string, options: Options) {
       canonicalize(latest.after) === canonicalize(state);
     const logValid =
       fresh &&
-      (await Deno.readFile(latest.log_path)
+      (await readFile(latest.log_path)
         .then(async data => (await sha256(data)) === latest.log_hash)
         .catch(() => false));
     const phase = !latest

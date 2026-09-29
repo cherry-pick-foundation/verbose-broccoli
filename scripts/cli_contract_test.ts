@@ -1,7 +1,10 @@
 import {spawnSync} from 'node:child_process';
+import {copyFile, cp, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {test} from 'node:test';
 import {assert, assertEquals, assertMatch} from '@std/assert';
 import {fromFileUrl, join} from '@std/path';
+import {delimiter, dirname} from 'node:path';
+import {tmpdir} from 'node:os';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
 const skill = join(root, 'plugins/code/skills/clean-code');
@@ -40,8 +43,7 @@ function commandOutput(
 function execute(command: string, args: string[], cwd = root) {
   return commandOutput(command, args, cwd, {
     NO_COLOR: '1',
-    DENO_NO_UPDATE_CHECK: '1',
-    PATH: `${Deno.execPath().slice(0, Deno.execPath().lastIndexOf('/'))}:${Deno.env.get('PATH') ?? ''}`,
+    PATH: `${dirname(process.execPath)}${delimiter}${process.env.PATH ?? ''}`,
     // Keep host Git config, such as a runner's global LFS filters, out of
     // the commands' fixture repositories, as the git() helper below does.
     GIT_CONFIG_NOSYSTEM: '1',
@@ -50,27 +52,6 @@ function execute(command: string, args: string[], cwd = root) {
 }
 
 function invoke(item: (typeof commands)[number], args: string[], cwd = root) {
-  if (item.name === 'clean-code')
-    return execute(
-      Deno.execPath(),
-      [
-        'run',
-        '--quiet',
-        '--config',
-        join(skill, 'deno.json'),
-        '--frozen',
-        '--cached-only',
-        '--no-prompt',
-        '--allow-read',
-        '--allow-write',
-        '--allow-env',
-        '--allow-sys',
-        '--allow-run',
-        join(root, item.script),
-        ...args,
-      ],
-      cwd,
-    );
   return execute(
     process.execPath,
     [
@@ -79,8 +60,6 @@ function invoke(item: (typeof commands)[number], args: string[], cwd = root) {
       '--allow-fs-read=*',
       '--allow-fs-write=*',
       '--allow-child-process',
-      '--import',
-      join(root, 'scripts/deno_shim.ts'),
       join(root, item.script),
       ...args,
     ],
@@ -126,13 +105,12 @@ async function git(cwd: string, args: string[]) {
 async function fixture(
   run: (repo: string, directory: string) => Promise<void>,
 ) {
-  const directory = await Deno.makeTempDir({prefix: 'cli-contract-'});
+  const directory = await mkdtemp(join(tmpdir(), 'cli-contract-'));
   const repo = join(directory, 'repo');
   try {
-    await Deno.mkdir(join(repo, 'scripts'), {recursive: true});
-    await Deno.copyFile(join(root, 'package.json'), join(repo, 'package.json'));
-    await Deno.writeTextFile(join(repo, 'deno.json'), '{}\n');
-    await Deno.writeTextFile(
+    await mkdir(join(repo, 'scripts'), {recursive: true});
+    await copyFile(join(root, 'package.json'), join(repo, 'package.json'));
+    await writeFile(
       join(repo, 'scripts/value.ts'),
       'export function value(input: number) { return input + 1; }\n',
     );
@@ -146,7 +124,7 @@ async function fixture(
     await git(repo, ['commit', '--quiet', '-m', 'Fixture']);
     await run(repo, directory);
   } finally {
-    await Deno.remove(directory, {recursive: true});
+    await rm(directory, {recursive: true});
   }
 }
 
@@ -181,12 +159,12 @@ for (const item of commands) {
       assert(output && typeof output === 'object' && !Array.isArray(output));
       const missing = join(directory, 'missing');
       let failureArgs: string[] = [];
-      if (item.name === 'doctor') failureArgs = ['--deno', missing];
+      if (item.name === 'doctor') failureArgs = ['--quarto', missing];
       if (item.name === 'plugins:validate') failureArgs = [missing];
       if (item.name === 'clean-architecture')
-        await Deno.writeTextFile(join(repo, 'package.json'), '{ invalid');
+        await writeFile(join(repo, 'package.json'), '{ invalid');
       if (item.name === 'clean-code')
-        await Deno.writeTextFile(
+        await writeFile(
           join(repo, 'scripts/value.ts'),
           'export function broken( {',
         );
@@ -206,7 +184,7 @@ for (const item of commands) {
 
 test('CLI: semantic input mistakes fail before execution', async () => {
   const cases: [string, string[]][] = [
-    ['doctor', ['--deno', 'relative']],
+    ['doctor', ['--quarto', 'relative']],
     ['workflow', ['--plan', '']],
     ['workflow', ['--graph', 'unknown']],
     [
@@ -232,29 +210,20 @@ test('CLI: semantic input mistakes fail before execution', async () => {
 test('CLI clean-code: copied skill stays independently runnable', async () => {
   await fixture(async (repo, directory) => {
     const installed = join(directory, 'installed-skill');
-    await Deno.mkdir(join(installed, 'scripts'), {recursive: true});
-    for (const file of [
-      'deno.json',
-      'deno.lock',
-      'scripts/cli.ts',
-      'scripts/clean_code.ts',
-    ])
-      await Deno.copyFile(join(skill, file), join(installed, file));
+    await cp(skill, installed, {recursive: true});
+    const install = execute('npm', [
+      'ci',
+      '--prefix',
+      installed,
+      '--prefer-offline',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+    ]);
+    assertEquals(install.code, 0, decoder.decode(install.stderr));
     const result = execute(
-      Deno.execPath(),
-      [
-        'run',
-        '--quiet',
-        '--config',
-        join(installed, 'deno.json'),
-        '--frozen',
-        '--cached-only',
-        '--no-prompt',
-        '--allow-read',
-        '--allow-env',
-        join(installed, 'scripts/clean_code.ts'),
-        '--scope',
-      ],
+      process.execPath,
+      [join(installed, 'scripts/clean_code.ts'), '--scope'],
       repo,
     );
     assertEquals(result.code, 0, decoder.decode(result.stderr));
@@ -268,8 +237,8 @@ test('CLI clean-code: copied skill stays independently runnable', async () => {
 test('CLI validators: failed checks preserve diagnostics without partial stdout', async () => {
   await fixture(async (repo, directory) => {
     const plugin = join(directory, 'bad-plugin');
-    await Deno.mkdir(plugin);
-    await Deno.writeTextFile(join(plugin, 'plugin.json'), '{}');
+    await mkdir(plugin);
+    await writeFile(join(plugin, 'plugin.json'), '{}');
     const validator = commands.find(item => item.name === 'plugins:validate')!;
     const schemaFailure = errorResult(
       await invoke(validator, [join(root, 'plugins/chat'), plugin]),
@@ -277,15 +246,15 @@ test('CLI validators: failed checks preserve diagnostics without partial stdout'
       'CHECK_FAILED',
     );
     assert(schemaFailure.details.errors.length > 0);
-    await Deno.mkdir(join(repo, 'plugins/demo/domain'), {recursive: true});
-    await Deno.mkdir(join(repo, 'plugins/demo/infrastructure'), {
+    await mkdir(join(repo, 'plugins/demo/domain'), {recursive: true});
+    await mkdir(join(repo, 'plugins/demo/infrastructure'), {
       recursive: true,
     });
-    await Deno.writeTextFile(
+    await writeFile(
       join(repo, 'plugins/demo/domain/value.ts'),
       "import {db} from '../infrastructure/db.ts'; export const value = db;",
     );
-    await Deno.writeTextFile(
+    await writeFile(
       join(repo, 'plugins/demo/infrastructure/db.ts'),
       'export const db = 1;',
     );
@@ -304,7 +273,7 @@ test('CLI validators: failed checks preserve diagnostics without partial stdout'
 test('CLI workflow: invalid plan schema takes precedence over Git execution', async () => {
   await fixture(async (_repo, directory) => {
     const plan = join(directory, 'invalid-plan.json');
-    await Deno.writeTextFile(plan, '{"tasks":[]}');
+    await writeFile(plan, '{"tasks":[]}');
     const workflow = commands.find(item => item.name === 'workflow')!;
     errorResult(
       await invoke(workflow, ['--plan', plan], directory),

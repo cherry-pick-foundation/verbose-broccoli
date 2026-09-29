@@ -4,6 +4,7 @@ import {
   runCli,
   ValidationError,
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
+import {lstat, readFile} from 'node:fs/promises';
 import {fromFileUrl, join} from '@std/path';
 import {Ajv2020} from 'ajv/dist/2020.js';
 import pluginSchema from './vendor/agent-plugins/plugin.schema.json' with {
@@ -25,12 +26,15 @@ export async function readPluginManifests(root: string, label = root) {
     const path = join(root, filename);
     const display = join(label, filename);
     try {
-      const info = await Deno.lstat(path);
-      if (!info.isFile || info.isSymlink)
+      const info = await lstat(path);
+      if (!info.isFile() || info.isSymbolicLink())
         throw new Error(`${display}: expected a regular file.`);
-      values[filename] = JSON.parse(await Deno.readTextFile(path));
+      values[filename] = JSON.parse(await readFile(path, 'utf8'));
     } catch (error) {
-      if (filename === 'mcp.json' && error instanceof Deno.errors.NotFound)
+      if (
+        filename === 'mcp.json' &&
+        (error as NodeJS.ErrnoException).code === 'ENOENT'
+      )
         continue;
       throw new Error(`${display}: unable to read a regular JSON manifest.`, {
         cause: error,
@@ -79,6 +83,6 @@ if (import.meta.main) {
         }
         createReport({plugins: results});
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

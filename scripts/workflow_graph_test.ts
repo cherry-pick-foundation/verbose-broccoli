@@ -7,6 +7,10 @@ import {
 } from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
+import fs from 'node:fs/promises';
+import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
+import {tmpdir} from 'node:os';
 import {inspectGraph} from './workflow_graph.ts';
 
 async function git(root: string, ...args: string[]) {
@@ -41,18 +45,18 @@ async function repository(
   files: Record<string, string>,
   run: (root: string) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'workflow-graph-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'workflow-graph-test-'));
   try {
     await git(root, 'init', '--quiet', '--template=', '--initial-branch=main');
     for (const [path, content] of Object.entries(files)) {
-      await Deno.mkdir(dirname(join(root, path)), {recursive: true});
-      await Deno.writeTextFile(join(root, path), content);
+      await mkdir(dirname(join(root, path)), {recursive: true});
+      await writeFile(join(root, path), content);
     }
     await git(root, 'add', '--all');
     await git(root, 'commit', '--quiet', '-m', 'Graph fixture');
     await run(root);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
@@ -78,8 +82,6 @@ async function cli(root: string, ...args: string[]) {
       '--allow-fs-read=*',
       '--allow-fs-write=*',
       '--allow-child-process',
-      '--import',
-      fromFileUrl(new URL('./deno_shim.ts', import.meta.url)),
       fromFileUrl(new URL('./workflow.ts', import.meta.url)),
       ...args,
     ],
@@ -100,7 +102,9 @@ test('workflow graph: aliases and re-exports reach transitive consumers and affe
       'package.json': JSON.stringify({
         imports: {'#value': `./${prefix}value.ts`},
       }),
-      'plugins/demo/deno.json': JSON.stringify({exports: './src/api.ts'}),
+      'plugins/demo/package.json': JSON.stringify({
+        exports: './src/api.ts',
+      }),
       [`${prefix}value.ts`]: 'export const value = 1;',
       [`${prefix}reexport.ts`]: "export {value} from '#value';",
       [`${prefix}api.ts`]: "export {value} from './reexport.ts';",
@@ -156,7 +160,7 @@ test('workflow graph: every query sees same-length import edits and a new snapsh
     async root => {
       const before = await impact(root, 'src/value.ts');
       assertEquals(before.dependents, ['tests/value.test.ts']);
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, 'tests/value.test.ts'),
         "export {value} from '../src/other.ts';",
       );
@@ -289,8 +293,8 @@ test('workflow graph: missing, ignored and symlinked selections are rejected', a
       'node_modules/example/hidden.ts': 'export const value = 5;',
     },
     async root => {
-      await Deno.symlink('value.ts', join(root, 'src/alias.ts'));
-      await Deno.symlink('src', join(root, 'alias-directory'));
+      await symlink('value.ts', join(root, 'src/alias.ts'));
+      await symlink('src', join(root, 'alias-directory'));
       for (const file of [
         'src/absent.ts',
         'notes.txt',
@@ -333,9 +337,9 @@ test('workflow graph: local symbols expose definitions, references and actual ca
         "import {double} from './math.ts';\nexport function run() { return double(2); }\n",
       'src/types.ts': 'export type Stats = Deno.FileInfo;\n',
       'src/alias.ts': `import {double} from '#math';\n${aliasCall}\n`,
-      'packages/math/deno.json': JSON.stringify({
+      'packages/math/package.json': JSON.stringify({
         name: '@demo/math',
-        exports: './src/api.ts',
+        exports: {'.': './src/api.ts'},
       }),
       'packages/math/src/api.ts': "export {scale} from './implementation.ts';",
       'packages/math/src/implementation.ts':
@@ -415,11 +419,11 @@ test('workflow graph: local symbols expose definitions, references and actual ca
         assertEquals(external.symbol.status, 'UNRESOLVED', name);
         assertEquals(external.symbol.definitions, [], name);
       }
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, 'src/math.ts'),
         source.replaceAll('double', 'triple'),
       );
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, 'src/use.ts'),
         "import {triple} from './math.ts';\nexport function run() { return triple(2); }\n",
       );
@@ -457,20 +461,21 @@ test('workflow graph: mutations while reading symbol sources invalidate the repo
   await repository(
     {'src/value.ts': source, 'src/marker.ts': 'export const marker = 1;'},
     async root => {
-      const read = Deno.readTextFile;
+      const read = fs.readFile;
       let changed = false;
       try {
-        Deno.readTextFile = async (path, options) => {
+        fs.readFile = (async (path, options) => {
           const text = await read(path, options);
           if (!changed && path === join(root, 'src/value.ts')) {
             changed = true;
-            await Deno.writeTextFile(
+            await writeFile(
               join(root, 'src/marker.ts'),
               'export const marker = 2;',
             );
           }
           return text;
-        };
+        }) as typeof fs.readFile;
+        syncBuiltinESMExports();
         await assertRejects(
           () =>
             inspectGraph(root, {
@@ -484,7 +489,8 @@ test('workflow graph: mutations while reading symbol sources invalidate the repo
         );
         assert(changed);
       } finally {
-        Deno.readTextFile = read;
+        fs.readFile = read;
+        syncBuiltinESMExports();
       }
     },
   );
@@ -526,7 +532,7 @@ test('workflow graph CLI: valid queries succeed while bad input and policy viola
       '1',
     );
     assertEquals(invalid.code, 2);
-    await Deno.writeTextFile(
+    await writeFile(
       join(root, 'src/value.ts'),
       "export {absent} from './absent.ts';",
     );

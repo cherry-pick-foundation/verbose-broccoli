@@ -130,8 +130,8 @@ export async function constitutionVersionRule(
   parsed: ParsedCommit,
 ): Promise<VersionResult> {
   try {
-    const commit = Deno.env.get('CONSTITUTION_VERSION_COMMIT');
-    const amend = Deno.env.get('CONSTITUTION_VERSION_AMEND');
+    const commit = process.env.CONSTITUTION_VERSION_COMMIT;
+    const amend = process.env.CONSTITUTION_VERSION_AMEND;
     const headRef = commit ? `${commit}^` : amend ? 'HEAD^' : 'HEAD';
     const head = await git(['rev-parse', '--verify', '--quiet', headRef]);
     if (head.code === 1) {

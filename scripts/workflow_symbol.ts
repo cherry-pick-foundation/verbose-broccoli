@@ -1,4 +1,5 @@
 import {relative, resolve} from '@std/path';
+import {readFile} from 'node:fs/promises';
 import type {ICruiseResult} from 'dependency-cruiser';
 import ts from 'typescript';
 
@@ -21,7 +22,7 @@ export async function inspectSymbol(
   );
   const texts = new Map<string, string>();
   for (const name of modules.keys())
-    texts.set(name, await Deno.readTextFile(name));
+    texts.set(name, await readFile(name, 'utf8'));
   const service = ts.createLanguageService({
     getCompilationSettings: () => ({
       target: ts.ScriptTarget.ESNext,
@@ -160,7 +161,7 @@ export async function inspectSymbol(
       ),
       limitations: [
         'Only the supplied local code snapshot and statically resolved import edges are indexed.',
-        'External package declarations, standard libraries and Deno globals are not loaded; inferred types and member resolution may be incomplete.',
+        'External package declarations, standard libraries and runtime globals are not loaded; inferred types and member resolution may be incomplete.',
         'References and call hierarchy are TypeScript static findings, not an exhaustive runtime call graph or a comparison with an earlier revision.',
       ],
     };

@@ -6,15 +6,6 @@ scripts:
     cd "$project_root"
     sh scripts/worktree-branch.sh
 
-    if [ -x "$HOME/.deno/bin/deno" ]; then
-      deno_bin="$HOME/.deno/bin/deno"
-    elif command -v deno >/dev/null 2>&1; then
-      deno_bin="$(command -v deno)"
-    else
-      echo 'Deno 2.9.6 was not found.' >&2
-      exit 127
-    fi
-
     if [ -x "$HOME/.local/bin/uv" ]; then
       uv_bin="$HOME/.local/bin/uv"
     elif command -v uv >/dev/null 2>&1; then
@@ -33,10 +24,9 @@ scripts:
       exit 127
     fi
 
-    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$(dirname "$deno_bin"):$PATH"
+    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$PATH"
 
     npm ci --ignore-scripts --no-audit --no-fund
-    "$deno_bin" install --config plugins/code/skills/clean-code/deno.json --frozen --no-prompt
     "$uv_bin" sync --locked --all-packages --extra education
     "$uv_bin" sync --locked --project tools/spec-kit
     "$uv_bin" sync --locked --project tools/shellcheck

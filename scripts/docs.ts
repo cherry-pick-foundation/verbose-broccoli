@@ -1,5 +1,16 @@
 import {execFile} from 'node:child_process';
 import {Buffer} from 'node:buffer';
+import {
+  lstat,
+  mkdir,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rmdir,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {dirname, fromFileUrl, join, relative, resolve} from '@std/path';
 import {z} from '@zod/zod';
@@ -49,15 +60,15 @@ function fail(path: string, message: string): never {
 
 async function info(root: string, path: string) {
   try {
-    const value = await Deno.lstat(join(root, path));
+    const value = await lstat(join(root, path));
     if (
-      value.isSymlink ||
-      (await Deno.realPath(join(root, path))) !== join(root, path)
+      value.isSymbolicLink() ||
+      (await realpath(join(root, path))) !== join(root, path)
     )
       fail(path, 'Symlink traversal is not permitted.');
     return value;
   } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return null;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     if (error instanceof Error && error.message.startsWith(`${path}:`))
       throw error;
     fail(path, 'Unable to inspect the selected path.');
@@ -67,11 +78,11 @@ async function info(root: string, path: string) {
 async function read(root: string, path: string, optional = false) {
   const stat = await info(root, path);
   if (!stat && optional) return null;
-  if (!stat?.isFile) fail(path, 'Expected a regular input file.');
+  if (!stat?.isFile()) fail(path, 'Expected a regular input file.');
   try {
     return {
-      text: decoder.decode(await Deno.readFile(join(root, path))),
-      stamp: [stat.dev, stat.ino, stat.size, stat.mtime?.getTime()],
+      text: decoder.decode(await readFile(join(root, path))),
+      stamp: [stat.dev, stat.ino, stat.size, stat.mtimeMs],
     };
   } catch {
     fail(path, 'Unable to read UTF-8 input.');
@@ -83,9 +94,6 @@ async function inputs(root: string, selected?: string[]) {
     'package.json',
     'package-lock.json',
     'turbo.json',
-    'plugins/code/deno.json',
-    `${skill}/deno.json`,
-    `${skill}/deno.lock`,
     'scripts/docs.ts',
     ...documentedCommands.map(([, script]) => script),
     ...packages.flatMap(name => [
@@ -128,19 +136,14 @@ function stableText(value: string, root: string, path: string) {
 export async function collectHelp(root: string) {
   const result = new Map<string, string>();
   for (const [name, script] of documentedCommands) {
-    const fromDeno = name === 'clean-code';
-    const allowed = ['scripts', skill, 'deno.json', 'deno.lock', 'biome.json']
-      .map(path => join(root, path))
-      .join(',');
     const environment = {
       ...Object.fromEntries(
-        ['HOME', 'DENO_DIR', 'SYSTEMROOT'].flatMap(key => {
-          const value = Deno.env.get(key);
+        ['HOME', 'SYSTEMROOT'].flatMap(key => {
+          const value = process.env[key];
           return value ? [[key, value]] : [];
         }),
       ),
       NO_COLOR: '1',
-      DENO_NO_UPDATE_CHECK: '1',
       TERM: 'dumb',
       COLUMNS: '80',
       LC_ALL: 'C',
@@ -160,7 +163,7 @@ export async function collectHelp(root: string) {
         const scope = join(root, path);
         return [
           `--allow-fs-read=${scope}`,
-          `--allow-fs-read=${await Deno.realPath(scope)}`,
+          `--allow-fs-read=${await realpath(scope)}`,
         ];
       }),
     );
@@ -171,36 +174,15 @@ export async function collectHelp(root: string) {
       stderr: Buffer;
     }>((resolve, reject) => {
       execFile(
-        fromDeno
-          ? Deno.env.get('HOME')
-            ? join(Deno.env.get('HOME')!, '.deno/bin/deno')
-            : 'deno'
-          : process.execPath,
-        fromDeno
-          ? [
-              'run',
-              '--quiet',
-              '--config',
-              join(root, `${skill}/deno.json`),
-              '--frozen',
-              '--cached-only',
-              '--no-prompt',
-              `--allow-read=${allowed}`,
-              '--allow-env',
-              '--allow-sys',
-              join(root, script),
-              '--help',
-            ]
-          : [
-              '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
-              '--disable-warning=SecurityWarning',
-              '--permission',
-              ...readable.flat(),
-              '--import',
-              join(root, 'scripts/deno_shim.ts'),
-              join(root, script),
-              '--help',
-            ],
+        process.execPath,
+        [
+          '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+          '--disable-warning=SecurityWarning',
+          '--permission',
+          ...readable.flat(),
+          join(root, script),
+          '--help',
+        ],
         {
           cwd: root,
           env: environment,
@@ -431,35 +413,29 @@ async function directory(root: string, path: string) {
   const stat = await info(root, path);
   const contents: Record<string, string> = {};
   const unexpected: string[] = [];
-  const stamps: unknown[] = [stat?.dev, stat?.ino, stat?.mtime?.getTime()];
-  if (stat && !stat.isDirectory) unexpected.push(path);
-  if (stat?.isDirectory) {
-    const entries = [...Deno.readDirSync(join(root, path))].sort((a, b) =>
-      a.name < b.name ? -1 : 1,
-    );
+  const stamps: unknown[] = [stat?.dev, stat?.ino, stat?.mtimeMs];
+  if (stat && !stat.isDirectory()) unexpected.push(path);
+  if (stat?.isDirectory()) {
+    const entries = (
+      await readdir(join(root, path), {withFileTypes: true})
+    ).sort((a, b) => (a.name < b.name ? -1 : 1));
     for (const entry of entries) {
       const child = `${path}/${entry.name}`;
       if (
         !files.some(file => file === entry.name) ||
-        !entry.isFile ||
-        entry.isSymlink
+        !entry.isFile() ||
+        entry.isSymbolicLink()
       ) {
         unexpected.push(child);
         continue;
       }
-      const value = await Deno.lstat(join(root, child));
-      if (!value.isFile || value.isSymlink)
+      const value = await lstat(join(root, child));
+      if (!value.isFile() || value.isSymbolicLink())
         fail(child, 'Output changed while inspecting.');
       contents[entry.name] = Buffer.from(
-        await Deno.readFile(join(root, child)),
+        await readFile(join(root, child)),
       ).toString('hex');
-      stamps.push(
-        entry.name,
-        value.dev,
-        value.ino,
-        value.size,
-        value.mtime?.getTime(),
-      );
+      stamps.push(entry.name, value.dev, value.ino, value.size, value.mtimeMs);
     }
   }
   return {exists: stat !== null, contents, unexpected, stamps};
@@ -496,17 +472,17 @@ async function removeRecovery(root: string) {
     owned(state, recovery);
     if (state.exists) {
       for (const file of Object.keys(state.contents))
-        await Deno.remove(join(root, recovery, name, file));
-      await Deno.remove(join(root, recovery, name));
+        await unlink(join(root, recovery, name, file));
+      await rmdir(join(root, recovery, name));
     }
   }
-  await Deno.remove(join(root, recovery, 'state.json'));
-  await Deno.remove(join(root, recovery));
+  await unlink(join(root, recovery, 'state.json'));
+  await rmdir(join(root, recovery));
 }
 
 async function recover(root: string, rollback = false) {
   if (!(await info(root, recovery))) return;
-  const entries = [...Deno.readDirSync(join(root, recovery))];
+  const entries = await readdir(join(root, recovery), {withFileTypes: true});
   if (
     entries.some(
       entry => !['state.json', 'next', 'previous'].includes(entry.name),
@@ -538,9 +514,9 @@ async function recover(root: string, rollback = false) {
   ) {
     if (!rollback) restored = journal.after;
     if (rollback) {
-      await Deno.rename(join(root, output), join(root, recovery, 'next'));
+      await rename(join(root, output), join(root, recovery, 'next'));
       if (journal.before === null) return;
-      await Deno.rename(join(root, recovery, 'previous'), join(root, output));
+      await rename(join(root, recovery, 'previous'), join(root, output));
     }
   } else if (
     !current.exists &&
@@ -549,10 +525,9 @@ async function recover(root: string, rollback = false) {
   ) {
     if (journal.before === null) {
       if (rollback) return;
-      await Deno.rename(join(root, recovery, 'next'), join(root, output));
+      await rename(join(root, recovery, 'next'), join(root, output));
       restored = journal.after;
-    } else
-      await Deno.rename(join(root, recovery, 'previous'), join(root, output));
+    } else await rename(join(root, recovery, 'previous'), join(root, output));
   } else if (
     exact(now, journal.before) &&
     !previous.exists &&
@@ -640,31 +615,29 @@ export async function syncReferenceDocs(
     await recover(root);
     before = await directory(root, output);
     await unchanged(root, snapshot, before);
-    await Deno.mkdir(join(root, recovery));
+    await mkdir(join(root, recovery));
     try {
       const after = Object.fromEntries(
         await Promise.all(
           files.map(async file => [file, await sha256(expected[file])]),
         ),
       );
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, recovery, 'state.json'),
         JSON.stringify({version: 1, before: await hashes(before), after}),
-        {createNew: true},
+        {flag: 'wx'},
       );
-      await Deno.mkdir(join(root, recovery, 'next'));
+      await mkdir(join(root, recovery, 'next'));
       for (const file of files)
-        await Deno.writeTextFile(
-          join(root, recovery, 'next', file),
-          expected[file],
-          {createNew: true},
-        );
+        await writeFile(join(root, recovery, 'next', file), expected[file], {
+          flag: 'wx',
+        });
       await unchanged(root, snapshot, before);
       if (before.exists)
-        await Deno.rename(join(root, output), join(root, recovery, 'previous'));
+        await rename(join(root, output), join(root, recovery, 'previous'));
       if (await info(root, output))
         fail(output, 'Output reappeared during publication.');
-      await Deno.rename(join(root, recovery, 'next'), join(root, output));
+      await rename(join(root, recovery, 'next'), join(root, output));
       const published = await directory(root, output);
       owned(published, output);
       if (!exact(await hashes(published), after))
@@ -709,5 +682,5 @@ if (import.meta.main)
           ),
         );
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );

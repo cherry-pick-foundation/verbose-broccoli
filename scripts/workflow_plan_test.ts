@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import {assert, assertEquals, assertRejects} from '@std/assert';
 import {dirname, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {analyzePlan} from './workflow_plan.ts';
 import {selectWorkMode, inspectChanges} from './workflow.ts';
 
@@ -22,15 +24,15 @@ async function fixture(
   files: Record<string, string>,
   run: (root: string) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'workflow-plan-'});
+  const root = await mkdtemp(join(tmpdir(), 'workflow-plan-'));
   try {
     for (const [path, content] of Object.entries(files)) {
-      await Deno.mkdir(dirname(join(root, path)), {recursive: true});
-      await Deno.writeTextFile(join(root, path), content);
+      await mkdir(dirname(join(root, path)), {recursive: true});
+      await writeFile(join(root, path), content);
     }
     await run(root);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
@@ -122,7 +124,7 @@ test('workflow plan: root and tests consumers prevent parallel edits across scan
       {
         [first]: 'export const first = 1;',
         [second]: 'export const second = 2;',
-        'plugins/demo/deno.json': JSON.stringify({
+        'plugins/demo/package.json': JSON.stringify({
           exports: {
             './first': './src/first.ts',
             './second': './src/second.ts',
@@ -193,7 +195,7 @@ test('workflow plan: overlap, missing files, unsupported sources and unresolved 
         });
         assertEquals(selectWorkMode(unchanged, result).mode, 'REVIEW', file);
       }
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, second),
         "export {missing} from './missing.ts';",
       );
@@ -212,10 +214,7 @@ test('workflow plan: symlink aliases cannot give two agents the same writable fi
       [second]: 'export const second = 2;',
     },
     async root => {
-      await Deno.symlink(
-        join(root, first),
-        join(root, 'plugins/demo/src/alias.ts'),
-      );
+      await symlink(join(root, first), join(root, 'plugins/demo/src/alias.ts'));
       const plan = {
         tasks: [tasks[0], {id: 'alias', files: ['plugins/demo/src/alias.ts']}],
       };
@@ -235,7 +234,7 @@ test('workflow plan: symlink aliases cannot give two agents the same writable fi
           'REVIEW',
         );
       }
-      await Deno.symlink(join(root, 'plugins/demo/src'), join(root, 'alias'));
+      await symlink(join(root, 'plugins/demo/src'), join(root, 'alias'));
       assertEquals(
         selectWorkMode(
           unchanged,
@@ -339,7 +338,7 @@ test('workflow plan: Git integration routes a clean plan then rejects changes ou
       const result = await inspectChanges(root, 'HEAD', {tasks});
       assertEquals(result.mode, 'PARALLEL');
       assertEquals(result.tasks, tasks);
-      await Deno.writeTextFile(join(root, 'outside.txt'), 'outside\n');
+      await writeFile(join(root, 'outside.txt'), 'outside\n');
       assertEquals(
         (await inspectChanges(root, 'HEAD', {tasks})).mode,
         'REVIEW',

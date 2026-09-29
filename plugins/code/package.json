@@ -1,5 +1,5 @@
 {
-  "publish": false,
+  "private": true,
   "exports": {
     "./cli": "./skills/clean-code/scripts/cli.ts"
   }

@@ -4,6 +4,7 @@ import {
   runCli,
   ValidationError,
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
+import {lstat, readFile} from 'node:fs/promises';
 import {importRules} from './clean_architecture.ts';
 import {analyzePlan, planSchema, type PlanResult} from './workflow_plan.ts';
 import {
@@ -25,7 +26,7 @@ interface Signals {
 }
 
 const reviewPaths =
-  /(^|\/)(AGENTS\.md|deno\.jsonc?|deno\.lock|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|plugin\.json|mcp\.json|tsconfig[^/]*\.json|biome\.jsonc?|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
+  /(^|\/)(AGENTS\.md|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|plugin\.json|mcp\.json|tsconfig[^/]*\.json|biome\.jsonc?|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
 const entryPath = /(^|\/)(mod|index)\.[cm]?[jt]sx?$/;
 const diffOptions = [
   '--no-ext-diff',
@@ -263,9 +264,9 @@ async function collectSignals(
   const lineCounts = records.map(record => sumNumstatLines(record.stats));
   for (const path of untracked) {
     statuses.push('?');
-    const info = await Deno.lstat(`${root}/${path}`);
+    const info = await lstat(`${root}/${path}`);
     lineCounts.push(
-      info.isFile
+      info.isFile()
         ? sumNumstatLines(
             await runGit(
               root,
@@ -472,7 +473,7 @@ if (import.meta.main) {
           );
         let plan: unknown;
         if (args.plan !== undefined) {
-          const text = await Deno.readTextFile(args.plan);
+          const text = await readFile(args.plan, 'utf8');
           try {
             plan = planSchema.parse(JSON.parse(text));
           } catch (error) {
@@ -483,8 +484,8 @@ if (import.meta.main) {
             );
           }
         }
-        const snapshot = await snapshotWorkingTree(Deno.cwd());
-        const routing = await inspectChanges(Deno.cwd(), args.base, plan);
+        const snapshot = await snapshotWorkingTree(process.cwd());
+        const routing = await inspectChanges(process.cwd(), args.base, plan);
         const graph =
           args.graph === undefined
             ? undefined
@@ -566,6 +567,6 @@ if (import.meta.main) {
             (args.verify && loop.phase !== 'VERIFIED'),
         );
       })
-      .parse(Deno.args),
+      .parse(process.argv.slice(2)),
   );
 }

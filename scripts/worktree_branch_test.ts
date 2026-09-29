@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import {assert, assertEquals, assertMatch} from '@std/assert';
 import {basename, dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
+import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 
 const script = fromFileUrl(new URL('./worktree-branch.sh', import.meta.url));
 const decoder = new TextDecoder();
@@ -52,7 +54,7 @@ type AddWorktree = (
 async function temporary(
   run: (repo: string, addWorktree: AddWorktree) => Promise<void>,
 ) {
-  const root = await Deno.makeTempDir({prefix: 'worktree-branch-test-'});
+  const root = await mkdtemp(join(tmpdir(), 'worktree-branch-test-'));
   const repo = join(root, 'develop');
   const addWorktree: AddWorktree = async (
     repo,
@@ -69,7 +71,7 @@ async function temporary(
     return folder;
   };
   try {
-    await Deno.mkdir(repo);
+    await mkdir(repo);
     await git(repo, 'init', '--initial-branch=develop');
     await git(repo, 'config', 'user.name', 'Worktree Branch Test');
     await git(
@@ -78,13 +80,13 @@ async function temporary(
       'user.email',
       'worktree-branch-test@example.invalid',
     );
-    await Deno.writeTextFile(join(repo, 'seed.txt'), 'seed\n');
+    await writeFile(join(repo, 'seed.txt'), 'seed\n');
     await git(repo, 'add', 'seed.txt');
     await git(repo, 'commit', '-m', 'initial');
     await git(repo, 'branch', 'main');
     await run(repo, addWorktree);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 }
 
@@ -191,7 +193,7 @@ test('worktree branch: skips branches that must not be renamed', async () => {
     }
 
     const ownCommit = await addWorktree(repo, 'own-commit');
-    await Deno.writeTextFile(join(ownCommit, 'own.txt'), 'own\n');
+    await writeFile(join(ownCommit, 'own.txt'), 'own\n');
     await git(ownCommit, 'add', 'own.txt');
     await git(ownCommit, 'commit', '-m', 'own change');
     let before = await snapshot(repo);

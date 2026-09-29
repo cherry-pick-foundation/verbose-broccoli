@@ -1,4 +1,6 @@
 import {execFile} from 'node:child_process';
+import type {Stats} from 'node:fs';
+import {lstat, readFile, readlink} from 'node:fs/promises';
 import {join} from '@std/path';
 import canonicalize from 'canonicalize';
 import {sha256} from './hash.ts';
@@ -64,33 +66,34 @@ async function fileState(root: string, path: string) {
   let target = root;
   for (let index = 0; index < parts.length; index++) {
     target = join(target, parts[index]);
-    let info: Deno.FileInfo;
+    let info: Stats;
     try {
-      info = await Deno.lstat(target);
+      info = await lstat(target);
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) return {path, type: 'missing'};
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT')
+        return {path, type: 'missing'};
       throw error;
     }
-    if (info.isSymlink) {
+    if (info.isSymbolicLink()) {
       return {
         path,
         type: 'symlink',
         at: parts.slice(0, index + 1).join('/'),
         mode: info.mode,
-        target: await Deno.readLink(target),
+        target: await readlink(target),
       };
     }
     if (index === parts.length - 1) {
-      if (!info.isFile)
+      if (!info.isFile())
         throw new Error(`Unsupported working tree file: ${path}`);
       return {
         path,
         type: 'file',
         mode: info.mode,
-        hash: await sha256(await Deno.readFile(target)),
+        hash: await sha256(await readFile(target)),
       };
     }
-    if (!info.isDirectory)
+    if (!info.isDirectory())
       throw new Error(`Non-directory ancestor of tracked file: ${path}`);
   }
 }

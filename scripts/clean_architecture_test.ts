@@ -1,4 +1,6 @@
 import {spawnSync} from 'node:child_process';
+import {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assert, assertThrows} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
@@ -24,12 +26,12 @@ function commandOutput(
   };
 }
 
-test('architecture: dependency directions, cycles, public APIs and Deno aliases', async () => {
-  const cwd = Deno.cwd();
-  const root = await Deno.makeTempDir({prefix: 'architecture-'});
+test('architecture: dependency directions, cycles, public APIs and package aliases', async () => {
+  const cwd = process.cwd();
+  const root = await mkdtemp(join(tmpdir(), 'architecture-'));
   const files = {
     'package.json': JSON.stringify({dependencies: {}}),
-    'plugins/a/deno.json': JSON.stringify({
+    'plugins/a/package.json': JSON.stringify({
       imports: {
         '@platform': './src/infrastructure/db.ts',
         '@database': 'npm:@electric-sql/pglite@0.5.8',
@@ -38,7 +40,7 @@ test('architecture: dependency directions, cycles, public APIs and Deno aliases'
         '@file': 'npm:ajv@8.20.0/dist/2020.js',
       },
     }),
-    'plugins/b/deno.json': '{}',
+    'plugins/b/package.json': '{}',
     'plugins/a/src/domain/outer.ts':
       "export {value} from '../infrastructure/db.ts';",
     'plugins/a/src/domain/type-only.ts':
@@ -73,7 +75,7 @@ test('architecture: dependency directions, cycles, public APIs and Deno aliases'
     'packages/undeclared/internal/value.ts': 'export const value = 1;',
     'plugins/a/src/undeclared.ts':
       "export {value} from '../../../packages/undeclared/internal/value.ts';",
-    'packages/shared/deno.json': JSON.stringify({
+    'packages/shared/package.json': JSON.stringify({
       name: '@demo/shared',
       exports: './src/mod.ts',
     }),
@@ -91,10 +93,10 @@ test('architecture: dependency directions, cycles, public APIs and Deno aliases'
   try {
     for (const [path, source] of Object.entries(files)) {
       const file = join(root, path);
-      await Deno.mkdir(join(file, '..'), {recursive: true});
-      await Deno.writeTextFile(file, source);
+      await mkdir(join(file, '..'), {recursive: true});
+      await writeFile(file, source);
     }
-    Deno.chdir(root);
+    process.chdir(root);
     const result = await analyzeImportGraph();
     const violations = result.summary.violations;
     for (const [from, rule] of [
@@ -134,33 +136,37 @@ test('architecture: dependency directions, cycles, public APIs and Deno aliases'
       assert(!violations.some(item => item.from === from), from);
     assert(result.summary.totalCruised >= 20);
   } finally {
-    Deno.chdir(cwd);
-    await Deno.remove(root, {recursive: true});
+    process.chdir(cwd);
+    await rm(root, {recursive: true});
   }
 });
 
-test('architecture: unsupported scoped imports fail instead of skipping edges', async () => {
-  const root = await Deno.makeTempDir({prefix: 'architecture-scopes-'});
+test('architecture: package exports cannot escape their plugin root', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'architecture-package-'));
   try {
-    await Deno.mkdir(join(root, 'plugins/a'), {recursive: true});
-    await Deno.writeTextFile(join(root, 'package.json'), '{}');
-    await Deno.writeTextFile(
-      join(root, 'plugins/a/deno.json'),
-      JSON.stringify({scopes: {}}),
+    await mkdir(join(root, 'plugins/a'), {recursive: true});
+    await writeFile(join(root, 'package.json'), '{}');
+    await writeFile(
+      join(root, 'plugins/a/package.json'),
+      JSON.stringify({name: '@demo/a', exports: '../../outside.ts'}),
     );
-    assertThrows(() => importRules(root), Error, 'scoped aliases');
+    assertThrows(
+      () => importRules(root),
+      Error,
+      'Public exports must stay inside',
+    );
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 });
 
 test('architecture: domain runtime APIs, aliases, globalThis and valid local bindings', async () => {
-  const root = await Deno.makeTempDir({prefix: 'architecture-domain-'});
+  const root = await mkdtemp(join(tmpdir(), 'architecture-domain-'));
   const invalid = [
-    "Deno.env.get('KEY');",
-    'const {env} = Deno;',
-    "globalThis.Deno.env.get('KEY');",
-    "globalThis['Deno'].env.get('KEY');",
+    "process.env.get('KEY');",
+    'const {env} = process;',
+    "globalThis.process.env.get('KEY');",
+    "globalThis['process'].env.get('KEY');",
     "fetch('https://example.com');",
     "const value = new Request('https://example.com');",
     'export const environment = process.env;',
@@ -168,18 +174,15 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
   const valid = [
     [
       'packages/shared/domain/value.ts',
-      'export function value(Deno) { return Deno; }',
+      'export function value(process) { return process; }',
     ],
-    ['plugins/demo/infrastructure/value.ts', "Deno.env.get('KEY');"],
+    ['plugins/demo/infrastructure/value.ts', "process.env.get('KEY');"],
   ];
   try {
-    await Deno.copyFile(
-      join(repository, 'biome.json'),
-      join(root, 'biome.json'),
-    );
+    await copyFile(join(repository, 'biome.json'), join(root, 'biome.json'));
     for (const [path, source] of [...invalid, ...valid]) {
-      await Deno.mkdir(dirname(join(root, path)), {recursive: true});
-      await Deno.writeTextFile(join(root, path), source);
+      await mkdir(dirname(join(root, path)), {recursive: true});
+      await writeFile(join(root, path), source);
     }
     const output = commandOutput(join(repository, 'node_modules/.bin/biome'), {
       args: ['lint', '--vcs-enabled=false', '--reporter=json', '.'],
@@ -196,14 +199,14 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
     for (const [path, source] of invalid) assert(flagged.has(path), source);
     for (const [path] of valid) assert(!flagged.has(path), path);
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 });
 
 test('architecture: local and external alias conflicts cannot hide dependencies', async () => {
-  const root = await Deno.makeTempDir({prefix: 'architecture-alias-'});
+  const root = await mkdtemp(join(tmpdir(), 'architecture-alias-'));
   try {
-    await Deno.mkdir(join(root, 'plugins/a'), {recursive: true});
+    await mkdir(join(root, 'plugins/a'), {recursive: true});
     for (const [rootImports, memberImports] of [
       [{shared: 'npm:typescript@6.0.3'}, {shared: './private.ts'}],
       [
@@ -229,17 +232,17 @@ test('architecture: local and external alias conflicts cannot hide dependencies'
         {'@sdk/': './local/'},
       ],
     ]) {
-      await Deno.writeTextFile(
+      await writeFile(
         join(root, 'package.json'),
         JSON.stringify({dependencies: rootImports}),
       );
-      await Deno.writeTextFile(
-        join(root, 'plugins/a/deno.json'),
+      await writeFile(
+        join(root, 'plugins/a/package.json'),
         JSON.stringify({imports: memberImports}),
       );
       assertThrows(() => importRules(root), Error, 'scoped resolver support');
     }
-    await Deno.writeTextFile(
+    await writeFile(
       join(root, 'package.json'),
       JSON.stringify({
         dependencies: {
@@ -248,8 +251,8 @@ test('architecture: local and external alias conflicts cannot hide dependencies'
         },
       }),
     );
-    await Deno.writeTextFile(
-      join(root, 'plugins/a/deno.json'),
+    await writeFile(
+      join(root, 'plugins/a/package.json'),
       JSON.stringify({
         imports: {
           '@sdk-other': './absent.ts',
@@ -259,6 +262,6 @@ test('architecture: local and external alias conflicts cannot hide dependencies'
     );
     assert(importRules(root));
   } finally {
-    await Deno.remove(root, {recursive: true});
+    await rm(root, {recursive: true});
   }
 });
