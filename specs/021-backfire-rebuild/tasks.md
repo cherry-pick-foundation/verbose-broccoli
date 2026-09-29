@@ -237,6 +237,31 @@ after each fix.
 
 ---
 
+## Phase 4b: User Story 1 addition — Jev profiles and Vercel (Priority: P1) (worker E, after T016)
+
+Added 2026-09-30 by the user's decision (spec Clarifications, FR-006,
+FR-021).
+
+- [ ] T026 [US1] Add Jev profiles as [research.md](research.md) R11 and
+  [contracts/provider-seam.md](contracts/provider-seam.md) define: the
+  profile schema in `packages/backfire/src/backfire/config.py`, the
+  profile-kind branch in `packages/backfire/src/backfire/judge.py` (both
+  kinds pseudonymized and recorded), the error mapping in
+  `packages/backfire/src/backfire/failures.py`, the Vercel provider in
+  `packages/backfire/src/backfire/vercel.py` (credited, MIT), an unselected
+  `[providers.vercel]` profile in `packages/backfire/src/backfire/config.toml`,
+  and `ready.py` support for either kind; add the jev-agent-tools credit to
+  `licenses/THIRD_PARTY_NOTICES.md` and the difference to
+  `jev_judge_mcp/UPSTREAM.md`. Tests with local stubs only: each Jev
+  provider is selected by profile; the Vercel request matches the driver's
+  URL path, headers, body and question and answer mapping; retries follow
+  PyModel; pseudonyms reach the stub and names come back; records are
+  written; missing keys or unknown providers fail before sending; no
+  `JEV_*` or provider environment variable changes the selection (FR-006,
+  FR-007, FR-008, FR-010, FR-021).
+
+---
+
 ## Phase 5: User Story 4 — the upstream record is complete (Priority: P2) (coordinator)
 
 - [ ] T019 [US4] Check `packages/backfire/src/jev_judge_mcp/UPSTREAM.md`
@@ -250,7 +275,8 @@ after each fix.
 ## Phase 6: Polish and acceptance (coordinator)
 
 - [ ] T020 [P] Update `docs/backfire.md` and `docs/architecture.md` for the
-  rebuilt server (upstream, tools, `regex`, removed port), and regenerate
+  rebuilt server (upstream, tools, `regex`, removed port, Jev profiles,
+  and the Vercel profile's credential file and variable), and regenerate
   generated references with `npm run docs:generate` if their inputs changed
   (FR-019).
 - [ ] T021 [P] Check the backfire skills in
@@ -263,10 +289,11 @@ after each fix.
   (as in earlier features' records) and resolve contradicted units.
 - [ ] T023 Run `npm run verify` three times in a row without a rerun and
   record each result under T023 (SC-005).
-- [ ] T024 Run the live check through the configured provider with at most
-  15 billed calls (for example `npm run backfire:ready` and a few tool
-  calls with synthetic input); record the number of billed calls and the
-  outcome under T024 (SC-006).
+- [ ] T024 Run the live check through the shipped profile with at most 15
+  billed calls (for example `npm run backfire:ready` and a few tool calls
+  with synthetic input); record the number of billed calls and the outcome
+  under T024. Skip the live Jev check while no Jev key is configured, and
+  say so (SC-006).
 - [ ] T025 Write the feature report in
   `specs/021-backfire-rebuild/report.md` (what changed, measurements,
   unperformed checks), commit it, move CHE-39 to In Review, get the develop
@@ -290,7 +317,9 @@ after each fix.
   `backfire/server.py` changes, which belong to T014.
 - Phase 4 needs T008 and T009 and can run in parallel with Phase 3;
   T015–T017 touch different files.
-- Phase 5 needs Phases 2–4. Phase 6 needs Phase 5; T020–T022 can run in
+- Phase 4b (T026) needs T016 (both touch `ready.py`) and can run in
+  parallel with Phase 3.
+- Phase 5 needs Phases 2–4b. Phase 6 needs Phase 5; T020–T022 can run in
   parallel with T019.
 
 ## Parallel Example

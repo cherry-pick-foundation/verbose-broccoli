@@ -115,6 +115,7 @@ packages/backfire/
 │   │   ├── noul.py                # REWRITTEN from tools/noul.py onto JevTool
 │   │   ├── jev_provider.py        # NEW: JevProvider over judge()
 │   │   ├── regex_executor.py      # NEW: RegexExecutor on the regex library (CHE-37)
+│   │   ├── vercel.py              # NEW: Vercel AI Gateway provider (jev-agent-tools 0.1.2)
 │   │   ├── boundary.py            # kept; BoundedLineReader removed
 │   │   ├── decisions.py           # updated to the new result fields
 │   │   ├── ready.py               # updated to the rebuilt server
@@ -222,7 +223,22 @@ vocabulary and adds `backfire_score`; records keep their format. `ready.py`
 drives the rebuilt server with synthetic calls. `build.py` copies
 `jev_judge_mcp` into both builds, license files included.
 
-### 8. What is removed
+### 8. Jev profiles and the Vercel provider (added 2026-09-30)
+
+The user added Jev profiles ([research.md](research.md) R11,
+[contracts/provider-seam.md](contracts/provider-seam.md)). `config.py`'s
+profile schema gains `api = "jev"` with a `jev_provider` name and the
+fields that provider needs; `judge()` branches after pseudonymization:
+system-one-adapter for general-model profiles, the named PyModel provider
+(or the new Vercel provider) for Jev profiles, then restoration and the
+judgment record for both. The Vercel provider lives in
+`packages/backfire/src/backfire/vercel.py`, credited to jev-agent-tools
+0.1.2 (MIT), as a subclass of PyModel's `HttpProvider`. The shipped code
+build's `config.toml` gains an unselected `[providers.vercel]` profile, so
+the operator only selects it and adds the key file; the work build keeps
+its single education profile. `ready.py` checks either kind.
+
+### 9. What is removed
 
 The port's `backfire/tools/`, `lib.py`, `patterns.py`, `UPSTREAM.md`,
 `backfire_tools/acceptance/capture_upstream.py`, the captured
@@ -245,7 +261,9 @@ The coordinator (Claude Code) owns Spec Kit records, repository prose
    remaining backfire test adapted to the rebuilt server.
 4. **Load fixes** (one worker, after 2, parallel with 3): CHE-37 and CHE-38,
    each test failing first, then the fixes and load measurements.
-5. **Coordinator**: documents and skills, the three full verify runs, the
+5. **Jev profiles** (one worker, after 3): Jev profiles, the Vercel provider
+   and their readiness check (added 2026-09-30).
+6. **Coordinator**: documents and skills, the three full verify runs, the
    live check, the develop merge review and the finish.
 
 ## Complexity Tracking

@@ -40,6 +40,29 @@ The `model` argument (the upstream's configured model name) and `timeout`
 are ignored: the profile names the model and the call context bounds the
 time.
 
+## Profile kinds (added 2026-09-30)
+
+`judge()` loads the selected profile as today. For a general-model profile
+(`api = "openai"`) nothing changes. For a Jev profile (`api = "jev"`):
+
+1. The profile names `jev_provider`: `typesafe`, `openrouter`,
+   `cloudflare`, `vercel` or `compatible`, plus `model`, `credential` (the
+   variable name in the profile's `0600` credential file) and any address
+   or account field that provider needs. Missing or unknown values are
+   `backend_not_configured` naming the profile.
+2. Request schema validation and pseudonymization run as for general
+   profiles; the general-model size limits and answer-distribution checks
+   do not.
+3. The named provider's `evaluate(state, questions, model, timeout)` runs
+   with the call's remaining time as `timeout`, so PyModel's retries apply.
+4. Its `Evaluation` becomes the judge result (answers restored after
+   pseudonymization); its `ProviderError`s become backfire's fixed error
+   types; the judgment record is written as for general profiles.
+
+The Vercel provider follows jev-agent-tools 0.1.2's driver (see
+[research.md](../research.md) R11) with the address and model taken from
+the profile.
+
 ## `aclose()`
 
 Nothing to release; `judge()` opens and closes its client per judgment.

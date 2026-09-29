@@ -382,3 +382,44 @@ plan.
   `Boundary.receive` computes the input digest on it. The quadratic
   `ensure_unique_ids` (`ids.py:30-51`) alone stalls `backfire_verify` for
   tens of seconds with 100,000 identical IDs.
+
+### R11. Jev profiles and the Vercel provider (user's answer, 2026-09-30)
+
+- **Decision**: backfire's profiles get a second kind, a Jev profile
+  (`api = "jev"`) that names its provider (`typesafe`, `openrouter`,
+  `cloudflare`, `vercel` or `compatible`) and holds the provider's address,
+  model and credential variable; the key stays in the profile's `0600`
+  credential file. `judge()` keeps its order for both kinds: request
+  validation, pseudonymization, the provider call, restoration, and the
+  judgment record. A general-model profile keeps system-one-adapter, the
+  size limits measured for general models, answer-distribution checks and
+  CHE-33's retries. A Jev profile calls the named provider's `evaluate` with
+  the call's remaining time, so PyModel's retries (408, 429, 5xx) apply, and
+  leaves answer validity to the upstream tools, as PyModel does. Provider
+  failures of a Jev profile map to backfire's fixed error types (for
+  example `ProviderConfigError` to `backend_not_configured`, 401 and 403 to
+  `credential_rejected`, 429 to `rate_limited`, a timeout to
+  `provider_unavailable`, an envelope error to `malformed_output`), so no raw
+  provider text reaches results, as today.
+- **Vercel provider**: jev-mcp 0.9.0 (`src/provider.ts:247-279` at
+  `a1fcc1e`) takes Vercel from `@jkudish/jev-agent-tools` 0.1.2 (MIT,
+  Joey Kudish; `dist/transports/vercel.js`, fetched with `npm pack`): one
+  `POST` of `{state, questions}` to
+  `https://ai-gateway.vercel.sh/v4/ai/evaluation-model` with a bearer key
+  and the headers `ai-gateway-protocol-version: 0.0.1`,
+  `ai-gateway-auth-method: api-key`,
+  `ai-evaluation-model-specification-version: 4` and `ai-model-id`; Noul
+  questions go out as `boolean` and come back as `noul`; per-answer
+  confidence comes from `providerMetadata.typesafe.confidence`; usage comes
+  from `inputTokens` and `outputTokens`; the model defaults to
+  `typesafe-ai/jev` unless it starts with `typesafe-ai/`. The port is a
+  subclass of PyModel's `HttpProvider`, like its `compatible` provider, so
+  it reuses PyModel's transport, redirect check, redaction and retries; the
+  address and model come from the profile instead of the code.
+- **Rationale**: the user chose this option; it keeps one judgment path for
+  pseudonymization and records and adds only the Vercel protocol as new
+  code.
+- **Alternatives**: only a Vercel provider next to the general-model
+  profiles (option B, not chosen); PyModel's own environment-variable
+  resolver (it reads `JEV_PROVIDER` and provider keys from the environment,
+  bypassing backfire's profiles and credential files).

@@ -60,6 +60,26 @@ feature's `research.md`.
   the user's check. Keep the result fields, caps and error text. (User's
   answer, relayed by the develop session.)
 
+### Session 2026-09-30
+
+- Q: The user asked to add Vercel AI Gateway as a provider, next to
+  PyModel's TypeSafe, OpenRouter, Cloudflare and compatible providers, based
+  on jev-mcp 0.9.0's own Vercel code (which comes from jkudish's
+  `jev-agent-tools` 0.1.2, MIT). Should PyModel's other Jev providers also
+  become selectable, or only Vercel? → A: Option A. Backfire profiles gain a
+  second kind, a Jev profile that names its provider (`typesafe`,
+  `openrouter`, `cloudflare`, `vercel` or `compatible`), served by PyModel's
+  providers plus the ported Vercel provider, credited. Pseudonymization,
+  judgment records and the readiness check apply to both profile kinds; Jev
+  profiles use PyModel's retries; the shipped default stays DeepSeek on Hive,
+  and a Jev profile is used only when the operator selects it. No Vercel or
+  TypeSafe key exists on the laptop yet: a Vercel key would go in a new
+  `0600` credential file in `~/.config/verbose-broccoli/backfire/` that the
+  user creates, so the Vercel path is tested against a local stub, the
+  expected file and variable are documented, and the live check skips it
+  unless a key is added. It is a new task after the server swap. (User's
+  answer, relayed by the develop session.)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Agents use backfire's tools from the reused upstream (Priority: P1)
@@ -93,15 +113,22 @@ each result against the upstream tool's behaviour for the same answers.
    exist, **When** it is called, **Then** the error result is the upstream's,
    apart from recorded changes, and the server keeps serving later calls.
 4. **Given** the shipped or operator provider profile, **When** a tool asks a
-   judgment, **Then** the request goes to that profile's endpoint and model
-   through system-one-adapter, and no provider that jev-judge-mcp ships
-   (TypeSafe, OpenRouter, Cloudflare or its compatible provider) is used.
-5. **Given** the work build with pseudonymization on, **When** a tool's input
+   judgment, **Then** a general-model profile sends it to that profile's
+   endpoint and model through system-one-adapter, and a Jev profile sends it
+   through the Jev provider it names; PyModel's environment-variable provider
+   selection is never used.
+5. **Given** a Jev profile that names `vercel`, **When** a tool asks a
+   judgment, **Then** the request reaches the profile's Vercel AI Gateway
+   address in the form jev-agent-tools 0.1.2 sends, with the key from the
+   profile's credential file, and the answers come back in the upstream
+   tools' answer format.
+6. **Given** the work build with pseudonymization on, **When** a tool's input
    names a rostered student, **Then** the provider sees only pseudonyms and
    the result the agent receives has the original names restored.
-6. **Given** the provider answers with a server failure or a reply without
-   an answer, **When** retries are left in the call's budget, **Then** the
-   judgment is retried as CHE-33 made it do.
+7. **Given** a general-model profile whose provider answers with a server
+   failure or a reply without an answer, **When** retries are left in the
+   call's budget, **Then** the judgment is retried as CHE-33 made it do; a
+   Jev profile's provider is retried as PyModel retries it.
 
 ---
 
@@ -212,6 +239,9 @@ and every unchanged file must match byte for byte.
 - The client sends `arguments: null`, omits `arguments`, or cancels a call
   while its pattern is running: the server answers as jev-judge-mcp 0.6.0
   does, and a cancelled pattern's process is killed.
+- A Jev profile names an unknown provider, or its credential file is
+  missing: tools that ask a judgment fail with backfire's configuration
+  error and name the profile or file, before anything is sent.
 - The configuration or credential is missing: tools that ask a judgment fail
   with backfire's fixed configuration error; `backfire_extract` without any
   candidates still answers without asking.
@@ -245,25 +275,36 @@ and every unchanged file must match byte for byte.
 - **FR-005**: Giving items unique IDs MUST take time that grows linearly with
   the number of items, and MUST assign the same IDs, in the same order, as
   jev-judge-mcp 0.6.0 does.
-- **FR-006**: Every judgment MUST go through backfire's provider profiles and
-  system-one-adapter, with CHE-33's retries for server failures and replies
-  without an answer and backfire's fixed judgment error types. Providers that
-  jev-judge-mcp ships MUST NOT be selectable.
+- **FR-006**: Every judgment MUST go through the selected backfire profile
+  and end in one of backfire's fixed judgment error types on failure. A
+  general-model profile MUST use system-one-adapter with CHE-33's retries
+  for server failures and replies without an answer. A Jev profile MUST
+  name its provider (`typesafe`, `openrouter`, `cloudflare`, `vercel` or
+  `compatible`) and use that provider with PyModel's retries. The shipped
+  profiles MUST keep selecting DeepSeek on Hive; PyModel's
+  environment-variable provider selection MUST NOT be used.
 - **FR-007**: When the shipped build enables pseudonymization, education data
   MUST be pseudonymized before a judgment leaves the machine and restored in
-  the answers, as it is today.
+  the answers, as it is today, for both profile kinds.
+- **FR-021**: The `vercel` provider MUST be ported from jev-agent-tools
+  0.1.2's Vercel driver (the code jev-mcp 0.9.0 uses), credited with its MIT
+  license, and recorded as a difference from PyModel, which refuses Vercel.
+  Its address, model and credential variable MUST come from the profile,
+  and its key from the profile's `0600` credential file. It MUST be tested
+  against a local stub; no billed Vercel call is made unless the user adds a
+  key.
 
 **Backfire's own services**
 
 - **FR-008**: The server MUST keep writing content-free tool-call and
-  judgment records with today's record kinds, fields, storage budget,
+  judgment records, for both profile kinds, with today's record kinds, fields, storage budget,
   locking and failure behaviour; decision summaries MUST read the rebuilt
   tools' result fields and cover all twelve tools.
 - **FR-009**: The server MUST keep the 10 MiB message limit, the 118-second
   call deadline, cancellation, stop-signal handling and session-end
   behaviour.
 - **FR-010**: `backfire ready` MUST check the rebuilt server and the
-  configured provider as it does today.
+  selected profile, of either kind, as it does today.
 - **FR-011**: Both plugin builds MUST contain everything the rebuilt server
   needs, including the vendored upstream and its license files.
 
@@ -343,9 +384,10 @@ and every unchanged file must match byte for byte.
   under 1 second in 3 of 3 runs.
 - **SC-005**: At least three full `npm run verify` runs in a row pass
   without a rerun.
-- **SC-006**: A final live check through the configured provider, with no
-  more than 15 billed calls, returns valid judgments; the number of billed
-  calls is reported.
+- **SC-006**: A final live check through the shipped profile, with no more
+  than 15 billed calls, returns valid judgments; the number of billed calls
+  is reported. The Jev providers, Vercel included, pass their checks against
+  local stubs; no live Jev check runs while no Jev key is configured.
 - **SC-007**: The upstream-record check passes, and changing any vendored
   file without a record entry makes it fail.
 - **SC-008**: No source file of the jev-mcp 0.9.0 port remains, and the
