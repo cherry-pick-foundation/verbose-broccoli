@@ -113,7 +113,7 @@ time limit.
 **Independent Test**: `npm run test:credit-offers`, then the live runs in
 [quickstart.md](quickstart.md).
 
-- [ ] T007 [US1] Create `packages/credit-offers/` (`pyproject.toml` depending
+- [x] T007 [US1] Create `packages/credit-offers/` (`pyproject.toml` depending
   on the workspace's `jev-ultrafast`, console script `credit-offers`,
   `src/credit_offers/__init__.py`, `src/credit_offers/tracker.toml`) as
   [contracts/credit-offers-cli.md](contracts/credit-offers-cli.md) and
@@ -122,7 +122,7 @@ time limit.
   `validate_choice()`, and `notify-send` for the notification. Add
   `test:credit-offers`, its `turbo.json` task, the `ruff.toml` source root and
   the `uv.lock` update (FR-008-FR-011).
-- [ ] T008 [US1] Add `packages/credit-offers/tests/test_credit_offers.py`:
+- [x] T008 [US1] Add `packages/credit-offers/tests/test_credit_offers.py`:
   block boundaries (default end, `--end`, `--hours` that does not divide 24);
   same commit at both ends exits 1 without fetching the index; new-slug
   detection; `status` and `expiry_date` filtering without a Jev call; one Jev
@@ -130,14 +130,23 @@ time limit.
   answers; exit statuses 0, 1, 2 and 3; `--notify` calling `notify-send` once
   and only with strong offers; no file written; no key in any output
   (FR-015).
-- [ ] T009 [US1] Live runs without a key, as
+- [x] T009 [US1] Live runs without a key, as
   [quickstart.md](quickstart.md) describes, on one past block with no new
   offer and one with candidates; report exit statuses, `jev_calls` and
   timing (SC-002). Use a temporary empty `0600` env file in the scratch area,
   not the user's configuration folder.
-- [ ] T010 [US1] Test notification: send one notification through the
+- [x] T010 [US1] Test notification: send one notification through the
   package's notification function with a sample offer whose title says it is
   a test; report the command and its exit status.
+  - 2026-09-30: Codex (`gpt-6-luna`, max) did T007-T010 and one review round
+    (answered-call count, per-offer question instructions, R6 wording);
+    commit `be2835a`. 11 offline tests pass. Live runs with an empty key
+    file: the 2026-09-29 12:00-18:00 KST block exited 1 with `jev_calls=0`;
+    the 2026-09-28 00:00-06:00 block exited 3 naming `AI_GATEWAY_API_KEY`
+    before any request. The first attempts hit GitHub's unauthenticated
+    limit (HTTP 403, exit 3). The test notification exited 0. Lines: 146 in
+    `__init__.py`, 4 in `tracker.toml`, 32 in `pyproject.toml`; the feature
+    totals 282 of the 300-line budget.
 
 ## Phase 5: Skills, documents and governance (main)
 

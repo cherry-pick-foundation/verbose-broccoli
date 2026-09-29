@@ -64,7 +64,9 @@ shows a notification naming the offer, the second shows none.
 ### User Story 2 - Choose the provider for Jev calls (Priority: P1)
 
 An operator chooses whether Jev Ultrafast's Jev calls go to TypeSafe or to
-Vercel AI Gateway, whose monthly $5 credit covers light use. The providers'
+Vercel AI Gateway. The user chose Vercel for its monthly free credit, but on
+2026-09-30 Vercel's free tier turned out not to include Jev (research R10),
+so Jev calls there need paid credit. The providers'
 addresses, headers, model names and credential variable names live in
 configuration, not in code, and credentials stay in a file only the user can
 read.
@@ -230,7 +232,8 @@ compare it with the recorded interval.
 - **SC-002**: A run with no new offers finishes in under 30 seconds and makes
   no Jev call; a run with candidates makes exactly one Jev call.
 - **SC-003**: At the schedule of 4 runs a day, Jev calls stay below 125 a
-  month, well inside Vercel's $5 monthly credit at its listed Jev price.
+  month, which costs well under one cent at Jev's listed price once a
+  provider accepts the calls (research R10).
 - **SC-004**: The recorded average interval can be recomputed from the
   recorded data to the same value.
 - **SC-005**: Every difference from upstream Jev Ultrafast is listed in its
