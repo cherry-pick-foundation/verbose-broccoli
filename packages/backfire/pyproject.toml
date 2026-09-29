@@ -5,10 +5,12 @@ build-backend = "uv_build"
 [project]
 name = "backfire"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
+  "httpx==0.28.1",
   "jsonschema==4.26.0",
   "mcp==2.2.0",
+  "pydantic-settings==2.15.0",
   "rfc8785==0.1.4",
   "system-one-adapter[openai]==0.2.1",
 ]
@@ -20,14 +22,14 @@ education = ["phonenumbers==9.0.40"]
 backfire = "backfire.__main__:main"
 
 [dependency-groups]
-dev = ["pytest==9.1.1"]
+dev = ["hypothesis==6.168.0", "pytest==9.1.1", "respx==0.23.1"]
 
 [tool.uv]
 required-version = ">=0.11.32"
 constraint-dependencies = ["typesafe-sdk==0.7.1"]
 
 [tool.uv.build-backend]
-module-name = ["backfire", "backfire_tools", "backfire_education"]
+module-name = ["backfire", "backfire_tools", "backfire_education", "jev_judge_mcp"]
 module-root = "src"
 
 [tool.pytest.ini_options]

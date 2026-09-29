@@ -128,9 +128,9 @@ def test_build_preserves_plugin_and_copies_only_runtime(
     package = ROOT / "packages/backfire"
     expected = {"": None, "src": None}
     runtime_packages = (
-        ("backfire",)
+        ("backfire", "jev_judge_mcp")
         if plugin == "code"
-        else ("backfire", "backfire_education")
+        else ("backfire", "backfire_education", "jev_judge_mcp")
     )
     module_names = ", ".join(f'"{name}"' for name in runtime_packages)
     for path in PACKAGE_FILES:
@@ -142,7 +142,7 @@ def test_build_preserves_plugin_and_copies_only_runtime(
         if path == "pyproject.toml":
             content = content.replace(
                 b'module-name = ["backfire", "backfire_tools", '
-                b'"backfire_education"]',
+                b'"backfire_education", "jev_judge_mcp"]',
                 f"module-name = [{module_names}]".encode(),
             )
         expected[path] = content
@@ -150,7 +150,8 @@ def test_build_preserves_plugin_and_copies_only_runtime(
         for path, contents in tree(package / "src" / name).items():
             if "__pycache__" not in Path(path).parts and path != "config.toml":
                 expected[(Path("src") / name / path).as_posix()] = contents
-    profile = package / "src" / runtime_packages[-1] / "config.toml"
+    profile_package = "backfire" if plugin == "code" else "backfire_education"
+    profile = package / "src" / profile_package / "config.toml"
     expected["src/backfire/config.toml"] = profile.read_bytes()
     assert tree(output / "backfire") == expected
     assert "src/backfire/__main__.py" in expected

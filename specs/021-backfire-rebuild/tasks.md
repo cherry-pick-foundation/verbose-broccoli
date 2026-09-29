@@ -41,7 +41,7 @@ Billed provider calls happen only in T024.
 **Purpose**: the upstream copy, its license and record, and the checks that
 must leave it in its upstream form. Blocks every later phase.
 
-- [ ] T001 Copy the 62 upstream modules listed in
+- [x] T001 Copy the 64 upstream modules listed in
   [research.md](research.md) R1 from jev-judge-mcp at
   `fd6829c3fd1c3eb244f0feb011b6ca55298459f8` into
   `packages/backfire/src/jev_judge_mcp/`, byte for byte, with the upstream
@@ -51,38 +51,39 @@ must leave it in its upstream form. Blocks every later phase.
   `httpx` (0.28.x) there and update `uv.lock`. Confirm
   `import jev_judge_mcp.tools, jev_judge_mcp.stdio` works in the workspace
   environment (FR-015).
-  - 2026-09-29 pause for a computer restart: spec, clarification, plan,
-    tasks and analysis are committed; worker A (Codex `gpt-6-luna`, max)
-    had started T001–T005 and was stopped before it changed any file. Next:
-    relaunch worker A on T001–T005 through the terminal path, cloning
-    PyModel at `v0.6.0` from GitHub (the scratch clone under `/tmp` is
-    gone); the user's regex-engine answer (the `regex` library's own
-    timeout in a thread) is in the spec's Clarifications and applies from
-    T011.
-- [ ] T002 Write `packages/backfire/src/jev_judge_mcp/UPSTREAM.md` as
+- [x] T002 Write `packages/backfire/src/jev_judge_mcp/UPSTREAM.md` as
   [contracts/upstream-record.md](contracts/upstream-record.md) defines,
   with every file `unchanged` so far, and add
   `packages/backfire/tests/test_upstream_record.py`: it checks each file
   against the table and fails, naming the file, on an unrecorded
   difference, a missing row or a missing file; a case on a temporary copy
   proves the failure (FR-015, SC-007).
-- [ ] T003 Vendor the upstream tests that exercise the vendored modules and
+- [x] T003 Vendor the upstream tests that exercise the vendored modules and
   run offline without Node.js, Docker or network, with their support files
   and fixtures, under `packages/backfire/tests/upstream/`, keeping the
   upstream `tests/` layout below it; record them in `UPSTREAM.md`; pin any
   test-only dependency in the `dev` group; make them run in
   `npm run test:backfire`, and report their count and added run time
   ([research.md](research.md) R9, SC-002).
-- [ ] T004 Keep the vendored files out of the repository's style checks, as
+- [x] T004 Keep the vendored files out of the repository's style checks, as
   `.specify/extensions/` already is: `ruff.toml` (lint and format),
   the Prettier file lists in `package.json` (`format`, `format:check`), and
   any other check that `npm run verify` shows touching them (for example
   link checks or `clean-code` scope); keep
   `packages/backfire/tests/test_no_provider_names.py` passing.
-- [ ] T005 Replace the jev-mcp 0.9.0 entry in
+- [x] T005 Replace the jev-mcp 0.9.0 entry in
   `licenses/THIRD_PARTY_NOTICES.md` with jev-judge-mcp 0.6.0's credit (MIT,
   copyright holder, revision, where the copy lives, and that it carries its
   own notice for jev-mcp 0.5.0 text).
+
+  - 2026-09-30: worker A (Codex `gpt-6-luna`, max) did T001–T005 after a
+    restart interrupted the first attempt. 64 modules and 348 upstream test
+    files (44 test modules, 3,314 tests, about 40 s) are byte-identical to
+    `fd6829c`; the coordinator re-checked every file against a fresh clone.
+    Test-only pins: `hypothesis`, `respx`. `build.py` already copies
+    `jev_judge_mcp` into both builds (moved forward from T017 because the
+    module list changed). The jev-mcp 0.9.0 notice stays until T009
+    removes the port. `npm run verify` passed.
 
 **Checkpoint**: `npm run test:backfire` passes with the old port still
 serving, the vendored upstream tests included; `npm run verify` passes.

@@ -13,9 +13,9 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[4]
 MAX_BYTES = 16 * 1024 * 1024
 PLUGINS = {
-    "code": (("backfire",), "backfire/config.toml", ()),
+    "code": (("backfire", "jev_judge_mcp"), "backfire/config.toml", ()),
     "work": (
-        ("backfire", "backfire_education"),
+        ("backfire", "backfire_education", "jev_judge_mcp"),
         "backfire_education/config.toml",
         ("doc-regions", "wiki-consistency"),
     ),
@@ -196,7 +196,7 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         content = pyproject.read_bytes()
         modules = (
             b'module-name = ["backfire", "backfire_tools", '
-            b'"backfire_education"]'
+            b'"backfire_education", "jev_judge_mcp"]'
         )
         module_list = ", ".join('"' + name + '"' for name in packages)
         replacement = f"module-name = [{module_list}]".encode()

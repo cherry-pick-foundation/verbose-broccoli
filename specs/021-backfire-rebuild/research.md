@@ -240,7 +240,7 @@ plan.
   `classify`, `common`, `compare`, `decide`, `extract`, `files`, `find`,
   `gate`, `observed`, `rerank`, `review`, `score`, `screen`, `toolset`,
   `verify`); `validation` (`caps`, `choice`, `extract`, `noul`, `numbers`,
-  `score`). 62 modules, 8,115 lines, plus `LICENSE` and
+  `score`), with the six subpackage initializers: 64 modules, 8,115 lines, plus `LICENSE` and
   `THIRD_PARTY_NOTICES.md`.
 - **Rationale**: it is everything the tools need, unchanged, so imports and
   upstream tests keep working. The rest of the upstream (server entry point,

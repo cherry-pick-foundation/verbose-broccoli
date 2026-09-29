@@ -56,7 +56,7 @@ changes; vendor and provider details stay in configuration; no private
 records or student data in fixtures; billed provider calls only in the final
 live check (at most 15).
 
-**Scale/Scope**: about 8,100 upstream lines vendored (62 modules), about
+**Scale/Scope**: about 8,100 upstream lines vendored (64 modules), about
 5,000 lines of backfire source of which the port (about 3,400 lines) is
 removed, and about 15,000 lines of backfire tests to keep, adapt or remove.
 
@@ -145,7 +145,7 @@ modules if the result is simpler, but not split the vendored tree.
 ### 1. What is vendored
 
 The vendored subset is the import closure of `jev_judge_mcp.tools` and
-`jev_judge_mcp.stdio` at `fd6829c`: 62 modules, about 8,100 lines (listed
+`jev_judge_mcp.stdio` at `fd6829c`: 64 modules, about 8,100 lines (listed
 in `research.md`, R1), plus `LICENSE` and `THIRD_PARTY_NOTICES.md`. The
 server entry point, installer, command-line tools, HTTP transport, doctor,
 calibration, hooks and packaged skills are not vendored. Unused provider

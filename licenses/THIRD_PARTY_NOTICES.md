@@ -117,6 +117,17 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
 
+## PyModel/jev-judge-mcp — backfire tools
+
+- Source: <https://github.com/PyModel/jev-judge-mcp/tree/v0.6.0>.
+- Revision: `fd6829c3fd1c3eb244f0feb011b6ca55298459f8` (release 0.6.0).
+- Reused: the tool and stdio import closure in
+  `packages/backfire/src/jev_judge_mcp/`, with selected offline upstream tests
+  under `packages/backfire/tests/upstream/`.
+- Copyright (c) 2026 elkaix. MIT license in
+  [the vendored copy](../packages/backfire/src/jev_judge_mcp/LICENSE).
+  The copy carries its own `THIRD_PARTY_NOTICES.md` for jev-mcp 0.5.0 text.
+
 ## jkudish/jev-mcp — backfire tools
 
 - Source:
