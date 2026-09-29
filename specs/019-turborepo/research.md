@@ -210,6 +210,22 @@ defined", while `@std/path`, `@std/assert`, `@std/testing/mock` and
 - **Backfire**: `feat_minor` (0.65) over `docs_patch` (0.25) and
   `breaking_major` (0.05), confidence 0.58 ([d17](evidence/decide-d17.json)).
 
+### D18. Where the import-boundary check reads plugin exports
+
+- **Decision**: `scripts/clean_architecture.ts` reads `plugins/**/package.json`
+  and `packages/**/package.json` (outside `node_modules`) where it read
+  `deno.json`, with the same fields (`name`, `imports`, `exports`). A new
+  `plugins/code/package.json` declares the code plugin's one public export,
+  `./cli`, which the deleted `plugins/code/deno.json` declared; it has no
+  `type` field, so the plugin's hook scripts keep their module type.
+- **Why**: without a config, the check gives `plugins/code` an empty public
+  API, and the five root scripts that import the clean-code CLI break the
+  policy graph. `package.json` defines the same three fields, so the rule
+  logic stays as it is.
+- **Backfire**: `package_json_same_fields` (0.85) over nested exports
+  counting toward the plugin (0.10), a custom root field (0.025) and dropping
+  the empty public API (0.01) ([d18](evidence/decide-d18.json)).
+
 ## Other findings
 
 - npm 12 refuses packages whose tarballs are on another host by default
@@ -244,6 +260,14 @@ defined", while `@std/path`, `@std/assert`, `@std/testing/mock` and
   permission flags from a parent's `NODE_OPTIONS` and a child's own flags
   add up: a script run from a permissive test process gets the parent's
   wider grants, so a script's narrow scopes hold only when it runs first.
+- `deno test` type-checks each test file and its imports before running
+  it; `node --test` only strips types. With Deno gone, the `typecheck` task's
+  five entry points left every test file, and anything only a test imports
+  (such as the clean-code checker), unchecked. The type check now lists the
+  test files too, with `skipLibCheck`, because Deno checks only local
+  modules by default. The first run found a Deno-only glob option and two
+  `assertRejects` calls whose predicate `@std/assert` ignores, so any
+  rejection passed.
 - Node's `fs.symlink` "requires full fs.read and fs.write permissions", so
   `test:git-flow` runs with unscoped reads and writes; Deno allowed writes to
   `/tmp` only. Node's test runner also could not find the test file under

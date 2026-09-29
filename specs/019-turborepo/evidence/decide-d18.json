@@ -1,0 +1,87 @@
+{
+  "tool": "backfire_decide",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "recommendation": {
+    "selected": "package_json_same_fields",
+    "escaped": false,
+    "confidence": 0.8249999999999998,
+    "probabilities": {
+      "package_json_same_fields": 0.85,
+      "nested_exports_count": 0.1,
+      "root_only_custom_field": 0.025,
+      "drop_empty_public_api": 0.01,
+      "ask_user": 0.005,
+      "investigate": 0.005,
+      "none": 0.005
+    }
+  },
+  "requirements_checked": 3,
+  "checks": [
+    {
+      "candidate": "package_json_same_fields",
+      "requirement": 0,
+      "answer": "supported"
+    },
+    {
+      "candidate": "package_json_same_fields",
+      "requirement": 1,
+      "answer": "supported"
+    },
+    {
+      "candidate": "package_json_same_fields",
+      "requirement": 2,
+      "answer": "supported"
+    },
+    {
+      "candidate": "nested_exports_count",
+      "requirement": 0,
+      "answer": "supported"
+    },
+    {
+      "candidate": "nested_exports_count",
+      "requirement": 1,
+      "answer": "supported"
+    },
+    {
+      "candidate": "nested_exports_count",
+      "requirement": 2,
+      "answer": "contradicted"
+    },
+    {
+      "candidate": "root_only_custom_field",
+      "requirement": 0,
+      "answer": "supported"
+    },
+    {
+      "candidate": "root_only_custom_field",
+      "requirement": 1,
+      "answer": "contradicted"
+    },
+    {
+      "candidate": "root_only_custom_field",
+      "requirement": 2,
+      "answer": "contradicted"
+    },
+    {
+      "candidate": "drop_empty_public_api",
+      "requirement": 0,
+      "answer": "contradicted"
+    },
+    {
+      "candidate": "drop_empty_public_api",
+      "requirement": 1,
+      "answer": "supported"
+    },
+    {
+      "candidate": "drop_empty_public_api",
+      "requirement": 2,
+      "answer": "contradicted"
+    }
+  ],
+  "warnings": [],
+  "usage": {
+    "input_tokens": 4021,
+    "output_tokens": 8557
+  }
+}

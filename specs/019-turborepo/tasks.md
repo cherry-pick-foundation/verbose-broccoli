@@ -93,26 +93,46 @@ selection was redone on the merged tree
 
 - [x] T013 Main: merge `develop` 8ce9b2a (`cfbb1c7`), resolving 16 conflicts;
   a fresh Codex review (R2) checks the resolution.
-- [ ] T008 [P] The clean-code skill on Node (D16): its own `package.json`,
+- [x] T008 [P] The clean-code skill on Node (D16): its own `package.json`,
   lock and `.npmrc`, Node built-ins, `node:test`, the Node run command in
   `SKILL.md`, and the repository files that run or copy it.
-- [ ] T009a [P] The non-test scripts without the shim and `@std/fs`, and the
+  - 2026-09-29: Codex (`gpt-6-luna`, max; `ctx_2c8fdfc5e607`, follow-up
+    `ctx_5c8c1bbba4e7`). Main's review found a Deno-only glob option and two
+    `assertRejects` predicates that checked nothing; the follow-up fixed them
+    and moved the root clean-code scripts to Node. Main added
+    `plugins/code/package.json` (D18) and the root ESLint pins.
+- [x] T009a [P] The non-test scripts without the shim and `@std/fs`, and the
   doctor without Deno.
-- [ ] T010 [P] Test suites group A without the shim.
-- [ ] T011 [P] Test suites group B without the shim, including develop's
+  - 2026-09-29: Codex (`ctx_ca1466821c39`, follow-up `ctx_4d6c8fdaf61e`). The
+    import-boundary check reads `package.json` (D18); the follow-up restored
+    full file modes and shortened the ENOENT checks.
+- [x] T010 [P] Test suites group A without the shim.
+  - 2026-09-29: Codex (`ctx_56ff46a59f12`). Fixtures write `package.json`
+    (D18); Main checked that the builtin stubs in `docs_test.ts` intercept.
+- [x] T011 [P] Test suites group B without the shim, including develop's
   `scripts/ruff_test.ts`.
+  - 2026-09-29: Codex (`ctx_726431586fcb`, follow-up `ctx_9ca4b5c123cc`). The
+    follow-up restored the doctor's Node permission-denial tests, the Ruff
+    test's `/tmp` directory and one fixture's string export.
 - [x] T012 [P] Python follow-ups: the work build's `backfire` source, the Ruff
   findings, the separator comment, and the newer lock versions (FR-013).
   - 2026-09-29: Codex (`gpt-6-luna`, max; `ctx_fa4fecc8e747`). Four packages
     moved to develop's newer versions; `typesafe-sdk` stays 0.7.1 (the FR-013
     exception). Main reran the slow and load, ready and entry tests on the new
     pins; they pass.
-- [ ] T009b After T008 to T012: remove the preload, `@deno/shim-deno`,
+- [x] T009b After T008 to T012: remove the preload, `@deno/shim-deno`,
   `@std/fs` and `deno.json`; port develop's Ruff tasks; no Deno in
   `orca.yaml` or the workflows; regenerate the references.
-- [ ] T014 Main: the governance wording in `AGENTS.md` and the constitution,
+  - 2026-09-29: Codex (`ctx_72723d51a683`). Also: test files in the type
+    check, no per-skill install in setup or CI, row X169 (batch 23). Main
+    reran `npm run check` (27 of 27) and `npm run verify` with Deno hidden
+    from `PATH` (VERIFIED). Next: T015's reviews.
+- [x] T014 Main: the governance wording in `AGENTS.md` and the constitution,
   and the selected prose in `README.md`, `docs/architecture.md` and
   `docs/backfire.md`.
+  - 2026-09-29: Main: constitution 2.2.0 in `b1f8fff` (feat, confirmed by the
+    user, D17) and the prose in `d5eb6be`. Only dated history still names
+    Deno.
 - [ ] T015 Main: `npm run verify`; a fresh Claude Code reviewer for the Codex
   code and a fresh Codex reviewer for main's changes; the review record;
   `git flow feature finish`; CHE-32 to Done.

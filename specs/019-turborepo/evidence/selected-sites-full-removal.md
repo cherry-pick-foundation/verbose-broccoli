@@ -2,7 +2,7 @@
 
 Generated on 2026-09-29 from [classify-full-removal.json](classify-full-removal.json), the classification of the merged tree (after `develop` 8ce9b2a) for removing Deno completely. SELECT means must_change or delete with an `auto` decision. Rows re-asked with their file context (batch 21) replace their first result. `SELECT(user rule)` rows stayed `review` after the re-ask and are selected by the user's rule instead (see `user_rule` in the JSON). `leave` rows stay unchanged.
 
-Counts: SELECT: 182; SELECT(user rule): 5; leave: 5 (total 192).
+Counts: SELECT: 184; SELECT(user rule): 5; leave: 4 (total 193).
 
 ## `.github/workflows/audit.yml`
 
@@ -140,6 +140,10 @@ Counts: SELECT: 182; SELECT(user rule): 5; leave: 5 (total 192).
 ## `plugins/code/skills/clean-code/scripts/cli.ts`
 
 - SELECT `X060` deno_api_process: must_change (auto, 0.96); lines 29,47
+
+## `scripts/backfire/fixtures/upstream-0.9.0/README.md`
+
+- SELECT `X169` deno_cli: must_change (auto, 0.84); lines 35,36,37,38
 
 ## `scripts/clean_architecture.ts`
 
@@ -312,7 +316,7 @@ Counts: SELECT: 182; SELECT(user rule): 5; leave: 5 (total 192).
 ## `scripts/workflow_plan_test.ts`
 
 - SELECT `X027` deno_api_fs: must_change (auto, 0.93); lines 25,28,29,33,196,215,238,342
-- leave `X114` deno_config: can_stay (auto, 0.80); lines 125
+- SELECT `X114` deno_config: must_change (auto, 1.00); lines 125
 - leave `X146` deno_prose: can_stay (auto, 0.89); lines 157
 
 ## `scripts/workflow_skills.ts`
