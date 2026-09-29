@@ -163,7 +163,13 @@ count.
 
 ## Phase 6: Verification and review
 
-- [ ] T009 Run `npm run verify` (SC-003).
+- [x] T009 Run `npm run verify` (SC-003).
+  - 2026-09-30: `npm run verify -- --task che-42 --base 0bc0c63` ended
+    VERIFIED on `28a60bd`. `develop` then moved to 63fe2fd, the license
+    notices feature; the coordinator merged it in `1b2fd0d` without
+    conflicts, the check still reported net +129 against the new merge base,
+    and `npm run verify -- --task che-42 --base develop` ended VERIFIED on
+    `1b2fd0d`.
 - [ ] T010 Merge `develop`, fix new findings, verify, move CHE-42 to In
   Review, run the document judgment step (`npm run doc-regions:prepare --
   --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`)
@@ -171,6 +177,25 @@ count.
   and run `git flow feature finish own-code-limit` in the `develop`
   worktree after checking that `develop` has not moved; then move CHE-42 to
   Done with one completion comment.
+  - 2026-09-30: CHE-42 moved to In Review. The document judgment step ran at
+    `1b2fd0d` against `develop` 63fe2fd: `npm run doc-regions:prepare --
+    --base develop --max-evidence-chars 40000` printed 5 `backfire_verify`
+    requests for 236 units and 1 `backfire_classify` request for the 6 units
+    this feature added. A scratch MCP client outside the repository sent them
+    to the repository's backfire server (`backfire serve-mcp`, `hive`
+    profile, DeepSeek V4.1 Flash). No unit was contradicted: 11 verified and
+    225 unsupported against this branch's diff. The seven
+    `docs/architecture.md` units this feature changed were verified; 30-61
+    at confidence 0.4, so it was flagged for review, and it stands because
+    the diff supports the added own-code and scc wording. The other 16
+    flagged units describe files this feature does not change, 10 of them in
+    `AGENTS.md` and the constitution, which are report-only; they stand.
+    `backfire_classify` put all 6 added units in agent regions, so no
+    mechanical region is added. `npm run doc-regions:audit` reported the same
+    19 MemoryLint `boundary` warnings on the constitution as earlier
+    features; they are reported, not acted on. Paid provider calls: 9 (2 from
+    `npm run backfire:ready`; 1 from a first client run whose result the
+    client lost to its own error; 6 judgment calls, all without error).
 
 ## Dependencies
 
