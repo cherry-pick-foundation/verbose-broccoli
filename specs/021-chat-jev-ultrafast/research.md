@@ -44,9 +44,8 @@ variable, and speaks one of two protocols:
   `AI_GATEWAY_API_KEY`, model `typesafe-ai/jev`, headers
   `ai-gateway-protocol-version: 0.0.1`, `ai-gateway-auth-method: api-key`,
   `ai-evaluation-model-specification-version: 4` and `ai-model-id: <model>`.
-  The body is `{state, questions}` without `model`; a question of type `noul`
-  is sent as `boolean`. A `choice` answer is returned as
-  `{type, choice, probabilities, confidence}`, with `confidence` taken from
+  The body is `{state, questions}` without `model`. A `choice` answer is
+  returned as `{type, choice, probabilities, confidence}`, with `confidence` taken from
   `providerMetadata.typesafe.confidence[<question id>]` (null when absent), and
   `usage.inputTokens`/`outputTokens` become `input_tokens`/`output_tokens`.
 
@@ -58,9 +57,10 @@ Addresses, headers, model names and credential variable names live only in
 branches to `@jkudish/jev-agent-tools` (`src/provider.ts` lines 247-291 at that
 tag); its `package-lock.json` locks version 0.1.2 (integrity
 `sha512-Y0nPq58J2yjEZI0yaW3KXSIwsEeDa0dLwGt5thtwGRwMGE+RM2Yoc4KC+AEep83Ms11N4VdFZBpBAaJ3giQXmg==`).
-That package's `dist/transports/vercel.js` defines the endpoint, headers, body,
-`noul`→`boolean` mapping and answer adaptation above, and
-`dist/transports/typesafe.js` matches upstream Jev Ultrafast's TypeSafe call.
+That package's `dist/transports/vercel.js` defines the endpoint, headers, body
+and answer adaptation above. It also maps `noul` questions to `boolean`,
+which is left out because Jev Ultrafast and the offer search ask only
+`choice` questions. Its `dist/transports/typesafe.js` matches upstream Jev Ultrafast's TypeSafe call.
 Upstream `validate_choice()` requires a finite confidence, so a Vercel answer
 without one fails closed ("no action executed"); a live check with a key will
 show whether Vercel returns it.

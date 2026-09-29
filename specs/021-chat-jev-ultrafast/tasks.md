@@ -72,9 +72,9 @@ configuration.
   `post_json()` may gain only an optional headers argument. Record each
   difference in `UPSTREAM.md` (FR-002, FR-003, FR-004, FR-005).
 - [ ] T003 [US2] Add `packages/jev-ultrafast/tests/test_providers.py` with
-  `httpx.MockTransport` stubs: the Vercel request's URL, headers and body
-  (including `noul` sent as `boolean`); the answer conversion (choice with
-  and without confidence, usage keys, model); the TypeSafe request equal to
+  `httpx.MockTransport` stubs: the Vercel request's URL, headers and body;
+  the answer conversion (choice with and without confidence, other types
+  unchanged, usage keys, model); the TypeSafe request equal to
   upstream's; `choose()` through the Vercel stub end to end; a missing key and
   an unknown provider failing before any request with no key in the message;
   a malformed Vercel answer rejected by `validate_choice()` (FR-015).
