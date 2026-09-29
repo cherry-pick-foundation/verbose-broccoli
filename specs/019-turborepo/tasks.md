@@ -192,6 +192,9 @@ selection was redone on the merged tree
     the develop session with the finish request. Next: the review-record
     commit, then `git flow feature finish` from the `develop` worktree and
     CHE-32 to Done, both by the develop session.
+  - 2026-09-29: At the develop session's request, Main corrected the
+    manifest sentence in `docs/architecture.md` (review row V18) before the
+    finish; the review record moves to the new tip.
 
 ## Dependencies
 

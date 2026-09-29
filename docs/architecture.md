@@ -8,7 +8,10 @@ are not requirement, evidence or implementation sources.
 ## Current skeleton
 
 Each package has a `plugin.json`; the code and work packages also have
-`skills/`. Only the `code` package's clean-code skill has its own npm package manifest. Current versions and MCP declarations come from
+`skills/`. The `code` package has a small `package.json` that only declares
+its exports for the import-boundary check, and its clean-code skill has its
+own npm package manifest with the skill's dependencies. Current versions and
+MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and

@@ -215,10 +215,11 @@ and in the code and test that skip Deno-era workflow evidence records
   a doctor test name that says doc-regions; the copied-skill test's
   `--prefer-offline`; and Biome no longer denying the `Deno` global in
   domain code (removed by the user's rule).
-- **Open question**: `docs/architecture.md` says only the skill has its own
-  npm manifest, but `plugins/code/package.json` (D18) is a second one; backfire
-  marked it `must_change` with a `review` decision (0.75), so it stays for
-  the user to decide.
+- **Resolved after the reviews**: `docs/architecture.md` said only the
+  skill has its own npm manifest; backfire left that line `review` (0.75),
+  and the develop session judged it a factual correction after D18. The
+  guide now says the code package's `package.json` only declares its exports
+  for the import-boundary check.
 - **After the finish**: the `develop` worktree needs the new setup (root
   `npm ci`, the uv workspace sync and the tools), which `orca.yaml` runs.
 
