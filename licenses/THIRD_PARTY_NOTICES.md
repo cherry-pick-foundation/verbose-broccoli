@@ -241,3 +241,29 @@ with the already approved Ajv dependency. Sources:
   user's cache and runs its read-only `scripts/audit_workspace.py`. Nothing is
   copied into the repository.
 - Copyright (c) 2026 Spec-kit Community. MIT license.
+
+## browser-use/jev-ultrafast — chat web agent
+
+- Source:
+  <https://github.com/browser-use/jev-ultrafast/tree/1231850a0bf1a0c0341fe408ef1668dbbfdfac46>
+- Revision: `1231850a0bf1a0c0341fe408ef1668dbbfdfac46`.
+- Reused: the `jev_ultrafast` package, its offline tests, `examples/run.py`
+  and `scripts/check_guards.py`, copied into `packages/jev-ultrafast/` with
+  its license. `packages/jev-ultrafast/UPSTREAM.md` records the original
+  files' SHA-256 and every difference (provider selection and Orca browser
+  mode).
+- Copyright (c) 2026 Browser Use.
+  [MIT license](../packages/jev-ultrafast/LICENSE).
+- Its runtime dependency `browser-harness` 0.1.13 (MIT, Browser Use) is
+  installed from PyPI and pinned in `uv.lock`.
+
+## jkudish/jev-agent-tools — Vercel AI Gateway request format
+
+- Source: npm package `@jkudish/jev-agent-tools` 0.1.2, the version that
+  jev-mcp 0.9.0's `package-lock.json` locks.
+- Reused: the Vercel AI Gateway request and answer format of
+  `dist/transports/vercel.js` (endpoint, headers, question and answer
+  mapping), reimplemented in Python in
+  `packages/jev-ultrafast/src/jev_ultrafast/model.py`. No source file is
+  copied.
+- Copyright (c) 2026 Joey Kudish. MIT license.
