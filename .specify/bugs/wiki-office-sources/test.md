@@ -49,6 +49,35 @@ converter: 0.1.8-hwpx-6.6.0-json-2
 convert result: {'converted': 91, 'present': 0, 'unreadable': 4}
 ```
 
+## Document Judgment Step
+
+Before the develop merge review, `npm run doc-regions:prepare -- --base develop
+--max-evidence-chars 40000` printed 4 `backfire_verify` requests for the 229
+units of the repository's target documents. `npm run doc-regions:audit`
+exited 0 with 19 MemoryLint warnings, all suggesting that rules in
+`.specify/memory/constitution.md` move to `AGENTS.md`; this branch changes
+neither file, so they are reported to the user and left as they are. A scratch
+MCP client outside the repository sent them to the repository's
+backfire server (`uv run --frozen --offline --no-sync --package backfire
+backfire serve-mcp`, the code build's `hive` profile, DeepSeek V4.1 Flash).
+
+- Result: 7 verified, 222 unsupported, 0 contradicted; 6 units flagged for
+  review because their confidence was low, and none needs a change:
+  - `docs/architecture.md:233-251`, the paragraph this fix changed: verified
+    at confidence 0.40. `evidence.py` supports its statements about
+    markitdown, python-hwpx and the partial mark.
+  - `docs/architecture.md:191-197`, unchanged by this fix: unsupported at 0.55
+    against evidence this branch did not touch.
+  - `README.md:12-14`, unchanged: verified at 0.70.
+  - `AGENTS.md:51-52`, `AGENTS.md:58-61` and `AGENTS.md:62-63`, unchanged:
+    verified at 0.55, 0.40 and 0.25. They are reported to the user; AGENTS.md
+    is not changed.
+- Paid provider calls: 7 in total. `npm run backfire:ready` made 2 (its
+  `backfire_noul` and `backfire_extract` checks). A first run of the scratch
+  client made 1 call, which returned `malformed_output`; the client then failed
+  on its own code and sent nothing more. The second run made the 4 judgment
+  calls, 1 attempt each, all `ok` (backfire's local records).
+
 ## Residual Risks
 
 - python-hwpx reads HWP 5.0 and HWPX only; an HWP 3.x, encrypted or
