@@ -22,14 +22,28 @@ per the reuse order in `AGENTS.md`. A format that no existing tool can read is
 recorded as unsupported, with its reason.
 
 The user's decision of 2026-09-30, relayed by the develop session: start with
-HWP and adopt python-hwpx (PyPI `python-hwpx` 6.6.0, Apache-2.0, pure Python,
-depends only on lxml) to read HWP 5.0 files, which it converts to HWPX, and to
-read HWPX files, unless an existing converter in the repository already reads
-HWPX; then fix XLSX. python-hwpx emits `Hwp5ConversionWarning` for HWP parts it
-does not convert (for example master pages); such a source is recorded as a
-partial conversion, not as a failure. The user rejected hwpforge (two weeks
-old) and the Java hwp2hwpx (needs a Java runtime). Image-only PDFs stay out of
-scope, because no converter the repository uses reads them without OCR.
+HWP and adopt python-hwpx (PyPI `python-hwpx` 6.6.0) to read HWP 5.0 files,
+which it converts to HWPX, and to read HWPX files, unless an existing converter
+in the repository already reads HWPX; then fix XLSX. python-hwpx emits
+`Hwp5ConversionWarning` for HWP parts it does not convert (for example master
+pages); such a source is recorded as a partial conversion, not as a failure.
+The user's stated reasons for rejecting two alternatives were that hwpforge
+was two weeks old and that the Java hwp2hwpx needs a Java runtime; this record
+did not check them. Image-only PDFs stay out of scope, because no converter
+the repository uses reads them without OCR.
+
+Package facts in this record come from PyPI's JSON API, read on 2026-09-30
+with `curl -s https://pypi.org/pypi/<name>/json` (fields `info.version`,
+`info.license_expression` or `info.license`, `info.requires_dist`, the wheel
+file names in `urls` and the upload dates in `releases`):
+
+| Package | Version | License | Runtime requirements | Wheels | Last upload |
+| --- | --- | --- | --- | --- | --- |
+| python-hwpx | 6.6.0 | Apache-2.0 | `lxml<7,>=4.9` | `py3-none-any` | 2026-09-27 |
+| markitdown-hwp | 0.1.0 | MIT | `docpler`, `markitdown>=0.1.0` | `py3-none-any` | 2026-04-05 |
+| docpler | 1.0.5 | `LicenseRef-BSL-1.1` | none | CPython 3.10 to 3.13 only | 2026-05-10 |
+| pyhwp | 0.1b15 | GNU AGPL v3 or later | none | none (source only) | 2020-05-30 |
+| unhwp | 0.13.0 | MIT | none | `py3-none-any` | 2026-09-28 |
 
 Feature 010 left this open on purpose: its spec lists "Converting HWP files or
 scanned PDFs, and adding Docling, until the user decides a source needs it" as
@@ -136,15 +150,16 @@ missing `[xlsx]` extra.
 
 **Alternatives**:
 
-- Other HWP readers on PyPI, such as unhwp (MIT, a Rust library behind a
-  pure-Python wheel), syhwp, hwpkit, hwp-hwpx-parser and hwp2md: the user chose
-  python-hwpx; unhwp's wheel carries no native library, so how it obtains one
-  was not checked.
-- The markitdown plugin `markitdown-hwp` 0.1.0: it depends on `docpler`, which
-  is under the Business Source License 1.1, is deprecated in favour of a
-  package under the Elastic License v2, and publishes no Python 3.14 wheel.
-  Rejected.
-- pyhwp: AGPL-3.0, last released 2020, HWP only. Rejected.
+- Other HWP readers on PyPI, such as unhwp, syhwp, hwpkit, hwp-hwpx-parser and
+  hwp2md: the user chose python-hwpx. unhwp's PyPI description says it wraps a
+  native Rust library, but PyPI lists only a `py3-none-any` wheel; how it loads
+  that library was not checked.
+- The markitdown plugin `markitdown-hwp` 0.1.0 (table above): it requires
+  `docpler`, which is under the Business Source License 1.1 and publishes no
+  wheel for Python 3.14, the version this package requires. docpler's PyPI
+  description marks it deprecated and names a successor under the Elastic
+  License v2. Rejected.
+- pyhwp (table above): AGPL-3.0, last uploaded in 2020. Rejected.
 
 **Files likely to change**:
 

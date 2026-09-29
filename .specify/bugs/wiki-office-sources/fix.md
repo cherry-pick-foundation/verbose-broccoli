@@ -24,7 +24,8 @@ implemented the change in `c935ad3`; the coordinator reviewed it.
 | `uv.lock` | modified | Adds python-hwpx 6.6.0, pandas 3.0.6, openpyxl 3.1.5 and their dependencies et-xmlfile 2.0.0, python-dateutil 2.9.0.post0 and tzdata 2026.4; lxml and numpy were already locked. |
 | `packages/wiki-consistency/src/wiki_consistency/evidence.py` | modified | `HwpxConverter` (glue, registered beside `JsonConverter`); `convert` records `Hwp5ConversionWarning` as a `partial` entry and a `<revision>.partial.json` mark written before the text; `CONVERTER_VERSION` is now `0.1.8-hwpx-6.6.0-json-2`. |
 | `packages/wiki-consistency/tests/test_evidence.py` | modified, added tests | See below. |
-| `docs/architecture.md` | modified | markitdown reads XLSX and python-hwpx reads HWP and HWPX; only scanned PDFs stay unreadable. |
+| `docs/architecture.md` | modified | markitdown reads XLSX and python-hwpx reads HWP and HWPX; of the formats CHE-34 names, only scanned PDFs stay unreadable. A payload no converter accepts is still `unsupported_format`. `8a63bf0` adds the partial-conversion mark after the code review. |
+| `packages/wiki-consistency/tests/test_evidence.py` (`8a63bf0`) | modified | After the code review: the new conversion test asserts that its `.hwp` fixture starts with the compound-file signature. |
 | `plugins/work/skills/wiki-consistency/SKILL.md` | modified | Step 2 reports `partial` revisions from `convert`; step 5 no longer names HWP as unreadable. |
 | `licenses/THIRD_PARTY_NOTICES.md` | modified | markitdown's `xlsx` extra; a new python-hwpx entry (Apache-2.0). |
 
