@@ -15,7 +15,7 @@ input (FR-008); the existing suites prove unchanged behavior (FR-006).
 
 **Organization**: Main (Claude Code) owns the Spec Kit records, reviews
 each Codex worker's diff and runs the merge. Codex workers (`gpt-6-luna`,
-max effort) implement T001 to T006. A fresh Claude Code reviewer gives the
+max effort) implement T001 to T007. A fresh Claude Code reviewer gives the
 merge review of the code; a fresh Codex reviewer reviews the coordinator's
 records.
 
@@ -58,14 +58,18 @@ Commit Phase 1 before T005.
 
 ## Phase 3: Hand fixes (US1)
 
-- [ ] T006 [US1] Fix the remaining findings without changing behavior, as
-  research.md R3 and the clarification decide (FR-006).
+- [ ] T006 [US1] Fix the remaining findings other than `node:test`'s
+  floating promises without changing behavior, as research.md R3 decides
+  (FR-006).
+- [ ] T007 [US1] Put `void` in front of each top-level `node:test`
+  `test(...)` call that gts's `no-floating-promises` rule flags, in a commit
+  of its own (FR-006, spec.md clarification).
 
 ## Phase 4: Verification and review
 
-- [ ] T007 Run `npm run verify`; compare the suites' test counts with
+- [ ] T008 Run `npm run verify`; compare the suites' test counts with
   `develop` (SC-001 to SC-004).
-- [ ] T008 Merge `develop`, fix new findings, verify, move CHE-36 to In
+- [ ] T009 Merge `develop`, fix new findings, verify, move CHE-36 to In
   Review, run the merge review, resolve findings, commit the review record
   and run `git flow feature finish gts` in the `develop` worktree; then move
   CHE-36 to Done with one completion comment (SC-001).

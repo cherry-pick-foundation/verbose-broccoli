@@ -43,7 +43,7 @@ The trial's `gts lint .` reported 200 errors:
 
 | Rule | Count | Where | Handling |
 | --- | --- | --- | --- |
-| `@typescript-eslint/no-floating-promises` | 174 | top-level `test(...)` calls of `node:test` in 16 test files | Pending clarification (spec.md) |
+| `@typescript-eslint/no-floating-promises` | 174 | top-level `test(...)` calls of `node:test` in 16 test files | Hand fix in its own commit: `void test(...)` (spec.md clarification) |
 | `prettier/prettier` | 15 | `scripts/docs.ts`, `scripts/validate_plugins.ts`, `scripts/workflow.ts`, `scripts/workflow_skills.ts`, `scripts/workflow_verify.ts` | Reformat commit |
 | `no-undef` | 9 | `process` in `packages/wiki-consistency/src/wiki_consistency/search.mjs` (8) and `scripts/commitlint.config.mjs` (1) | Hand fix: import `process` from `node:process` |
 | `no-control-regex` | 1 | `scripts/docs.ts:126`, which a `biome-ignore` comment covers today | Hand fix: the same reason in an `eslint-disable-next-line` comment |

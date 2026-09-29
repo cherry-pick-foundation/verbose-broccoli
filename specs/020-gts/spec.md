@@ -26,8 +26,11 @@ form. gts's own configuration is preferred over local rules.
 - Q: gts's `@typescript-eslint/no-floating-promises` rule flags every
   top-level `test(...)` call of Node's built-in test runner (174 calls in
   16 files), whose promises the runner already handles. Allow them in that
-  rule's configuration, or mark each call by hand? → A: Pending; the
-  question went to the user through the develop session.
+  rule's configuration, or mark each call by hand? → A: Keep gts's rule
+  exactly as shipped, with no allowance in `eslint.config.js`, and put
+  `void` in front of each of those calls by hand, in a commit of their own,
+  apart from the reformat and the other lint fixes. The develop session
+  relayed the user's answer.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -127,8 +130,8 @@ fails.
 - **FR-006**: The one mechanical reformat of existing files MUST be its own
   commit, holding only the formatters' output with the final configuration
   and no hand edits. Every remaining finding MUST be fixed by hand in later
-  commits without changing behavior; the existing test suites MUST still
-  pass.
+  commits without changing behavior; the `void` marks on `node:test` calls
+  take one commit of their own. The existing test suites MUST still pass.
 - **FR-007**: The ban on runtime and I/O globals in `plugins/**/domain/**`
   and `packages/**/domain/**` that `biome.json` holds today MUST keep the
   same globals and messages, expressed with ESLint's own

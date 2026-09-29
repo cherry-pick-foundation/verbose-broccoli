@@ -13,9 +13,8 @@ Prettier under gts's settings for JSON and YAML:
 - The root `package.json` pins `gts` and drops `@biomejs/biome`;
   `biome.json` goes.
 - `eslint.config.js` and `.prettierrc.js` are the files `gts init` writes;
-  `eslint.ignores.js` lists the excluded paths. Local rules: the ported
-  `domain/` globals ban (FR-007) and whatever the clarification decides for
-  `node:test`.
+  `eslint.ignores.js` lists the excluded paths. The only local rule is the
+  ported `domain/` globals ban (FR-007).
 - `lint` runs `gts lint .` before Ruff, and `format:check` runs Prettier's
   check on JSON and YAML before Ruff; `lint:fix` and `format` run the
   writing forms. Turborepo's existing `//#lint` and `//#format:check` tasks
@@ -108,6 +107,8 @@ packages/wiki-consistency/src/wiki_consistency/search.mjs  # fixes
 2. `style: apply gts format` — only the formatters' output, taken with the
    final configuration, no hand edits.
 3. Hand fixes, each keeping behavior and tests.
+4. `void` in front of each top-level `node:test` call, in its own commit
+   (spec.md clarification).
 
 The checks pass only after the last commit; the commit hook checks messages,
 not the checks, so the intermediate commits are allowed.
