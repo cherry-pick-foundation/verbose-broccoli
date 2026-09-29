@@ -88,7 +88,7 @@ async function approvals(tree: string, files: string[]) {
     for (const match of (await readFile(join(tree, name), 'utf8')).matchAll(
       /^(\*\*Own-code limit\*\*:\s*(\d+)\b.*)$/gm,
     ))
-      found.set(`${name}\0${match[1]}`, {number: Number(match[2]), path: name});
+      found.set(match[1], {number: Number(match[2]), path: name});
   }
   return found;
 }
