@@ -192,9 +192,11 @@ and in the code and test that skip Deno-era workflow evidence records
 ## Open risks and leftovers
 
 - **A flaky test**: backfire's bounded-work test for `backfire_extract`
-  failed once in the full checks run since the shim was removed, and passed
-  on the rerun and in three runs alone. Under full parallel load its 10 MB regex scan can pass its
-  deadline, and the tool then reports no judgment.
+  failed twice in the full checks run since the shim was removed, and passed
+  on each rerun and in three runs alone. Its third field needs a simple
+  regex to finish within the tool's one-second limit; under full parallel
+  load that limit can pass, the field finds nothing, and the tool reports
+  no judgment. A `npm run verify` that fails only there may need one rerun.
 - **Not run**: the GitHub workflows were changed but cannot run locally.
 - **Experimental and unusual pieces**: Turborepo's Python support and its
   task `command` arrays are experimental; the npm `workspaces` glob matches
