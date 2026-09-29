@@ -27,10 +27,12 @@ persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
 
-Root tasks reuse Node.js and Ajv with the unmodified official Agent Plugins
-schemas. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
+check-jsonschema 0.38.2 validates the plugin manifests offline against the
+unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
+project whose `uv.lock` pins it. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
 shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
-suites, the reference drift check and the document region check (see
+suites and the document region check, which also covers the generated
+references (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -59,18 +61,15 @@ diff before each commit and leaves the independent review to the merge into `dev
 `main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later
 feature work.
 
-The [command reference](reference/commands.md) lists every root task and the five
-selected help entrypoints. `npm run docs:generate` refreshes exactly the two
-files in `docs/reference/`; `npm run docs:check` rejects stale, missing or
-unexpected output without changing files or the Git index. Authored guidance and
-live Wiki data are outside both commands' scope.
-
-Generation stages a complete pair and retains the prior pair through readback.
-An interrupted publication leaves `docs/.reference-publication/` for the next
-explicit generation to recover; unknown entries or conflicting changes stop
-recovery and name that path. `check`, the existing `verify` loop and the PR
-documentation job run the same drift check. The job definition alone does not
-establish a successful hosted run or required branch protection.
+The [command reference](reference/commands.md) lists every root task and the
+help text of the repository's own commands, and the
+[plugin reference](reference/plugins.md) lists each plugin's declarations.
+Both are Cog regions (see
+[Document consistency](#document-consistency--2026-09-28)): `npm run
+doc-regions:update` refreshes them, and `npm run doc-regions:check` rejects
+stale output without writing. `check`, the `verify` loop and the PR
+documentation job run that check. The job definition alone does not establish
+a successful hosted run or required branch protection.
 
 Workflow difficulty is independent of execution mode, verification and model
 selection. The same Git collector supplies workspace routing and each declared
@@ -101,7 +100,7 @@ or selects a model. Model selection remains a separate client decision.
 ## CLI contract
 
 The repository-owned entrypoints `doctor`, `workflow` (and its `verify` alias),
-`clean-architecture`, `plugins:validate` and `clean-code` (including `--scope`)
+`clean-architecture` and `clean-code` (including `--scope`)
 use pinned Cliffy for help and parsing. A small shared serializer owns JSON
 output, error serialization and exit classification; it is exported only as
 the `code` package's `./cli` entry and bundled in the portable clean-code
@@ -564,14 +563,15 @@ or an agent region, written by agents. No part is human-written.
   quoted marker as a region.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
-- `scripts/doc_regions.toml` lists the targets, and `AGENTS.md` and the
-  constitution as report-only documents. `specs/`, vendored skills and the
-  generated `docs/reference/` are not listed. A plugin document becomes a
+- `scripts/doc_regions.toml` lists the targets, including the generated
+  `docs/reference/` pages, and `AGENTS.md` and the constitution as
+  report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
   target when the project writes one.
 - To add a mechanical region, add a function to `scripts/doc_sources.py` and a
   test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
   and a missing source that raises. The function reads only its named sources
-  and uses no network, clock or environment. Then put the markers around the
+  and uses no network, clock or environment; `command_help` runs each named
+  command with `--help` in a fixed environment. Then put the markers around the
   text in a target and run `npm run doc-regions:update`.
 - `npm run check`, and so `npm run verify`, runs `npm run
   doc-regions:check`. It fails when a region differs from its generator's
