@@ -678,6 +678,10 @@ def test_non_autolink_angle_text_does_not_hide_dates(tmp_path, body):
         "<https://example.com/2026/09/29>",
         "<urn:synthetic:2026.09.29>",
         "[synthetic date](https://example.invalid/2026/09/29)",
+        pytest.param(
+            "[synthetic date](</home/user/Documents/2026.09.29 (1).pdf>)",
+            id="angle-bracket-destination-with-parenthesis",
+        ),
     ],
 )
 def test_page_rules_skip_autolinks_and_link_destinations_for_dates(
@@ -690,6 +694,35 @@ def test_page_rules_skip_autolinks_and_link_destinations_for_dates(
     problems = checked(instance, tmp_path)
 
     assert not has_rule(problems, "date", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize(
+    ("rule", "body", "matched"),
+    [
+        pytest.param(
+            "time",
+            "[a](https://example.invalid/15:54:00.420)",
+            "15:54:00.420",
+            id="time",
+        ),
+        pytest.param(
+            "phone",
+            "[a](https://example.invalid/010-0000-0000)",
+            "010-0000-0000",
+            id="phone",
+        ),
+    ],
+)
+def test_page_rules_check_time_and_phone_in_link_targets(
+    tmp_path, rule, body, matched
+):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
 
 
 @pytest.mark.parametrize(
