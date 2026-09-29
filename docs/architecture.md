@@ -269,8 +269,12 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   PDFs remain unreadable, so claims resting only on them are unverifiable.
   `index` builds qmd 2.8.3
   collections of the pages and the converted evidence under
-  `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
-  Qwen3 embedding model, a 610 MB download on first use. Without the model,
+  `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget, a folder only the
+  user can read), with the multilingual
+  Qwen3 embedding model, a 610 MB download only when `index` is asked to
+  download it. The check uses qmd's own command line and one stdio MCP
+  session per search, with typed keyword and vector queries, reranking off
+  and qmd's CPU mode, so no other model is downloaded. Without the model,
   keyword search alone finds no other page for a whole paragraph, so
   `prepare` then checks units only against their evidence and says that it
   searched no other pages. `prepare` prints

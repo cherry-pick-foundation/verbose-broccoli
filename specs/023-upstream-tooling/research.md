@@ -85,12 +85,22 @@ at `0bc0c63`, the counter and method CHE-42 chose (research R1 of
 - **Decision**: `search.py` keeps the functions the request builders call
   (`index`, `search`, `semantic_ready` and `_collection_chunk_count`), because
   CHE-39 changes `requests.py`, and implements them with qmd's own command
-  line (`qmd collection`, `qmd update`, `qmd embed`, `qmd status`, and
-  `qmd search`/`qmd vsearch --format json`, whose results carry `file`,
-  `line` and `score`) or with its stdio MCP server. `search.mjs`, which
-  imports qmd's internal `dist/store.js`, goes.
+  line (`qmd collection`, `qmd update`, `qmd embed`) and one stdio MCP
+  session per search call, whose `query` tool runs typed `lex` and `vec`
+  searches with reranking off and whose `status` tool gives the document
+  counts and embedding readiness. `search.mjs`, which imports qmd's
+  internal `dist/store.js`, goes. The review's controls apply: no
+  `qmd vsearch`, query expansion or `qmd pull` (they fetch generation and
+  reranking models), `QMD_FORCE_CPU=1`, umask 077 and a 0700 cache folder,
+  and download tokens removed from qmd's environment.
+- **Rationale**: One MCP session keeps a call's queries in one process, as
+  `search.mjs` did; one process per keyword query made 200 queries take
+  24 s instead of 0.5 s.
 - **Dropped**: the stale-index message that lists added, changed, deleted
-  and empty files; qmd's JSON rounds scores to two decimals.
+  and empty files (search runs `qmd update` first), the exact vector chunk
+  cap (document counts stand in), checks for query shapes the callers
+  cannot produce, and the removal of unexpected collections and collection
+  update hooks; scores are qmd's, rounded to two decimals.
 
 ## Pending decisions
 

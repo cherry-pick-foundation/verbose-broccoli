@@ -65,11 +65,22 @@ repository or into Orca or Linear messages. Tests use synthetic fixtures.
     the terminal-control and local-path guards, the permission-bounded
     help run, the "Input owners" line, the validator's symlink refusal and
     custom roots, and both JSON summaries.
-- [ ] T004 [P] [US2] Reimplement `search.py`'s `index`, `search`,
+- [x] T004 [P] [US2] Reimplement `search.py`'s `index`, `search`,
   `semantic_ready` and `_collection_chunk_count` on qmd's own command line
   and stdio MCP server with the security controls of research.md R0 and R7;
   remove `search.mjs`; keep `tests/test_search.py`'s cases passing, changed
   only where qmd's public output differs (FR-009, FR-012).
+  - 2026-09-30: A Codex worker (`gpt-6-luna`, max effort) did T004 in two
+    rounds; the coordinator reviewed and committed `2dfdc93` and
+    `26bcd65`. The first round ran one qmd process per keyword query (462
+    own-code lines); the second serves every query of a call through one
+    qmd MCP session: 200 synthetic queries took 0.48 s instead of 24.0 s.
+    Own code: 516 lines removed, 257 added (net -259). Dropped: the
+    stale-index message listing added, changed, deleted and empty files
+    (search now runs `qmd update` first), the exact vector chunk cap
+    (document counts from qmd's status stand in), checks for query shapes
+    the callers cannot produce, and the removal of unexpected collections
+    and collection update hooks; scores are qmd's, rounded to two decimals.
 
 ## Phase 2: Swaps after the user's answers (US1, US2)
 
