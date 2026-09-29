@@ -254,10 +254,9 @@ def test_configuration_failure_digest_uses_only_a_loaded_model(
         (401, "credential_rejected"),
         (405, "balance_exhausted"),
         (403, "provider_error"),
-        (500, "provider_error"),
     ],
 )
-def test_provider_errors_have_fixed_text_and_no_retry(
+def test_non_retryable_http_errors_have_fixed_text(
     monkeypatch, status, expected, capsys
 ):
     with FakeProvider([Reply({"error": PRIVATE}, status)]) as fake:
@@ -269,6 +268,45 @@ def test_provider_errors_have_fixed_text_and_no_retry(
         assert not hasattr(caught.value, "debug")
         assert len(fake.requests) == 1
     assert capsys.readouterr() == ("", "")
+
+
+def test_judge_retries_server_error_and_records_success(monkeypatch):
+    reply_text = "private synthetic server diagnostic"
+    failure = Reply({"error": reply_text}, 500, {"Retry-After": "0"})
+    with (
+        FakeProvider([failure, completion({"q": 0.75})]) as fake,
+        RecordFile(xdg_path("state") / "backfire/records") as records,
+    ):
+        monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
+        result = asyncio.run(evaluate(record_file=records))
+        assert result["answers"]["q"]["noul"] == 0.75
+        assert result["metadata"]["attempts"] == 2
+        (entry,) = read_records(records.path)
+        assert entry["outcome"] == "ok" and entry["attempts"] == 2
+        assert len(fake.requests) == 2
+        assert reply_text not in records.path.read_text()
+
+
+def test_judge_records_fixed_provider_error_after_four_server_failures(
+    monkeypatch, capsys
+):
+    reply_text = "private synthetic server diagnostic"
+    failure = Reply({"error": reply_text}, 500, {"Retry-After": "0"})
+    with (
+        FakeProvider([failure] * 4) as fake,
+        RecordFile(xdg_path("state") / "backfire/records") as records,
+    ):
+        monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
+        with pytest.raises(JudgmentError) as caught:
+            asyncio.run(evaluate(record_file=records))
+        assert caught.value.error_type == "provider_error"
+        assert len(fake.requests) == 4
+        (entry,) = read_records(records.path)
+        assert entry["outcome"] == "provider_error"
+        assert entry["attempts"] == 4
+        assert reply_text not in str(caught.value)
+        assert reply_text not in records.path.read_text()
+    assert reply_text not in "".join(capsys.readouterr())
 
 
 @pytest.mark.parametrize("status", [429, 409])

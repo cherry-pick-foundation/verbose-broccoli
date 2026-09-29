@@ -79,7 +79,7 @@ returns an answer or a default.
 | `request_rejected` | The provider answered 400, as Hive does for an unsupported setting or model, or a status the profile maps to this type |
 | `rate_limited` | The provider answered 429, or a status the profile maps to this type, on the last allowed attempt, or its `Retry-After` does not fit the time left |
 | `provider_unavailable` | Connection failures on every allowed attempt, or a read error or timeout after the request was sent |
-| `provider_error` | Any other status, including 403, 404, 422 and every 5xx unless the profile maps it, or a success status whose reply carries no answer: a body that is not a JSON object, one without a non-empty `choices` list, or, for the Responses API, one without an `output` list. This check comes before the usage, model and thinking checks, so such a reply is `provider_error` even when it also lacks usage. A provider that sends its success status before the model finishes can report a later failure only this way |
+| `provider_error` | Any other status, including 403, 404, 422, and every 5xx unless the profile maps it, on the last allowed attempt for a 5xx; or a success status whose reply carries no answer: a body that is not a JSON object, one without a non-empty `choices` list, or, for the Responses API, one without an `output` list. This check comes before the usage, model and thinking checks, so such a reply is `provider_error` even when it also lacks usage. A provider that sends its success status before the model finishes can report a later failure only this way |
 | `truncated_output` | The adapter's finish-reason check failed, or completion tokens reached the `max_tokens` that the profile's `request` sets |
 | `malformed_output` | A choice without a message, empty content, missing usage, or output that fails the adapter's answer schema (missing or extra labels, values outside [0, 1], not JSON) |
 | `refused` | The response carries a refusal |
@@ -97,10 +97,13 @@ at its provider. For the Hive profile, 405 and 429 are documented by Hive, and
 
 - The adapter's retry policy is the only retry layer: the TypeSafe SDK's
   `RetryPolicy` with at most four attempts in total, including the first.
-- Retried: 429 and any status the profile maps to `rate_limited`, and
-  connection failures before the request reached the provider. `Retry-After`
-  is honored; backoff otherwise starts at 1 s and doubles with jitter. A wait
-  that would not fit the time left ends the request with the last error.
+- Retried: 429 and any status the profile maps to `rate_limited`; every 5xx
+  status the profile does not map to another type; a success status whose
+  reply carries no answer (`provider_error` above); and connection failures
+  before the request reached the provider. `Retry-After` is honored; backoff
+  otherwise starts at 1 s and doubles with jitter. A wait that would not fit
+  the time left ends the request with the last error. Each retry is billed
+  again ([research.md](../research.md#provider-failures-in-bursts--2026-09-29)).
 - Never retried: read errors and timeouts after the request was sent, every
   other status, and every answer failure (`truncated_output`,
   `malformed_output`, `refused`, `invalid_distribution`,

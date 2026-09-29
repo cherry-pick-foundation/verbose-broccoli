@@ -139,9 +139,6 @@ def test_profile_fields_and_reported_model_survive_real_adapter(
 @pytest.mark.parametrize(
     "fault, expected",
     [
-        ("empty_choices", "provider_error"),
-        ("missing_choices", "provider_error"),
-        ("null_choices", "provider_error"),
         ("empty_content", "malformed_output"),
         ("blank_content", "malformed_output"),
         ("null_content", "malformed_output"),
@@ -163,17 +160,11 @@ def test_profile_fields_and_reported_model_survive_real_adapter(
         ("missing_thinking", "thinking_not_confirmed"),
     ],
 )
-def test_response_failures_are_fixed_and_never_retried(
+def test_other_response_failures_are_fixed_and_never_retried(
     profile, body, fault, expected, capsys
 ):
     message = body["choices"][0]["message"]
-    if fault == "empty_choices":
-        body["choices"] = []
-    elif fault == "missing_choices":
-        body.pop("choices")
-    elif fault == "null_choices":
-        body["choices"] = None
-    elif fault.endswith("_content"):
+    if fault.endswith("_content"):
         message["content"] = {
             "empty_content": "",
             "blank_content": " \n",
@@ -220,13 +211,6 @@ def test_response_failures_are_fixed_and_never_retried(
             call = ProviderCall(asyncio.get_running_loop().time() + 10)
             with pytest.raises(JudgmentError) as caught:
                 await evaluate(profile, call=call)
-            if fault in ("empty_choices", "missing_choices", "null_choices"):
-                assert call.model == "reported-model"
-                assert call.usage == {"input_tokens": 11, "output_tokens": 7}
-                assert call.metadata["reasoning_tokens"] == (
-                    3 if profile["name"] == "hive" else 4
-                )
-                assert call.metadata["thinking_evidence"] is True
             return caught.value
 
         caught = asyncio.run(run())
@@ -235,6 +219,47 @@ def test_response_failures_are_fixed_and_never_retried(
         assert "private" not in "".join(traceback.format_exception(caught))
         assert len(fake.requests) == 1
     assert capsys.readouterr() == ("", "")
+
+
+@pytest.mark.parametrize(
+    "fault", ["empty_choices", "missing_choices", "null_choices"]
+)
+def test_answerless_responses_preserve_captured_metadata(profile, body, fault):
+    if fault == "empty_choices":
+        body["choices"] = []
+    elif fault == "missing_choices":
+        body.pop("choices")
+    else:
+        body["choices"] = None
+    with FakeProvider([body]) as fake:
+        profile["base_url"] = fake.base_url
+
+        async def run():
+            provider = ProfileProvider(profile, load_credential(profile))
+            call = ProviderCall(asyncio.get_running_loop().time() + 10)
+            token = provider_call.set(call)
+            try:
+                with pytest.raises(JudgmentError) as caught:
+                    await provider.request(
+                        [Message("user", "synthetic")],
+                        schema={},
+                        structured=False,
+                    )
+                return caught.value, call
+            finally:
+                provider_call.reset(token)
+                await provider.aclose()
+
+        caught, call = asyncio.run(run())
+        assert caught.error_type == "provider_error"
+        assert call.model == "reported-model"
+        assert call.usage == {"input_tokens": 11, "output_tokens": 7}
+        assert call.metadata["attempts"] == 1
+        assert call.metadata["thinking_evidence"] is True
+        assert call.metadata["reasoning_tokens"] == (
+            3 if profile["name"] == "hive" else 4
+        )
+        assert len(fake.requests) == 1
 
 
 @pytest.mark.parametrize("tokens", [None, 0, -1, True, 1.5, "3", {}, []])
@@ -290,8 +315,9 @@ def test_each_thinking_source_and_explicit_off(profile, body, mode):
 
 @pytest.mark.parametrize("status", [401, 400, 403, 405, 500, 429, 409])
 def test_sdk_status_mapping_and_one_retry_layer(profile, body, status):
-    retried = (
-        status == 429 or profile["statuses"].get(str(status)) == "rate_limited"
+    override = profile["statuses"].get(str(status))
+    retried = override == "rate_limited" or (
+        override is None and (status == 429 or 500 <= status <= 599)
     )
     with FakeProvider(
         [
@@ -491,27 +517,33 @@ def test_concurrent_calls_keep_model_usage_and_metadata_separate(profile, body):
         ({"choices": [None]}, "malformed_output"),
     ],
 )
-def test_malformed_envelopes_fail_without_raw_diagnostics(
-    profile, payload, expected, capsys
+def test_malformed_envelopes_follow_retry_policy_without_raw_diagnostics(
+    profile, body, payload, expected, capsys
 ):
-    with FakeProvider([payload]) as fake:
+    with FakeProvider([payload, body]) as fake:
         profile["base_url"] = fake.base_url
-        with pytest.raises(JudgmentError, match=f"^{expected}:"):
-            asyncio.run(evaluate(profile))
-        assert len(fake.requests) == 1
+        if expected == "provider_error":
+            _, call = asyncio.run(evaluate(profile))
+            assert call.metadata["attempts"] == 2
+            assert len(fake.requests) == 2
+        else:
+            with pytest.raises(JudgmentError, match=f"^{expected}:"):
+                asyncio.run(evaluate(profile))
+            assert len(fake.requests) == 1
     assert capsys.readouterr() == ("", "")
 
 
-def test_answerless_provider_error_body_is_sanitized_and_not_retried(
-    profile, capsys
+def test_answerless_provider_error_body_is_sanitized_and_retried(
+    profile, body, capsys
 ):
     reply_text = b'{"status_code":500,"message":"Internal Server Error"}'
-    with FakeProvider([Reply(b"        " + reply_text)]) as fake:
+    with FakeProvider([Reply(b"        " + reply_text), body]) as fake:
         profile["base_url"] = fake.base_url
-        with pytest.raises(JudgmentError, match="^provider_error:") as caught:
-            asyncio.run(evaluate(profile))
-        assert len(fake.requests) == 1
-    assert reply_text.decode() not in str(caught.value)
+        response, call = asyncio.run(evaluate(profile))
+        assert response.answers["q"].noul == 0.5
+        assert call.metadata["attempts"] == 2
+        assert len(fake.requests) == 2
+    assert reply_text.decode() not in json.dumps(asdict(call))
     assert reply_text.decode() not in "".join(capsys.readouterr())
 
 
@@ -601,17 +633,26 @@ def test_inherited_responses_route_keeps_adapter_handling(
         assert call.usage == {"input_tokens": 11, "output_tokens": 7}
         assert call.metadata["reasoning_tokens"] == 3
     else:
-        with pytest.raises(JudgmentError) as caught:
-            asyncio.run(evaluate(profile))
+
+        async def run():
+            call = ProviderCall(asyncio.get_running_loop().time() + 10)
+            with pytest.raises(JudgmentError) as caught:
+                await evaluate(profile, call=call)
+            return caught.value, call
+
+        caught, call = asyncio.run(run())
         assert (
-            caught.value.error_type
+            caught.error_type
             == {
                 "incomplete": "truncated_output",
                 "refusal": "refused",
                 "missing_output": "provider_error",
             }[outcome]
         )
-    assert len(sent) == 1
+        assert call.metadata["attempts"] == (
+            4 if outcome == "missing_output" else 1
+        )
+    assert len(sent) == (4 if outcome == "missing_output" else 1)
     assert sent[0]["model"] == profile["model"]
     assert sent[0]["store"] is False
     assert sent[0]["text"]["format"] == {"type": "json_object"}
