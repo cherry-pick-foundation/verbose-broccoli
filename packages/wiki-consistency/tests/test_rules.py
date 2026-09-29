@@ -113,9 +113,7 @@ def has_rule(problems, rule, document=None):
         pytest.param(
             "english", "The page contains 學生.", "學生", id="english"
         ),
-        pytest.param(
-            "school", "Alpha Middle School.", "Alpha Middle School", id="school"
-        ),
+        pytest.param("school", SCHOOL, SCHOOL, id="school"),
         pytest.param(
             "date", "Recorded on 2026.09.29.", "2026.09.29", id="date"
         ),
@@ -259,10 +257,10 @@ def test_roster_student_given_and_guardian_names_are_allowed(tmp_path):
     assert not has_rule(problems, "english", "wiki/overview.md"), problems
 
 
-def test_roster_school_name_and_romanized_school_fail_school_rule(tmp_path):
+def test_roster_school_name_fails_school_rule(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, f"{SCHOOL}; Alpha Middle School.")
+    write_overview(instance, SCHOOL)
 
     problems = checked(instance, tmp_path)
 
@@ -270,10 +268,17 @@ def test_roster_school_name_and_romanized_school_fail_school_rule(tmp_path):
     assert has_rule(problems, "english", "wiki/overview.md"), problems
     for item in problems:
         if "page rule school:" in item["message"]:
-            assert (
-                SCHOOL not in item["message"]
-                and "Alpha Middle School" not in item["message"]
-            )
+            assert SCHOOL not in item["message"]
+
+
+def test_romanized_book_title_passes_school_rule(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "Synthetic Words Middle School Basic.")
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "school", "wiki/overview.md"), problems
 
 
 def test_contact_rules_still_apply_inside_allowed_quotes(tmp_path):
@@ -629,6 +634,27 @@ def test_page_rules_allow_more_zoned_time_forms(tmp_path, body):
     assert not has_rule(problems, "time", "wiki/overview.md"), problems
 
 
+def test_fractional_seconds_without_zone_fails_time(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "Retrieved 15:54:00.420.")
+
+    problems = checked(instance, tmp_path)
+
+    assert has_rule(problems, "time", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize("zone", ("Z", "+09:00"), ids=("utc", "offset"))
+def test_fractional_seconds_with_zone_pass_time(tmp_path, zone):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"Retrieved 2026-09-27T15:54:00.420{zone}.")
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "time", "wiki/overview.md"), problems
+
+
 @pytest.mark.parametrize(
     "body",
     [
@@ -664,6 +690,50 @@ def test_page_rules_skip_autolinks_and_link_destinations_for_dates(
     problems = checked(instance, tmp_path)
 
     assert not has_rule(problems, "date", "wiki/overview.md"), problems
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        pytest.param(
+            f"[Original](/home/user/Documents/{SCHOOL}/기록.pdf)",
+            id="link-destination",
+        ),
+        pytest.param(
+            f"[Original](</home/user/Documents/{SCHOOL}/기록 (1).pdf>)",
+            id="angle-bracket-destination",
+        ),
+        pytest.param(
+            f"<file:///home/user/Documents/{SCHOOL}/기록.pdf>",
+            id="autolink",
+        ),
+        pytest.param(
+            f"See https://example.invalid/{SCHOOL}/기록 for it.",
+            id="bare-url",
+        ),
+    ],
+)
+def test_english_and_school_skip_link_targets(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "english", "wiki/overview.md"), problems
+    assert not has_rule(problems, "school", "wiki/overview.md"), problems
+
+
+def test_hangul_in_link_text_still_fails_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance, f"[{SCHOOL}](https://example.invalid/original.pdf)"
+    )
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
 
 
 @pytest.mark.parametrize(
