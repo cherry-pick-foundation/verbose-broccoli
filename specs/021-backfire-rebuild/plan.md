@@ -111,7 +111,7 @@ packages/backfire/
 │   ├── backfire/
 │   │   ├── __main__.py            # serve-mcp and ready, unchanged commands
 │   │   ├── server.py              # REWRITTEN: MCPServer subclass + boundary + stdio
-│   │   ├── tools.py               # NEW: renamed upstream tools + backfire_noul registry
+│   │   ├── registry.py            # NEW: renamed upstream tools + backfire_noul
 │   │   ├── noul.py                # REWRITTEN from tools/noul.py onto JevTool
 │   │   ├── jev_provider.py        # NEW: JevProvider over judge()
 │   │   ├── regex_executor.py      # NEW: RegexExecutor on the regex library (CHE-37)

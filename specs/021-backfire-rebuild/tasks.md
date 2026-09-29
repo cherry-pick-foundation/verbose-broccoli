@@ -101,11 +101,11 @@ upstream's and results with the upstream tool's for the same answers.
   the right upstream error with backfire's text; the deadline and record
   file come from the call context; cancellation propagates; no `JEV_*`
   variable changes behaviour (FR-006).
-- [ ] T007 [US1] Add the registry in `packages/backfire/src/backfire/tools.py`
+- [ ] T007 [US1] Add the registry in `packages/backfire/src/backfire/registry.py`
   (renamed copies of the eleven upstream tools, as
   [research.md](research.md) R3 decides) and rewrite `backfire_noul` onto
   the upstream framework in `packages/backfire/src/backfire/noul.py`, with
-  `packages/backfire/tests/test_tools.py`: the list equals
+  `packages/backfire/tests/test_registry.py`: the list equals
   [contracts/tools.md](contracts/tools.md); each definition equals the
   upstream's after the mapping (compared with the vendored
   `jev_judge_mcp.tools` definitions); no `jev_<tool>` name appears in any
