@@ -214,8 +214,8 @@ claims independently.
 ## Troubleshoot errors
 
 Tool errors are PyModel's: argument errors name the tool and the argument,
-and provider failures name the provider and the attempt count, with keys
-redacted. Backfire adds two of its own:
+and provider failures name the provider, and the attempt count when
+retries ran out, with keys redacted. Backfire adds two of its own:
 
 | Error | Cause and action |
 | --- | --- |

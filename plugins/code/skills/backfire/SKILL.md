@@ -43,7 +43,7 @@ Eleven tools built on TypeSafe's Jev. They return typed judgments and probabilit
 
 ## Fail-closed behavior
 
-- Unknown arguments are rejected, not silently dropped: a typo errors rather than running without the argument. Pass exact parameter names — see [`reference/tools.md`](reference/tools.md).
+- Unknown arguments are dropped without an error: a typo runs without the argument, falling back to its default. Pass exact parameter names — see [`reference/tools.md`](reference/tools.md).
 - A missing or malformed model answer surfaces as an explicit `invalid_response` — for `jev_screen`, a whole-result error with a `review` recommendation — never as a clean pass, a no-match, or an empty ranking. Treat it as an operational failure: fix the input or the call. Do not assume success and move on.
 
 ## Data handling and cost
@@ -56,5 +56,4 @@ Eleven tools built on TypeSafe's Jev. They return typed judgments and probabilit
 
 - [`reference/tools.md`](reference/tools.md) — per-tool arguments, output shapes, verdict enums, defaults, limits, failure modes, and the classification-catalog checklist. Read a tool's block before first use.
 - [`references/verbose-broccoli.md`](references/verbose-broccoli.md) — local provider, privacy, advisory limits, and measured quality guidance.
-- The package README — server setup, provider configuration, and how to copy this skill into your client.
 - Need the judgments to drive a real browser instead? [Jev Browser](https://github.com/jkudish/jev-browser) (`@jkudish/jev-browser`) exposes `jev_navigate` and ships its own skill.

@@ -223,7 +223,8 @@ I found no MCP protocol behavior that a custom server cannot reproduce. The stoc
 
 R1 to R10 describe the first design, a vendored copy of PyModel's code.
 The user replaced it on 2026-09-30 with PyModel as a published dependency
-(R12); they stay as the record of what was tried. R11 still applies.
+(R12); they stay as the record of what was tried. R7's `regex` executor was
+dropped too (spec, Clarifications). R11 still applies.
 
 The coordinator read the upstream at `fd6829c` (cloned from
 <https://github.com/PyModel/jev-judge-mcp>, tag `v0.6.0`), backfire at
@@ -433,7 +434,7 @@ plan.
 - **Decision**: depend on `jev-judge-mcp==0.6.0` from PyPI and remove the
   vendored copy (committed in `051f834`, removed again in this redesign).
   Backfire plugs in through PyModel's constructor arguments only:
-  `Runtime(settings, provider_factory=..., regex_executor=...)`,
+  `Runtime(settings, provider_factory=...)`,
   `Toolset(runtime, tools)` with PyModel's `TOOLS` plus `jev_noul`, and
   `JevMCPServer(toolset=..., log_level=...)` run by PyModel's
   `serve(server, settings)`, as PyModel's own `server.main()` does
@@ -450,10 +451,11 @@ plan.
   tool handlers (`tools/verify.py:65-91`); the stdin reader, argument
   parsing and result serialization run inside PyModel's server and
   `Toolset`; the argument compiler refuses `exclusiveMinimum`
-  (`tools/arguments.py`, `SchemaUnfaithful`); `match_all` hard-codes
-  `re.compile` (`extract/executor.py`). These become the prepared
-  contribution; only `match_all`'s candidate loop is copied into backfire
-  until then, because CHE-37 needs the `regex` engine now.
+  (`tools/arguments.py`, `SchemaUnfaithful`). These become the prepared
+  contribution. (A first version of this decision also copied
+  `match_all`'s candidate loop for a `regex`-library executor; the user
+  dropped the `regex` library later that day, so nothing of PyModel is
+  copied and `jev_extract` keeps PyModel's own regex worker pool.)
 - **Removed backfire parts and their only users** (checked with `git grep`
   on 2026-09-30): judgment and per-call records are read only by the
   readiness command and backfire's tests; the readiness command only by the

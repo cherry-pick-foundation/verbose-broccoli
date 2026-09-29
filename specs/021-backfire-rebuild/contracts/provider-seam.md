@@ -4,8 +4,7 @@
 
 ```text
 Runtime(load_settings(),
-        provider_factory=<backfire factory>,
-        regex_executor=<backfire regex executor>)
+        provider_factory=<backfire factory>)
 ```
 
 PyModel's `Runtime` calls the factory once, at the first judgment of a

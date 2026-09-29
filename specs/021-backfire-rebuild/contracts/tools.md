@@ -20,10 +20,9 @@ then `jev_noul`:
 
 ## Calls
 
-- The eleven PyModel tools behave as PyModel 0.6.0's, because their code
-  and argument handling are PyModel's. The only difference is where
-  `jev_extract` runs its patterns (backfire's regex executor: `regex`
-  timeouts, see the spec's Clarifications).
+- The eleven PyModel tools behave as PyModel 0.6.0's, because their code,
+  argument handling and regex worker pool are PyModel's; backfire changes
+  only which provider answers.
 - `jev_noul` keeps jev-mcp 0.9.0's Noul definition (title, description,
   input schema without the `exclusiveMinimum` keyword, `execution`),
   questions, labels, invalid-answer handling and budget error; `auto_accept`

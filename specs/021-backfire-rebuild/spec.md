@@ -337,11 +337,12 @@ repository; count backfire's own lines against `develop`.
   `packages/backfire/pyproject.toml` and `uv.lock`. License notices in
   `licenses/THIRD_PARTY_NOTICES.md` MUST cover only code copied into the
   repository (user's decision, 2026-09-30): the Vercel provider ported from
-  jev-agent-tools 0.1.2 and the backfire skill text from jev-mcp 0.9.0, each
-  with its source revision; no notice for installed packages such as
-  jev-judge-mcp or system-one-adapter; the jev-mcp entry covers only the
-  skill text, and the python-phonenumbers entry matches what remains after
-  the build tool goes.
+  jev-agent-tools 0.1.2 and the backfire skill text and Noul tool from
+  jev-mcp 0.9.0, each with its source revision; no notice for jev-judge-mcp
+  or system-one-adapter, which are installed. The other entries for
+  installed packages are left to a separate cleanup (CHE-43), as the user
+  directed; until then this feature only updates the python-phonenumbers
+  entry's wording to match what remains after the build tool goes.
 - **FR-016**: Private backfire records, student data and evaluation data
   MUST NOT enter fixtures, snapshots or reports; no implementer opens the
   held-out evaluation file.

@@ -96,8 +96,8 @@ This is above the 500-line target; the user's approval was asked for on
 
 ## Checks
 
-- `npm run verify`: passed on `e2603de` (`VERIFIED`); the three required
-  runs are recorded under T019 in [tasks.md](tasks.md).
+- `npm run verify`: see T019 in [tasks.md](tasks.md) for the three runs in
+  a row on the final commit.
 - `npm run test:backfire`: 142 passed, 1 strict expected failure (CHE-38).
 - doc-regions 106 passed, wiki-consistency 291 passed, `plugins:validate`
   passed.
