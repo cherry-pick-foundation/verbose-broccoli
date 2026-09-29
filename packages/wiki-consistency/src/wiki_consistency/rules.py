@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import unicodedata
 
+from markdown_it import MarkdownIt
 import yaml
 from yaml.nodes import MappingNode
 from yaml.nodes import ScalarNode
@@ -55,6 +56,10 @@ _ROAD_ADDRESS = (
 )
 _LOT_ADDRESS = re.compile(rf"(?<![0-9]){_NUMBER}[ ]*번지(?![0-9])")
 _ISO_DATE = re.compile(r"(?<![0-9])[0-9]{4}-[0-9]{2}-[0-9]{2}(?![0-9])")
+_CODE_SPANS = re.compile(
+    r"(?<!\\)(?:\\\\)*(?<!`)(?P<ticks>`+)(?!`).*?(?<!`)(?P=ticks)(?!`)",
+    re.DOTALL,
+)
 _DATE_PATTERNS = (
     re.compile(r"(?<![0-9])[0-9]{4}[./][0-9]{1,2}[./][0-9]{1,2}(?![0-9])"),
     re.compile(r"(?<![0-9])([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?![0-9])"),
@@ -86,7 +91,12 @@ _LINK_TARGETS = (
         r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
         r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"
     ),
-    re.compile(r"\]\((?P<destination><(?:\\.|[^<>\n])*>|(?:\\.|[^)\n])*)\)"),
+    re.compile(
+        r"\]\([ \t]*(?P<destination><(?:\\.|[^<>\n])*>|(?:\\.|[^)\s])*)"
+        r"(?:[ \t]+(?P<title>\"(?:\\.|[^\"\\\n])*\"|"
+        r"'(?:\\.|[^'\\\n])*'|\((?:\\.|[^)\\\n])*\)))?"
+        r"[ \t]*\)"
+    ),
 )
 _TIME = re.compile(
     r"(?<![0-9:])(?:(?P<clock_hour>[0-9]{1,2}):(?P<minute>[0-9]{2})"
@@ -300,9 +310,38 @@ def _allowed_originals(text, name_marks):
 
 
 def _mask_link_targets(text):
+    searchable = list(text)
+    starts = _line_starts(text)
+    for token in MarkdownIt("commonmark").parse(text):
+        if token.type not in {"fence", "code_block"} or token.map is None:
+            continue
+        start = starts[token.map[0]]
+        stop = starts[token.map[1]] if token.map[1] < len(starts) else len(text)
+        for index in range(start, stop):
+            if searchable[index] not in "\r\n":
+                searchable[index] = " "
+    searchable_text = "".join(searchable)
+    for match in _CODE_SPANS.finditer(searchable_text):
+        start, stop = match.span()
+        searchable[start:stop] = " " * (stop - start)
+    searchable_text = "".join(searchable)
+
     masked = list(text)
-    for pattern in _LINK_TARGETS:
-        for match in pattern.finditer(text):
+    titles = []
+    for match in _LINK_TARGETS[2].finditer(searchable_text):
+        start, stop = match.span("destination")
+        for index in range(start, stop):
+            if masked[index] not in "\r\n":
+                masked[index] = " "
+        if match["title"] is not None:
+            titles.append(match.span("title"))
+
+    url_text = list(searchable_text)
+    for start, stop in titles:
+        url_text[start:stop] = " " * (stop - start)
+    url_text = "".join(url_text)
+    for pattern in _LINK_TARGETS[:2]:
+        for match in pattern.finditer(url_text):
             start, stop = match.span(match.lastindex or 0)
             for index in range(start, stop):
                 if masked[index] not in "\r\n":

@@ -737,6 +737,10 @@ def test_page_rules_check_time_and_phone_in_link_targets(
             id="angle-bracket-destination",
         ),
         pytest.param(
+            f"[Original](/home/user/Documents/{SCHOOL}/record\\)1.pdf)",
+            id="escaped-parenthesis-destination",
+        ),
+        pytest.param(
             f"<file:///home/user/Documents/{SCHOOL}/기록.pdf>",
             id="autolink",
         ),
@@ -767,6 +771,76 @@ def test_hangul_in_link_text_still_fails_english(tmp_path):
     problems = checked(instance, tmp_path)
 
     assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
+
+
+@pytest.mark.parametrize(
+    ("body", "line"),
+    [
+        pytest.param(
+            f"`[Original](/home/user/Documents/{SCHOOL}/record.pdf)`",
+            2,
+            id="inline-code",
+        ),
+        pytest.param(
+            f"```md\n[Original](/home/user/Documents/{SCHOOL}/record.pdf)\n```",
+            3,
+            id="fenced-code",
+        ),
+        pytest.param(
+            f"    [Original](/home/user/Documents/{SCHOOL}/record.pdf)",
+            2,
+            id="indented-code",
+        ),
+    ],
+)
+def test_link_destinations_inside_code_fail_english(tmp_path, body, line):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", line, "english", SCHOOL)
+
+
+def test_bare_url_inside_code_span_fails_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"See `https://example.invalid/{SCHOOL}/record`.")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        pytest.param(f'"{SCHOOL}"', id="double-quoted"),
+        pytest.param(f"'{SCHOOL}'", id="single-quoted"),
+        pytest.param(f"({SCHOOL})", id="parenthesized"),
+        pytest.param(f'"https://example.invalid/{SCHOOL}"', id="url-in-title"),
+    ],
+)
+def test_link_titles_are_checked_but_destinations_are_not(tmp_path, title):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance,
+        f"[Destination](/home/user/Documents/{SCHOOL}/"
+        f'record.pdf "English title")\n'
+        f"[Title](https://example.invalid/destination {title})",
+    )
+
+    problems = checked(instance, tmp_path)
+
+    assert not any(
+        item["document"] == "wiki/overview.md"
+        and item["line"] == 2
+        and "page rule english:" in item["message"]
+        for item in problems
+    ), problems
+    assert_rule(problems, "wiki/overview.md", 3, "english", SCHOOL)
 
 
 @pytest.mark.parametrize(
