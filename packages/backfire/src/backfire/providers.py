@@ -8,6 +8,7 @@ from jev_judge_mcp.domain import Usage
 from jev_judge_mcp.errors import Redactor
 import jev_judge_mcp.providers as pymodel
 from jev_judge_mcp.providers.base import ProviderConnectionError
+from jev_judge_mcp.providers.retry import RetryPolicy
 from jev_judge_mcp.providers.retry import TransientFailure
 from jev_judge_mcp.settings import Settings
 from pydantic import SecretStr
@@ -25,6 +26,19 @@ from backfire_education.pseudonymize import pseudonymize
 
 class _AnswerlessError(Exception):
     pass
+
+
+def _retry_policy(profile: dict) -> RetryPolicy | None:
+    """Build PyModel's RetryPolicy from the profile's optional retry table."""
+    table = profile.get("retry")
+    if table is None:
+        return None
+    try:
+        if "statuses" in table:
+            table = {**table, "statuses": frozenset(table["statuses"])}
+        return RetryPolicy(**table)
+    except (OverflowError, TypeError, ValueError):
+        raise JudgmentError("backend_not_configured", profile["name"]) from None
 
 
 class _OpenAIModel(adapter_openai.AsyncOpenAIProvider):
@@ -54,8 +68,10 @@ class _OpenAIModel(adapter_openai.AsyncOpenAIProvider):
 class _OpenAIProvider(pymodel.JevProvider):
     name, label = "compatible", "backfire profile"
 
-    def __init__(self, profile: dict, key: str) -> None:
-        super().__init__(Redactor([key]))
+    def __init__(
+        self, profile: dict, key: str, *, retry: RetryPolicy | None = None
+    ) -> None:
+        super().__init__(Redactor([key]), retry=retry)
         self._model = profile["model"]
         self._provider = _OpenAIModel(profile, key)
         self._client = AsyncSystemOneAdapterClient(
@@ -157,10 +173,12 @@ class _ProfileProvider(pymodel.JevProvider):
         await self._provider.aclose()
 
 
-def _jev_provider(profile: dict, key: str) -> pymodel.JevProvider:
+def _jev_provider(
+    profile: dict, key: str, *, retry: RetryPolicy | None = None
+) -> pymodel.JevProvider:
     name = profile["jev_provider"]
     if name == "vercel":
-        return VercelProvider(profile, key)
+        return VercelProvider(profile, key, retry=retry)
     secret, values = SecretStr(key), {"jev_provider": name}
     field = {
         "typesafe": "typesafe_api_key",
@@ -175,7 +193,9 @@ def _jev_provider(profile: dict, key: str) -> pymodel.JevProvider:
     elif name == "typesafe" and "base_url" in profile:
         values["typesafe_base_url"] = SecretStr(profile["base_url"])
     try:
-        return pymodel.resolve_provider(Settings.model_construct(**values))
+        return pymodel.resolve_provider(
+            Settings.model_construct(**values), retry=retry
+        )
     except pymodel.ProviderConfigError:
         raise pymodel.ProviderConfigError(
             str(JudgmentError("backend_not_configured", profile["name"]))
@@ -191,11 +211,12 @@ def provider_factory(
         del _settings
         try:
             profile = load_profile(education=education)
+            retry = _retry_policy(profile)
             key = load_credential(profile)
             provider = (
-                _OpenAIProvider(profile, key)
+                _OpenAIProvider(profile, key, retry=retry)
                 if profile["api"] == "openai"
-                else _jev_provider(profile, key)
+                else _jev_provider(profile, key, retry=retry)
             )
         except JudgmentError as error:
             raise pymodel.ProviderConfigError(str(error)) from None

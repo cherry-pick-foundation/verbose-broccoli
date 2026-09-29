@@ -55,6 +55,27 @@ def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
     assert config.load_credential(selected) == "synthetic-value"
 
 
+def test_operator_retry_table_is_passed_through(operator):
+    operator.write_text(
+        """provider = "local"
+[providers.local]
+api = "openai"
+base_url = "http://127.0.0.1:8080/v1"
+model = "synthetic-model"
+credential = "SYNTHETIC_API_KEY"
+[providers.local.retry]
+per_attempt_timeout = 1
+budget = 2
+""",
+        encoding="utf-8",
+    )
+
+    assert config.load_profile()["retry"] == {
+        "per_attempt_timeout": 1,
+        "budget": 2,
+    }
+
+
 def test_education_profile_is_selected_without_loading_its_key(operator):
     selected = config.load_profile(education=True)
     assert selected["name"] == "education"

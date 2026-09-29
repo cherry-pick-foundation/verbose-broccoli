@@ -33,6 +33,7 @@ from jev_judge_mcp.providers.base import HttpProvider
 from jev_judge_mcp.providers.base import ProviderError
 from jev_judge_mcp.providers.base import ProviderName
 from jev_judge_mcp.providers.base import decode_body
+from jev_judge_mcp.providers.retry import RetryPolicy
 
 
 class VercelProvider(HttpProvider):
@@ -41,8 +42,10 @@ class VercelProvider(HttpProvider):
     name: ClassVar[ProviderName] = cast(ProviderName, "vercel")
     label = "Vercel AI Gateway"
 
-    def __init__(self, profile: dict, api_key: str) -> None:
-        super().__init__(Redactor([api_key]))
+    def __init__(
+        self, profile: dict, api_key: str, *, retry: RetryPolicy | None = None
+    ) -> None:
+        super().__init__(Redactor([api_key]), retry=retry)
         self._base_url, self._api_key = profile["base_url"], api_key
 
     async def _send(

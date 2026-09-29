@@ -84,6 +84,79 @@ def test_status_retry_uses_pymodel_policy():
         fake.__exit__()
 
 
+def test_profile_retry_policy_allows_reply_after_default_attempt(monkeypatch):
+    retry = {
+        "max_attempts": 1,
+        "per_attempt_timeout": 0.15,
+        "budget": 0.2,
+        "backoff_initial": 0.001,
+        "backoff_max": 0.001,
+        "backoff_jitter": 0,
+    }
+    policy = RetryPolicy(**retry)
+    with FakeProvider([Reply(completion({"q": 0.75}), delay=0.04)]) as fake:
+        profile = {
+            "name": "synthetic",
+            "api": "openai",
+            "base_url": fake.base_url,
+            "model": "synthetic-model",
+            "request": {},
+            "retry": retry,
+        }
+        monkeypatch.setattr(
+            "backfire.providers.load_profile", lambda **_: profile
+        )
+        monkeypatch.setattr(
+            "backfire.providers.load_credential", lambda _: "synthetic-key"
+        )
+        monkeypatch.setattr(
+            "jev_judge_mcp.providers.base.DEFAULT_RETRY_POLICY",
+            RetryPolicy(
+                max_attempts=1,
+                per_attempt_timeout=0.01,
+                backoff_initial=0.001,
+                backoff_max=0.001,
+                backoff_jitter=0,
+                budget=0.02,
+            ),
+        )
+        client = provider_factory()(Settings.model_construct())
+        assert client._provider._retry == policy
+
+        async def run():
+            try:
+                return await client.evaluate(
+                    {"claim": "synthetic"}, QUESTIONS, "model", 2
+                )
+            finally:
+                await client.aclose()
+
+        assert asyncio.run(run()).answers["q"]["noul"] == 0.75
+        assert len(fake.requests) == 1
+
+
+@pytest.mark.parametrize(
+    "retry",
+    [
+        {"per_attempt_timout": 0.1},
+        {"per_attempt_timeout": 0},
+        {"budget": "118"},
+    ],
+)
+def test_invalid_profile_retry_fails_before_key_load(monkeypatch, retry):
+    monkeypatch.setattr(
+        "backfire.providers.load_profile",
+        lambda **_: {"name": "synthetic-profile", "retry": retry},
+    )
+    monkeypatch.setattr(
+        "backfire.providers.load_credential",
+        lambda _: pytest.fail("invalid retry reached credential loading"),
+    )
+
+    with pytest.raises(ProviderConfigError, match="synthetic-profile"):
+        provider_factory()(Settings.model_construct())
+
+
 @pytest.mark.parametrize(
     ("name", "expected_field"),
     [
@@ -96,8 +169,8 @@ def test_status_retry_uses_pymodel_policy():
 def test_jev_profiles_use_pymodel_resolver(monkeypatch, name, expected_field):
     seen = []
 
-    def resolve(settings):
-        seen.append(settings)
+    def resolve(settings, *, retry):
+        seen.append((settings, retry))
         return object()
 
     monkeypatch.setattr("backfire.providers.pymodel.resolve_provider", resolve)
@@ -108,15 +181,32 @@ def test_jev_profiles_use_pymodel_resolver(monkeypatch, name, expected_field):
     }
     if name == "cloudflare":
         profile["account_id"] = "synthetic-account"
-    marker = _jev_provider(profile, "synthetic-key")
+    policy = RetryPolicy(max_attempts=1)
+    marker = _jev_provider(profile, "synthetic-key", retry=policy)
     assert marker is not None
-    (settings,) = seen
+    settings, retry = seen[0]
+    assert retry is policy
     assert settings.jev_provider == name
     assert (
         getattr(settings, expected_field).get_secret_value() == "synthetic-key"
     )
     if name == "cloudflare":
         assert settings.cloudflare_account_id == "synthetic-account"
+
+
+def test_vercel_profile_receives_pymodel_retry():
+    policy = RetryPolicy(max_attempts=1)
+    marker = _jev_provider(
+        {
+            "name": "synthetic",
+            "jev_provider": "vercel",
+            "base_url": "https://provider.invalid/v1",
+        },
+        "synthetic-key",
+        retry=policy,
+    )
+
+    assert marker._retry is policy
 
 
 def test_profile_configuration_failure_is_a_pymodel_provider_error():
