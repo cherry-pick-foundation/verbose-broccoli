@@ -186,6 +186,7 @@ def test_excluded_only_answer_returns_one(monkeypatch, capsys):
 
 def test_notification_only_contains_strong_offers(monkeypatch):
     strong, excluded = offer("strong"), offer("excluded")
+    strong["title"] = "--version"
     install_tracker(monkeypatch, new=[strong, excluded])
     monkeypatch.setattr(
         credit_offers.model,
@@ -209,11 +210,66 @@ def test_notification_only_contains_strong_offers(monkeypatch):
     assert status == 0
     assert len(sent) == 1
     assert sent[0][0] == "notify-send"
-    assert "Title strong" in sent[0][2]
-    assert "Title excluded" not in sent[0][2]
-    assert "Example Provider" in sent[0][2]
-    assert "Free credits" in sent[0][2]
-    assert "https://example.test/strong" in sent[0][2]
+    assert sent[0][1:3] == ["--", "New API credit offers"]
+    assert sent[0][3].startswith("--version — Example Provider")
+    assert "Title excluded" not in sent[0][3]
+    assert "Example Provider" in sent[0][3]
+    assert "Free credits" in sent[0][3]
+    assert "https://example.test/strong" in sent[0][3]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        credit_offers.subprocess.CalledProcessError(1, ["notify-send"]),
+        OSError("notify-send unavailable"),
+    ],
+)
+def test_notification_failure_exits_three_after_printing_judgment(
+    monkeypatch, capsys, error
+):
+    candidate = offer("candidate")
+    install_tracker(monkeypatch, new=[candidate])
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "synthetic-test-key")
+    monkeypatch.setattr(
+        credit_offers.model,
+        "request_jev",
+        lambda _: {"answers": answers_for([candidate], ["qualifies"])},
+    )
+
+    monkeypatch.setattr(
+        credit_offers.subprocess, "run", Mock(side_effect=error)
+    )
+
+    status = credit_offers.main(["--end", END, "--notify"])
+
+    captured = capsys.readouterr()
+    assert status == 3
+    assert "candidate\tqualifies\t0.9" in captured.out
+    assert "jev_calls=1" in captured.out
+    assert str(error) in captured.err
+    assert "synthetic-test-key" not in captured.out + captured.err
+
+
+def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
+    monkeypatch.setenv("AI_GATEWAY_API_KEY", "synthetic-test-key")
+
+    def forbidden(request):
+        return httpx.Response(403, request=request)
+
+    client = httpx.Client(transport=httpx.MockTransport(forbidden))
+    monkeypatch.setattr(credit_offers.httpx, "Client", lambda **_: client)
+    request_jev = Mock()
+    monkeypatch.setattr(credit_offers.model, "request_jev", request_jev)
+
+    status = credit_offers.main(["--end", END])
+
+    captured = capsys.readouterr()
+    assert status == 3
+    request_jev.assert_not_called()
+    assert "403" in captured.err
+    assert "jev_calls=0" in captured.out
+    assert "synthetic-test-key" not in captured.out + captured.err
 
 
 def test_invalid_answer_fails_with_status_three(monkeypatch, capsys):

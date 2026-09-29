@@ -59,7 +59,9 @@ def notify(offers):
         f"{o['title']} — {o['provider']} — {o['amount']}\n{o['source_url']}"
         for o in offers
     )
-    subprocess.run(["notify-send", "New API credit offers", text], check=True)
+    subprocess.run(
+        ["notify-send", "--", "New API credit offers", text], check=True
+    )
 
 
 def main(argv=None):
@@ -131,13 +133,13 @@ def main(argv=None):
         strong = [
             o for o in offers if answers[o["slug"]]["choice"] == "qualifies"
         ]
-        if args.notify and strong:
-            notify(strong)
         for offer in offers:
             answer = answers[offer["slug"]]
             print(
                 f"{offer['slug']}\t{answer['choice']}\t{answer['probabilities'][answer['choice']]}"
             )
+        if args.notify and strong:
+            notify(strong)
         print(f"jev_calls={jev_calls}")
         return 0 if strong else 1
     except ERRORS as error:
