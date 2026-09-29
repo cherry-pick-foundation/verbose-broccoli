@@ -46,7 +46,7 @@ const actions = {
   ],
   REVIEW: [
     'Main coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from the other provider (Claude Code or Codex) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.',
-    'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`. Send each printed request to the backfire tool it names. Fix target document units marked contradicted or flagged for review, or record why they stand. Report AGENTS.md and constitution findings to the user without changing those files.',
+    'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`. Send each printed request to the `jev_` tool it names. Fix target document units marked contradicted or flagged for review, or record why they stand. Report AGENTS.md and constitution findings to the user without changing those files.',
   ],
 };
 

@@ -463,7 +463,7 @@ void test('workflow: review instructions time independent review at merge', () =
           'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`',
         ) &&
         line.includes(
-          'Send each printed request to the backfire tool it names',
+          'Send each printed request to the `jev_` tool it names',
         ) &&
         line.includes(
           'Fix target document units marked contradicted or flagged for review',

@@ -242,15 +242,14 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   keyword search alone finds no other page for a whole paragraph, so
   `prepare` then checks units only against their evidence and says that it
   searched no other pages. `prepare` prints
-  `backfire_verify` requests (units against their cited evidence, and against
-  candidate units of other pages), `backfire_find` cross-reference requests
-  in a lint, and `backfire_classify` requests for new units. qmd only finds
+  `jev_verify` requests (units against their cited evidence, and against
+  candidate units of other pages), `jev_find` cross-reference requests
+  in a lint, and `jev_classify` requests for new units. qmd only finds
   candidates; backfire judges.
-- The agent sends the requests to the work plugin's backfire server, whose
-  judge replaces the roster's student, guardian and school names, phone
-  numbers and email addresses before the provider call and sends all other
-  text as it is, and confirms a contradiction between two pages with
-  `backfire_compare`.
+- The agent sends the requests to the work plugin's backfire server, which
+  replaces the roster's student, guardian and school names, phone numbers
+  and email addresses before the provider call and sends all other text as
+  it is, and confirms a contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run
@@ -264,32 +263,25 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 ### Backfire server
 
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
-stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
---frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
-package lives in `packages/backfire/src/backfire/`, a member of the root uv
-workspace. The work plugin's additions, the pseudonymization module and the
-education profile, live in `packages/backfire/src/backfire_education/`.
-`npm run backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
-the packages that plugin needs into a complete plugin at an output path outside
-`plugins/` and `packages/`; one table in `backfire_tools/build.py` lists them
-per plugin. The development and release programs in
-`packages/backfire/src/backfire_tools/` are not shipped; they include the build,
-probes, upstream capture and the education measurement.
-
-Each build's `backfire/src/backfire/config.toml` is its shipped provider
-profile: the development profile `hive` from
-`packages/backfire/src/backfire/config.toml` for code, and the education
-profile from `packages/backfire/src/backfire_education/config.toml` for work.
-The work build's file also sets `pseudonymize = true`, which makes the shared
-judge replace roster names, schools and contact details with stable
-pseudonyms before a server or readiness judgment leaves the process. An
-operator can select or replace profiles in the optional
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
-Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
-recorded differences are in
-[`UPSTREAM.md`](../packages/backfire/src/backfire/UPSTREAM.md). See the
-[Backfire operator guide](backfire.md) for setup, provider selection, records,
-and troubleshooting.
+stdio server and start it from the repository with `uv --directory
+${PLUGIN_ROOT}/../../packages/backfire run --frozen --offline --no-sync
+backfire serve-mcp`, the work plugin adding `--education`; backfire is used
+from the repository and never installed. The server is PyModel's
+jev-judge-mcp 0.6.0, a pinned PyPI dependency: backfire's entry point builds
+PyModel's server from PyModel's tools plus `jev_noul` and passes PyModel's
+runtime a provider factory. The factory reads backfire's profiles from
+`packages/backfire/src/backfire/config.toml` (code),
+`packages/backfire/src/backfire_education/config.toml` (work) and the
+optional `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`, and
+builds either a general-model provider through system-one-adapter (Hive by
+default) or a Jev provider: PyModel's own, or the Vercel AI Gateway
+provider ported from jev-agent-tools. With `--education` it wraps that
+provider with the pseudonymization module in
+`packages/backfire/src/backfire_education/`. What backfire needs from
+PyModel's own code (CHE-38) is prepared as a patch for PyModel in
+`specs/021-backfire-rebuild/upstream/`. See the
+[Backfire operator guide](backfire.md) for setup, profiles and
+troubleshooting.
 
 ## Sharing and distribution
 
@@ -581,8 +573,8 @@ or an agent region, written by agents. No part is human-written.
   that `npm run workflow` prints in REVIEW mode. `npm run
   doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
-  `backfire_verify` requests, with units as claims and the feature diff as
-  evidence, and `backfire_classify` requests for the units the feature added.
+  `jev_verify` requests, with units as claims and the feature diff as
+  evidence, and `jev_classify` requests for the units the feature added.
   The agent sends them through its MCP client. It corrects target units judged
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.

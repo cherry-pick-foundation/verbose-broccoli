@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": ["text"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 64,
+      "description": "Items to classify: each one an object {id, text} with text required. Text is truncated at 2000 characters; send bounded excerpts, not whole documents."
+    },
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": ["description"],
+        "additionalProperties": false
+      },
+      "minItems": 2,
+      "maxItems": 250,
+      "description": "Shared class catalog: each class an object {id, description} with description required. Strong descriptions carry the decision: a precise definition, what belongs, what does not, precedence over overlapping classes, and a short example."
+    },
+    "purpose": {
+      "type": "string",
+      "description": "What this classification is for; shared across all items."
+    },
+    "context": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      ],
+      "description": "Shared context available to every item's judgment: policies, catalogs, anything stable."
+    },
+    "auto_accept": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Minimum top probability for auto. Default 0.85."
+    },
+    "minimum_margin": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Minimum winner-to-runner-up gap for auto. Default 0.5."
+    }
+  },
+  "required": ["items", "classes"],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

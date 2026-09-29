@@ -6,7 +6,4 @@ api = "openai"
 base_url = "https://api-cdn.thehive.ai/api/v3"
 model = "deepseek-ai/deepseek-v4.1-flash"
 credential = "HIVE_API_KEY"
-rate_limit_per_second = 5
 request = { max_tokens = 32768, response_format = { type = "json_object" }, reasoning_effort = "medium" }
-thinking = { requested = "on", content_path = "reasoning_content", token_path = "reasoning_tokens" }
-statuses = { 405 = "balance_exhausted" }

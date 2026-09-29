@@ -1,12 +1,9 @@
 line-length = 80
 indent-width = 4
 preview = false
-# Vendored upstream code keeps its upstream form: the Spec Kit extensions
-# and backfire's copy of jev-judge-mcp (feature 018 FR-005, feature 021).
+# The Spec Kit extensions keep their upstream form.
 extend-exclude = [
   ".specify/extensions/",
-  "packages/backfire/src/jev_judge_mcp/",
-  "packages/backfire/tests/upstream/",
 ]
 src = [
   "packages/backfire/src",
@@ -15,12 +12,9 @@ src = [
 ]
 
 [format]
-# Markdown is not Python source; several copies are vendored. The vendored
-# jev-judge-mcp copy keeps its upstream formatting.
+# Markdown is not Python source.
 exclude = [
   "*.md",
-  "packages/backfire/src/jev_judge_mcp/",
-  "packages/backfire/tests/upstream/",
 ]
 
 [per-file-target-version]
@@ -247,7 +241,6 @@ known-third-party = ["absl", "enchant"]
 known-first-party = [
   "backfire",
   "backfire_education",
-  "backfire_tools",
   "doc_regions",
   "wiki_consistency",
 ]
