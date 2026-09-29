@@ -186,6 +186,11 @@ void test('doctor: installed identities, versions and root lock work outside the
       python: 'tools/shellcheck/.venv/bin/python',
       sync: 'PASS',
     });
+    assertEquals(report.scc, {
+      project: 'tools/scc',
+      python: 'tools/scc/.venv/bin/python',
+      sync: 'PASS',
+    });
     assertEquals(report.ruff, {
       project: 'tools/ruff',
       python: 'tools/ruff/.venv/bin/python',
@@ -442,6 +447,21 @@ void test('doctor: a missing or stale ShellCheck environment fails with sync gui
       () => runDoctor({uv: stale}),
       Error,
       'run uv sync --locked --project tools/shellcheck',
+    );
+  });
+});
+
+void test('doctor: a missing or stale scc environment fails with sync guidance', async () => {
+  await temporary(async root => {
+    const stale = await fixture(
+      root,
+      'uv',
+      "if (process.argv[2] === '--version') console.log('uv 0.11.32'); else if (process.argv.at(-1) === 'tools/scc') process.exit(1);",
+    );
+    await assertRejects(
+      () => runDoctor({uv: stale}),
+      Error,
+      'run uv sync --locked --project tools/scc',
     );
   });
 });
