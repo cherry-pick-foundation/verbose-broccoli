@@ -27,9 +27,9 @@
     "//#lint:shell": {"cache": false},
     "//#typecheck": {"cache": false},
     "//#plugins:validate": {"cache": false},
+    "//#test:plugins-validate": {"cache": false},
     "//#clean-code": {"cache": false},
     "//#clean-architecture": {"cache": false},
-    "//#docs:check": {"cache": false},
     "//#doc-regions:check": {
       "description": "Check mechanical regions and local links in the target documents, offline and without writing",
       "cache": false
@@ -45,7 +45,6 @@
     "//#test:clean-architecture": {"cache": false},
     "//#test:workflow": {"cache": false},
     "//#test:cli-contract": {"cache": false},
-    "//#test:docs": {"cache": false},
     "backfire#test": {
       "command": [
         "env",
@@ -140,7 +139,7 @@
         "//#test:clean-architecture",
         "//#test:workflow",
         "//#test:cli-contract",
-        "//#test:docs",
+        "//#test:plugins-validate",
         "backfire#test",
         "doc-regions#test",
         "wiki-consistency#test",
@@ -172,7 +171,6 @@
         "//#clean-code",
         "//#clean-architecture",
         "verbose-broccoli-python#test",
-        "//#docs:check",
         "//#doc-regions:check"
       ],
       "cache": false

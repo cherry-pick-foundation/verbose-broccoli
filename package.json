@@ -22,7 +22,7 @@
     "lint": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' gts lint . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --no-cache .",
     "lint:shell": "git ls-files -z --cached --others --exclude-standard -- '*.sh' scripts/git-hooks scripts/git-flow-hooks ':(exclude).specify/**' | xargs -0 uv run --project tools/shellcheck --frozen --offline --no-sync shellcheck",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "plugins:validate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=scripts --allow-fs-read=plugins scripts/validate_plugins.ts",
+    "plugins:validate": "uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/plugin.schema.json plugins/chat/plugin.json plugins/code/plugin.json plugins/work/plugin.json && uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/mcp.schema.json plugins/code/mcp.json plugins/work/mcp.json",
     "clean-architecture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* scripts/clean_architecture.ts",
     "clean-code": "node --permission --allow-fs-read=* plugins/code/skills/clean-code/scripts/clean_code.ts",
     "clean-code:scope": "npm run clean-code -- --scope",
@@ -40,15 +40,13 @@
     "wiki-consistency:install": "uv sync --locked --all-packages --extra education && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
     "test:wiki-consistency": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest packages/wiki-consistency/tests",
     "test:doc-regions": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package doc-regions pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
+    "test:plugins-validate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/plugins_validate_test.ts",
     "check": "turbo run check",
     "lint:fix": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' gts fix . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --fix --no-cache .",
     "format": "git ls-files --cached -z -- '*.json' ':(exclude,glob)**/package-lock.json' ':(exclude,glob).agents/**' ':(exclude,glob).codex/**' ':(exclude,glob).specify/**' ':(exclude,glob)tools/**' ':(exclude,glob)specs/**' ':(exclude,glob)docs/**' ':(exclude,glob)artifacts/*.json' ':(exclude,glob)scripts/vendor/**' ':(exclude,glob)plugins/code/hooks/**' ':(exclude,glob)plugins/code/tests/hooks.test.js' ':(exclude,glob)plugins/work/skills/quarto-authoring/**' ':(exclude,glob)**/.venv/**' | xargs -0 env NODE_OPTIONS='--permission --allow-fs-read=* --allow-fs-write=*' prettier --write && NODE_OPTIONS='--permission --allow-fs-read=* --allow-fs-write=*' prettier --write .github/ orca.yaml && uv run --project tools/ruff --frozen --offline --no-sync ruff format --no-cache .",
     "format:check": "git ls-files --cached -z -- '*.json' ':(exclude,glob)**/package-lock.json' ':(exclude,glob).agents/**' ':(exclude,glob).codex/**' ':(exclude,glob).specify/**' ':(exclude,glob)tools/**' ':(exclude,glob)specs/**' ':(exclude,glob)docs/**' ':(exclude,glob)artifacts/*.json' ':(exclude,glob)scripts/vendor/**' ':(exclude,glob)plugins/code/hooks/**' ':(exclude,glob)plugins/code/tests/hooks.test.js' ':(exclude,glob)plugins/work/skills/quarto-authoring/**' ':(exclude,glob)**/.venv/**' | xargs -0 env NODE_OPTIONS='--permission --allow-fs-read=*' prettier --check && NODE_OPTIONS='--permission --allow-fs-read=*' prettier --check .github/ orca.yaml && uv run --project tools/ruff --frozen --offline --no-sync ruff format --check --no-cache .",
     "test:clean-architecture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --allow-worker --test scripts/clean_architecture_test.ts",
     "test": "turbo run test",
-    "docs:generate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\"$(realpath node_modules)\" --allow-fs-read=scripts --allow-fs-read=plugins --allow-fs-read=docs --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=turbo.json --allow-fs-read=tsconfig.json --allow-fs-read=eslint.ignores.js --allow-fs-write=docs --allow-child-process scripts/docs.ts generate",
-    "docs:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=node_modules --allow-fs-read=\"$(realpath node_modules)\" --allow-fs-read=scripts --allow-fs-read=plugins --allow-fs-read=docs --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=turbo.json --allow-fs-read=tsconfig.json --allow-fs-read=eslint.ignores.js --allow-child-process scripts/docs.ts check",
-    "test:docs": "NODE_OPTIONS=--disable-warning=SecurityWarning node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/docs_test.ts",
     "test:wiki-raw-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/wiki_raw_import_test.ts"
   },
   "devDependencies": {
@@ -56,7 +54,6 @@
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@eemeli/yaml": "npm:@jsr/eemeli__yaml@2.9.1",
-    "@mdx-js/mdx": "3.1.1",
     "@std/assert": "npm:@jsr/std__assert@1.0.19",
     "@std/path": "npm:@jsr/std__path@1.1.6",
     "@std/testing": "npm:@jsr/std__testing@1.0.20",
@@ -69,15 +66,10 @@
     "dependency-cruiser": "18.2.0",
     "eslint": "10.10.0",
     "gts": "7.0.0",
-    "mdast-util-gfm-table": "2.0.0",
-    "mdast-util-to-markdown": "2.1.2",
-    "mdast-util-to-string": "4.0.0",
     "prettier": "3.9.9",
     "proper-lockfile": "4.1.2",
-    "remark-gfm": "4.0.1",
     "turbo": "2.11.5",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.70.0",
-    "unist-util-visit": "5.1.0"
+    "typescript-eslint": "8.70.0"
   }
 }

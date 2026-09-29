@@ -1,11 +1,10 @@
 # Plugin reference
 
-Generated file. Do not edit; refresh with npm run docs:generate.
-
-Input owners: [plugins/chat/plugin.json](../../plugins/chat/plugin.json), [plugins/code/plugin.json](../../plugins/code/plugin.json), [plugins/code/mcp.json](../../plugins/code/mcp.json), [plugins/work/plugin.json](../../plugins/work/plugin.json), [plugins/work/mcp.json](../../plugins/work/mcp.json).
+Generated file. Do not edit; refresh with npm run doc-regions:update.
 
 Server names below are declarations, not runtime availability or tool catalogs.
 
+<!-- [[[cog import doc_sources; cog.out(doc_sources.plugin_table("plugins/chat/plugin.json", "plugins/code/plugin.json", "plugins/code/mcp.json", "plugins/work/plugin.json", "plugins/work/mcp.json")) ]]] -->
 ## chat
 
 | Field            | Declared value                                                              |
@@ -38,3 +37,4 @@ Server names below are declarations, not runtime availability or tool catalogs.
 | Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                   |
 | MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                         |
 | MCP server names | backfire                                                                                        |
+<!-- [[[end]]] -->

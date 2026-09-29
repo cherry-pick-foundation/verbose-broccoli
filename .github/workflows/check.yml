@@ -47,6 +47,7 @@ jobs:
         run: |
           uv python install --no-bin "$(cat packages/backfire/.python-version)"
           npm ci --ignore-scripts --no-audit --no-fund
+          uv sync --locked --project tools/check-jsonschema
           npm run backfire:install
       - name: Run all checks
         run: npm run check

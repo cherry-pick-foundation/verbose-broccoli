@@ -20,7 +20,6 @@ const commands = [
   {name: 'doctor', script: 'scripts/doctor.ts'},
   {name: 'workflow', script: 'scripts/workflow.ts'},
   {name: 'clean-architecture', script: 'scripts/clean_architecture.ts'},
-  {name: 'plugins:validate', script: 'scripts/validate_plugins.ts'},
   {
     name: 'clean-code',
     script: 'plugins/code/skills/clean-code/scripts/clean_code.ts',
@@ -178,9 +177,7 @@ for (const item of commands) {
 
   void test(`CLI ${item.name}: actual success and failure streams`, async () => {
     await fixture(async (repo, directory) => {
-      let args: string[] = [];
-      if (item.name === 'plugins:validate') args = [join(root, 'plugins/chat')];
-      const success = await invoke(item, args, repo);
+      const success = await invoke(item, [], repo);
       assertEquals(success.code, 0, decoder.decode(success.stderr));
       assertEquals(success.stderr.length, 0);
       const output = JSON.parse(decoder.decode(success.stdout));
@@ -188,7 +185,6 @@ for (const item of commands) {
       const missing = join(directory, 'missing');
       let failureArgs: string[] = [];
       if (item.name === 'doctor') failureArgs = ['--quarto', missing];
-      if (item.name === 'plugins:validate') failureArgs = [missing];
       if (item.name === 'clean-architecture')
         await writeFile(join(repo, 'package.json'), '{ invalid');
       if (item.name === 'clean-code')
@@ -262,18 +258,8 @@ void test('CLI clean-code: copied skill stays independently runnable', async () 
   });
 });
 
-void test('CLI validators: failed checks preserve diagnostics without partial stdout', async () => {
-  await fixture(async (repo, directory) => {
-    const plugin = join(directory, 'bad-plugin');
-    await mkdir(plugin);
-    await writeFile(join(plugin, 'plugin.json'), '{}');
-    const validator = commands.find(item => item.name === 'plugins:validate')!;
-    const schemaFailure = errorResult(
-      await invoke(validator, [join(root, 'plugins/chat'), plugin]),
-      1,
-      'CHECK_FAILED',
-    );
-    assert(schemaFailure.details.errors.length > 0);
+void test('CLI clean-architecture: failed checks preserve diagnostics', async () => {
+  await fixture(async repo => {
     await mkdir(join(repo, 'plugins/demo/domain'), {recursive: true});
     await mkdir(join(repo, 'plugins/demo/infrastructure'), {
       recursive: true,
