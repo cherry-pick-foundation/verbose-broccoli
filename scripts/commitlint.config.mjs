@@ -1,3 +1,4 @@
+import process from 'node:process';
 import conventionalConfig from '@commitlint/config-conventional';
 import conventionalChangelog from 'conventional-changelog-conventionalcommits';
 import {constitutionVersionRule} from './constitution_version.ts';

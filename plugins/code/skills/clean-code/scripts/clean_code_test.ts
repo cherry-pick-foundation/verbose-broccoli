@@ -62,7 +62,6 @@ const examples = [
   ],
   [
     'template',
-    // biome-ignore lint/suspicious/noTemplateCurlyInString: The fixture is source code with a template literal.
     'export function value(n: number) { return `${n}`; }',
     'excluded',
   ],
