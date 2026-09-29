@@ -100,3 +100,18 @@ Commit Phase 1 before T005.
   Review, run the merge review, resolve findings, commit the review record
   and run `git flow feature finish gts` in the `develop` worktree; then move
   CHE-36 to Done with one completion comment (SC-001).
+  - 2026-09-29: `develop` had not moved from `7e18ad4`, so no merge was
+    needed yet. The document judgment step (`doc-regions:prepare -- --base
+    develop --max-evidence-chars 20000`) sent 229 units in 10
+    `backfire_verify` requests, which used 784,691 input and 117,985 output
+    tokens. No unit was contradicted. The changed `docs/architecture.md`
+    unit (30-60) was verified. The 19 units flagged for review describe
+    `AGENTS.md`, the README, the plugin packages and the commit hook, which
+    this feature does not change, so they stand. `doc-regions:audit`
+    reported the same 19 MemoryLint `boundary` warnings on the constitution
+    as earlier features; they are reported, not acted on.
+  - 2026-09-29: Merge review, first round. The code reviewer is a fresh
+    Claude Code worker on `claude-sonnet-5-5` at medium effort, which
+    `backfire_decide` preferred (0.45) over high effort (0.25) for a
+    speed-favoring review; the records reviewer is a fresh Codex worker
+    (`gpt-6-luna`, max effort).
