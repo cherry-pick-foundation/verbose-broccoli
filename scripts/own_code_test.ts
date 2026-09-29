@@ -13,7 +13,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {deepStrictEqual, equal, match, notEqual} from 'node:assert/strict';
 import {test, type TestContext} from 'node:test';
-import {join, relative} from 'node:path';
+import {delimiter, join, relative} from 'node:path';
 
 const script = fileURLToPath(new URL('./own_code.ts', import.meta.url));
 const code = (lines: number) =>
@@ -71,7 +71,7 @@ async function put(repo: string, path: string, contents: string) {
   await writeFile(target, contents);
 }
 
-function runCheck(repo: string, temp: string) {
+function runCheck(repo: string, temp: string, env: NodeJS.ProcessEnv = {}) {
   const result = spawnSync(
     process.execPath,
     [
@@ -82,7 +82,11 @@ function runCheck(repo: string, temp: string) {
       '--allow-child-process',
       script,
     ],
-    {cwd: repo, env: {...process.env, TMPDIR: temp}, encoding: 'utf8'},
+    {
+      cwd: repo,
+      env: {...process.env, TMPDIR: temp, ...env},
+      encoding: 'utf8',
+    },
   );
   if (result.error) throw result.error;
   return {status: result.status, output: `${result.stdout}${result.stderr}`};
@@ -137,7 +141,6 @@ void test('300 passes and 301 fails with sizes; both runs leave files, status an
     pass.output,
     /^Own code: 1 lines at [0-9a-f]{7} \(merge base with develop\), 301 in the worktree; net \+300 of 300 allowed\.$/m,
   );
-  match(pass.output, /net \+300 of 300 allowed/);
   await unchanged(repo, beforePass);
   await noTempFiles(temp);
 
@@ -153,7 +156,6 @@ void test('300 passes and 301 fails with sizes; both runs leave files, status an
     fail.output,
     /^Own code: 1 lines at [0-9a-f]{7} \(merge base with develop\), 302 in the worktree; net \+301 of 300 allowed\.$/m,
   );
-  match(fail.output, /net \+301 of 300 allowed/);
   await unchanged(repo, beforeFail);
   await noTempFiles(temp);
 });
@@ -174,6 +176,23 @@ void test('deletions alone report a negative net change and pass', async t => {
   const result = runCheck(repo, temp);
   equal(result.status, 0, result.output);
   match(result.output, /net -150 of 300 allowed/);
+  await noTempFiles(temp);
+});
+
+void test('develop additions merged after the branch point do not count', async t => {
+  const {repo, temp} = await repository(t);
+  await put(repo, 'README.md', '# feature notes\n');
+  gitOk(repo, 'add', 'README.md');
+  gitOk(repo, 'commit', '--quiet', '-m', 'feature docs');
+  gitOk(repo, 'switch', '--quiet', 'develop');
+  await put(repo, 'develop.ts', code(400));
+  gitOk(repo, 'add', 'develop.ts');
+  gitOk(repo, 'commit', '--quiet', '-m', 'develop adds own code');
+  gitOk(repo, 'switch', '--quiet', 'feature');
+  gitOk(repo, 'merge', '--quiet', '--no-edit', 'develop');
+  const result = runCheck(repo, temp);
+  equal(result.status, 0, result.output);
+  match(result.output, /net \+0 of 300 allowed/);
   await noTempFiles(temp);
 });
 
@@ -261,6 +280,19 @@ void test('approval already present at the merge base is stale', async t => {
   await noTempFiles(temp);
 });
 
+void test('renaming a records file does not revive its old approval', async t => {
+  const {repo, temp} = await repository(t, {
+    files: {'specs/old/spec.md': '**Own-code limit**: 450\n'},
+  });
+  await put(repo, 'feature.ts', code(400));
+  await mkdir(join(repo, 'specs/new'), {recursive: true});
+  gitOk(repo, 'mv', 'specs/old/spec.md', 'specs/new/spec.md');
+  const result = runCheck(repo, temp);
+  equal(result.status, 1, result.output);
+  match(result.output, /net \+400 of 300 allowed/);
+  await noTempFiles(temp);
+});
+
 void test('quoted approval text and an approval outside the records do not count', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'feature.ts', code(301));
@@ -273,6 +305,18 @@ void test('quoted approval text and an approval outside the records do not count
   const result = runCheck(repo, temp);
   equal(result.status, 1, result.output);
   match(result.output, /net \+301 of 300 allowed/);
+  await noTempFiles(temp);
+});
+
+void test('a counter failure fails and leaves no temporary files', async t => {
+  const {repo, temp} = await repository(t);
+  const bin = join(repo, '..', 'bin');
+  await mkdir(bin);
+  await writeFile(join(bin, 'uv'), '#!/bin/sh\nexit 1\n', {mode: 0o755});
+  const result = runCheck(repo, temp, {
+    PATH: [bin, process.env.PATH].join(delimiter),
+  });
+  equal(result.status, 1, result.output);
   await noTempFiles(temp);
 });
 
