@@ -67,6 +67,7 @@ A profile is one of two kinds:
 | `request` | For `openai`: extra request fields sent with every request |
 | `credential` | The variable that holds the key in the key file |
 | `credential_file` | Optional path of the key file; the default is `<profile>.env` beside the operator file |
+| `retry` | Optional table of PyModel retry policy fields for this profile's provider |
 
 A Jev profile uses PyModel's own provider of that name; `vercel` uses
 backfire's Vercel AI Gateway provider, ported from jkudish's
@@ -174,9 +175,14 @@ private personal records such as student data to the code plugin, which
 replaces nothing; use the work plugin for them.
 
 PyModel retries a failed attempt on HTTP 408, 429 and 5xx, and on a timed
-out or dropped connection: at most 3 attempts of 30 seconds each within 90
-seconds. For a general-model profile, backfire also retries a success reply
-that carries no answer (CHE-33). Backfire keeps no records of calls or
+out or dropped connection. Its default policy allows 3 attempts of 30
+seconds each within 90 seconds; a profile's optional `retry` table sets
+PyModel's policy fields instead (`max_attempts`, `per_attempt_timeout`,
+`budget`, the backoff fields and `statuses`). The shipped Hive and
+education profiles set `per_attempt_timeout = 110` and `budget = 118`,
+because the reasoning model needs more than 30 seconds for large requests.
+For a general-model profile, backfire also retries a success reply that
+carries no answer (CHE-33). Backfire keeps no records of calls or
 judgments.
 
 ## Limits
@@ -188,12 +194,14 @@ warmed pool of worker processes with a one-second limit. With 80 busy
 processes on the development laptop, simple patterns never timed out in
 the checks of 2026-09-30 (CHE-37).
 
-One known issue remains: `jev_verify` with very many evidence items that
-share one ID blocks the server for seconds, because PyModel gives
-duplicate IDs their suffixes in quadratic time (CHE-38). A fix for PyModel,
-with its measurements, is prepared in
-[`specs/021-backfire-rebuild/upstream/`](../specs/021-backfire-rebuild/upstream/pull-request.md)
-and not yet published.
+One known issue remains in PyModel 0.6.0, the release backfire uses:
+`jev_verify` with very many evidence items that share one ID blocks the
+server for seconds, because PyModel gives duplicate IDs their suffixes in
+quadratic time (CHE-38). A patch for PyModel that removes the stall, with
+its measurements, is prepared in
+[`specs/021-backfire-rebuild/upstream/`](../specs/021-backfire-rebuild/upstream/pull-request.md);
+it is not published, so the issue stays until a PyModel release includes a
+fix.
 
 ## Advisory results
 

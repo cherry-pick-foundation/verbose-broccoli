@@ -295,11 +295,14 @@ Shared packages are implementation dependencies, not a fourth plugin. Plugins do
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
-A shipped plugin must include its required package files or resolve explicitly
-pinned runtime dependencies. Do not distribute `skills/` or package components
-as symlinks into neighboring workspace directories. Development workspace
-resolution is not proof that an isolated installation works. Reuse upstream
-packaging tools if bundled shared code becomes necessary.
+The code and work plugins are used from the repository checkout and never
+installed: their `backfire` server runs from `packages/backfire` through a
+repository path in `mcp.json` (the user's decision of 2026-09-30), so a copy
+of a plugin outside the repository cannot start it. Do not distribute
+`skills/` or package components as symlinks into neighboring workspace
+directories. Development workspace resolution is not proof that an isolated
+installation works. Reuse upstream packaging tools if an installable plugin
+becomes necessary.
 
 Use root `plugin.json`, `skills/`, and `mcp.json` according to
 [Agent Plugins 1.0](https://agent-plugins.org/specification). Client-specific
