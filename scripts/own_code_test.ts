@@ -168,6 +168,15 @@ void test('400 added lines minus 150 deletions pass at net 250', async t => {
   await noTempFiles(temp);
 });
 
+void test('deletions alone report a negative net change and pass', async t => {
+  const {repo, temp} = await repository(t, {files: {'old.ts': code(150)}});
+  await rm(join(repo, 'old.ts'));
+  const result = runCheck(repo, temp);
+  equal(result.status, 0, result.output);
+  match(result.output, /net -150 of 300 allowed/);
+  await noTempFiles(temp);
+});
+
 void test('clean develop reports net zero', async t => {
   const {repo, temp} = await repository(t, {feature: false});
   const result = runCheck(repo, temp);
