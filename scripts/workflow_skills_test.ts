@@ -79,7 +79,7 @@ async function repository(
   }
 }
 
-test('workflow skills: clean-code uses the exact intersection of selected and changed or planned files', () => {
+void test('workflow skills: clean-code uses the exact intersection of selected and changed or planned files', () => {
   const selected = [first, other, 'plugins/demo/unrelated.ts'];
   const triggers = selectSkills(
     {
@@ -97,7 +97,7 @@ test('workflow skills: clean-code uses the exact intersection of selected and ch
   assertEquals(selectSkills({...input, paths: [database]}, selected), []);
 });
 
-test('workflow skills: actual review code diffs trigger ponytail and every verification mode triggers evidence guidance', () => {
+void test('workflow skills: actual review code diffs trigger ponytail and every verification mode triggers evidence guidance', () => {
   const code = [
     'plugins/demo/removed.ts',
     'plugins/demo/old.mts',
@@ -138,7 +138,7 @@ test('workflow skills: actual review code diffs trigger ponytail and every verif
   );
 });
 
-test('workflow skills: malformed or failed scope reports cannot supply selected files', () => {
+void test('workflow skills: malformed or failed scope reports cannot supply selected files', () => {
   const report = {
     scope: [
       {file: first, status: 'included', reasons: []},
@@ -177,7 +177,7 @@ test('workflow skills: malformed or failed scope reports cannot supply selected 
     assertThrows(() => parseCleanCodeScope(output));
 });
 
-test('workflow skills: real scope includes long eligible functions and receipts do not change code fingerprints', async () => {
+void test('workflow skills: real scope includes long eligible functions and receipts do not change code fingerprints', async () => {
   const long = 'plugins/demo/long.ts';
   const planned = 'plugins/demo/planned.ts';
   await repository(
@@ -217,7 +217,7 @@ test('workflow skills: real scope includes long eligible functions and receipts 
   );
 });
 
-test('workflow skills: scope errors require review while preserving verification guidance', async () => {
+void test('workflow skills: scope errors require review while preserving verification guidance', async () => {
   await repository(
     {[first]: 'export function broken( {'},
     async (root, context) => {
@@ -237,7 +237,7 @@ test('workflow skills: scope errors require review while preserving verification
   );
 });
 
-test('workflow skills: stale expected snapshots cannot write announcement receipts', async () => {
+void test('workflow skills: stale expected snapshots cannot write announcement receipts', async () => {
   await repository({[first]: pure}, async (root, context) => {
     const expected = await snapshotWorkingTree(root);
     await writeFile(join(root, first), pure.replace('+ 1', '+ 2'));
@@ -257,7 +257,7 @@ test('workflow skills: stale expected snapshots cannot write announcement receip
   });
 });
 
-test('workflow skills CLI: failed verification and scope errors preserve the evidence and skill guidance', async () => {
+void test('workflow skills CLI: failed verification and scope errors preserve the evidence and skill guidance', async () => {
   await repository(
     {
       [first]: pure,
@@ -322,7 +322,7 @@ test('workflow skills CLI: failed verification and scope errors preserve the evi
   );
 });
 
-test('workflow skills: task, baseline, complete scope and code changes invalidate deduplication', async () => {
+void test('workflow skills: task, baseline, complete scope and code changes invalidate deduplication', async () => {
   await repository(
     {[first]: pure, [database]: "export function query() { return 'SQL'; }"},
     async (root, context) => {
@@ -375,7 +375,7 @@ test('workflow skills: task, baseline, complete scope and code changes invalidat
   );
 });
 
-test('workflow skills: concurrent identical calls announce each skill exactly once', async () => {
+void test('workflow skills: concurrent identical calls announce each skill exactly once', async () => {
   await repository({[first]: pure}, async (root, context) => {
     const request = {
       ...context,

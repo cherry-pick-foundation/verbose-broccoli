@@ -18,7 +18,7 @@ import {tmpdir} from 'node:os';
 
 const ROOT = fromFileUrl(new URL('../', import.meta.url));
 
-test('plugin skills: no project links duplicate packaged skills', async () => {
+void test('plugin skills: no project links duplicate packaged skills', async () => {
   for (const path of ['.agents/skills', '.claude/skills']) {
     await rejects(lstat(join(ROOT, path)), {code: 'ENOENT'});
   }
@@ -28,7 +28,7 @@ test('plugin skills: no project links duplicate packaged skills', async () => {
   );
 });
 
-test('plugin skills: isolated packages retain resources and executable helpers', async () => {
+void test('plugin skills: isolated packages retain resources and executable helpers', async () => {
   for (const pluginDirectory of ['code', 'work', 'chat']) {
     const temp = await mkdtemp(join(tmpdir(), 'plugin-skills-'));
     try {
@@ -85,7 +85,7 @@ test('plugin skills: isolated packages retain resources and executable helpers',
   }
 });
 
-test('plugin skills: work Backfire shares code tool reference and license', async () => {
+void test('plugin skills: work Backfire shares code tool reference and license', async () => {
   for (const path of ['reference/tools.md', 'LICENSE']) {
     assertEquals(
       await readFile(join(ROOT, 'plugins/work/skills/backfire', path), 'utf8'),

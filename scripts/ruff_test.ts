@@ -38,7 +38,7 @@ function output(result: ReturnType<typeof ruff>) {
   );
 }
 
-test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {
+void test('Ruff config enforces style, formatting, boundaries and vendor exclusions', async () => {
   const temp = await mkdtemp('/tmp/ruff-test-');
   try {
     const publicFunction = join(temp, 'public_api.py');

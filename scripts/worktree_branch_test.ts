@@ -46,7 +46,7 @@ async function runScript(cwd: string, scriptPath = script) {
   };
 }
 
-test('worktree branch test runner rejects signal-terminated scripts', async () => {
+void test('worktree branch test runner rejects signal-terminated scripts', async () => {
   const root = await mkdtemp(join(tmpdir(), 'worktree-branch-signal-'));
   try {
     const killed = join(root, 'killed.sh');
@@ -152,7 +152,7 @@ async function assertUnchanged(
   assertEquals(await snapshot(repo), before);
 }
 
-test('worktree branch: applies the documented name mappings and is idempotent', async () => {
+void test('worktree branch: applies the documented name mappings and is idempotent', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = [
       {name: 'release-1.0', base: 'develop', target: 'release/1.0'},
@@ -194,7 +194,7 @@ test('worktree branch: applies the documented name mappings and is idempotent', 
   });
 });
 
-test('worktree branch: skips branches that must not be renamed', async () => {
+void test('worktree branch: skips branches that must not be renamed', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['feature/already', 'release/already', 'hotfix/already'];
     for (const name of cases) {
@@ -243,7 +243,7 @@ test('worktree branch: skips branches that must not be renamed', async () => {
   });
 });
 
-test('worktree branch: refuses invalid or existing targets without changes', async () => {
+void test('worktree branch: refuses invalid or existing targets without changes', async () => {
   await temporary(async (repo, addWorktree) => {
     const cases = ['release-', 'release-.hidden'];
     for (const name of cases) {

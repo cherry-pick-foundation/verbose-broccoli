@@ -163,7 +163,7 @@ export async function inspectGraph(cwd: string, input: unknown) {
       violations,
     },
     limitations: [
-      'Fresh static index of Git-versionable JS/TS files using the Biome file exclusions; symlinks, ignored untracked files, tools, vendor, and agent caches are outside scope.',
+      'Fresh static index of Git-versionable JS/TS files using the ESLint ignore list and an explicit node_modules exclusion; symlinks, ignored untracked files, tools, vendor, and agent caches are outside scope.',
       'RESOLVED_LOCAL means dependency-cruiser resolved a local file, not that runtime behavior has been verified. EXTERNAL packages are not indexed or verified; OUTSIDE_SCOPE local edges are not followed.',
       'Computed imports, dynamic dispatch, runtime DI, reflection, and external types may hide relationships. An empty result does not prove there are no consumers.',
       'Test candidates use static import reachability and test/test-directory naming; this does not prove coverage and does not replace the full check suite.',

@@ -34,8 +34,7 @@ const lockfile = createRequire(import.meta.url)('proper-lockfile') as {
       realpath?: boolean;
       lockfilePath?: string;
       retries?:
-        | number
-        | {retries: number; minTimeout: number; maxTimeout: number};
+        number | {retries: number; minTimeout: number; maxTimeout: number};
     },
   ): Promise<() => Promise<void>>;
 };
@@ -122,7 +121,7 @@ async function inputs(root: string, selected?: string[]) {
 
 function stableText(value: string, root: string, path: string) {
   if (
-    // biome-ignore lint/suspicious/noControlCharactersInRegex: These bytes must never reach generated Markdown.
+    // eslint-disable-next-line no-control-regex -- These bytes must never reach generated Markdown.
     /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/.test(value) ||
     value.includes(root) ||
     /(?:file:\/\/\/|\/(?:home|Users|tmp|private|etc|var|opt|run)\/|[A-Za-z]:[\\/])/.test(
@@ -158,7 +157,7 @@ export async function collectHelp(root: string) {
         'package-lock.json',
         'turbo.json',
         'tsconfig.json',
-        'biome.json',
+        'eslint.ignores.js',
       ].map(async path => {
         const scope = join(root, path);
         return [
@@ -572,6 +571,7 @@ export async function syncReferenceDocs(
   if (!docs?.isDirectory())
     fail('docs', 'Expected the repository documentation directory.');
   // ponytail: one native directory lock for this pair; split locks only for new output owners.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- The binding is retained for await using lock disposal.
   await using _lock =
     mode === 'generate'
       ? {

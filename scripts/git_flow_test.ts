@@ -57,7 +57,7 @@ function commandOutput(
   };
 }
 
-test('git-flow test commands reject children terminated by a signal', () => {
+void test('git-flow test commands reject children terminated by a signal', () => {
   assertThrows(
     () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
     Error,
@@ -220,7 +220,7 @@ async function snapshot(repo: string, feature: string) {
   };
 }
 
-test('git-flow: feature worktree invocation is refused without changing branches or worktrees', async () => {
+void test('git-flow: feature worktree invocation is refused without changing branches or worktrees', async () => {
   await temporary(async (_root, develop, feature) => {
     const before = await snapshot(develop, feature);
     const result = await attemptFinish(feature);
@@ -234,7 +234,7 @@ test('git-flow: feature worktree invocation is refused without changing branches
   });
 });
 
-test('git-flow: finish is refused when develop has a commit the feature lacks', async () => {
+void test('git-flow: finish is refused when develop has a commit the feature lacks', async () => {
   await temporary(async (_root, develop, feature) => {
     await writeFile(join(develop, 'develop-only.txt'), 'develop\n');
     await git(develop, 'add', 'develop-only.txt');
@@ -250,7 +250,7 @@ test('git-flow: finish is refused when develop has a commit the feature lacks', 
   });
 });
 
-test('git-flow: finish is refused when feature verification fails', async () => {
+void test('git-flow: finish is refused when feature verification fails', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature);
     const before = await snapshot(develop, feature);
@@ -276,7 +276,7 @@ async function assertRefusedUnchanged(
   assertEquals(await snapshot(develop, feature), before);
 }
 
-test('git-flow: finish is refused when the feature tip has no review record', async () => {
+void test('git-flow: finish is refused when the feature tip has no review record', async () => {
   await temporary(async (_root, develop, feature) => {
     await assertRefusedUnchanged(
       develop,
@@ -286,7 +286,7 @@ test('git-flow: finish is refused when the feature tip has no review record', as
   });
 });
 
-test('git-flow: finish is refused when Reviewed-commit is not the record parent', async () => {
+void test('git-flow: finish is refused when Reviewed-commit is not the record parent', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {
       reviewedCommit: await git(develop, 'rev-parse', 'HEAD'),
@@ -299,7 +299,7 @@ test('git-flow: finish is refused when Reviewed-commit is not the record parent'
   });
 });
 
-test('git-flow: finish is refused when the review record changes the tree', async () => {
+void test('git-flow: finish is refused when the review record changes the tree', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {changedFile: true});
     await assertRefusedUnchanged(
@@ -310,7 +310,7 @@ test('git-flow: finish is refused when the review record changes the tree', asyn
   });
 });
 
-test('git-flow: finish is refused when Reviewed-by is missing', async () => {
+void test('git-flow: finish is refused when Reviewed-by is missing', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -320,7 +320,7 @@ test('git-flow: finish is refused when Reviewed-by is missing', async () => {
   });
 });
 
-test('git-flow: finish is refused when Reviewed-commit is missing', async () => {
+void test('git-flow: finish is refused when Reviewed-commit is missing', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature, {
       trailers: ['Reviewed-by: Claude Code'],
@@ -329,7 +329,7 @@ test('git-flow: finish is refused when Reviewed-commit is missing', async () => 
   });
 });
 
-test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
+void test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -347,7 +347,7 @@ test('git-flow: finish is refused when Reviewed-by is duplicated', async () => {
   });
 });
 
-test('git-flow: finish is refused when Reviewed-by is empty', async () => {
+void test('git-flow: finish is refused when Reviewed-by is empty', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -361,7 +361,7 @@ test('git-flow: finish is refused when Reviewed-by is empty', async () => {
   });
 });
 
-test('git-flow: finish is refused when Reviewed-by has an empty duplicate', async () => {
+void test('git-flow: finish is refused when Reviewed-by has an empty duplicate', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -379,7 +379,7 @@ test('git-flow: finish is refused when Reviewed-by has an empty duplicate', asyn
   });
 });
 
-test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', async () => {
+void test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     await addReviewRecord(feature, {
@@ -397,7 +397,7 @@ test('git-flow: finish is refused when Reviewed-commit has an empty duplicate', 
   });
 });
 
-test('git-flow: finish is refused after develop is merged after the review record', async () => {
+void test('git-flow: finish is refused after develop is merged after the review record', async () => {
   await temporary(async (_root, develop, feature) => {
     await addReviewRecord(feature);
     await writeFile(join(develop, 'develop-only.txt'), 'develop\n');
@@ -412,7 +412,7 @@ test('git-flow: finish is refused after develop is merged after the review recor
   });
 });
 
-test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
+void test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     const record = await addReviewRecord(feature, {
@@ -431,7 +431,7 @@ test('git-flow: abbreviated Reviewed-commit values are accepted', async () => {
   });
 });
 
-test('git-flow: lower-case review trailer keys are accepted', async () => {
+void test('git-flow: lower-case review trailer keys are accepted', async () => {
   await temporary(async (_root, develop, feature) => {
     const parent = await git(feature, 'rev-parse', 'HEAD');
     const record = await addReviewRecord(feature, {
@@ -446,7 +446,7 @@ test('git-flow: lower-case review trailer keys are accepted', async () => {
   });
 });
 
-test('git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree', async () => {
+void test('git-flow: finish from develop creates the default no-ff merge and keeps the feature worktree', async () => {
   await temporary(async (_root, develop, feature) => {
     const reviewedCommit = await git(feature, 'rev-parse', 'HEAD');
     const reviewRecord = await addReviewRecord(feature);
@@ -528,15 +528,15 @@ async function assertRebasedBumpsRefused(action: 'fixup' | 'squash') {
   });
 }
 
-test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
+void test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
   await assertRebasedBumpsRefused('fixup');
 });
 
-test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
+void test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
   await assertRebasedBumpsRefused('squash');
 });
 
-test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
+void test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
   await temporary(async (_root, develop, feature) => {
     const first = await addConstitutionCommit(
       feature,
@@ -565,7 +565,7 @@ test('git-flow: unsquashed fixup commit that changes the constitution is refused
   });
 });
 
-test('git-flow: one correct constitution bump still finishes', async () => {
+void test('git-flow: one correct constitution bump still finishes', async () => {
   await temporary(async (_root, develop, feature) => {
     await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
     await addReviewRecord(feature);

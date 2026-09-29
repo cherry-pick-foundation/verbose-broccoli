@@ -1,4 +1,5 @@
 import {existsSync, readFileSync} from 'node:fs';
+import process from 'node:process';
 import fastGlob from 'fast-glob';
 import {createStore, extractSnippet} from '@tobilu/qmd';
 // Relies on qmd 2.8.3's internal module; qmd exports no scan helper.

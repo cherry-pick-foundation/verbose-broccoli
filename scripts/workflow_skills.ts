@@ -133,8 +133,7 @@ export async function announceSkillTriggers(
 ) {
   const snapshot = expectedSnapshot ?? (await snapshotWorkingTree(root));
   let scope:
-    | {status: 'PASS'; selected: string[]}
-    | {status: 'ERROR'; error: string};
+    {status: 'PASS'; selected: string[]} | {status: 'ERROR'; error: string};
   try {
     scope = {
       status: 'PASS',
@@ -180,9 +179,11 @@ export async function announceSkillTriggers(
         mode: 0o600,
       });
     } catch (error) {
-      if (
-        !(error instanceof Error && 'code' in error && error.code === 'EEXIST')
-      )
+      if (!(
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'EEXIST'
+      ))
         throw error;
       status = 'ALREADY_ANNOUNCED';
     }

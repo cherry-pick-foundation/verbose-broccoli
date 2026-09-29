@@ -1,12 +1,12 @@
 import {globSync} from 'node:fs';
+import {createRequire} from 'node:module';
 import {lstat} from 'node:fs/promises';
 import {join, relative} from '@std/path';
 import {z} from '@zod/zod';
-import biome from '../biome.json' with {type: 'json'};
 
-const ignores = biome.files.includes
-  .filter(pattern => pattern.startsWith('!'))
-  .map(pattern => pattern.replace(/^!+/, ''));
+const ignores = (
+  createRequire(import.meta.url)('../eslint.ignores.js') as string[]
+).map(pattern => pattern.replace(/\/$/, ''));
 
 export const repositoryFileSchema = z
   .string()
@@ -25,7 +25,7 @@ export function listCodeFiles(root: string) {
   return [
     ...globSync('**/*.{ts,tsx,js,jsx,mts,cts,mjs,cjs}', {
       cwd: root,
-      exclude: [...ignores, '**/.git/**'],
+      exclude: [...ignores, '**/node_modules/**', '**/.git/**'],
       withFileTypes: true,
     }),
   ]

@@ -77,7 +77,7 @@ function commandOutput(
   };
 }
 
-test('references: command helper rejects signal termination', () => {
+void test('references: command helper rejects signal termination', () => {
   assertThrows(
     () =>
       commandOutput(process.execPath, {
@@ -119,7 +119,7 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
       'package-lock.json',
       'turbo.json',
       'tsconfig.json',
-      'biome.json',
+      'eslint.ignores.js',
     ])
       await copyFile(join(root, name), join(repo, name));
     await symlink(
@@ -136,13 +136,11 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
             join(repo, 'plugins', name, file),
           );
         } catch (error) {
-          if (
-            !(
-              error instanceof Error &&
-              'code' in error &&
-              error.code === 'ENOENT'
-            )
-          )
+          if (!(
+            error instanceof Error &&
+            'code' in error &&
+            error.code === 'ENOENT'
+          ))
             throw error;
         }
       }
@@ -168,7 +166,7 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
   }
 }
 
-test('references: docs must be a directory', async () => {
+void test('references: docs must be a directory', async () => {
   await fixture(async repo => {
     await rm(join(repo, 'docs'), {recursive: true});
     await writeFile(join(repo, 'docs'), 'regular file\n');
@@ -225,7 +223,7 @@ async function checkUnchanged(repo: string, pass: boolean) {
   assertEquals(await tree(repo), before);
 }
 
-test('references: real seven help routes, all tasks/plugins and final links are deterministic', async () => {
+void test('references: real seven help routes, all tasks/plugins and final links are deterministic', async () => {
   await fixture(async repo => {
     const help = await collectHelp(repo);
     assertEquals(
@@ -273,7 +271,7 @@ test('references: real seven help routes, all tasks/plugins and final links are 
   }, true);
 });
 
-test('references: source facts, optional MCP and Markdown characters survive serialization', async () => {
+void test('references: source facts, optional MCP and Markdown characters survive serialization', async () => {
   await fixture(async repo => {
     const description =
       '한글 | "quotes" \\ slash *literal*\nsecond line <tag> & text';
@@ -318,7 +316,7 @@ test('references: source facts, optional MCP and Markdown characters survive ser
   });
 });
 
-test('references: invalid manifests, tasks and duplicate identities retain the previous pair', async () => {
+void test('references: invalid manifests, tasks and duplicate identities retain the previous pair', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -353,7 +351,7 @@ test('references: invalid manifests, tasks and duplicate identities retain the p
   });
 });
 
-test('references: every failed help form preserves output and check never repairs it', async () => {
+void test('references: every failed help form preserves output and check never repairs it', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -373,7 +371,7 @@ test('references: every failed help form preserves output and check never repair
   });
 });
 
-test('references: help cannot write, spawn, use network or read live Wiki configuration', async () => {
+void test('references: help cannot write, spawn, use network or read live Wiki configuration', async () => {
   await fixture(async repo => {
     await writeFile(
       join(repo, 'scripts/doctor.ts'),
@@ -406,7 +404,7 @@ test('references: help cannot write, spawn, use network or read live Wiki config
   });
 });
 
-test('references: passing and drifting checks preserve working files and the Git index', async () => {
+void test('references: passing and drifting checks preserve working files and the Git index', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     await git(repo, ['init', '--quiet', '--template=']);
@@ -428,7 +426,7 @@ test('references: passing and drifting checks preserve working files and the Git
   });
 });
 
-test('references: tracked, untracked, ignored, directory and symlink extras are never read or removed', async () => {
+void test('references: tracked, untracked, ignored, directory and symlink extras are never read or removed', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     await git(repo, ['init', '--quiet', '--template=']);
@@ -482,7 +480,7 @@ test('references: tracked, untracked, ignored, directory and symlink extras are 
   });
 });
 
-test('references: input and output drift during help collection fail before publication', async () => {
+void test('references: input and output drift during help collection fail before publication', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     for (const path of [
@@ -539,7 +537,7 @@ test('references: input and output drift during help collection fail before publ
   });
 });
 
-test('references: failed replacement restores the exact previous pair', async () => {
+void test('references: failed replacement restores the exact previous pair', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -571,7 +569,7 @@ test('references: failed replacement restores the exact previous pair', async ()
   });
 });
 
-test('references: failed rollback retains recovery and the next generation restores it', async () => {
+void test('references: failed rollback retains recovery and the next generation restores it', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -613,7 +611,7 @@ test('references: failed rollback retains recovery and the next generation resto
   });
 });
 
-test('references: first-publication failure retains the complete stage for explicit recovery', async () => {
+void test('references: first-publication failure retains the complete stage for explicit recovery', async () => {
   await fixture(async repo => {
     const original = fsPromises.rename;
     {
@@ -645,7 +643,7 @@ test('references: first-publication failure retains the complete stage for expli
   });
 });
 
-test('references: another writer appearing between renames is preserved with the recovery pair', async () => {
+void test('references: another writer appearing between renames is preserved with the recovery pair', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -678,7 +676,7 @@ test('references: another writer appearing between renames is preserved with the
   });
 });
 
-test('references: actual SIGKILL between directory renames is detected and recoverable', async () => {
+void test('references: actual SIGKILL between directory renames is detected and recoverable', async () => {
   await fixture(async repo => {
     await syncReferenceDocs(repo, 'generate');
     const initial = await pair(repo);
@@ -740,7 +738,7 @@ test('references: actual SIGKILL between directory renames is detected and recov
   });
 });
 
-test('references: local and PR check entrypoints agree without Node actions', async () => {
+void test('references: local and PR check entrypoints agree without Node actions', async () => {
   const packageConfig = JSON.parse(await readText(join(root, 'package.json')));
   const tasks = JSON.parse(await readText(join(root, 'turbo.json'))).tasks;
   assertEquals(
@@ -809,7 +807,7 @@ test('references: local and PR check entrypoints agree without Node actions', as
         `--allow-fs-read=${join(repo, 'package-lock.json')}`,
         `--allow-fs-read=${join(repo, 'turbo.json')}`,
         `--allow-fs-read=${join(repo, 'tsconfig.json')}`,
-        `--allow-fs-read=${join(repo, 'biome.json')}`,
+        `--allow-fs-read=${join(repo, 'eslint.ignores.js')}`,
         '--allow-child-process',
         join(repo, 'scripts/docs.ts'),
         'unknown',

@@ -16,6 +16,7 @@
     "scripts/docs_test.ts",
     "scripts/doctor_test.ts",
     "scripts/git_flow_test.ts",
+    "scripts/gts_test.ts",
     "scripts/plugin_skills_test.ts",
     "scripts/ruff_test.ts",
     "scripts/wiki_raw_import_test.ts",

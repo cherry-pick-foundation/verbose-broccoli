@@ -26,7 +26,7 @@ interface Signals {
 }
 
 const reviewPaths =
-  /(^|\/)(AGENTS\.md|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|turbo\.json|uv\.lock|pyproject\.toml|\.npmrc|plugin\.json|mcp\.json|tsconfig[^/]*\.json|biome\.jsonc?|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
+  /(^|\/)(AGENTS\.md|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|turbo\.json|uv\.lock|pyproject\.toml|\.npmrc|plugin\.json|mcp\.json|tsconfig[^/]*\.json|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
 const entryPath = /(^|\/)(mod|index)\.[cm]?[jt]sx?$/;
 const diffOptions = [
   '--no-ext-diff',
@@ -178,7 +178,7 @@ export function assessDifficulty(signals: Signals) {
 function statusRecords(output: string) {
   const fields = output.split('\0').filter(Boolean);
   const records = [];
-  for (let index = 0; index < fields.length; ) {
+  for (let index = 0; index < fields.length;) {
     const status = fields[index++];
     const paths = [fields[index++]];
     if (/^[RC]/.test(status)) paths.push(fields[index++]);
