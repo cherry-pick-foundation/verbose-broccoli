@@ -16,10 +16,11 @@ description: "Task list for the own-code limit per feature"
 repositories (spec SC-001, SC-002; constitution V). Tests come before the
 code they cover in each task.
 
-**Organization**: Main (Claude Code) owns the Spec Kit records, reviews the
-Codex worker's diff and runs the merge. One Codex worker (`gpt-6-luna`, max
-effort) implements T001 to T006, because every story lands in the same
-script. A fresh Claude Code reviewer gives the develop merge review of the
+**Organization**: Main (Claude Code) owns the Spec Kit records, the
+`docs/architecture.md` prose of T007, reviews the Codex worker's diff and runs
+the merge. One Codex worker (`gpt-6-luna`, max effort) implements T001 to
+T006 and regenerates `docs/reference/` for T007, because every story lands
+in the same script. A fresh Claude Code reviewer gives the develop merge review of the
 code; a fresh Codex reviewer reviews the coordinator's records.
 
 **Own-code budget**: This feature's own net change, as the check itself
@@ -37,14 +38,14 @@ repository or into Orca or Linear messages.
 
 ## Phase 1: Setup
 
-- [ ] T001 Pin scc: add `tools/scc/pyproject.toml` (`scc-bin==4.1.0`,
+- [x] T001 Pin scc: add `tools/scc/pyproject.toml` (`scc-bin==4.1.0`,
   Python `==3.14.*`, uv `==0.11.32`, `package = false`, like
   `tools/shellcheck/pyproject.toml`) and its `tools/scc/uv.lock`; sync it in
   `orca.yaml`'s setup script after `tools/ruff`; check its environment in
   `scripts/doctor.ts` with `checkUvEnvironment` like `tools/shellcheck`, name
   scc in the `//#doctor` description in `turbo.json`, and update
   `scripts/doctor_test.ts` (FR-010, FR-013; research.md R1).
-- [ ] T002 [P] Pin `linguist-languages` 9.5.0 as a root dev dependency in
+- [x] T002 [P] Pin `linguist-languages` 9.5.0 as a root dev dependency in
   `package.json` and `package-lock.json` (FR-004; research.md R2).
 
 ---
@@ -57,7 +58,7 @@ than 300 net lines against its merge base with `develop`.
 **Independent Test**: In a synthetic repository, 300 net lines pass and 301
 fail; a clean `develop` gives net 0.
 
-- [ ] T003 [US1] In `scripts/own_code_test.ts`, build synthetic Git
+- [x] T003 [US1] In `scripts/own_code_test.ts`, build synthetic Git
   repositories in temporary directories with a `develop` branch and a feature
   branch, run the check there, and assert: 300 net lines pass and 301 fail
   with the sizes, the net change and the limit in the output; 400 added and
@@ -67,7 +68,7 @@ fail; a clean `develop` gives net 0.
   repository's files, `git status` and index are unchanged and the run's
   temporary directory is gone (US1 scenarios 1 to 4, edge cases; FR-002,
   FR-008 to FR-011; constitution V).
-- [ ] T004 [US1] Add `scripts/own_code.ts` as
+- [x] T004 [US1] Add `scripts/own_code.ts` as
   [contracts/own-code-check.md](contracts/own-code-check.md) and
   [data-model.md](data-model.md) describe, using research.md R1, R2 and R5:
   merge base with `develop`, `git archive` into a temporary directory removed
@@ -81,6 +82,16 @@ fail; a clean `develop` gives net 0.
 
 **Checkpoint**: The limit works without approvals, test or upstream rules.
 
+- 2026-09-30: A Codex worker (`gpt-6-luna`, max effort, started through
+  Orca's terminal path) did T001 to T006 and the generated part of T007 in
+  `16bd03f` and `b272b04`. The coordinator's review found the behavior right
+  but the script at 137 code lines, about twice the plan's estimate; the same
+  worker shortened it to 127 without changing behavior and added the
+  deletion-only case in `9ab206a`. `npm run test:own-code` passes 15 tests,
+  and `npm run verify -- --task che-42 --base 0bc0c63` ended VERIFIED on
+  `9ab206a`. scc 4.1.0 reports the full path it was given in `Filename`, which
+  the check relies on; the coordinator confirmed this by hand.
+
 ---
 
 ## Phase 3: User Story 2 - The user's recorded approval raises the limit (P1)
@@ -90,7 +101,7 @@ fail; a clean `develop` gives net 0.
 **Independent Test**: With net 400, an added approval for 450 passes and one
 for 320 fails.
 
-- [ ] T005 [US2] Test first in `scripts/own_code_test.ts`, then implement in
+- [x] T005 [US2] Test first in `scripts/own_code_test.ts`, then implement in
   `scripts/own_code.ts`: added `**Own-code limit**: <number>` lines under
   `specs/`, `.specify/bugs/` or `.specify/assessments/` raise the limit to
   their largest number and are named in the output; a line already at the
@@ -107,7 +118,7 @@ for 320 fails.
 SHA-256 is in an `UPSTREAM.md` add nothing; one changed byte makes the copy
 count.
 
-- [ ] T006 [US3] Test first in `scripts/own_code_test.ts`, then implement in
+- [x] T006 [US3] Test first in `scripts/own_code_test.ts`, then implement in
   `scripts/own_code.ts`: files under `tests/` or named `*_test.*` or
   `*.test.*`; files whose SHA-256 appears in an `UPSTREAM.md`, an
   `upstream.json` or a `.specify/integrations/*.manifest.json` of the same
@@ -121,14 +132,32 @@ count.
 
 **Goal**: The output and the records give the sizes.
 
-- [ ] T007 [US4] Describe the check in `docs/architecture.md` next to the
+- [x] T007 [US4] Describe the check in `docs/architecture.md` next to the
   other checks and tools, including the approval line and the upstream
   record rule, and regenerate `docs/reference/` with `npm run docs:generate`
   (FR-013).
-- [ ] T008 [US4] Run [quickstart.md](quickstart.md) steps 1, 2 and 4 and
+- [x] T008 [US4] Run [quickstart.md](quickstart.md) steps 1, 2 and 4 and
   record here the own-code size of `develop` at 0bc0c63, this feature's own
   net change and the backfire rebuild's net change at 8a1d2f0 (US3 scenario
   3, US4; FR-012; SC-004 to SC-006).
+  - 2026-09-30, measured by `npm run own-code` (scc code lines, neither
+    blank nor comment):
+    - `develop` at 0bc0c63: 18,418 own-code lines (SC-006). Spec Kit's
+      extension scripts and Ponytail's hook modules have no recorded hashes
+      and are part of this number.
+    - This feature at `9ab206a`: net +129 of 300 allowed, 127 lines in
+      `scripts/own_code.ts` and 2 in `scripts/doctor.ts` (FR-012, SC-005).
+    - The backfire rebuild at 8a1d2f0, run in a temporary detached worktree
+      with this branch's script: 18,344 lines at its merge base ae8cadf and
+      in its tree, net +0, so none of its roughly 5,850 vendored
+      jev-judge-mcp code lines counted (SC-004).
+    - A temporary detached worktree of this branch with 172 extra code
+      lines in a new TypeScript file: net +301 of 300, exit 1. After an added
+      `**Own-code limit**: 450` line in `specs/022-own-code-limit/spec.md`:
+      net +301 of 450 allowed, naming that file, exit 0 (SC-001, SC-002).
+      Without `uv sync` of `tools/scc`, the check failed with uv's
+      "Failed to spawn: scc" (FR-011); uv then created an empty
+      `tools/scc/.venv`, which Git ignores.
 
 ---
 
