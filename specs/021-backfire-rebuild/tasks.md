@@ -51,6 +51,14 @@ must leave it in its upstream form. Blocks every later phase.
   `httpx` (0.28.x) there and update `uv.lock`. Confirm
   `import jev_judge_mcp.tools, jev_judge_mcp.stdio` works in the workspace
   environment (FR-015).
+  - 2026-09-29 pause for a computer restart: spec, clarification, plan,
+    tasks and analysis are committed; worker A (Codex `gpt-6-luna`, max)
+    had started T001–T005 and was stopped before it changed any file. Next:
+    relaunch worker A on T001–T005 through the terminal path, cloning
+    PyModel at `v0.6.0` from GitHub (the scratch clone under `/tmp` is
+    gone); the user's regex-engine answer (the `regex` library's own
+    timeout in a thread) is in the spec's Clarifications and applies from
+    T011.
 - [ ] T002 Write `packages/backfire/src/jev_judge_mcp/UPSTREAM.md` as
   [contracts/upstream-record.md](contracts/upstream-record.md) defines,
   with every file `unchanged` so far, and add
