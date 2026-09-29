@@ -44,3 +44,6 @@ backfire_education = ["config.toml"]
 [tool.pytest.ini_options]
 addopts = ["-p", "no:cacheprovider"]
 markers = ["slow: deadline and other long-running tests"]
+
+[tool.ruff]
+extend = "../../ruff.toml"

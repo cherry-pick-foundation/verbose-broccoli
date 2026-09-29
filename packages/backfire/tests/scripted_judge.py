@@ -12,11 +12,18 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
-from backfire.judge import JSONContent, JudgmentRequest, JudgmentResult, Questions
+from backfire.judge import JSONContent
+from backfire.judge import JudgmentRequest
+from backfire.judge import JudgmentResult
+from backfire.judge import Questions
 
 
 class ScriptedJudge:
-    def __init__(self, script: Iterable[object], *, requests_file: Path | None = None) -> None:
+    """Consume scripted results and record requests for offline tests."""
+
+    def __init__(
+        self, script: Iterable[object], *, requests_file: Path | None = None
+    ) -> None:
         self.script = deque(deepcopy(list(script)))
         self.requests: list[JudgmentRequest] = []
         self.requests_file = requests_file
@@ -25,15 +32,26 @@ class ScriptedJudge:
 
     @classmethod
     def from_file(cls, path: str | Path) -> "ScriptedJudge":
+        """Create a judge from a JSON script and request-file path."""
         path = Path(path).resolve()
         data = json.loads(path.read_text(encoding="utf-8"))
-        if (not isinstance(data, dict) or set(data) != {"script", "requests_file"}
-                or not isinstance(data["script"], list)
-                or not isinstance(data["requests_file"], str) or not data["requests_file"]):
-            raise ValueError("Scripted judge requires a script array and a non-empty requests_file path.")
+        if (
+            not isinstance(data, dict)
+            or set(data) != {"script", "requests_file"}
+            or not isinstance(data["script"], list)
+            or not isinstance(data["requests_file"], str)
+            or not data["requests_file"]
+        ):
+            raise ValueError(
+                "Scripted judge requires a script array and a non-empty "
+                "requests_file path."
+            )
         requests_file = path.parent / data["requests_file"]
         if requests_file.resolve() == path:
-            raise ValueError("Scripted judge script and requests_file must be different files.")
+            raise ValueError(
+                "Scripted judge script and requests_file must be different "
+                "files."
+            )
         return cls(data["script"], requests_file=requests_file)
 
     async def __call__(
@@ -44,13 +62,22 @@ class ScriptedJudge:
         deadline: float,
         record_file: Path | None = None,
     ) -> JudgmentResult:
-        self.requests.append(deepcopy({
-            "state": state, "questions": questions,
-            "deadline": deadline, "record_file": record_file,
-        }))
+        """Record a request and consume the next scripted step."""
+        self.requests.append(
+            deepcopy(
+                {
+                    "state": state,
+                    "questions": questions,
+                    "deadline": deadline,
+                    "record_file": record_file,
+                }
+            )
+        )
         if self.requests_file is not None:
             with self.requests_file.open("a", encoding="utf-8") as output:
-                output.write(json.dumps({"state": state, "questions": questions}) + "\n")
+                output.write(
+                    json.dumps({"state": state, "questions": questions}) + "\n"
+                )
         if not self.script:
             raise AssertionError("Scripted judge has no answer left.")
         step = self.script.popleft()

@@ -4,12 +4,14 @@ from pathlib import Path
 import subprocess
 import sys
 
+from conftest import make_instance
+from conftest import update_regions
 import pytest
-
-from conftest import make_instance, update_regions
 from test_prepare import _ready
+
 from wiki_consistency import search
-from wiki_consistency.__main__ import _parser, main
+from wiki_consistency.__main__ import _parser
+from wiki_consistency.__main__ import main
 
 
 def _setenv(monkeypatch, env):
@@ -22,7 +24,14 @@ def _run_cli(instance, env, command):
     child_env.update(env)
     child_env.pop("ORT_DISABLE_TELEMETRY", None)
     return subprocess.run(
-        [sys.executable, "-m", "wiki_consistency", "--wiki", instance.name, command],
+        [
+            sys.executable,
+            "-m",
+            "wiki_consistency",
+            "--wiki",
+            instance.name,
+            command,
+        ],
         env=child_env,
         capture_output=True,
         check=False,
@@ -30,9 +39,16 @@ def _run_cli(instance, env, command):
     )
 
 
-@pytest.mark.parametrize("args", [
-    ["check"], ["update"], ["convert"], ["index"], ["prepare", "--scope", "changed"],
-])
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["check"],
+        ["update"],
+        ["convert"],
+        ["index"],
+        ["prepare", "--scope", "changed"],
+    ],
+)
 def test_each_subcommand_defaults_to_work(args):
     assert _parser().parse_args(args).wiki_id == "work"
 
@@ -57,20 +73,26 @@ def test_convert_cli_writes_only_wiki_evidence_to_cache(tmp_path):
     cache = Path(env["XDG_CACHE_HOME"])
     allowed = cache / "verbose-broccoli" / "wiki-evidence"
     outside = [
-        path for path in cache.rglob("*")
+        path
+        for path in cache.rglob("*")
         if path.is_file() and not path.is_relative_to(allowed)
     ]
     assert not outside
 
 
-@pytest.mark.parametrize("args", [
-    ["convert", "--scope", "invalid"],
-    ["prepare"],
-    ["prepare", "--scope", "changed", "--max-evidence-chars", "0"],
-    ["prepare", "--scope", "lint", "--candidates", "0"],
-    ["index", "--scope", "lint"],
-])
-def test_new_subcommand_argument_errors_return_two(tmp_path, monkeypatch, capsys, args):
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["convert", "--scope", "invalid"],
+        ["prepare"],
+        ["prepare", "--scope", "changed", "--max-evidence-chars", "0"],
+        ["prepare", "--scope", "lint", "--candidates", "0"],
+        ["index", "--scope", "lint"],
+    ],
+)
+def test_new_subcommand_argument_errors_return_two(
+    tmp_path, monkeypatch, capsys, args
+):
     _, env = make_instance(tmp_path)
     _setenv(monkeypatch, env)
 
@@ -83,7 +105,9 @@ def test_new_subcommand_argument_errors_return_two(tmp_path, monkeypatch, capsys
     assert output.err
 
 
-def test_convert_command_runs_offline_and_prints_result(tmp_path, monkeypatch, capsys):
+def test_convert_command_runs_offline_and_prints_result(
+    tmp_path, monkeypatch, capsys
+):
     instance, env = make_instance(tmp_path)
     _setenv(monkeypatch, env)
 
@@ -98,14 +122,21 @@ def test_convert_command_runs_offline_and_prints_result(tmp_path, monkeypatch, c
     assert result["unreadable"] == []
 
 
-def test_index_command_allows_download_and_prints_result(tmp_path, monkeypatch, capsys):
+def test_index_command_allows_download_and_prints_result(
+    tmp_path, monkeypatch, capsys
+):
     instance, env = make_instance(tmp_path)
     _setenv(monkeypatch, env)
     calls = []
 
     def index(path, wiki_id, cache, *, download):
         calls.append((path, wiki_id, cache, download))
-        return {"pages": 3, "evidence": 1, "semantic": False, "semantic_error": None}
+        return {
+            "pages": 3,
+            "evidence": 1,
+            "semantic": False,
+            "semantic_error": None,
+        }
 
     monkeypatch.setattr("wiki_consistency.__main__.search.index", index)
 
@@ -115,22 +146,38 @@ def test_index_command_allows_download_and_prints_result(tmp_path, monkeypatch, 
     assert status == 0
     assert output.err == ""
     assert json.loads(output.out) == {
-        "pages": 3, "evidence": 1, "semantic": False, "semantic_error": None,
+        "pages": 3,
+        "evidence": 1,
+        "semantic": False,
+        "semantic_error": None,
     }
-    assert calls == [(instance, instance.name, Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli", True)]
+    assert calls == [
+        (
+            instance,
+            instance.name,
+            Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli",
+            True,
+        )
+    ]
 
 
-def test_index_command_keeps_keyword_index_when_embedding_fails(tmp_path, monkeypatch, capsys):
+def test_index_command_keeps_keyword_index_when_embedding_fails(
+    tmp_path, monkeypatch, capsys
+):
     instance, env = make_instance(tmp_path)
     _setenv(monkeypatch, env)
-    monkeypatch.setattr("wiki_consistency.__main__.instance_path",
-                        lambda wiki_id, environment: instance)
+    monkeypatch.setattr(
+        "wiki_consistency.__main__.instance_path",
+        lambda unused_wiki_id, unused_environment: instance,
+    )
     run_qmd = search._run_qmd
 
     def fail_embed(wiki_id, cache, args, *, budget_action):
         if list(args) == ["embed"]:
             raise subprocess.CalledProcessError(
-                1, "qmd embed", stderr="synthetic embedding failed\nwith details",
+                1,
+                "qmd embed",
+                stderr="synthetic embedding failed\nwith details",
             )
         return run_qmd(wiki_id, cache, args, budget_action=budget_action)
 
@@ -146,12 +193,23 @@ def test_index_command_keeps_keyword_index_when_embedding_fails(tmp_path, monkey
     assert result["semantic"] is False
     assert result["semantic_error"] == "synthetic embedding failed with details"
     assert (cache / "qmd" / f"{instance.name}.sqlite").is_file()
-    assert search.search(instance.name, cache, [{
-        "id": "keyword", "text": "Alpha", "collection": "pages", "limit": 5,
-    }])
+    assert search.search(
+        instance.name,
+        cache,
+        [
+            {
+                "id": "keyword",
+                "text": "Alpha",
+                "collection": "pages",
+                "limit": 5,
+            }
+        ],
+    )
 
 
-def test_prepare_command_runs_after_offline_convert_and_index(tmp_path, monkeypatch, capsys):
+def test_prepare_command_runs_after_offline_convert_and_index(
+    tmp_path, monkeypatch, capsys
+):
     instance, _, env = _ready(tmp_path)
     _setenv(monkeypatch, env)
 

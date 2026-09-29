@@ -1,8 +1,9 @@
 """Pure helpers ported from jev-mcp 0.9.0; see UPSTREAM.md."""
 
+from decimal import ROUND_HALF_UP
+from decimal import Decimal
 import math
 import re
-from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Literal
 
 import rfc8785
@@ -40,19 +41,36 @@ RELATION_TO_VERDICT = {
     "says_nothing": "unsupported",
 }
 DECIDE_ESCAPE_HATCHES = {
-    "ask_user": "A consequential user preference or requirement is missing; ask instead of inventing it",
-    "investigate": "Gather missing technical or factual evidence before selecting a candidate",
+    "ask_user": (
+        "A consequential user preference or requirement is missing; ask "
+        "instead of inventing "
+        "it"
+    ),
+    "investigate": (
+        "Gather missing technical or factual evidence before selecting a "
+        "candidate"
+    ),
     "none": "None of the supplied candidates fits the known requirements",
 }
 COMPARE_RELATIONS = {
     "same_fact": "Both passages state the same underlying fact or claim",
     "contradicts": "The passages state opposing facts about the same subject",
-    "different_facts": "The passages discuss different subjects or make non-overlapping claims",
+    "different_facts": (
+        "The passages discuss different subjects or make non-overlapping claims"
+    ),
 }
 ASPECT_RELATIONS = {
-    "same_fact": "Both passages make comparable assertions about this aspect and they agree",
-    "contradicts": "Both passages address this aspect and their assertions conflict",
-    "different_facts": "The passages do not both make a comparable assertion about this aspect: at least one does not address it, or their mentions do not overlap",
+    "same_fact": (
+        "Both passages make comparable assertions about this aspect and they "
+        "agree"
+    ),
+    "contradicts": "Both passages address this aspect and their assertions "
+    "conflict",
+    "different_facts": (
+        "The passages do not both make a comparable assertion about this "
+        "aspect: at least one does not address it, or their mentions do not "
+        "overlap"
+    ),
 }
 REVIEW_WEIGHTS = {
     "correctness": 0.4,
@@ -73,10 +91,12 @@ ReviewEvidenceInput = str | Identifiable | list[Identifiable]
 
 
 def is_record(value: object) -> bool:
+    """Return whether value is a dictionary."""
     return isinstance(value, dict)
 
 
 def sanitize_id(identifier: str) -> str:
+    """Replace unsupported identifier characters with underscores."""
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", identifier).strip("_")[:64]
 
 
@@ -103,88 +123,189 @@ def ensure_unique_ids(items: list[Identifiable], fallback_prefix: str) -> dict:
 
 
 def truncate(text: str, max_chars: int) -> str:
+    """Limit text to max_chars UTF-16 code units."""
     # Upstream length and slice count UTF-16 code units, including split pairs.
     encoded = text.encode("utf-16-le", errors="surrogatepass")
     if len(encoded) <= max_chars * 2:
         return text
-    return encoded[: max_chars * 2].decode("utf-16-le", errors="surrogatepass") + " […truncated]"
+    return (
+        encoded[: max_chars * 2].decode("utf-16-le", errors="surrogatepass")
+        + " […truncated]"
+    )
 
 
-def verify_action(confidence: float, auto_accept: float) -> Literal["auto", "review"]:
+def verify_action(
+    confidence: float, auto_accept: float
+) -> Literal["auto", "review"]:
+    """Return the verification action for its confidence."""
     return "auto" if confidence >= auto_accept else "review"
 
 
 def screen_recommendation(
-    *, injection: float, block_at: float, review_at: float,
-    relevance: float | None = None, substance: float | None = None,
+    *,
+    injection: float,
+    block_at: float,
+    review_at: float,
+    relevance: float | None = None,
+    substance: float | None = None,
 ) -> dict[str, str]:
-    # Decimal preserves JS toFixed's tie rounding; RFC 8785 preserves number text.
+    """Choose an action from screening scores and thresholds."""
+
+    # Decimal preserves JS toFixed's tie rounding; RFC 8785 preserves
+    # number text.
     def fixed(value: float) -> str:
-        return str(Decimal.from_float(value or 0).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        return str(
+            Decimal.from_float(value or 0).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        )
 
     if injection >= block_at:
-        return {"action": "block", "reason": f"injection probability {fixed(injection)} >= block threshold {rfc8785.dumps(block_at).decode()}"}
+        return {
+            "action": "block",
+            "reason": (
+                f"injection probability {fixed(injection)} >= "
+                f"block threshold {rfc8785.dumps(block_at).decode()}"
+            ),
+        }
     if injection >= review_at:
-        return {"action": "review", "reason": f"injection probability {fixed(injection)} >= review threshold {rfc8785.dumps(review_at).decode()}"}
+        return {
+            "action": "review",
+            "reason": (
+                f"injection probability {fixed(injection)} >= "
+                f"review threshold {rfc8785.dumps(review_at).decode()}"
+            ),
+        }
     if substance is not None and substance < 0.3:
-        return {"action": "skip", "reason": f"little substantive content (substance {fixed(substance)})"}
+        return {
+            "action": "skip",
+            (
+                "reason"
+            ): f"little substantive content (substance {fixed(substance)})",
+        }
     if relevance is not None and relevance < 0.3:
-        return {"action": "skip", "reason": f"not relevant to the stated purpose (relevance {fixed(relevance)})"}
+        return {
+            "action": "skip",
+            "reason": (
+                f"not relevant to the stated purpose "
+                f"(relevance {fixed(relevance)})"
+            ),
+        }
     return {"action": "pass", "reason": "no signals above thresholds"}
 
 
-def exists_verdict(exists: float, found: float = 0.7, absent: float = 0.35) -> str:
+def exists_verdict(
+    exists: float, found: float = 0.7, absent: float = 0.35
+) -> str:
+    """Map an existence score to its response status."""
     if exists >= found:
         return "answered"
     return "absent" if exists < absent else "partial"
 
 
-def rank_candidates(candidates: list[Identifiable], probabilities: dict[str, float]) -> list[dict]:
+def rank_candidates(
+    candidates: list[Identifiable], probabilities: dict[str, float]
+) -> list[dict]:
+    """Sort candidates by their assigned probabilities."""
     return sorted(
-        ({**candidate, "probability": probabilities.get(candidate["id"]) or 0} for candidate in candidates),
-        key=lambda candidate: candidate["probability"], reverse=True,
+        (
+            {
+                **candidate,
+                "probability": probabilities.get(candidate["id"]) or 0,
+            }
+            for candidate in candidates
+        ),
+        key=lambda candidate: candidate["probability"],
+        reverse=True,
     )
 
 
 def margin_of(probabilities: dict[str, float] | None) -> float:
+    """Return the gap between the two highest probabilities."""
     ranked = sorted((probabilities or {}).values(), reverse=True)
     return ranked[0] - ranked[1] if len(ranked) >= 2 else 0
 
 
 def classification_decision(
-    top_probability: float, margin: float, auto_accept: float, minimum_margin: float,
+    top_probability: float,
+    margin: float,
+    auto_accept: float,
+    minimum_margin: float,
 ) -> Literal["auto", "review"]:
-    return "auto" if top_probability >= auto_accept and margin >= minimum_margin else "review"
+    """Choose whether a classification can be auto-accepted."""
+    return (
+        "auto"
+        if top_probability >= auto_accept and margin >= minimum_margin
+        else "review"
+    )
 
 
-def contradicts_recommendation(checks: list[dict], recommended: str) -> list[int]:
-    return [check["requirement"] for check in checks if check["candidate"] == recommended and check["answer"] == "contradicted"]
+def contradicts_recommendation(
+    checks: list[dict], recommended: str
+) -> list[int]:
+    """Return requirements that contradict the recommendation."""
+    return [
+        check["requirement"]
+        for check in checks
+        if check["candidate"] == recommended
+        and check["answer"] == "contradicted"
+    ]
 
 
 def rerank_by_score(candidates: list[dict], scores: list[float]) -> list[dict]:
+    """Sort candidates by their relevance scores."""
     return sorted(
-        ({**candidate, "relevance": (scores[index] or 0) if index < len(scores) else 0}
-         for index, candidate in enumerate(candidates)),
-        key=lambda candidate: candidate["relevance"], reverse=True,
+        (
+            {
+                **candidate,
+                "relevance": (scores[index] or 0) if index < len(scores) else 0,
+            }
+            for index, candidate in enumerate(candidates)
+        ),
+        key=lambda candidate: candidate["relevance"],
+        reverse=True,
     )
 
 
 def validate_policy_thresholds(auto_accept: float, review_at: float) -> None:
-    if not all(type(value) in (int, float) and math.isfinite(value) for value in (auto_accept, review_at)) or not 0 <= review_at <= auto_accept <= 1:
-        raise ValueError("Thresholds must satisfy 0 <= review_at <= auto_accept <= 1.")
+    """Raise ValueError when policy thresholds are invalid."""
+    if (
+        not all(
+            type(value) in (int, float) and math.isfinite(value)
+            for value in (auto_accept, review_at)
+        )
+        or not 0 <= review_at <= auto_accept <= 1
+    ):
+        raise ValueError(
+            "Thresholds must satisfy 0 <= review_at <= auto_accept <= 1."
+        )
 
 
-def resolve_policy_thresholds(auto_accept: float = 0.8, review_at: float | None = None) -> dict[str, float]:
+def resolve_policy_thresholds(
+    auto_accept: float = 0.8, review_at: float | None = None
+) -> dict[str, float]:
+    """Resolve and validate policy thresholds."""
     resolved = min(0.5, auto_accept) if review_at is None else review_at
     validate_policy_thresholds(auto_accept, resolved)
     return {"auto_accept": auto_accept, "review_at": resolved}
 
 
-def require_complete_context(action: PolicyAction, truncated: bool) -> PolicyAction:
+def require_complete_context(
+    action: PolicyAction, truncated: bool
+) -> PolicyAction:
+    """Require review when context was truncated."""
     return "review" if truncated and action == "auto" else action
 
 
-def review_composite(*, correctness: float, spec_match: float, test_gap: float, blast_radius: float) -> float:
+def review_composite(
+    *,
+    correctness: float,
+    spec_match: float,
+    test_gap: float,
+    blast_radius: float,
+) -> float:
+    """Calculate the weighted review composite score."""
+
     def normalized(value: float) -> float:
         return min(max(value, 0), 2) / 2
 
@@ -197,36 +318,73 @@ def review_composite(*, correctness: float, spec_match: float, test_gap: float, 
 
 
 def review_action(
-    *, composite: float, safe_to_apply: float, min_confidence: float | None,
-    auto_accept: float, review_at: float, composite_floor: float,
+    *,
+    composite: float,
+    safe_to_apply: float,
+    min_confidence: float | None,
+    auto_accept: float,
+    review_at: float,
+    composite_floor: float,
 ) -> PolicyAction:
-    if min_confidence is None or min_confidence < review_at or safe_to_apply < review_at:
+    """Choose a policy action for a review."""
+    if (
+        min_confidence is None
+        or min_confidence < review_at
+        or safe_to_apply < review_at
+    ):
         return "escalate"
-    if safe_to_apply >= auto_accept and composite >= composite_floor and min_confidence >= auto_accept:
+    if (
+        safe_to_apply >= auto_accept
+        and composite >= composite_floor
+        and min_confidence >= auto_accept
+    ):
         return "auto"
     return "review"
 
 
-def claim_action(verdict: ClaimVerdict, confidence: float | None, auto_accept: float, review_at: float) -> PolicyAction:
+def claim_action(
+    verdict: ClaimVerdict,
+    confidence: float | None,
+    auto_accept: float,
+    review_at: float,
+) -> PolicyAction:
+    """Choose a policy action for a claim."""
     if confidence is None or confidence < review_at:
         return "escalate"
     if verdict == "contradicted" and confidence >= auto_accept:
         return "escalate"
-    return "auto" if verdict == "verified" and confidence >= auto_accept else "review"
+    return (
+        "auto"
+        if verdict == "verified" and confidence >= auto_accept
+        else "review"
+    )
 
 
 def worst_action(actions: list[PolicyAction]) -> PolicyAction:
+    """Return the highest-priority action."""
     if "escalate" in actions:
         return "escalate"
     return "review" if "review" in actions else "auto"
 
 
 def normalize_evidence(raw: ReviewEvidenceInput) -> list[Identifiable]:
-    items = [{"id": "evidence", "text": raw}] if isinstance(raw, str) else raw if isinstance(raw, list) else [raw]
+    """Normalize evidence into identifiable records."""
+    items = (
+        [{"id": "evidence", "text": raw}]
+        if isinstance(raw, str)
+        else raw
+        if isinstance(raw, list)
+        else [raw]
+    )
     return ensure_unique_ids(items, "evidence")["items"]
 
 
 def has_non_empty_evidence(items: list[Identifiable]) -> bool:
+    """Return whether any evidence text is non-empty."""
     # ECMAScript trim whitespace differs from Python's default strip set.
-    whitespace = "\u0009\u000b\u000c\u0020\u00a0\ufeff\u000a\u000d\u2028\u2029\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
+    whitespace = (
+        "\t\u000b\f "
+        "\u00a0\ufeff\n\r\u2028\u2029\u1680\u2000\u2001\u2002\u2003\u2004\u2005"
+        "\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"
+    )
     return any(item["text"].strip(whitespace) for item in items)

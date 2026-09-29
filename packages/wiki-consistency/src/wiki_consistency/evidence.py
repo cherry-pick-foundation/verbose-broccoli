@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-import json
-import os
-import signal
-import uuid
 from contextlib import contextmanager
 from importlib.metadata import version
+import json
+import os
 from pathlib import Path
+import signal
 from typing import Any, BinaryIO, Iterator, Mapping
+import uuid
 
 # Prevent ONNX Runtime from writing telemetry files during import.
 os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")
 
-from markitdown import MarkItDown, StreamInfo, UnsupportedFormatException
+from markitdown import MarkItDown
+from markitdown import StreamInfo
+from markitdown import UnsupportedFormatException
 from markitdown.converters import PlainTextConverter
-
 
 CONVERTER_VERSION = f"{version('markitdown')}-json-1"
 EVIDENCE_BUDGET_BYTES = 1024**3
@@ -24,12 +25,23 @@ TEMP_SUFFIX = ".wiki-consistency-tmp"
 
 
 class JsonConverter(PlainTextConverter):
-    def accepts(self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any) -> bool:
+    """Convert JSON and JSONL streams through MarkItDown."""
+
+    def accepts(
+        self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
+    ) -> bool:
+        """Return whether the stream contains JSON or JSONL."""
+        del file_stream, kwargs  # Unused.
         extension = (stream_info.extension or "").lower()
         mimetype = (stream_info.mimetype or "").split(";", 1)[0].strip().lower()
-        return extension in {".json", ".jsonl"} or mimetype == "application/json"
+        return (
+            extension in {".json", ".jsonl"} or mimetype == "application/json"
+        )
 
-    def convert(self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any):
+    def convert(
+        self, file_stream: BinaryIO, stream_info: StreamInfo, **kwargs: Any
+    ):
+        """Normalize JSON content in the converted Markdown."""
         result = super().convert(file_stream, stream_info, **kwargs)
         try:
             if (stream_info.extension or "").lower() == ".jsonl":
@@ -37,26 +49,44 @@ class JsonConverter(PlainTextConverter):
                 for line in result.markdown.splitlines(keepends=True):
                     content = line.rstrip("\r\n")
                     if content.strip():
-                        lines.append(json.dumps(json.loads(content), ensure_ascii=False) + line[len(content) :])
+                        lines.append(
+                            json.dumps(json.loads(content), ensure_ascii=False)
+                            + line[len(content) :]
+                        )
                     else:
                         lines.append(line)
                 result.markdown = "".join(lines)
             else:
-                result.markdown = json.dumps(json.loads(result.markdown), ensure_ascii=False)
+                result.markdown = json.dumps(
+                    json.loads(result.markdown), ensure_ascii=False
+                )
         except json.JSONDecodeError:
             pass
         return result
 
 
 def _component(value: str) -> str:
-    if not value or value in {".", ".."} or "/" in value or "\\" in value or "\0" in value:
+    if (
+        not value
+        or value in {".", ".."}
+        or "/" in value
+        or "\\" in value
+        or "\0" in value
+    ):
         raise ValueError(f"invalid path component: {value!r}")
     return value
 
 
-def _paths(cache: Path, wiki_id: str, source_id: str, revision: str) -> tuple[Path, Path, Path]:
+def _paths(
+    cache: Path, wiki_id: str, source_id: str, revision: str
+) -> tuple[Path, Path, Path]:
     root = Path(cache) / "wiki-evidence"
-    base = root / _component(wiki_id) / f"markitdown-{CONVERTER_VERSION}" / _component(source_id)
+    base = (
+        root
+        / _component(wiki_id)
+        / f"markitdown-{CONVERTER_VERSION}"
+        / _component(source_id)
+    )
     stem = _component(revision)
     resolved_root = root.resolve()
     if not base.resolve().is_relative_to(resolved_root):
@@ -67,7 +97,9 @@ def _paths(cache: Path, wiki_id: str, source_id: str, revision: str) -> tuple[Pa
 def _tree_size(root: Path) -> int:
     if not root.exists():
         return 0
-    return sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
+    return sum(
+        path.stat().st_size for path in root.rglob("*") if path.is_file()
+    )
 
 
 def _check_budget(root: Path, incoming: int, budget_bytes: int) -> None:
@@ -91,6 +123,7 @@ def _clean_on_signals() -> Iterator[None]:
     previous: dict[signal.Signals, object] = {}
 
     def exit_on_signal(signum: int, frame: object) -> None:
+        del frame  # Unused.
         raise SystemExit(128 + signum)
 
     for signum in (signal.SIGINT, signal.SIGTERM):
@@ -111,7 +144,9 @@ def _payload_path(instance: Path, item: Mapping[str, object]) -> Path:
         bag = Path(instance) / bag
     payloads = [path for path in (bag / "data").iterdir() if path.is_file()]
     if len(payloads) != 1:
-        raise ValueError("source revision must contain exactly one payload file")
+        raise ValueError(
+            "source revision must contain exactly one payload file"
+        )
     return payloads[0]
 
 
@@ -122,12 +157,16 @@ def _detail(error: Exception, payload: Path | None = None) -> str:
     return detail
 
 
-def _write_immutable(target: Path, content: bytes, root: Path, budget_bytes: int) -> bool:
+def _write_immutable(
+    target: Path, content: bytes, root: Path, budget_bytes: int
+) -> bool:
     if target.exists():
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
     _check_budget(root, len(content), budget_bytes)
-    temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}{TEMP_SUFFIX}")
+    temporary = target.with_name(
+        f".{target.name}.{uuid.uuid4().hex}{TEMP_SUFFIX}"
+    )
     try:
         with temporary.open("xb") as stream:
             stream.write(content)
@@ -141,7 +180,9 @@ def _write_immutable(target: Path, content: bytes, root: Path, budget_bytes: int
         temporary.unlink(missing_ok=True)
 
 
-def _existing_unreadable(mark: Path, source_id: str, revision: str) -> dict[str, str]:
+def _existing_unreadable(
+    mark: Path, source_id: str, revision: str
+) -> dict[str, str]:
     stored = json.loads(mark.read_text(encoding="utf-8"))
     return {
         "id": source_id,
@@ -172,15 +213,22 @@ def convert(
     with _clean_on_signals():
         try:
             for source_key in sorted(revisions):
-                for item in sorted(revisions[source_key], key=lambda value: str(value["revision"])):
+                for item in sorted(
+                    revisions[source_key],
+                    key=lambda value: str(value["revision"]),
+                ):
                     source_id = str(item["id"])
                     revision = str(item["revision"])
-                    root, target, mark = _paths(Path(cache), wiki_id, source_id, revision)
+                    root, target, mark = _paths(
+                        Path(cache), wiki_id, source_id, revision
+                    )
                     if target.is_file():
                         present += 1
                         continue
                     if mark.is_file():
-                        unreadable.append(_existing_unreadable(mark, source_id, revision))
+                        unreadable.append(
+                            _existing_unreadable(mark, source_id, revision)
+                        )
                         continue
 
                     payload: Path | None = None
@@ -199,7 +247,8 @@ def convert(
                     except UnsupportedFormatException as error:
                         reason = "unsupported_format"
                         detail = _detail(error, payload)
-                    except Exception as error:
+                    # isolate failures per source revision.
+                    except Exception as error:  # noqa: BLE001
                         reason = "conversion_failed"
                         detail = _detail(error, payload)
 
@@ -209,17 +258,30 @@ def convert(
                             ensure_ascii=False,
                             sort_keys=True,
                         ).encode("utf-8")
-                        if not _write_immutable(mark, mark_data, root, budget_bytes):
+                        if not _write_immutable(
+                            mark, mark_data, root, budget_bytes
+                        ):
                             if target.is_file():
                                 present += 1
                             else:
-                                unreadable.append(_existing_unreadable(mark, source_id, revision))
+                                unreadable.append(
+                                    _existing_unreadable(
+                                        mark, source_id, revision
+                                    )
+                                )
                         else:
                             unreadable.append(
-                                {"id": source_id, "revision": revision, "reason": reason, "detail": detail}
+                                {
+                                    "id": source_id,
+                                    "revision": revision,
+                                    "reason": reason,
+                                    "detail": detail,
+                                }
                             )
                     else:
-                        if _write_immutable(target, text.encode("utf-8"), root, budget_bytes):
+                        if _write_immutable(
+                            target, text.encode("utf-8"), root, budget_bytes
+                        ):
                             converted += 1
                         else:
                             present += 1
@@ -227,14 +289,22 @@ def convert(
             _cleanup_temporary_files(evidence_root)
 
     unreadable.sort(key=lambda entry: (entry["id"], entry["revision"]))
-    return {"converted": converted, "present": present, "unreadable": unreadable}
+    return {
+        "converted": converted,
+        "present": present,
+        "unreadable": unreadable,
+    }
 
 
-def read(cache: Path, wiki_id: str, source_id: str, revision: str) -> dict[str, str]:
+def read(
+    cache: Path, wiki_id: str, source_id: str, revision: str
+) -> dict[str, str]:
     """Read converted text or the unreadable reason for a revision."""
     _, target, mark = _paths(Path(cache), wiki_id, source_id, revision)
     if target.is_file():
         return {"text": target.read_text(encoding="utf-8")}
     if mark.is_file():
-        return {"unreadable": json.loads(mark.read_text(encoding="utf-8"))["reason"]}
+        return {
+            "unreadable": json.loads(mark.read_text(encoding="utf-8"))["reason"]
+        }
     raise LookupError(f"evidence is not converted: {source_id}/{revision}")
