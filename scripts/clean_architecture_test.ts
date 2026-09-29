@@ -245,19 +245,16 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
       await mkdir(dirname(join(root, path)), {recursive: true});
       await writeFile(join(root, path), source);
     }
-    const result = commandOutput(
-      join(repository, 'node_modules/.bin/eslint'),
-      {
-        args: [
-          '--format=json',
-          ...[...invalid, ...valid].map(([path]) => String(path)),
-        ],
+    const result = commandOutput(join(repository, 'node_modules/.bin/eslint'), {
+      args: [
+        '--format=json',
+        ...[...invalid, ...valid].map(([path]) => String(path)),
+      ],
       cwd: root,
-        env: {
-          NODE_PATH: join(repository, 'node_modules'),
-        },
+      env: {
+        NODE_PATH: join(repository, 'node_modules'),
       },
-    );
+    });
     assert(!result.success, new TextDecoder().decode(result.stderr));
     const stdout = new TextDecoder().decode(result.stdout);
     assert(stdout, new TextDecoder().decode(result.stderr));
@@ -278,7 +275,9 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
     for (const [path] of valid) assert(!flagged.has(path), path);
     assert(
       diagnostics.some(item =>
-        item.message.includes('Domain code must not use runtime or I/O globals.'),
+        item.message.includes(
+          'Domain code must not use runtime or I/O globals.',
+        ),
       ),
     );
     assert(

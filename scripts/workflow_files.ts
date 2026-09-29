@@ -4,8 +4,9 @@ import {lstat} from 'node:fs/promises';
 import {join, relative} from '@std/path';
 import {z} from '@zod/zod';
 
-const ignores = (createRequire(import.meta.url)('../eslint.ignores.js') as string[])
-  .map(pattern => pattern.replace(/\/$/, ''));
+const ignores = (
+  createRequire(import.meta.url)('../eslint.ignores.js') as string[]
+).map(pattern => pattern.replace(/\/$/, ''));
 
 export const repositoryFileSchema = z
   .string()

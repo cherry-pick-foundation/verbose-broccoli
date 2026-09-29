@@ -13,8 +13,7 @@ const lockfile = createRequire(import.meta.url)('proper-lockfile') as {
     path: string,
     options?: {
       retries?:
-        | number
-        | {retries: number; minTimeout: number; maxTimeout: number};
+        number | {retries: number; minTimeout: number; maxTimeout: number};
     },
   ): Promise<() => Promise<void>>;
 };

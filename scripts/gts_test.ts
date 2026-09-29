@@ -1,12 +1,6 @@
 import {spawnSync} from 'node:child_process';
 import {test} from 'node:test';
-import {
-  copyFile,
-  mkdir,
-  mkdtemp,
-  rm,
-  writeFile,
-} from 'node:fs/promises';
+import {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {assert, assertMatch} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 
@@ -98,10 +92,7 @@ test('gts and Prettier configs enforce style, boundaries and vendor exclusions',
     await write('scripts/local/deviation.js', sameSource);
     const vendored = gts(['lint', 'scripts/vendor/deviation.js'], temp);
     assert(vendored.success, output(vendored));
-    const repositoryOwned = gts(
-      ['lint', 'scripts/local/deviation.js'],
-      temp,
-    );
+    const repositoryOwned = gts(['lint', 'scripts/local/deviation.js'], temp);
     assert(!repositoryOwned.success);
     assertMatch(output(repositoryOwned), /prettier\/prettier/);
 

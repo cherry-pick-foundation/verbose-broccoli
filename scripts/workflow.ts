@@ -178,7 +178,7 @@ export function assessDifficulty(signals: Signals) {
 function statusRecords(output: string) {
   const fields = output.split('\0').filter(Boolean);
   const records = [];
-  for (let index = 0; index < fields.length; ) {
+  for (let index = 0; index < fields.length;) {
     const status = fields[index++];
     const paths = [fields[index++]];
     if (/^[RC]/.test(status)) paths.push(fields[index++]);

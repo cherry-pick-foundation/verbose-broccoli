@@ -7,12 +7,8 @@ import {
 import {lstat, readFile} from 'node:fs/promises';
 import {fromFileUrl, join} from '@std/path';
 import {Ajv2020} from 'ajv/dist/2020.js';
-import pluginSchema from './vendor/agent-plugins/plugin.schema.json' with {
-  type: 'json',
-};
-import mcpSchema from './vendor/agent-plugins/mcp.schema.json' with {
-  type: 'json',
-};
+import pluginSchema from './vendor/agent-plugins/plugin.schema.json' with {type: 'json'};
+import mcpSchema from './vendor/agent-plugins/mcp.schema.json' with {type: 'json'};
 
 const ajv = new Ajv2020({allErrors: true});
 const validators = [
@@ -49,8 +45,7 @@ export async function readPluginManifests(root: string, label = root) {
     description?: string;
   };
   const mcp = values['mcp.json'] as
-    | {mcpServers: Record<string, unknown>}
-    | undefined;
+    {mcpServers: Record<string, unknown>} | undefined;
   return {
     name: plugin.name,
     version: plugin.version,

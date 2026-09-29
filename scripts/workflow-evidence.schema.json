@@ -16,8 +16,8 @@
     "log_hash"
   ],
   "properties": {
-    "event": { "enum": ["STARTED", "FINISHED"] },
-    "run_id": { "type": "string", "minLength": 1 },
+    "event": {"enum": ["STARTED", "FINISHED"]},
+    "run_id": {"type": "string", "minLength": 1},
     "context": {
       "type": "object",
       "additionalProperties": false,
@@ -30,51 +30,51 @@
         "command"
       ],
       "properties": {
-        "task_id": { "type": "string", "minLength": 1 },
-        "root": { "type": "string", "minLength": 1 },
-        "base": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
-        "plan_hash": { "$ref": "#/$defs/hash" },
-        "node_version": { "type": "string", "minLength": 1 },
-        "command": { "const": "npm run check" }
+        "task_id": {"type": "string", "minLength": 1},
+        "root": {"type": "string", "minLength": 1},
+        "base": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+        "plan_hash": {"$ref": "#/$defs/hash"},
+        "node_version": {"type": "string", "minLength": 1},
+        "command": {"const": "npm run check"}
       }
     },
-    "before": { "$ref": "#/$defs/state" },
-    "after": { "anyOf": [{ "$ref": "#/$defs/state" }, { "type": "null" }] },
-    "exit_code": { "type": ["integer", "null"], "minimum": 0 },
-    "started_at": { "type": "string", "minLength": 1 },
-    "finished_at": { "type": ["string", "null"] },
-    "log_path": { "type": "string", "minLength": 1 },
-    "log_hash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] }
+    "before": {"$ref": "#/$defs/state"},
+    "after": {"anyOf": [{"$ref": "#/$defs/state"}, {"type": "null"}]},
+    "exit_code": {"type": ["integer", "null"], "minimum": 0},
+    "started_at": {"type": "string", "minLength": 1},
+    "finished_at": {"type": ["string", "null"]},
+    "log_path": {"type": "string", "minLength": 1},
+    "log_hash": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]}
   },
   "allOf": [
     {
-      "if": { "properties": { "event": { "const": "STARTED" } } },
+      "if": {"properties": {"event": {"const": "STARTED"}}},
       "then": {
         "properties": {
-          "exit_code": { "type": "null" },
-          "after": { "type": "null" },
-          "finished_at": { "type": "null" },
-          "log_hash": { "type": "null" }
+          "exit_code": {"type": "null"},
+          "after": {"type": "null"},
+          "finished_at": {"type": "null"},
+          "log_hash": {"type": "null"}
         }
       },
       "else": {
         "properties": {
-          "exit_code": { "type": "integer" },
-          "finished_at": { "type": "string", "minLength": 1 },
-          "log_hash": { "$ref": "#/$defs/hash" }
+          "exit_code": {"type": "integer"},
+          "finished_at": {"type": "string", "minLength": 1},
+          "log_hash": {"$ref": "#/$defs/hash"}
         }
       }
     }
   ],
   "$defs": {
-    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
     "state": {
       "type": "object",
       "additionalProperties": false,
       "required": ["revision", "dirty_hash"],
       "properties": {
-        "revision": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
-        "dirty_hash": { "$ref": "#/$defs/hash" }
+        "revision": {"type": "string", "pattern": "^[a-f0-9]{40,64}$"},
+        "dirty_hash": {"$ref": "#/$defs/hash"}
       }
     }
   }
