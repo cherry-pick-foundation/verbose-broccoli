@@ -7,6 +7,8 @@
   ],
   "scripts": {
     "doctor": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=package.json --allow-fs-read=package-lock.json --allow-fs-read=pyproject.toml --allow-fs-read=uv.lock --allow-fs-read=packages --allow-fs-read=node_modules --allow-fs-read=scripts --allow-fs-read=plugins --allow-fs-read=/usr/local/bin/quarto --allow-fs-read=/opt/quarto/bin/quarto --allow-fs-read=\"$(dirname \"$(dirname \"$(dirname \"$(node -p process.execPath)\")\")\")\" --allow-child-process scripts/doctor.ts",
+    "own-code": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process scripts/own_code.ts",
+    "test:own-code": "NODE_OPTIONS=--disable-warning=SecurityWarning node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/own_code_test.ts",
     "test:plugin-skills": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/plugin_skills_test.ts",
     "test:doctor": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/doctor_test.ts",
     "test:ruff": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/ruff_test.ts",
@@ -69,6 +71,7 @@
     "dependency-cruiser": "18.2.0",
     "eslint": "10.10.0",
     "gts": "7.0.0",
+    "linguist-languages": "9.5.0",
     "mdast-util-gfm-table": "2.0.0",
     "mdast-util-to-markdown": "2.1.2",
     "mdast-util-to-string": "4.0.0",
