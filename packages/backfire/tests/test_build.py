@@ -1,10 +1,10 @@
 import os
+from pathlib import Path
 import selectors
 import shutil
 import signal
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -13,7 +13,13 @@ PACKAGE_FILES = ("pyproject.toml", ".python-version", "uv.lock")
 MAX_BYTES = 16 * 1024 * 1024
 
 
-def run_build(output: Path, source: Path = ROOT, *, plugin: str = "code", budget: str = str(MAX_BYTES)):
+def run_build(
+    output: Path,
+    source: Path = ROOT,
+    *,
+    plugin: str = "code",
+    budget: str = str(MAX_BYTES),
+):
     entry = (
         ["-m", "backfire_tools.build"]
         if source == ROOT
@@ -24,11 +30,14 @@ def run_build(output: Path, source: Path = ROOT, *, plugin: str = "code", budget
         env={**os.environ, "BACKFIRE_TEST_BUILD_MAX_BYTES": budget},
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 
 
-def tree(directory: Path, *, exclude: tuple[str, ...] = ()) -> dict[str, bytes | None]:
+def tree(
+    directory: Path, *, exclude: tuple[str, ...] = ()
+) -> dict[str, bytes | None]:
     entries = {"": None}
     excluded = set(exclude)
 
@@ -66,16 +75,24 @@ def source_repository(tmp_path: Path) -> Path:
     for path in ("pyproject.toml", ".python-version", "uv.lock"):
         shutil.copy2(ROOT / path, source / path)
     for path in PACKAGE_FILES[:-1]:
-        shutil.copy2(ROOT / "packages/backfire" / path, source / "packages/backfire" / path)
+        shutil.copy2(
+            ROOT / "packages/backfire" / path,
+            source / "packages/backfire" / path,
+        )
     for name in ("doc-regions", "wiki-consistency"):
         member = source / "packages" / name
         member.mkdir(parents=True)
-        shutil.copy2(ROOT / "packages" / name / "pyproject.toml", member / "pyproject.toml")
+        shutil.copy2(
+            ROOT / "packages" / name / "pyproject.toml",
+            member / "pyproject.toml",
+        )
     return source
 
 
 @pytest.mark.parametrize("plugin", ["code", "work"])
-def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: str) -> None:
+def test_build_preserves_plugin_and_copies_only_runtime(
+    tmp_path: Path, plugin: str
+) -> None:
     output = tmp_path / plugin
     result = run_build(output, plugin=plugin)
     assert result.returncode == 0, result.stderr
@@ -85,14 +102,21 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     plugin_files = {
         path: contents
         for path, contents in tree(output).items()
-        if path != "backfire" and not path.startswith("backfire/")
-        and not any(path == name or path.startswith(f"{name}/") for name in projects)
+        if path != "backfire"
+        and not path.startswith("backfire/")
+        and not any(
+            path == name or path.startswith(f"{name}/") for name in projects
+        )
     }
     assert plugin_files == tree(ROOT / "plugins" / plugin)
 
     package = ROOT / "packages/backfire"
     expected = {"": None, "src": None}
-    runtime_packages = ("backfire",) if plugin == "code" else ("backfire", "backfire_education")
+    runtime_packages = (
+        ("backfire",)
+        if plugin == "code"
+        else ("backfire", "backfire_education")
+    )
     module_names = ", ".join(f'"{name}"' for name in runtime_packages)
     for path in PACKAGE_FILES:
         content = (
@@ -117,7 +141,9 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     for path, contents in expected.items():
         if contents is not None and path != "uv.lock":
             assert (output / "backfire" / path).stat().st_mode == (
-                profile if path == "src/backfire/config.toml" else package / path
+                profile
+                if path == "src/backfire/config.toml"
+                else package / path
             ).stat().st_mode
     assert not os.path.lexists(ROOT / "plugins" / plugin / "backfire")
     for name in projects:
@@ -125,11 +151,19 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
         built = output / name
         expected_project = tree(
             source,
-            exclude=(".venv", "node_modules", "__pycache__", ".pytest_cache", "tests"),
+            exclude=(
+                ".venv",
+                "node_modules",
+                "__pycache__",
+                ".pytest_cache",
+                "tests",
+            ),
         )
         expected_project["uv.lock"] = (built / "uv.lock").read_bytes()
         if name == "wiki-consistency":
-            expected_project["pyproject.toml"] = expected_project["pyproject.toml"].replace(
+            expected_project["pyproject.toml"] = expected_project[
+                "pyproject.toml"
+            ].replace(
                 b"doc-regions = { workspace = true }",
                 b'doc-regions = { path = "../doc-regions", editable = true }',
             )
@@ -138,7 +172,8 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
             assert (built / path).exists()
         assert not any(
             path.is_dir()
-            and path.name in {".venv", "node_modules", "__pycache__", ".pytest_cache"}
+            and path.name
+            in {".venv", "node_modules", "__pycache__", ".pytest_cache"}
             for path in built.rglob("*")
         )
         if name == "wiki-consistency":
@@ -150,7 +185,9 @@ def test_build_preserves_plugin_and_copies_only_runtime(tmp_path: Path, plugin: 
     assert list(tmp_path.iterdir()) == [output]
 
 
-def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Path) -> None:
+def test_built_work_plugin_runs_wiki_check_offline_without_checkout(
+    tmp_path: Path,
+) -> None:
     output = tmp_path / "work"
     assert not output.is_relative_to(ROOT)
     result = run_build(output, plugin="work")
@@ -166,14 +203,19 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Pa
         "---\ntopics: []\n---\n# Wiki rules\n", encoding="utf-8"
     )
     (instance / "wiki" / "index.md").write_text(
-        '<!-- [[[cog import wiki_consistency.sources; cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->\n'
+        "<!-- [[[cog import wiki_consistency.sources; "
+        "cog.out(wiki_consistency.sources.page_catalog("
+        '"wiki/**/*.md")) ]]] -->\n'
         "<!-- [[[end]]] -->\n",
         encoding="utf-8",
     )
     (instance / "wiki" / "overview.md").write_text("", encoding="utf-8")
     (instance / "wiki" / "log.md").write_text("", encoding="utf-8")
     subprocess.run(
-        ["git", "init", "--quiet"], cwd=instance, check=True, capture_output=True
+        ["git", "init", "--quiet"],
+        cwd=instance,
+        check=True,
+        capture_output=True,
     )
 
     uv_cache = subprocess.run(
@@ -203,9 +245,30 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Pa
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert doc_regions.returncode == 0, doc_regions.stderr
+    backfire = subprocess.run(
+        [
+            "uv",
+            "sync",
+            "--project",
+            str(output / "backfire"),
+            "--frozen",
+            "--offline",
+            "--no-dev",
+            "--extra",
+            "education",
+        ],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=120,
+    )
+    assert backfire.returncode == 0, backfire.stderr
     install = subprocess.run(
         [
             "uv",
@@ -220,6 +283,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Pa
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert install.returncode == 0, install.stderr
@@ -241,6 +305,7 @@ def test_built_work_plugin_runs_wiki_check_offline_without_checkout(tmp_path: Pa
         env=env,
         capture_output=True,
         text=True,
+        check=False,
         timeout=120,
     )
     assert check.returncode == 0, check.stderr
@@ -251,19 +316,32 @@ def test_unknown_plugin_writes_nothing(tmp_path: Path, plugin: str) -> None:
     output = tmp_path / "output"
     result = run_build(output, plugin=plugin)
     assert result.returncode == 1
-    assert f"Unknown plugin: {plugin}; known plugins: code, work" in result.stderr
+    assert (
+        f"Unknown plugin: {plugin}; known plugins: code, work" in result.stderr
+    )
     no_output(output)
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("args", [[], ["code"], ["output"], ["code", "output", "extra"], ["", "output"]])
-def test_build_requires_plugin_and_output(tmp_path: Path, args: list[str]) -> None:
+@pytest.mark.parametrize(
+    "args",
+    [[], ["code"], ["output"], ["code", "output", "extra"], ["", "output"]],
+)
+def test_build_requires_plugin_and_output(
+    tmp_path: Path, args: list[str]
+) -> None:
     result = subprocess.run(
         [sys.executable, "-m", "backfire_tools.build", *args],
-        cwd=tmp_path, capture_output=True, text=True, timeout=10,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
     )
     assert result.returncode == 1
-    assert result.stderr == "Usage: npm run backfire:build -- <plugin> <output>\n"
+    assert (
+        result.stderr == "Usage: npm run backfire:build -- <plugin> <output>\n"
+    )
     assert list(tmp_path.iterdir()) == []
 
 
@@ -287,7 +365,9 @@ def test_build_excludes_development_files_and_caches(
     assert result.returncode == 0, result.stderr
     for path in (*excluded, "src/backfire_tools"):
         assert not os.path.lexists(output / "backfire" / path)
-    assert not any("__pycache__" in Path(path).parts for path in tree(output / "backfire"))
+    assert not any(
+        "__pycache__" in Path(path).parts for path in tree(output / "backfire")
+    )
 
 
 @pytest.mark.parametrize("kind", ["file", "directory", "symlink"])
@@ -326,7 +406,9 @@ def test_build_refuses_outputs_in_source_packages(
         no_output(output)
 
 
-@pytest.mark.parametrize("directory", ["plugins/code", "packages/backfire/src/backfire"])
+@pytest.mark.parametrize(
+    "directory", ["plugins/code", "packages/backfire/src/backfire"]
+)
 @pytest.mark.parametrize("kind", ["file", "directory", "dangling"])
 def test_build_rejects_source_links_and_keeps_unrelated_partial(
     tmp_path: Path, source_repository: Path, directory: str, kind: str
@@ -362,12 +444,20 @@ def test_read_only_source_directory_does_not_prevent_build_or_cleanup(
     tmp_path: Path, source_repository: Path, exceed_budget: bool
 ) -> None:
     directory = source_repository / "plugins/code"
-    budget = str(sum(path.stat().st_size for path in directory.rglob("*") if path.is_file()))
+    budget = str(
+        sum(
+            path.stat().st_size
+            for path in directory.rglob("*")
+            if path.is_file()
+        )
+    )
     directory.chmod(0o555)
     output = tmp_path / "code"
     try:
         result = run_build(
-            output, source_repository, budget=budget if exceed_budget else str(MAX_BYTES)
+            output,
+            source_repository,
+            budget=budget if exceed_budget else str(MAX_BYTES),
         )
         if exceed_budget:
             assert result.returncode == 1
@@ -384,12 +474,17 @@ def test_build_refuses_invalid_budget(tmp_path: Path, budget: str) -> None:
     output = tmp_path / "code"
     result = run_build(output, budget=budget)
     assert result.returncode == 1
-    assert f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}" in result.stderr
+    assert (
+        f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}"
+        in result.stderr
+    )
     no_output(output)
 
 
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
-def test_interruption_during_copy_cleans_partial(tmp_path: Path, signum: int) -> None:
+def test_interruption_during_copy_cleans_partial(
+    tmp_path: Path, signum: int
+) -> None:
     output = tmp_path / "code"
     script = f"""
 import signal
@@ -423,7 +518,9 @@ raise SystemExit(build.main())
         try:
             with selectors.DefaultSelector() as selector:
                 selector.register(child.stdout, selectors.EVENT_READ)
-                assert selector.select(timeout=10), "Build did not reach the copy"
+                assert selector.select(timeout=10), (
+                    "Build did not reach the copy"
+                )
             assert child.stdout.readline() == "copy-paused\n"
             assert list(tmp_path.glob("code.partial-*"))
             child.send_signal(signum)

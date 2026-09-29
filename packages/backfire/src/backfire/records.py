@@ -1,7 +1,9 @@
 """Content-free session records with process locks and a bounded JSONL store."""
 
-from contextlib import AbstractContextManager, contextmanager
-from datetime import datetime, timezone
+from contextlib import AbstractContextManager
+from contextlib import contextmanager
+from datetime import datetime
+from datetime import timezone
 import fcntl
 import hashlib
 import json
@@ -31,11 +33,17 @@ def read_records(path: Path):
 
 
 def _time() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="microseconds")
+        .replace("+00:00", "Z")
+    )
 
 
 def _number(value):
-    return value if type(value) in (int, float) and math.isfinite(value) else None
+    return (
+        value if type(value) in (int, float) and math.isfinite(value) else None
+    )
 
 
 class RecordWriteError(OSError):
@@ -62,7 +70,9 @@ class RecordFile(AbstractContextManager):
         self._judgment = 0
         try:
             self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
-            self._directory_lock = os.open(self.directory / ".lock", os.O_CREAT | os.O_RDWR, 0o600)
+            self._directory_lock = os.open(
+                self.directory / ".lock", os.O_CREAT | os.O_RDWR, 0o600
+            )
             with self._locked():
                 self._make_room(0)
                 self._rotate()
@@ -115,7 +125,10 @@ class RecordFile(AbstractContextManager):
             raise self._error()
 
     def _append(self, record):
-        line = json.dumps(record, separators=(",", ":"), allow_nan=False).encode() + b"\n"
+        line = (
+            json.dumps(record, separators=(",", ":"), allow_nan=False).encode()
+            + b"\n"
+        )
         if self._file is None or self._failed or len(line) > ROTATE_BYTES:
             raise self._error()
         try:
@@ -140,8 +153,15 @@ class RecordFile(AbstractContextManager):
             raise self._error() from None
 
     def write_tool_call(
-        self, *, call: int, tool: str, input_digest: str, outcome: str,
-        decisions: list[dict] | None, result: dict | None, model: str | None,
+        self,
+        *,
+        call: int,
+        tool: str,
+        input_digest: str,
+        outcome: str,
+        decisions: list[dict] | None,
+        result: dict | None,
+        model: str | None,
         duration_ms: float,
     ) -> None:
         """Write the boundary's projection, never raw arguments or result text.
@@ -151,20 +171,34 @@ class RecordFile(AbstractContextManager):
         {tool, arguments} pair, using {} only when arguments were omitted.
         result is the MCP response's result object, used only for its digest.
         """
-        self._append({
-            "kind": "tool_call", "time": _time(), "session": self.session,
-            "call": call, "tool": tool, "input_digest": input_digest,
-            "outcome": outcome, "decisions": decisions,
-            "result_digest": digest(result) if result is not None else None,
-            "model": model, "duration_ms": duration_ms,
-        })
+        self._append(
+            {
+                "kind": "tool_call",
+                "time": _time(),
+                "session": self.session,
+                "call": call,
+                "tool": tool,
+                "input_digest": input_digest,
+                "outcome": outcome,
+                "decisions": decisions,
+                "result_digest": digest(result) if result is not None else None,
+                "model": model,
+                "duration_ms": duration_ms,
+            }
+        )
 
     def write_judgment(
-        self, *, state, questions: dict, requested_model: str | None,
-        calls_in_flight: list[int], outcome: str, result: dict | None = None,
+        self,
+        *,
+        state,
+        questions: dict,
+        requested_model: str | None,
+        calls_in_flight: list[int],
+        outcome: str,
+        result: dict | None = None,
         metadata: dict | None = None,
     ) -> None:
-        """Project question/answer data by position; the judge validates answers.
+        """Project answers by position; the judge validates them.
 
         calls_in_flight is the snapshot from when the judgment began, and
         outcome is ok, cancelled, or a fixed judgment error type. Invalid
@@ -177,9 +211,15 @@ class RecordFile(AbstractContextManager):
             kind = question.get("type")
             kind = kind if kind in ("noul", "choice", "score") else None
             criteria = question.get("criteria")
-            cells = 1 if kind == "noul" else (
-                len(criteria) if (kind == "choice" and isinstance(criteria, dict))
-                or (kind == "score" and isinstance(criteria, list)) else 0
+            cells = (
+                1
+                if kind == "noul"
+                else (
+                    len(criteria)
+                    if (kind == "choice" and isinstance(criteria, dict))
+                    or (kind == "score" and isinstance(criteria, list))
+                    else 0
+                )
             )
             summaries.append({"type": kind, "cells": cells})
             if outcome == "ok" and result is not None:
@@ -187,29 +227,56 @@ class RecordFile(AbstractContextManager):
                 if kind == "noul":
                     results.append({"p": _number(answer["noul"])})
                 elif kind == "choice":
-                    results.append({"index": list(criteria).index(answer["choice"]),
-                                    "confidence": _number(answer["confidence"])})
+                    results.append(
+                        {
+                            "index": list(criteria).index(answer["choice"]),
+                            "confidence": _number(answer["confidence"]),
+                        }
+                    )
                 elif kind == "score":
-                    results.append({"score": _number(answer["score"]),
-                                    "confidence": _number(answer["confidence"])})
+                    results.append(
+                        {
+                            "score": _number(answer["score"]),
+                            "confidence": _number(answer["confidence"]),
+                        }
+                    )
         metadata = metadata or {}
         usage = result["usage"] if result is not None else {}
         self._judgment += 1
-        self._append({
-            "kind": "judgment", "time": _time(), "session": self.session,
-            "judgment": self._judgment, "calls_in_flight": list(calls_in_flight),
-            "payload_digest": digest({"model": requested_model, "state": state, "questions": questions}),
-            "questions": summaries, "outcome": outcome,
-            "results": results if outcome == "ok" and result is not None else None,
-            "model": result.get("model") if result is not None else None,
-            "thinking_evidence": metadata.get("thinking_evidence")
-            if type(metadata.get("thinking_evidence")) is bool else None,
-            "usage": {"input_tokens": _number(usage.get("input_tokens")),
-                      "output_tokens": _number(usage.get("output_tokens")),
-                      "reasoning_tokens": _number(metadata.get("reasoning_tokens"))},
-            "attempts": _number(metadata.get("attempts")),
-            "latency_ms": _number(metadata.get("latency_ms")),
-        })
+        self._append(
+            {
+                "kind": "judgment",
+                "time": _time(),
+                "session": self.session,
+                "judgment": self._judgment,
+                "calls_in_flight": list(calls_in_flight),
+                "payload_digest": digest(
+                    {
+                        "model": requested_model,
+                        "state": state,
+                        "questions": questions,
+                    }
+                ),
+                "questions": summaries,
+                "outcome": outcome,
+                "results": results
+                if outcome == "ok" and result is not None
+                else None,
+                "model": result.get("model") if result is not None else None,
+                "thinking_evidence": metadata.get("thinking_evidence")
+                if type(metadata.get("thinking_evidence")) is bool
+                else None,
+                "usage": {
+                    "input_tokens": _number(usage.get("input_tokens")),
+                    "output_tokens": _number(usage.get("output_tokens")),
+                    "reasoning_tokens": _number(
+                        metadata.get("reasoning_tokens")
+                    ),
+                },
+                "attempts": _number(metadata.get("attempts")),
+                "latency_ms": _number(metadata.get("latency_ms")),
+            }
+        )
 
     def close(self) -> None:
         """Release both descriptors; the kernel releases their file locks."""

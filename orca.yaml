@@ -40,6 +40,7 @@ scripts:
     "$uv_bin" sync --locked --all-packages --extra education
     "$uv_bin" sync --locked --project tools/spec-kit
     "$uv_bin" sync --locked --project tools/shellcheck
+    "$uv_bin" sync --locked --project tools/ruff
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
     "$uv_bin" sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
     git config gitflow.shared.trustHooks true

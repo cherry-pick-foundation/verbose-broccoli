@@ -6,12 +6,14 @@ Each exchange retains the exact state and questions and the scripted response.
 """
 
 from contextlib import contextmanager
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer
 import json
 from threading import Thread
 
 
 def scripted_response(request):
+    """Build a synthetic response for each supported question type."""
     answers = {}
     for identifier, question in request["questions"].items():
         kind = question["type"]
@@ -20,24 +22,37 @@ def scripted_response(request):
         elif kind == "choice":
             keys = list(question["criteria"])
             if len(keys) < 2:
-                return 400, {"error": "invalid_request: Choice requires at least two options."}
+                return 400, {
+                    "error": "invalid_request: Choice requires at least two "
+                    "options."
+                }
             answer = {
-                "type": kind, "choice": keys[0], "confidence": 1,
+                "type": kind,
+                "choice": keys[0],
+                "confidence": 1,
                 "probabilities": {key: int(key == keys[0]) for key in keys},
             }
         elif kind == "score":
             criteria = question["criteria"]
             middle = len(criteria) // 2
             answer = {
-                "type": kind, "score": middle, "confidence": 1,
-                "probabilities": {str(index): int(index == middle) for index in range(len(criteria))},
-                "legend": {str(index): label for index, label in enumerate(criteria)},
+                "type": kind,
+                "score": middle,
+                "confidence": 1,
+                "probabilities": {
+                    str(index): int(index == middle)
+                    for index in range(len(criteria))
+                },
+                "legend": {
+                    str(index): label for index, label in enumerate(criteria)
+                },
             }
         else:
             raise ValueError(f"Unknown question type: {kind}")
         answers[identifier] = answer
     return 200, {
-        "answers": answers, "model": "scripted-upstream",
+        "answers": answers,
+        "model": "scripted-upstream",
         "usage": {"input_tokens": 11, "output_tokens": 7},
     }
 
@@ -55,19 +70,35 @@ def scripted_endpoint(respond=scripted_response):
             pass
 
         def do_POST(self):
+            """Record one scripted request or preserve its handler error."""
             try:
                 length = int(self.headers.get("Content-Length", "0"))
-                if self.path != "/systemone" or not 0 < length <= 10 * 1024 * 1024:
+                if (
+                    self.path != "/systemone"
+                    or not 0 < length <= 10 * 1024 * 1024
+                ):
                     raise ValueError("Expected a bounded System One request.")
                 body = json.loads(self.rfile.read(length))
-                if not isinstance(body, dict) or not {"state", "questions"} <= body.keys():
+                if (
+                    not isinstance(body, dict)
+                    or not {"state", "questions"} <= body.keys()
+                ):
                     raise ValueError("Expected state and questions.")
                 if not isinstance(body["questions"], dict):
                     raise ValueError("Expected a questions object.")
-                request = {"state": body["state"], "questions": body["questions"]}
+                request = {
+                    "state": body["state"],
+                    "questions": body["questions"],
+                }
                 status, response = respond(request)
-                exchanges.append({"request": request, "response": {"status": status, "body": response}})
-            except Exception as error:
+                exchanges.append(
+                    {
+                        "request": request,
+                        "response": {"status": status, "body": response},
+                    }
+                )
+            # Fail capture on handler errors.
+            except Exception as error:  # noqa: BLE001
                 errors.append(error)
                 status, response = 500, {"error": "Scripted endpoint failed."}
             encoded = json.dumps(response, ensure_ascii=False).encode("utf-8")
@@ -78,7 +109,11 @@ def scripted_endpoint(respond=scripted_response):
             self.wfile.write(encoded)
 
     with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
-        thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+        thread = Thread(
+            target=server.serve_forever,
+            kwargs={"poll_interval": 0.05},
+            daemon=True,
+        )
         thread.start()
         try:
             yield f"http://127.0.0.1:{server.server_port}/systemone", exchanges

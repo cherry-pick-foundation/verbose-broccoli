@@ -1462,6 +1462,7 @@ name = "wiki-consistency"
 version = "0.1.0"
 source = { editable = "packages/wiki-consistency" }
 dependencies = [
+    { name = "backfire", extra = ["education"] },
     { name = "bagit" },
     { name = "doc-regions" },
     { name = "markitdown", extra = ["docx", "pdf", "pptx"] },
@@ -1476,6 +1477,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "backfire", extras = ["education"], editable = "packages/backfire" },
     { name = "bagit", specifier = "==1.9.0" },
     { name = "doc-regions", editable = "packages/doc-regions" },
     { name = "markitdown", extras = ["docx", "pdf", "pptx"], specifier = "==0.1.8" },

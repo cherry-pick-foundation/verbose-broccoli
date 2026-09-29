@@ -33,6 +33,7 @@ one root `biome.json`, which keeps the Google TypeScript style settings, turns
 on its floating-promise check, and bans runtime and I/O globals in `domain/`
 folders; Prettier formats YAML. Biome 2.5.14 is a pinned npm dependency,
 and its package ships a platform-specific native binary that `package-lock.json` pins.
+Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
 The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
 which the Google shell style guide recommends, checks the repository's own
 shell scripts: `npm run lint:shell` runs it on every `*.sh` file and on the
@@ -45,7 +46,8 @@ formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
 selected standalone Deno/Quarto executables, uv, git-flow and lychee from
-`PATH`, the Spec Kit, ShellCheck and doc-regions environments, the git-flow configuration
+`PATH`, the Spec Kit, ShellCheck, Ruff, doc-regions and wiki-consistency
+environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. In REVIEW mode it asks the implementer or the orchestrator to review the
@@ -208,8 +210,21 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   page metadata, a missing or malformed topic list in `AGENTS.md`, a page
   topic that list does not declare, a cited bag that fails BagIt's fast
   validation, or a changed earlier `log.md` entry, and it lists orphan pages
-  and citations of non-latest revisions. It writes nothing, uses no network
-  and needs no cache. `update` regenerates stale regions.
+  and citations of non-latest revisions. It also tests the page rules that a
+  pattern can tell, outside mechanical regions, the front matter's `sources`
+  field and `log.md`: phone numbers, email and postal addresses and
+  registration numbers; a student page (`wiki/students/<name>.md`) whose
+  name is not in backfire's roster; Hangul, Chinese or Japanese text other
+  than roster names and one quote of at most 100 characters in quotation
+  marks with its English translation in parentheses beside it; roster
+  school names in Hangul outside such a quote and romanized names ending in
+  `Elementary School`, `Middle School` or `High School`, instead of domain
+  IDs; and dates not written as YYYY-MM-DD or times without a zone.
+  Roster names, phone numbers and email addresses are found with the work
+  build's own `backfire_education` code, so the check sees them as backfire
+  replaces them; it reads the roster only when a page needs it. A failure
+  never repeats the matched text. It writes nothing, uses no network and
+  needs no cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown with markitdown 0.1.8 under
@@ -231,9 +246,11 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   numbers and email addresses before the provider call and sends all other
   text as it is, and confirms a contradiction between two pages with
   `backfire_compare`.
-- `npm run wiki-consistency:install` installs both environments, Orca's
-  setup script runs the same installs, and `npm run doctor` checks them and
-  Node 22. `npm run test:wiki-consistency` runs the package's tests.
+- `npm run wiki-consistency:install` installs both environments, after
+  backfire's with its `education` extra, which `wiki-consistency` uses as a
+  library; Orca's setup script runs the same installs, and `npm run
+  doctor` checks them and Node 22. `npm run test:wiki-consistency` runs
+  the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
   new schema template to an existing instance, and converting HWP files or

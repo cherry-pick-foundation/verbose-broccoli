@@ -1,7 +1,7 @@
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -19,6 +19,7 @@ def test_help_lists_subcommands(entry_point: list[str]) -> None:
         cwd=PACKAGE_ROOT,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 
@@ -29,13 +30,16 @@ def test_help_lists_subcommands(entry_point: list[str]) -> None:
 
 
 @pytest.mark.parametrize("entry_point", ENTRY_POINTS, ids=["console", "module"])
-def test_ready_runs_configuration_check(entry_point: list[str], monkeypatch) -> None:
+def test_ready_runs_configuration_check(
+    entry_point: list[str], monkeypatch
+) -> None:
     monkeypatch.delenv("BACKFIRE_TEST_PROVIDER_BASE_URL", raising=False)
     result = subprocess.run(
         [*entry_point, "ready"],
         cwd=PACKAGE_ROOT,
         capture_output=True,
         text=True,
+        check=False,
         timeout=10,
     )
 
@@ -44,4 +48,6 @@ def test_ready_runs_configuration_check(entry_point: list[str], monkeypatch) -> 
     assert "mode-0600 credential" in result.stderr
     report = json.loads(result.stdout)
     assert report["requested"]["provider"] == "hive"
-    assert any(item["item"] == "configuration" for item in report["unconfirmed"])
+    assert any(
+        item["item"] == "configuration" for item in report["unconfirmed"]
+    )

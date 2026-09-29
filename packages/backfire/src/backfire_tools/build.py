@@ -2,13 +2,13 @@
 
 import json
 import os
+from pathlib import Path
 import shutil
 import signal
 import stat
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
 MAX_BYTES = 16 * 1024 * 1024
@@ -23,6 +23,7 @@ PLUGINS = {
 
 
 def refuse_existing(output: Path) -> None:
+    """Raise when the requested output path already exists."""
     try:
         output.lstat()
     except FileNotFoundError:
@@ -30,14 +31,28 @@ def refuse_existing(output: Path) -> None:
     raise FileExistsError(f"Output already exists: {output}")
 
 
-def lock_copy(project: str, directory: Path, *, extra: tuple[str, ...] = ()) -> None:
+def lock_copy(
+    project: str, directory: Path, *, extra: tuple[str, ...] = ()
+) -> None:
     exported = subprocess.run(
-        ["uv", "export", "--package", project, "--frozen", "--no-hashes", "--no-emit-workspace",
-         *extra],
-        cwd=ROOT, capture_output=True, text=True,
+        [
+            "uv",
+            "export",
+            "--package",
+            project,
+            "--frozen",
+            "--no-hashes",
+            "--no-emit-workspace",
+            *extra,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
     )
     if exported.returncode:
-        raise ValueError(exported.stderr.strip() or f"uv export failed for {project}")
+        raise ValueError(
+            exported.stderr.strip() or f"uv export failed for {project}"
+        )
     pins = [
         line.strip()
         for line in exported.stdout.splitlines()
@@ -67,34 +82,46 @@ def lock_copy(project: str, directory: Path, *, extra: tuple[str, ...] = ()) -> 
             text=True,
         )
         if result.returncode:
-            raise ValueError(result.stderr.strip() or f"uv lock failed for {project}")
+            raise ValueError(
+                result.stderr.strip() or f"uv lock failed for {project}"
+            )
     finally:
         pyproject.write_bytes(original)
 
 
 def build(output: str | Path, *, plugin: str = "code") -> Path:
+    """Build the selected plugin and runtime packages in the output path."""
     if plugin not in PLUGINS:
-        raise ValueError(f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}")
+        raise ValueError(
+            f"Unknown plugin: {plugin}; known plugins: {', '.join(PLUGINS)}"
+        )
     packages, profile, projects = PLUGINS[plugin]
     output = Path(os.path.abspath(output))
     refuse_existing(output)
     destination = output.parent.resolve(strict=True) / output.name
     for path in (output, destination):
-        if any(path.is_relative_to(ROOT / name) for name in ("plugins", "packages")):
-            raise ValueError(f"Output must be outside plugins/ and packages/: {output}")
+        if any(
+            path.is_relative_to(ROOT / name) for name in ("plugins", "packages")
+        ):
+            raise ValueError(
+                f"Output must be outside plugins/ and packages/: {output}"
+            )
     output = destination
     try:
         budget = int(os.environ.get("BACKFIRE_TEST_BUILD_MAX_BYTES", MAX_BYTES))
     except ValueError:
         budget = -1
     if not 0 <= budget <= MAX_BYTES:
-        raise ValueError(f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}")
+        raise ValueError(
+            f"BACKFIRE_TEST_BUILD_MAX_BYTES must be between 0 and {MAX_BYTES}"
+        )
 
     interrupted = False
     total = 0
     partial = None
 
     def interrupt(signum, frame):
+        del signum, frame  # Unused.
         nonlocal interrupted
         interrupted = True
 
@@ -110,13 +137,17 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         nonlocal total
         info = check_source(Path(source))
         if not stat.S_ISREG(info.st_mode):
-            raise ValueError(f"Source is not a regular file or directory: {source}")
+            raise ValueError(
+                f"Source is not a regular file or directory: {source}"
+            )
         total += info.st_size
         if total > budget:
             raise ValueError(f"Build exceeds {budget}-byte budget: {source}")
         return shutil.copy2(source, target)
 
-    def copy_tree(source: Path, target: Path, *, runtime_package=False, exclude=()):
+    def copy_tree(
+        source: Path, target: Path, *, runtime_package=False, exclude=()
+    ):
         check_source(source)
         excluded = set(exclude)
         if runtime_package:
@@ -125,9 +156,13 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         def walk_failed(error):
             raise error
 
-        for directory, directories, files in os.walk(source, onerror=walk_failed):
+        for directory, directories, files in os.walk(
+            source, onerror=walk_failed
+        ):
             directory = Path(directory)
-            directories[:] = [name for name in directories if name not in excluded]
+            directories[:] = [
+                name for name in directories if name not in excluded
+            ]
             files = [name for name in files if name not in excluded]
             if runtime_package and directory == source:
                 files = [name for name in files if name != "config.toml"]
@@ -143,7 +178,11 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         for signum in (signal.SIGINT, signal.SIGTERM)
     }
     try:
-        partial = Path(tempfile.mkdtemp(dir=output.parent, prefix=f"{output.name}.partial-"))
+        partial = Path(
+            tempfile.mkdtemp(
+                dir=output.parent, prefix=f"{output.name}.partial-"
+            )
+        )
         copy_tree(ROOT / "plugins" / plugin, partial)
         package = ROOT / "packages/backfire"
         runtime = partial / "backfire"
@@ -157,11 +196,19 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
         replacement = f"module-name = [{module_list}]".encode()
         updated = content.replace(modules, replacement, 1)
         if updated == content:
-            raise ValueError("Could not select copied backfire modules in pyproject.toml")
+            raise ValueError(
+                "Could not select copied backfire modules in pyproject.toml"
+            )
         pyproject.write_bytes(updated)
         for name in packages:
-            copy_tree(package / "src" / name, runtime / "src" / name, runtime_package=True)
-        copy_file(package / "src" / profile, runtime / "src/backfire/config.toml")
+            copy_tree(
+                package / "src" / name,
+                runtime / "src" / name,
+                runtime_package=True,
+            )
+        copy_file(
+            package / "src" / profile, runtime / "src/backfire/config.toml"
+        )
         for name in projects:
             copy_tree(
                 ROOT / "packages" / name,
@@ -174,19 +221,25 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
                     "tests",
                 ),
             )
-        lock_copy("backfire", runtime, extra=("--extra", "education") if plugin == "work" else ())
+        lock_copy(
+            "backfire",
+            runtime,
+            extra=("--extra", "education") if plugin == "work" else (),
+        )
         for name in projects:
             copied = partial / name
             if name == "wiki-consistency":
                 pyproject = copied / "pyproject.toml"
                 content = pyproject.read_text(encoding="utf-8")
                 updated = content.replace(
-                    'doc-regions = { workspace = true }',
+                    "doc-regions = { workspace = true }",
                     'doc-regions = { path = "../doc-regions", editable = true }',
                     1,
                 )
                 if updated == content:
-                    raise ValueError("Could not replace workspace source in copied wiki-consistency pyproject.toml")
+                    raise ValueError(
+                        "Could not replace workspace source in copied wiki-consistency pyproject.toml"
+                    )
                 pyproject.write_text(updated, encoding="utf-8")
             lock_copy(name, copied)
         if interrupted:
@@ -205,12 +258,15 @@ def build(output: str | Path, *, plugin: str = "code") -> Path:
 
 
 def main() -> int:
+    """Parse build arguments and return the command's exit status."""
     args = sys.argv[1:]
     if args[:1] == ["--"]:
         args = args[1:]
     try:
         if len(args) != 2 or not all(args):
-            raise ValueError("Usage: npm run backfire:build -- <plugin> <output>")
+            raise ValueError(
+                "Usage: npm run backfire:build -- <plugin> <output>"
+            )
         print(build(args[1], plugin=args[0]))
         return 0
     except (OSError, ValueError) as error:

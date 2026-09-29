@@ -15,6 +15,7 @@ _COMPOUND = {"남궁", "황보", "제갈", "선우", "서문", "독고", "사공
 
 
 def given_name(name: str) -> str | None:
+    """Return the detected given name for a Korean name."""
     if not re.fullmatch(r"[가-힣]{3,}", name):
         return None
     return name[2:] if len(name) >= 4 and name[:2] in _COMPOUND else name[1:]
@@ -35,8 +36,11 @@ def load_roster() -> dict[str, tuple[str, str]]:
     try:
         with _open_regular(path, mode="rb") as file:
             config = tomllib.load(file)
-        if (set(config) != {"roster"} or not isinstance(config["roster"], str)
-                or not Path(config["roster"]).is_absolute()):
+        if (
+            set(config) != {"roster"}
+            or not isinstance(config["roster"], str)
+            or not Path(config["roster"]).is_absolute()
+        ):
             raise ValueError
     except (OSError, ValueError):
         raise JudgmentError("backend_not_configured", str(path)) from None
@@ -44,7 +48,9 @@ def load_roster() -> dict[str, tuple[str, str]]:
     path = Path(config["roster"])
     students, guardians, schools = {}, {}, {}
     try:
-        with _open_regular(path, mode="r", encoding="utf-8-sig", newline="") as file:
+        with _open_regular(
+            path, mode="r", encoding="utf-8-sig", newline=""
+        ) as file:
             rows = csv.DictReader(file, strict=True)
             if not rows.fieldnames or "name" not in rows.fieldnames:
                 raise ValueError
@@ -70,7 +76,10 @@ def load_roster() -> dict[str, tuple[str, str]]:
             given[short].append(name)
     identifiers = dict(students)
     for short, names in given.items():
-        identifiers.setdefault(short, ("student", names[0]) if len(names) == 1 else ("given", short))
+        identifiers.setdefault(
+            short,
+            ("student", names[0]) if len(names) == 1 else ("given", short),
+        )
     for values in (guardians, schools):
         for value, identifier in values.items():
             identifiers.setdefault(value, identifier)

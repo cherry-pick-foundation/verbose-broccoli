@@ -16,8 +16,14 @@ from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 
 BUDGET_BYTES = 1024 * 1024
-PREFIXES = {"student": "학생", "given": "학생", "guardian": "보호자",
-            "school": "학교", "phone": "연락처", "email": "이메일"}
+PREFIXES = {
+    "student": "학생",
+    "given": "학생",
+    "guardian": "보호자",
+    "school": "학교",
+    "phone": "연락처",
+    "email": "이메일",
+}
 _HEX = re.compile(r"[0-9a-f]{64}")
 _PSEUDONYM = re.compile(r"(학생|보호자|학교|연락처|이메일)([0-9]{2,})")
 
@@ -25,31 +31,53 @@ _PSEUDONYM = re.compile(r"(학생|보호자|학교|연락처|이메일)([0-9]{2,
 @contextmanager
 def _private_file(path: Path, *, create=False):
     flags = os.O_RDWR | os.O_NONBLOCK | os.O_NOFOLLOW
-    with os.fdopen(os.open(path, flags | (os.O_CREAT if create else 0), 0o600), "r+b") as file:
+    with os.fdopen(
+        os.open(path, flags | (os.O_CREAT if create else 0), 0o600), "r+b"
+    ) as file:
         info = os.fstat(file.fileno())
-        if (not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600
-                or info.st_uid != os.getuid()):
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or stat.S_IMODE(info.st_mode) != 0o600
+            or info.st_uid != os.getuid()
+        ):
             raise ValueError
         yield file
 
 
 def _validate(table):
-    if (not isinstance(table, dict) or set(table) != {"version", "key", "counters", "entries"}
-            or type(table["version"]) is not int or table["version"] != 1
-            or not isinstance(table["key"], str) or not _HEX.fullmatch(table["key"])
-            or not isinstance(table["counters"], dict) or not isinstance(table["entries"], dict)):
+    if (
+        not isinstance(table, dict)
+        or set(table) != {"version", "key", "counters", "entries"}
+        or type(table["version"]) is not int
+        or table["version"] != 1
+        or not isinstance(table["key"], str)
+        or not _HEX.fullmatch(table["key"])
+        or not isinstance(table["counters"], dict)
+        or not isinstance(table["entries"], dict)
+    ):
         raise ValueError
     for prefix, count in table["counters"].items():
-        if prefix not in PREFIXES.values() or type(count) is not int or count < 0:
+        if (
+            prefix not in PREFIXES.values()
+            or type(count) is not int
+            or count < 0
+        ):
             raise ValueError
     seen = set()
     for digest, pseudonym in table["entries"].items():
-        match = _PSEUDONYM.fullmatch(pseudonym) if isinstance(pseudonym, str) else None
+        match = (
+            _PSEUDONYM.fullmatch(pseudonym)
+            if isinstance(pseudonym, str)
+            else None
+        )
         if not _HEX.fullmatch(digest) or match is None or pseudonym in seen:
             raise ValueError
         prefix, number = match[1], int(match[2])
-        if (number < 1 or pseudonym != f"{prefix}{number:02d}"
-                or number > table["counters"].get(prefix, 0)):
+        if (
+            number < 1
+            or pseudonym != f"{prefix}{number:02d}"
+            or number > table["counters"].get(prefix, 0)
+        ):
             raise ValueError
         seen.add(pseudonym)
 
@@ -59,7 +87,12 @@ def _read(path):
         with _private_file(path) as file:
             raw = file.read(BUDGET_BYTES + 1)
     except FileNotFoundError:
-        return {"version": 1, "key": secrets.token_hex(32), "counters": {}, "entries": {}}
+        return {
+            "version": 1,
+            "key": secrets.token_hex(32),
+            "counters": {},
+            "entries": {},
+        }
     if len(raw) > BUDGET_BYTES:
         raise ValueError
     table = json.loads(raw)
@@ -68,12 +101,16 @@ def _read(path):
 
 
 def _write(path, table):
-    data = json.dumps(table, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    data = json.dumps(table, ensure_ascii=False, separators=(",", ":")).encode(
+        "utf-8"
+    )
     if len(data) > BUDGET_BYTES:
         raise ValueError
     temporary = None
     try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".pseudonyms-", delete=False) as file:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent, prefix=".pseudonyms-", delete=False
+        ) as file:
             temporary = Path(file.name)
             os.fchmod(file.fileno(), 0o600)
             file.write(data)
@@ -100,7 +137,9 @@ def assign(identifiers) -> dict[tuple[str, str], str]:
             key = bytes.fromhex(table["key"])
             result, changed = {}, False
             for kind, value in identifiers:
-                digest = hmac.new(key, f"{kind}:{value}".encode("utf-8"), hashlib.sha256).hexdigest()
+                digest = hmac.new(
+                    key, f"{kind}:{value}".encode("utf-8"), hashlib.sha256
+                ).hexdigest()
                 if digest not in table["entries"]:
                     prefix = PREFIXES[kind]
                     number = table["counters"].get(prefix, 0) + 1

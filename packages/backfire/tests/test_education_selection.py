@@ -35,9 +35,13 @@ thinking = {{ requested = "off" }}
 
 
 def test_education_table_replacement_changes_only_work(
-    shipped_profiles, operator_config, monkeypatch,
+    shipped_profiles,
+    operator_config,
+    monkeypatch,
 ):
-    operator_config.write_text(profile("education", "operator-education"), encoding="utf-8")
+    operator_config.write_text(
+        profile("education", "operator-education"), encoding="utf-8"
+    )
 
     monkeypatch.setattr(config, "SHIPPED_CONFIG", shipped_profiles["work"])
     work = config.load_profile()
@@ -50,9 +54,13 @@ def test_education_table_replacement_changes_only_work(
 
 
 def test_hive_table_replacement_changes_only_code(
-    shipped_profiles, operator_config, monkeypatch,
+    shipped_profiles,
+    operator_config,
+    monkeypatch,
 ):
-    operator_config.write_text(profile("hive", "operator-hive"), encoding="utf-8")
+    operator_config.write_text(
+        profile("hive", "operator-hive"), encoding="utf-8"
+    )
 
     monkeypatch.setattr(config, "SHIPPED_CONFIG", shipped_profiles["code"])
     code = config.load_profile()
@@ -65,7 +73,9 @@ def test_hive_table_replacement_changes_only_code(
 
 
 def test_operator_provider_selection_applies_to_both_builds(
-    shipped_profiles, operator_config, monkeypatch,
+    shipped_profiles,
+    operator_config,
+    monkeypatch,
 ):
     operator_config.write_text(
         'provider = "shared"\n' + profile("shared", "shared-model"),
@@ -75,11 +85,16 @@ def test_operator_provider_selection_applies_to_both_builds(
     for shipped in shipped_profiles.values():
         monkeypatch.setattr(config, "SHIPPED_CONFIG", shipped)
         selected = config.load_profile()
-        assert (selected["name"], selected["model"]) == ("shared", "shared-model")
+        assert (selected["name"], selected["model"]) == (
+            "shared",
+            "shared-model",
+        )
 
 
 def test_work_credential_uses_education_env_and_accepts_hive_link(
-    shipped_profiles, operator_config, monkeypatch,
+    shipped_profiles,
+    operator_config,
+    monkeypatch,
 ):
     monkeypatch.setattr(config, "SHIPPED_CONFIG", shipped_profiles["work"])
     selected = config.load_profile()
@@ -87,7 +102,9 @@ def test_work_credential_uses_education_env_and_accepts_hive_link(
     hive_env = operator_config.parent / "hive.env"
 
     assert selected["name"] == "education"
-    education_env.write_text("HIVE_API_KEY=synthetic-education-key\n", encoding="utf-8")
+    education_env.write_text(
+        "HIVE_API_KEY=synthetic-education-key\n", encoding="utf-8"
+    )
     education_env.chmod(0o600)
     assert config.load_credential(selected) == "synthetic-education-key"
 

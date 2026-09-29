@@ -5,11 +5,12 @@ from pathlib import Path
 import re
 
 from doc_regions.config import files
-
-from wiki_consistency.instance import SPECIAL_PAGES, _metadata
+from wiki_consistency.instance import SPECIAL_PAGES
+from wiki_consistency.instance import _metadata
 
 
 def page_catalog(source_glob):
+    """Return sorted links for ordinary Wiki pages in a source glob."""
     root = Path.cwd().resolve()
     wiki = root / "wiki"
     grouped = {}
@@ -20,16 +21,21 @@ def page_catalog(source_glob):
         try:
             page_path = path.relative_to(wiki).as_posix()
         except ValueError as error:
-            raise ValueError(f"page_catalog source is outside wiki/: {relative}") from error
+            raise ValueError(
+                f"page_catalog source is outside wiki/: {relative}"
+            ) from error
         metadata, problems = _metadata(path.read_text(encoding="utf-8"))
         if problems:
             problem = problems[0]
-            raise ValueError(f"{relative}:{problem['line']}: {problem['message']}")
+            raise ValueError(
+                f"{relative}:{problem['line']}: {problem['message']}"
+            )
         row = (page_path, metadata["title"], metadata["summary"])
         for topic in metadata["topics"]:
             grouped.setdefault(topic, []).append(row)
     return "\n".join(
-        f"## {topic}\n\n" + "".join(
+        f"## {topic}\n\n"
+        + "".join(
             f"- [{title}]({path}) — {summary}\n"
             for path, title, summary in sorted(grouped[topic])
         )
@@ -58,13 +64,16 @@ def _manifest(path):
 
 
 def source_provenance(bag_info_glob, manifest_glob):
+    """Return source revision metadata from matched BagIt records."""
     root = Path.cwd().resolve()
     bag_infos = files(root, bag_info_glob)
     manifests = files(root, manifest_glob)
     info_by_parent = {path.parent: path for path in bag_infos}
     manifest_by_parent = {path.parent: path for path in manifests}
     if info_by_parent.keys() != manifest_by_parent.keys():
-        raise ValueError("bag-info and manifest source globs must name the same revisions")
+        raise ValueError(
+            "bag-info and manifest source globs must name the same revisions"
+        )
 
     revisions = []
     source_ids, kinds = set(), set()
@@ -75,15 +84,21 @@ def source_provenance(bag_info_glob, manifest_glob):
         _, kind, source_id, revision = parts
         info = _bag_info(info_by_parent[bag_path])
         if info.get("External-Identifier") != source_id:
-            raise ValueError(f"External-Identifier does not match {source_id}: {bag_path}")
+            raise ValueError(
+                f"External-Identifier does not match {source_id}: {bag_path}"
+            )
         modified = info.get("Source-Modified")
         oxum = info.get("Payload-Oxum")
         if not modified or not oxum or not oxum.split(".", 1)[0].isdigit():
-            raise ValueError(f"missing Source-Modified or Payload-Oxum: {bag_path}")
+            raise ValueError(
+                f"missing Source-Modified or Payload-Oxum: {bag_path}"
+            )
         name, digest = _manifest(manifest_by_parent[bag_path])
         source_ids.add(source_id)
         kinds.add(kind)
-        revisions.append((revision, modified, oxum.split(".", 1)[0], digest, name))
+        revisions.append(
+            (revision, modified, oxum.split(".", 1)[0], digest, name)
+        )
 
     if len(source_ids) != 1 or len(kinds) != 1:
         raise ValueError("source_provenance must name revisions of one source")
@@ -96,6 +111,8 @@ def source_provenance(bag_info_glob, manifest_glob):
     name = next(iter(names))
     output = f"Source `{source_id}` (`{kind}`), original file `{name}`:\n\n"
     for revision, modified, size, digest, _ in sorted(revisions):
-        output += (f"- `{revision}`: modified `{modified}`, {size} bytes, "
-                   f"SHA-256 `{digest}`\n")
+        output += (
+            f"- `{revision}`: modified `{modified}`, {size} bytes, "
+            f"SHA-256 `{digest}`\n"
+        )
     return output

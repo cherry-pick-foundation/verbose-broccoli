@@ -1,9 +1,10 @@
+from doc_sources import skill_table
 import pytest
 
-from doc_sources import skill_table
 
-
-def test_skill_table_lists_full_names_by_package_and_skill(tmp_path, monkeypatch):
+def test_skill_table_lists_full_names_by_package_and_skill(
+    tmp_path, monkeypatch
+):
     skills = {
         "plugins/work/skills": ["zebra", "alpha"],
         "plugins/code/skills": [
@@ -23,7 +24,8 @@ def test_skill_table_lists_full_names_by_package_and_skill(tmp_path, monkeypatch
     assert skill_table("plugins/*/skills/*/SKILL.md") == (
         "| Package | Owned skills |\n"
         "| --- | --- |\n"
-        "| `plugins/code/skills` | `clean-code`, `ponytail-review`, `speckit-plan`, "
+        "| `plugins/code/skills` | `clean-code`, `ponytail-review`, "
+        "`speckit-plan`, "
         "`verification-before-completion` |\n"
         "| `plugins/work/skills` | `alpha`, `zebra` |\n"
     )

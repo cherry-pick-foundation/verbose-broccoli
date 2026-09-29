@@ -338,6 +338,7 @@ export async function runDoctor(options: Options = {}) {
   ]);
   const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
   const shellCheck = await checkUvEnvironment(uv.canonical, 'tools/shellcheck');
+  const ruff = await checkUvEnvironment(uv.canonical, 'tools/ruff');
   const [uvWorkspace, rootNpm, wikiConsistency] = await Promise.all([
     checkUvWorkspace(uv.canonical),
     checkNpmEnvironment(npm, '.'),
@@ -365,6 +366,7 @@ export async function runDoctor(options: Options = {}) {
     gitHooksPath,
     specKit,
     shellCheck,
+    ruff,
     uvWorkspace,
     rootNpm,
     wikiConsistency,
