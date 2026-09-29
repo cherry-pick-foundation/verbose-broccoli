@@ -13,7 +13,7 @@
     "test:worktree-branch": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --import ./scripts/deno_shim.ts --test scripts/worktree_branch_test.ts",
     "commitlint": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import=./scripts/deno_shim.ts --permission --allow-fs-read=* --allow-child-process' commitlint --config scripts/commitlint.config.mjs",
     "test:commit-msg": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/commit_msg_test.ts",
-    "workflow": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts scripts/workflow.ts",
+    "workflow": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/deno_shim.ts scripts/workflow.ts",
     "verify": "npm run workflow -- --verify",
     "test:cli-contract": "NODE_OPTIONS=--disable-warning=SecurityWarning node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/cli_contract_test.ts",
     "test:workflow": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --import ./scripts/deno_shim.ts --test scripts/workflow_test.ts scripts/workflow_plan_test.ts scripts/workflow_verify_test.ts scripts/workflow_graph_test.ts scripts/workflow_skills_test.ts",
