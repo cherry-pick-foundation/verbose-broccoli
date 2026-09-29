@@ -42,9 +42,10 @@ repository or into Orca or Linear messages.
   (FR-003, FR-004).
 - [x] T003 [US1] Add `scripts/gts_test.ts`, a `test:gts` task and its
   Turborepo entry in the `test` dependencies, and list the file in
-  `tsconfig.json`: a floating promise, a formatting deviation, a banned
-  global in a `domain/` file and a JSON formatting deviation fail; a
-  compliant file passes; a file in a vendored path is not checked (FR-008).
+  `tsconfig.json`: a floating promise, a formatting deviation and a JSON
+  formatting deviation fail; a compliant file passes; a file in a vendored
+  path is not checked. The banned global in a `domain/` file is tested in
+  `scripts/clean_architecture_test.ts` (FR-008).
 - [x] T004 [P] [US2] Name gts and its version in `docs/architecture.md`
   instead of Biome, and regenerate `docs/reference/` with
   `npm run docs:generate` (FR-009).
@@ -52,25 +53,22 @@ repository or into Orca or Linear messages.
 Commit Phase 1 before T005.
 
 - 2026-09-29: A Codex worker (`gpt-6-luna`, max effort, dispatch
-  `ctx_af067201a830`) did T001 to T004 in `728c785`. Its three questions
+  `ctx_af067201a830`) did T001 to T004 in `196a138`. Its three questions
   widened the scope: `scripts/workflow_files.ts` derived its exclusions from
   `biome.json` and now reads `eslint.ignores.js` (same file set, with
   `node_modules/` excluded explicitly); the existing `domain/` ban test in
   `scripts/clean_architecture_test.ts` now runs ESLint, so `test:gts` has no
   domain case; `scripts/docs.ts`, `scripts/docs_test.ts`,
   `scripts/workflow.ts` and `scripts/workflow_graph.ts` stopped naming
-  Biome; and gts runs without Node's permission model (research.md R8). The
-  commit's four `Spec-Kit-Task` lines are separated by blank lines, so Git
-  reads only T004 as a trailer; the commit covers T001 to T004 and was not
-  rewritten.
+  Biome; and gts runs without Node's permission model (research.md R8).
 
 ## Phase 2: Mechanical reformat (US1, US2)
 
 - [x] T005 [US1] Run the writing forms of the formatters and commit only
   their output as `style: apply gts format`, with no hand edits (FR-006).
-  - 2026-09-29: The same worker committed `d78f15a`. The coordinator
+  - 2026-09-29: The same worker committed `9befb6d`. The coordinator
     reproduced it by running `gts fix .` and the `format` task's Prettier
-    steps on a copy of `728c785`: no difference (SC-004).
+    steps on a copy of `196a138`: no difference (SC-004).
 
 ## Phase 3: Hand fixes (US1)
 
@@ -80,13 +78,13 @@ Commit Phase 1 before T005.
 - [x] T007 [US1] Put `void` in front of each top-level `node:test`
   `test(...)` call that gts's `no-floating-promises` rule flags, in a commit
   of its own (FR-006, spec.md clarification).
-  - 2026-09-29: The same worker committed T006 in `d029153` (`process`
+  - 2026-09-29: The same worker committed T006 in `6abe3f5` (`process`
     imported from `node:process` in two `.mjs` files, two
     `eslint-disable-next-line` comments with reasons in `scripts/docs.ts`,
-    one obsolete `biome-ignore` comment removed) and T007 in `ba1cec0`
+    one obsolete `biome-ignore` comment removed) and T007 in `51414cf`
     (175 `void test(...)` calls in 17 files; every changed line is a
     `test(` call). `npm run verify -- --task che-36 --base 7e18ad4` passed
-    on `ba1cec0` (workflow phase VERIFIED, 28 check tasks). No Python file
+    on `51414cf` (workflow phase VERIFIED, 28 check tasks). No Python file
     changed, so the Python suites cannot change; they passed with backfire
     1,364 (3 deselected), doc-regions 106 and wiki-consistency 291. The
     Node suites hold 175 top-level tests, 174 on `develop` plus the new
@@ -114,4 +112,20 @@ Commit Phase 1 before T005.
     Claude Code worker on `claude-sonnet-5-5` at medium effort, which
     `backfire_decide` preferred (0.45) over high effort (0.25) for a
     speed-favoring review; the records reviewer is a fresh Codex worker
-    (`gpt-6-luna`, max effort).
+    (`gpt-6-luna`, max effort; dispatch `ctx_870eacabd100`). Both reviewed
+    the records commit then at the tip, which is `32923dc` after the reword
+    below.
+  - 2026-09-29: The code reviewer (dispatch `ctx_9250a97dfe0c`) approved
+    after fixes with one major finding: `scripts/gts_test.ts` has no
+    `domain/` case, so FR-007's ban looked untested. It does not stand: the
+    ported test in `scripts/clean_architecture_test.ts`, which `npm test`
+    runs, failed when the coordinator removed the ban from a copy of
+    `eslint.config.js`. The records reviewer requested changes: one major
+    finding, that Git read only T004 as a trailer of the first
+    implementation commit because blank lines separated its four
+    `Spec-Kit-Task` lines, and one minor finding, that plan.md and T003
+    placed the `domain/` case in the new test. The coordinator reworded that
+    commit's message with a scripted `git rebase -i 7e18ad4` that only
+    rewords it; all eight rebased commits kept their trees, and the hashes
+    above are the new ones (`196a138` was `728c785`). The coordinator also
+    corrected plan.md and T003.

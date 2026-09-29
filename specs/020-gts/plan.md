@@ -57,9 +57,10 @@ vendored upstream code excluded, not edited; Markdown not formatted.
 
 - **I. Proven Dependencies**: gts is pinned to one version in
   `package-lock.json`. Pass.
-- **V. Observable Acceptance**: The new test covers positive, negative and
-  boundary cases, the vendored-path exclusion and the `domain/` ban with
-  synthetic input; the suites keep their counts. Pass.
+- **V. Observable Acceptance**: With synthetic input, the new test covers
+  positive, negative and boundary cases and the vendored-path exclusion, and
+  the existing architecture test covers the `domain/` ban; the suites keep
+  their counts. Pass.
 - **VII. Minimum Implementation and reuse order**: gts's rule set and
   Prettier settings are reused as shipped, through the files `gts init`
   writes; ESLint's core rule replaces Biome's `domain/` ban. The only local
