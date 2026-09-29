@@ -101,8 +101,9 @@ and code spans get no other exception.
 ### Link targets
 
 Link targets are link destinations (`[text](destination)`, where the
-destination is either `<…>` without a line break or `<` or `>` inside, so
-it may hold spaces and `)`, or the text up to the first `)`), CommonMark
+destination is either `<…>` without a line break or an unescaped `<` or `>`
+inside, so it may hold spaces and `)`, or the text up to the first
+unescaped `)`; a backslash escapes the character after it), CommonMark
 autolinks (`<scheme:...>` or `<name@domain>`, without spaces) and bare URLs
 (`http://` or `https://` up to the next space). Other text in angle
 brackets, such as an HTML comment, is not a link target. `english`,
