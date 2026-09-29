@@ -196,6 +196,35 @@ count.
     features; they are reported, not acted on. Paid provider calls: 9 (2 from
     `npm run backfire:ready`; 1 from a first client run whose result the
     client lost to its own error; 6 judgment calls, all without error).
+  - 2026-09-30: Merge review at `1f98d53`, both reviewers fresh and started
+    through Orca in the coordinator's child Run. The backfire judgment tools
+    are not loaded in this session, so the code reviewer follows the last
+    speed-favoring merge reviews' choice: a Claude Code worker on
+    `claude-sonnet-5-5` at medium effort (dispatch `ctx_0b850f98f1d5`)
+    approved with 0 blockers, 0 majors and 4 minors. A Codex worker
+    (`gpt-6-luna`, max effort; dispatch `ctx_869a6812eb76`) reviewed the
+    records and approved after fixes with 1 minor.
+  - 2026-09-30: Resolution. Code minor 4, a renamed records file reviving an
+    old approval, was a real gap; the implementing Codex worker keyed
+    approvals by line text in `38a64d2` and added its test in `df6dc74`,
+    with tests for code minors 2 (a line-counter failure fails) and 3
+    (`develop` merged after the branch point adds nothing). Code minor 1,
+    scc language names that Linguist's names do not match, stands as a known
+    limit in research.md R2, since the repository has none of those
+    languages. The records minor, that the spec said a missing scc
+    environment names its install command, was corrected in `4e2a58b`,
+    which also updated the approval rule in spec.md, research.md and
+    data-model.md. The fixes change one line of the check, so the
+    coordinator reviewed them instead of a new review round. The worker's
+    `npm run verify` failed twice on backfire timing tests
+    (`test_concurrent_sessions_share_records_without_interfering`, a
+    5-second answer limit, and
+    `test_each_tool_keeps_event_loop_lag_below_one_second`, 1.165 s) while
+    the machine's 5-minute load average was about 17 on 8 processors; this
+    branch changes nothing under `packages/`, and both tests passed alone
+    (12 passed). The coordinator's `npm run verify -- --task che-42 --base
+    develop` then ended VERIFIED on `df6dc74`: 18 own-code tests, net +129
+    of 300 against 63fe2fd, 127 code lines in `scripts/own_code.ts`.
 
 ## Dependencies
 
