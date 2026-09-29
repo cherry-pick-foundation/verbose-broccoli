@@ -48,7 +48,7 @@ function commandOutput(
   };
 }
 
-test('commit-msg test commands reject children terminated by a signal', () => {
+void test('commit-msg test commands reject children terminated by a signal', () => {
   assertThrows(
     () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
     Error,
@@ -65,7 +65,7 @@ function check(
   return constitutionVersion(type, breaking, before, after);
 }
 
-test('constitution version rule: table and edge cases', () => {
+void test('constitution version rule: table and edge cases', () => {
   const minor = constitution('0.23.0', 'Policy text updated.');
   const patch = constitution('0.22.1', 'Policy text updated.');
   const major = constitution('1.0.0', 'Policy text updated.');
@@ -132,7 +132,7 @@ test('constitution version rule: table and edge cases', () => {
   );
 });
 
-test('constitution version rule: Git errors refuse changed commits', async () => {
+void test('constitution version rule: Git errors refuse changed commits', async () => {
   const root = await mkdtemp(join(tmpdir(), 'commit-msg-git-error-'));
   try {
     const moduleUrl = new URL('./constitution_version.ts', import.meta.url)
@@ -261,7 +261,7 @@ async function commit(
   return await runGit(repo, ['commit', ...args, '-m', message], extraEnv);
 }
 
-test('commit-msg hook: amendments use the parent constitution version', async () => {
+void test('commit-msg hook: amendments use the parent constitution version', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -427,7 +427,7 @@ test('commit-msg hook: amendments use the parent constitution version', async ()
   });
 });
 
-test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
+void test('commit-msg hook: inherited commit ref does not replace the index check', async () => {
   await withRepo(async repo => {
     await writeConstitution(repo, constitution('1.0.0', 'Breaking change.'));
     const first = await commit(repo, 'docs!: break');
@@ -451,7 +451,7 @@ test('commit-msg hook: inherited commit ref does not replace the index check', a
   });
 });
 
-test('commit-msg hook: real commits, index handling, and Node lookup', async () => {
+void test('commit-msg hook: real commits, index handling, and Node lookup', async () => {
   await withRepo(async repo => {
     await writeFile(join(repo.root, 'invalid.txt'), 'change\n');
     await runGit(repo, ['add', 'invalid.txt']);

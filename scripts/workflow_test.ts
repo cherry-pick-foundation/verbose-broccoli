@@ -61,7 +61,7 @@ async function repository(
   }
 }
 
-test('workflow: size boundaries and mandatory review signals', () => {
+void test('workflow: size boundaries and mandatory review signals', () => {
   const small = {
     paths: ['src/a.ts', 'src/b.ts'],
     statuses: ['M', 'A'],
@@ -115,7 +115,7 @@ test('workflow: size boundaries and mandatory review signals', () => {
   );
 });
 
-test('workflow: NUL records preserve filenames and rename statistics', () => {
+void test('workflow: NUL records preserve filenames and rename statistics', () => {
   assertEquals(
     parseNameStatus('M\0src/a\tb.ts\0R100\0old\nname.ts\0new\tname.ts\0'),
     {
@@ -133,7 +133,7 @@ test('workflow: NUL records preserve filenames and rename statistics', () => {
   assertThrows(() => sumNumstatLines('invalid\0'), Error, 'numstat');
 });
 
-test('workflow: staged, unstaged and untracked changes include odd filenames', async () => {
+void test('workflow: staged, unstaged and untracked changes include odd filenames', async () => {
   await repository(
     {
       '.gitignore': 'ignored.txt\n',
@@ -160,7 +160,7 @@ test('workflow: staged, unstaged and untracked changes include odd filenames', a
   );
 });
 
-test('workflow: worktree reversal cannot conceal staged changes', async () => {
+void test('workflow: worktree reversal cannot conceal staged changes', async () => {
   await repository({'src/value.ts': 'before\n'}, async root => {
     await writeFile(join(root, 'src/value.ts'), 'after\n');
     await git(root, 'add', '--', 'src/value.ts');
@@ -173,7 +173,7 @@ test('workflow: worktree reversal cannot conceal staged changes', async () => {
   });
 });
 
-test('workflow: Git rename and deletion require review', async () => {
+void test('workflow: Git rename and deletion require review', async () => {
   await repository({'src/old\tname.ts': 'one\ntwo\nthree\n'}, async root => {
     await git(root, 'mv', '--', 'src/old\tname.ts', 'src/new\nname.ts');
     const renamed = await inspectChanges(root);
@@ -191,7 +191,7 @@ test('workflow: Git rename and deletion require review', async () => {
   });
 });
 
-test('workflow: binary and symlink additions cannot become direct work', async () => {
+void test('workflow: binary and symlink additions cannot become direct work', async () => {
   await repository({'src/value.ts': 'value\n'}, async root => {
     await writeFile(join(root, 'binary.dat'), new Uint8Array([0, 1, 2]));
     const binary = await inspectChanges(root);
@@ -206,7 +206,7 @@ test('workflow: binary and symlink additions cannot become direct work', async (
   });
 });
 
-test('workflow: package exports identify nonstandard public entry filenames', async () => {
+void test('workflow: package exports identify nonstandard public entry filenames', async () => {
   await repository(
     {
       'plugins/demo/package.json': JSON.stringify({exports: './src/api.ts'}),
@@ -224,7 +224,7 @@ test('workflow: package exports identify nonstandard public entry filenames', as
   );
 });
 
-test('workflow: explicit baseline includes commits and invalid refs fail', async () => {
+void test('workflow: explicit baseline includes commits and invalid refs fail', async () => {
   await repository({'src/value.ts': 'before\n'}, async root => {
     const initial = await git(root, 'rev-parse', 'HEAD');
     await writeFile(join(root, 'src/value.ts'), 'after\n');
@@ -239,7 +239,7 @@ test('workflow: explicit baseline includes commits and invalid refs fail', async
   });
 });
 
-test('workflow: difficulty thresholds are independent of review mode', () => {
+void test('workflow: difficulty thresholds are independent of review mode', () => {
   const sample = {
     paths: ['src/a.ts'],
     statuses: ['M'],
@@ -291,7 +291,7 @@ test('workflow: difficulty thresholds are independent of review mode', () => {
   assertEquals(assessDifficulty(config).level, 'very_easy');
 });
 
-test('workflow: task difficulty excludes unrelated binary changes without weakening review', async () => {
+void test('workflow: task difficulty excludes unrelated binary changes without weakening review', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
     await writeFile(join(root, 'src/a.ts'), 'after\n');
     await writeFile(join(root, 'unrelated.dat'), new Uint8Array([0, 1, 2]));
@@ -310,7 +310,7 @@ test('workflow: task difficulty excludes unrelated binary changes without weaken
   });
 });
 
-test('workflow: planned work with no observed diff remains unassessed', async () => {
+void test('workflow: planned work with no observed diff remains unassessed', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
     const result = await inspectChanges(root, 'HEAD', {
       tasks: [{id: 'future', files: ['src/a.ts']}],
@@ -319,7 +319,7 @@ test('workflow: planned work with no observed diff remains unassessed', async ()
   });
 });
 
-test('workflow: invalid directory scopes are not collected for difficulty', async () => {
+void test('workflow: invalid directory scopes are not collected for difficulty', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
     await writeFile(join(root, 'src/a.ts'), 'after\n');
     const result = await inspectChanges(root, 'HEAD', {
@@ -331,7 +331,7 @@ test('workflow: invalid directory scopes are not collected for difficulty', asyn
   });
 });
 
-test('workflow: per-task observations keep literal paths and independent levels', async () => {
+void test('workflow: per-task observations keep literal paths and independent levels', async () => {
   const first = 'plugins/demo/small\tname.ts';
   const second = 'plugins/demo/large.ts';
   await repository(
@@ -372,7 +372,7 @@ test('workflow: per-task observations keep literal paths and independent levels'
   );
 });
 
-test('workflow: scoped observations include staged, unstaged and untracked changes', async () => {
+void test('workflow: scoped observations include staged, unstaged and untracked changes', async () => {
   await repository({'src/a.ts': 'original\n'}, async root => {
     await writeFile(join(root, 'src/a.ts'), 'staged\n');
     await git(root, 'add', 'src/a.ts');
@@ -387,7 +387,7 @@ test('workflow: scoped observations include staged, unstaged and untracked chang
   });
 });
 
-test('workflow: review eligibility does not suppress measurable task difficulty', async () => {
+void test('workflow: review eligibility does not suppress measurable task difficulty', async () => {
   const first = 'plugins/demo/first.ts';
   const second = 'plugins/demo/second.ts';
   await repository(
@@ -421,7 +421,7 @@ test('workflow: review eligibility does not suppress measurable task difficulty'
   );
 });
 
-test('workflow: destination-only task retains observed rename metadata', async () => {
+void test('workflow: destination-only task retains observed rename metadata', async () => {
   await repository({'src/old.ts': 'export const value = 1;\n'}, async root => {
     await git(root, 'mv', 'src/old.ts', 'src/new.ts');
     const result = await inspectChanges(root, 'HEAD', {
@@ -434,7 +434,7 @@ test('workflow: destination-only task retains observed rename metadata', async (
   });
 });
 
-test('workflow: staged and tracked symlinks remain unassessed', async () => {
+void test('workflow: staged and tracked symlinks remain unassessed', async () => {
   await repository({'src/a.ts': 'before\n'}, async root => {
     await symlink('src/a.ts', join(root, 'alias.ts'));
     await git(root, 'add', 'alias.ts');
@@ -446,7 +446,7 @@ test('workflow: staged and tracked symlinks remain unassessed', async () => {
   });
 });
 
-test('workflow: delegation instructions use Orca workers', () => {
+void test('workflow: delegation instructions use Orca workers', () => {
   for (const mode of ['DELEGATE', 'PARALLEL'] as const) {
     const lines = buildWorkModeInstructions(mode, true);
     assert(lines.some(line => line.includes('Orca orchestration')));
@@ -454,7 +454,7 @@ test('workflow: delegation instructions use Orca workers', () => {
   }
 });
 
-test('workflow: review instructions time independent review at merge', () => {
+void test('workflow: review instructions time independent review at merge', () => {
   const lines = buildWorkModeInstructions('REVIEW', true);
   assert(
     lines.some(
@@ -493,7 +493,7 @@ test('workflow: review instructions time independent review at merge', () => {
   assert(!lines.some(line => line.includes('separate read-only diff review')));
 });
 
-test('workflow: every mode prints the Linear completion order', () => {
+void test('workflow: every mode prints the Linear completion order', () => {
   for (const mode of ['DIRECT', 'DELEGATE', 'PARALLEL', 'REVIEW'] as const) {
     const lines = buildWorkModeInstructions(mode, false);
     assert(

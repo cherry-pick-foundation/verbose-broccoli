@@ -132,7 +132,7 @@ const examples = [
 ] as const;
 
 for (const [name, source, expected] of examples) {
-  test(`scope: ${name}`, async () => {
+  void test(`scope: ${name}`, async () => {
     const cwd = process.cwd();
     const report = await classifyFile(join(cwd, 'example.tsx'), source, cwd);
     assertEquals(report.status, expected, JSON.stringify(report.reasons));
@@ -147,7 +147,7 @@ function sizedFunction(lines: number, filler = '  value++;\n') {
   );
 }
 
-test('same selection, exact length boundary, and quality failures', async () => {
+void test('same selection, exact length boundary, and quality failures', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'clean-code-test-'));
   try {
     const directory = join(cwd, 'packages');
@@ -200,7 +200,7 @@ test('same selection, exact length boundary, and quality failures', async () => 
   }
 });
 
-test('parse errors remain errors and never become exclusions', async () => {
+void test('parse errors remain errors and never become exclusions', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'clean-code-error-'));
   try {
     await mkdir(join(cwd, 'plugins'));
@@ -217,7 +217,7 @@ test('parse errors remain errors and never become exclusions', async () => {
   }
 });
 
-test('discovery applies fixed paths and excludes declaration files and symlinks', async () => {
+void test('discovery applies fixed paths and excludes declaration files and symlinks', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'clean-code-paths-'));
   const good = 'export function run(value: number) { return value + 1; }';
   try {
@@ -250,7 +250,7 @@ test('discovery applies fixed paths and excludes declaration files and symlinks'
   }
 });
 
-test('excluded-only scope is explicitly not applicable, not a quality pass', async () => {
+void test('excluded-only scope is explicitly not applicable, not a quality pass', async () => {
   const cwd = await mkdtemp(join(tmpdir(), 'clean-code-no-scope-'));
   try {
     await mkdir(join(cwd, 'plugins'));

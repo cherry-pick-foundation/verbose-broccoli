@@ -50,7 +50,7 @@ function commandOutput(
   };
 }
 
-test('CLI test commands reject children terminated by a signal', () => {
+void test('CLI test commands reject children terminated by a signal', () => {
   assertThrows(
     () => commandOutput('sh', ['-c', 'kill -TERM $$']),
     Error,
@@ -100,7 +100,7 @@ function errorResult(
   return parsed;
 }
 
-test('CLI contract: backfire install syncs the complete Python workspace', async () => {
+void test('CLI contract: backfire install syncs the complete Python workspace', async () => {
   const packageJson = JSON.parse(
     await readFile(join(root, 'package.json'), 'utf8'),
   );
@@ -157,7 +157,7 @@ async function fixture(
 }
 
 for (const item of commands) {
-  test(`CLI ${item.name}: help and invalid arguments`, async t => {
+  void test(`CLI ${item.name}: help and invalid arguments`, async t => {
     const help = execute('npm', ['run', '--silent', item.name, '--', '--help']);
     assertEquals(help.code, 0, decoder.decode(help.stderr));
     assertEquals(help.stderr.length, 0);
@@ -176,7 +176,7 @@ for (const item of commands) {
     errorResult(bad, 2, 'INVALID_ARGUMENT');
   });
 
-  test(`CLI ${item.name}: actual success and failure streams`, async () => {
+  void test(`CLI ${item.name}: actual success and failure streams`, async () => {
     await fixture(async (repo, directory) => {
       let args: string[] = [];
       if (item.name === 'plugins:validate') args = [join(root, 'plugins/chat')];
@@ -210,7 +210,7 @@ for (const item of commands) {
   });
 }
 
-test('CLI: semantic input mistakes fail before execution', async () => {
+void test('CLI: semantic input mistakes fail before execution', async () => {
   const cases: [string, string[]][] = [
     ['doctor', ['--quarto', 'relative']],
     ['workflow', ['--plan', '']],
@@ -235,7 +235,7 @@ test('CLI: semantic input mistakes fail before execution', async () => {
   }
 });
 
-test('CLI clean-code: copied skill stays independently runnable', async () => {
+void test('CLI clean-code: copied skill stays independently runnable', async () => {
   await fixture(async (repo, directory) => {
     const installed = join(directory, 'installed-skill');
     await cp(skill, installed, {recursive: true});
@@ -262,7 +262,7 @@ test('CLI clean-code: copied skill stays independently runnable', async () => {
   });
 });
 
-test('CLI validators: failed checks preserve diagnostics without partial stdout', async () => {
+void test('CLI validators: failed checks preserve diagnostics without partial stdout', async () => {
   await fixture(async (repo, directory) => {
     const plugin = join(directory, 'bad-plugin');
     await mkdir(plugin);
@@ -298,7 +298,7 @@ test('CLI validators: failed checks preserve diagnostics without partial stdout'
   });
 });
 
-test('CLI workflow: invalid plan schema takes precedence over Git execution', async () => {
+void test('CLI workflow: invalid plan schema takes precedence over Git execution', async () => {
   await fixture(async (_repo, directory) => {
     const plan = join(directory, 'invalid-plan.json');
     await writeFile(plan, '{"tasks":[]}');

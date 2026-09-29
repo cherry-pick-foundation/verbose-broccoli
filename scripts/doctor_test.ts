@@ -119,7 +119,7 @@ function json(output: ReturnType<typeof commandOutput>) {
   );
 }
 
-test('doctor: direct Node CLI works from an empty HOME', async () => {
+void test('doctor: direct Node CLI works from an empty HOME', async () => {
   await temporary(async root => {
     const home = join(root, 'empty-home');
     await mkdir(home);
@@ -130,12 +130,12 @@ test('doctor: direct Node CLI works from an empty HOME', async () => {
   });
 });
 
-test('doctor: installed root Turborepo matches the lock', async () => {
+void test('doctor: installed root Turborepo matches the lock', async () => {
   const report = await runDoctor();
   assertEquals(report.turbo.version, '2.11.5');
 });
 
-test('doctor: Turborepo probe requires the locked version and npm ci repair', async () => {
+void test('doctor: Turborepo probe requires the locked version and npm ci repair', async () => {
   await temporary(async root => {
     const wrong = await fixture(root, 'wrong-turbo', "console.log('2.11.4');");
     await assertRejects(
@@ -148,7 +148,7 @@ test('doctor: Turborepo probe requires the locked version and npm ci repair', as
   });
 });
 
-test('doctor test commands reject children terminated by a signal', () => {
+void test('doctor test commands reject children terminated by a signal', () => {
   assertThrows(
     () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
     Error,
@@ -156,7 +156,7 @@ test('doctor test commands reject children terminated by a signal', () => {
   );
 });
 
-test('doctor: installed identities, versions and root lock work outside the checkout', async () => {
+void test('doctor: installed identities, versions and root lock work outside the checkout', async () => {
   await temporary(async root => {
     const output = await cli(root);
     assert(output.success, new TextDecoder().decode(output.stderr));
@@ -240,7 +240,7 @@ test('doctor: installed identities, versions and root lock work outside the chec
   });
 });
 
-test('doctor: invalid Quarto paths fail before report creation', async () => {
+void test('doctor: invalid Quarto paths fail before report creation', async () => {
   await temporary(async root => {
     const report = join(root, 'report.json');
     const wrong = await fixture(
@@ -273,7 +273,7 @@ test('doctor: invalid Quarto paths fail before report creation', async () => {
   });
 });
 
-test('doctor: Quarto aliases pass while .venv and wrong identities are refused', async () => {
+void test('doctor: Quarto aliases pass while .venv and wrong identities are refused', async () => {
   await temporary(async root => {
     const git = await fakeGit(root, 'scripts/git-hooks');
     const quarto = await fixture(
@@ -314,7 +314,7 @@ async function fakeGit(root: string, value: string | undefined) {
   );
 }
 
-test('doctor: git hooks path must match and is recorded', async () => {
+void test('doctor: git hooks path must match and is recorded', async () => {
   await temporary(async root => {
     const passingGit = await fakeGit(root, 'scripts/git-hooks');
     const report = await runDoctor({git: passingGit});
@@ -331,7 +331,7 @@ test('doctor: git hooks path must match and is recorded', async () => {
   });
 });
 
-test('doctor: version probes require exact versions, successful exit and bounded duration', async () => {
+void test('doctor: version probes require exact versions, successful exit and bounded duration', async () => {
   await temporary(async root => {
     const wrongLychee = await fixture(
       root,
@@ -390,7 +390,7 @@ test('doctor: version probes require exact versions, successful exit and bounded
   });
 });
 
-test('doctor: git-flow version and shared configuration status are required', async () => {
+void test('doctor: git-flow version and shared configuration status are required', async () => {
   await temporary(async root => {
     const wrong = await fixture(
       root,
@@ -416,7 +416,7 @@ test('doctor: git-flow version and shared configuration status are required', as
   });
 });
 
-test('doctor: a missing or stale Spec Kit environment fails with sync guidance', async () => {
+void test('doctor: a missing or stale Spec Kit environment fails with sync guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -431,7 +431,7 @@ test('doctor: a missing or stale Spec Kit environment fails with sync guidance',
   });
 });
 
-test('doctor: a missing or stale ShellCheck environment fails with sync guidance', async () => {
+void test('doctor: a missing or stale ShellCheck environment fails with sync guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -446,7 +446,7 @@ test('doctor: a missing or stale ShellCheck environment fails with sync guidance
   });
 });
 
-test('doctor: a missing or stale Ruff environment fails with sync guidance', async () => {
+void test('doctor: a missing or stale Ruff environment fails with sync guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -461,7 +461,7 @@ test('doctor: a missing or stale Ruff environment fails with sync guidance', asy
   });
 });
 
-test('doctor: a missing or stale doc-regions environment fails with sync guidance', async () => {
+void test('doctor: a missing or stale doc-regions environment fails with sync guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -476,7 +476,7 @@ test('doctor: a missing or stale doc-regions environment fails with sync guidanc
   });
 });
 
-test('doctor: wiki-consistency Python is checked through the root uv workspace', async () => {
+void test('doctor: wiki-consistency Python is checked through the root uv workspace', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -492,7 +492,7 @@ test('doctor: wiki-consistency Python is checked through the root uv workspace',
   });
 });
 
-test('doctor: a missing or stale wiki-consistency Node environment fails with install guidance', async () => {
+void test('doctor: a missing or stale wiki-consistency Node environment fails with install guidance', async () => {
   await temporary(async root => {
     const stale = await fixture(
       root,
@@ -508,7 +508,7 @@ test('doctor: a missing or stale wiki-consistency Node environment fails with in
   });
 });
 
-test('doctor: npm ls success does not hide npm package-lock drift', async () => {
+void test('doctor: npm ls success does not hide npm package-lock drift', async () => {
   await temporary(async root => {
     const project = join(root, 'wiki-consistency');
     const nodeModules = join(project, 'node_modules');
@@ -550,7 +550,7 @@ test('doctor: npm ls success does not hide npm package-lock drift', async () => 
   });
 });
 
-test('doctor: Node must be installed and at least version 24.12.0', async () => {
+void test('doctor: Node must be installed and at least version 24.12.0', async () => {
   await temporary(async root => {
     const git = await fakeGit(root, 'scripts/git-hooks');
     const missing = {node: join(root, 'missing-node'), git};
@@ -580,7 +580,7 @@ test('doctor: Node must be installed and at least version 24.12.0', async () => 
   });
 });
 
-test('doctor: report is private, create-only and refuses README paths and symlinks', async () => {
+void test('doctor: report is private, create-only and refuses README paths and symlinks', async () => {
   await temporary(async root => {
     const report = join(root, 'report.json');
     const git = await fakeGit(root, 'scripts/git-hooks');
@@ -604,7 +604,7 @@ test('doctor: report is private, create-only and refuses README paths and symlin
   });
 });
 
-test('doctor: CLI rejects invalid flags and missing runtime/report permissions', async () => {
+void test('doctor: CLI rejects invalid flags and missing runtime/report permissions', async () => {
   await temporary(async root => {
     for (const args of [['--unknown'], ['--node'], ['unexpected']]) {
       const output = await cli(root, args);

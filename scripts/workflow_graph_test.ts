@@ -105,7 +105,7 @@ function cli(root: string, ...args: string[]) {
   );
 }
 
-test('workflow graph: command helper rejects signal termination', () => {
+void test('workflow graph: command helper rejects signal termination', () => {
   assertThrows(
     () =>
       commandOutput(process.execPath, [
@@ -117,7 +117,7 @@ test('workflow graph: command helper rejects signal termination', () => {
   );
 });
 
-test('workflow graph: aliases and re-exports reach transitive consumers and affected tests only', async () => {
+void test('workflow graph: aliases and re-exports reach transitive consumers and affected tests only', async () => {
   const prefix = 'plugins/demo/src/';
   await repository(
     {
@@ -172,7 +172,7 @@ test('workflow graph: aliases and re-exports reach transitive consumers and affe
   );
 });
 
-test('workflow graph: every query sees same-length import edits and a new snapshot', async () => {
+void test('workflow graph: every query sees same-length import edits and a new snapshot', async () => {
   await repository(
     {
       'src/value.ts': 'export const value = 1;',
@@ -198,7 +198,7 @@ test('workflow graph: every query sees same-length import edits and a new snapsh
   );
 });
 
-test('workflow graph: cycles, outward domain dependencies and missing local imports fail policy', async () => {
+void test('workflow graph: cycles, outward domain dependencies and missing local imports fail policy', async () => {
   await repository(
     {
       'plugins/demo/src/domain/value.ts':
@@ -237,7 +237,7 @@ test('workflow graph: cycles, outward domain dependencies and missing local impo
   );
 });
 
-test('workflow graph: npm and jsr dependencies stay external while ignored local targets stay outside scope', async () => {
+void test('workflow graph: npm and jsr dependencies stay external while ignored local targets stay outside scope', async () => {
   await repository(
     {
       'package.json': JSON.stringify({
@@ -275,7 +275,7 @@ test('workflow graph: npm and jsr dependencies stay external while ignored local
   );
 });
 
-test('workflow graph: invalid choices, noncanonical paths and invalid symbol positions are rejected', async () => {
+void test('workflow graph: invalid choices, noncanonical paths and invalid symbol positions are rejected', async () => {
   await repository({'src/value.ts': 'export const value = 1;'}, async root => {
     const inputs = [
       {choice: 'unknown'},
@@ -302,7 +302,7 @@ test('workflow graph: invalid choices, noncanonical paths and invalid symbol pos
   });
 });
 
-test('workflow graph: missing, ignored and symlinked selections are rejected', async () => {
+void test('workflow graph: missing, ignored and symlinked selections are rejected', async () => {
   await repository(
     {
       '.gitignore': 'ignored/\n',
@@ -334,7 +334,7 @@ test('workflow graph: missing, ignored and symlinked selections are rejected', a
   );
 });
 
-test('workflow graph: local symbols expose definitions, references and actual caller locations', async () => {
+void test('workflow graph: local symbols expose definitions, references and actual caller locations', async () => {
   const source =
     'export function double(value: number) { return value * 2; }\n';
   const aliasCall = 'export function useAlias() { return double(2); }';
@@ -478,7 +478,7 @@ test('workflow graph: local symbols expose definitions, references and actual ca
   );
 });
 
-test('workflow graph: mutations while reading symbol sources invalidate the report', async () => {
+void test('workflow graph: mutations while reading symbol sources invalidate the report', async () => {
   const source = 'export function value() { return 1; }';
   await repository(
     {'src/value.ts': source, 'src/marker.ts': 'export const marker = 1;'},
@@ -518,7 +518,7 @@ test('workflow graph: mutations while reading symbol sources invalidate the repo
   );
 });
 
-test('workflow graph CLI: valid queries succeed while bad input and policy violations exit one', async () => {
+void test('workflow graph CLI: valid queries succeed while bad input and policy violations exit one', async () => {
   await repository({'src/value.ts': 'export const value = 1;'}, async root => {
     const menu = await cli(root);
     assertEquals(menu.code, 0, new TextDecoder().decode(menu.stderr));

@@ -38,7 +38,7 @@ function output(result: ReturnType<typeof run>) {
   );
 }
 
-test('gts and Prettier configs enforce style, boundaries and vendor exclusions', async () => {
+void test('gts and Prettier configs enforce style, boundaries and vendor exclusions', async () => {
   const temp = await mkdtemp('/tmp/gts-test-');
   try {
     for (const config of [

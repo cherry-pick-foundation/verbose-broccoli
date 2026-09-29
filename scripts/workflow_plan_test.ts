@@ -36,7 +36,7 @@ async function fixture(
   }
 }
 
-test('workflow plan: one bounded task delegates; two independent tasks run in parallel', async () => {
+void test('workflow plan: one bounded task delegates; two independent tasks run in parallel', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -52,7 +52,7 @@ test('workflow plan: one bounded task delegates; two independent tasks run in pa
   );
 });
 
-test('workflow plan: shared unchanged dependency permits parallel file edits', async () => {
+void test('workflow plan: shared unchanged dependency permits parallel file edits', async () => {
   await fixture(
     {
       [first]: "export {shared as first} from './shared.ts';",
@@ -68,7 +68,7 @@ test('workflow plan: shared unchanged dependency permits parallel file edits', a
   );
 });
 
-test('workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits', async () => {
+void test('workflow plan: direct, transitive, alias and shared consumer dependencies prevent parallel edits', async () => {
   const cases: Record<string, string>[] = [
     {[first]: "export {second as first} from './second.ts';"},
     {
@@ -103,7 +103,7 @@ test('workflow plan: direct, transitive, alias and shared consumer dependencies 
   }
 });
 
-test('workflow plan: root and tests consumers prevent parallel edits across scan roots', async () => {
+void test('workflow plan: root and tests consumers prevent parallel edits across scan roots', async () => {
   const cases: Record<string, string>[] = [
     {
       'consumer.ts':
@@ -148,7 +148,7 @@ test('workflow plan: root and tests consumers prevent parallel edits across scan
   }
 });
 
-test('workflow plan: repository scan keeps tool, vendor and agent cache exclusions', async () => {
+void test('workflow plan: repository scan keeps tool, vendor and agent cache exclusions', async () => {
   const excluded = [
     'tools/consumer.ts',
     'scripts/vendor/consumer.ts',
@@ -181,7 +181,7 @@ test('workflow plan: repository scan keeps tool, vendor and agent cache exclusio
   );
 });
 
-test('workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits', async () => {
+void test('workflow plan: overlap, missing files, unsupported sources and unresolved imports prevent parallel edits', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -207,7 +207,7 @@ test('workflow plan: overlap, missing files, unsupported sources and unresolved 
   );
 });
 
-test('workflow plan: symlink aliases cannot give two agents the same writable file', async () => {
+void test('workflow plan: symlink aliases cannot give two agents the same writable file', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',
@@ -257,7 +257,7 @@ test('workflow plan: symlink aliases cannot give two agents the same writable fi
   );
 });
 
-test('workflow plan: invalid or ambiguous task scopes fail validation', async () => {
+void test('workflow plan: invalid or ambiguous task scopes fail validation', async () => {
   await fixture({}, async root => {
     for (const input of [
       {},
@@ -276,7 +276,7 @@ test('workflow plan: invalid or ambiguous task scopes fail validation', async ()
   });
 });
 
-test('workflow plan: risky planned paths and scope growth still require review', () => {
+void test('workflow plan: risky planned paths and scope growth still require review', () => {
   const plan = {tasks, reasons: []};
   assertEquals(
     selectWorkMode(
@@ -304,7 +304,7 @@ test('workflow plan: risky planned paths and scope growth still require review',
   );
 });
 
-test('workflow plan: Git integration routes a clean plan then rejects changes outside its scope', async () => {
+void test('workflow plan: Git integration routes a clean plan then rejects changes outside its scope', async () => {
   await fixture(
     {
       [first]: 'export const first = 1;',

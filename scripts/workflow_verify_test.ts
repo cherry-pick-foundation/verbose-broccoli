@@ -95,7 +95,7 @@ async function assertUnavailable(root: string, options: Options) {
   assertNotEquals(result.phase, 'VERIFIED');
 }
 
-test('workflow verification: actual check creates reusable evidence for the exact code', async () => {
+void test('workflow verification: actual check creates reusable evidence for the exact code', async () => {
   await repository(passing, async (root, options) => {
     const initial = await evaluateVerification(root, options);
     assertEquals(initial.phase, 'IMPLEMENT');
@@ -126,7 +126,7 @@ test('workflow verification: actual check creates reusable evidence for the exac
   });
 });
 
-test('workflow verification: failures accumulate across repairs within the same task', async () => {
+void test('workflow verification: failures accumulate across repairs within the same task', async () => {
   await repository('process.exitCode = 1;', async (root, options) => {
     const first = await evaluateVerification(root, {
       ...options,
@@ -168,7 +168,7 @@ test('workflow verification: failures accumulate across repairs within the same 
   });
 });
 
-test('workflow verification: task, plan and resolved baseline keep evidence separate', async () => {
+void test('workflow verification: task, plan and resolved baseline keep evidence separate', async () => {
   await repository(passing, async (root, options) => {
     await git(
       root,
@@ -197,7 +197,7 @@ test('workflow verification: task, plan and resolved baseline keep evidence sepa
   });
 });
 
-test('workflow verification: exit zero cannot verify code changed during the check', async () => {
+void test('workflow verification: exit zero cannot verify code changed during the check', async () => {
   await repository(
     "import {writeFile} from 'node:fs/promises';\nawait writeFile('src/value.ts', 'export const value = 2;\\n');",
     async (root, options) => {
@@ -217,7 +217,7 @@ test('workflow verification: exit zero cannot verify code changed during the che
   );
 });
 
-test('workflow verification: altered or missing logs cannot reuse a previous successful result', async () => {
+void test('workflow verification: altered or missing logs cannot reuse a previous successful result', async () => {
   await repository(passing, async (root, options) => {
     const result = await evaluateVerification(root, {
       ...options,
@@ -232,7 +232,7 @@ test('workflow verification: altered or missing logs cannot reuse a previous suc
   });
 });
 
-test('workflow verification: malformed or invalid evidence fails closed', async () => {
+void test('workflow verification: malformed or invalid evidence fails closed', async () => {
   for (const damaged of [
     'not-json\n',
     '{"event":"FINISHED","exit_code":0}\n',
@@ -249,7 +249,7 @@ test('workflow verification: malformed or invalid evidence fails closed', async 
   }
 });
 
-test('workflow verification: Deno evidence is skipped but malformed Node evidence fails', async () => {
+void test('workflow verification: Deno evidence is skipped but malformed Node evidence fails', async () => {
   await repository(passing, async (root, options) => {
     const result = await evaluateVerification(root, {
       ...options,
@@ -285,7 +285,7 @@ test('workflow verification: Deno evidence is skipped but malformed Node evidenc
   });
 });
 
-test('workflow verification: an interrupted run supersedes older successful evidence', async () => {
+void test('workflow verification: an interrupted run supersedes older successful evidence', async () => {
   await repository(passing, async (root, options) => {
     const result = await evaluateVerification(root, {
       ...options,
@@ -306,7 +306,7 @@ test('workflow verification: an interrupted run supersedes older successful evid
   });
 });
 
-test('workflow verification: concurrent checks serialize their execution and evidence', async () => {
+void test('workflow verification: concurrent checks serialize their execution and evidence', async () => {
   await repository(
     [
       "import {open, rm} from 'node:fs/promises';",

@@ -28,7 +28,7 @@ function commandOutput(
   };
 }
 
-test('architecture: command helper rejects signal termination', () => {
+void test('architecture: command helper rejects signal termination', () => {
   assertThrows(
     () =>
       commandOutput(process.execPath, {
@@ -39,7 +39,7 @@ test('architecture: command helper rejects signal termination', () => {
   );
 });
 
-test('architecture: dependency directions, cycles, public APIs and package aliases', async () => {
+void test('architecture: dependency directions, cycles, public APIs and package aliases', async () => {
   const cwd = process.cwd();
   const root = await mkdtemp(join(tmpdir(), 'architecture-'));
   const files = {
@@ -185,7 +185,7 @@ test('architecture: dependency directions, cycles, public APIs and package alias
   }
 });
 
-test('architecture: package exports cannot escape their plugin root', async () => {
+void test('architecture: package exports cannot escape their plugin root', async () => {
   const root = await mkdtemp(join(tmpdir(), 'architecture-package-'));
   try {
     await mkdir(join(root, 'plugins/a'), {recursive: true});
@@ -204,7 +204,7 @@ test('architecture: package exports cannot escape their plugin root', async () =
   }
 });
 
-test('architecture: domain runtime APIs, aliases, globalThis and valid local bindings', async () => {
+void test('architecture: domain runtime APIs, aliases, globalThis and valid local bindings', async () => {
   const root = await mkdtemp(join(tmpdir(), 'architecture-domain-'));
   const invalid = [
     "process.env.get('KEY');",
@@ -292,7 +292,7 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
   }
 });
 
-test('architecture: local and external alias conflicts cannot hide dependencies', async () => {
+void test('architecture: local and external alias conflicts cannot hide dependencies', async () => {
   const root = await mkdtemp(join(tmpdir(), 'architecture-alias-'));
   try {
     await mkdir(join(root, 'plugins/a'), {recursive: true});

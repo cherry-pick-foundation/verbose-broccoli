@@ -68,7 +68,7 @@ function output(command: ChildProcess) {
   );
 }
 
-test('wiki raw import test helper rejects signal termination', async () => {
+void test('wiki raw import test helper rejects signal termination', async () => {
   const command = spawn(
     process.execPath,
     ['-e', "process.kill(process.pid, 'SIGKILL')"],
@@ -281,7 +281,7 @@ async function digest(bytes: Uint8Array) {
   ).join('');
 }
 
-test('raw import: locked offline help and missing-instance errors', async () => {
+void test('raw import: locked offline help and missing-instance errors', async () => {
   await fixture(async f => {
     const help = await f.run('--help');
     assertEquals(help.code, 0, help.stderr);
@@ -301,7 +301,7 @@ test('raw import: locked offline help and missing-instance errors', async () => 
   });
 });
 
-test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
+void test('raw import US1: one immutable bag preserves payload, digest, timestamps and provenance', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('- 한국어 paper.txt');
@@ -367,7 +367,7 @@ test('raw import US1: one immutable bag preserves payload, digest, timestamps an
 });
 
 for (const damaged of ['payload', 'bag-info.txt']) {
-  test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
+  void test(`raw import US1: verify detects changed ${damaged} without writing`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('paper.txt');
@@ -399,7 +399,7 @@ for (const damaged of ['payload', 'bag-info.txt']) {
   });
 }
 
-test('raw import US1: an unreadable original fails without adding evidence', async () => {
+void test('raw import US1: an unreadable original fails without adding evidence', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('unreadable.txt');
@@ -413,7 +413,7 @@ test('raw import US1: an unreadable original fails without adding evidence', asy
   });
 });
 
-test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
+void test('raw import US1: unrepresentable BagIt provenance fails before publication', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('trailing space ');
@@ -425,7 +425,7 @@ test('raw import US1: unrepresentable BagIt provenance fails before publication'
   });
 });
 
-test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
+void test('raw import US2: unchanged rerun adds nothing; changes and reversions retain every revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revisions.txt', 'first');
@@ -464,7 +464,7 @@ test('raw import US2: unchanged rerun adds nothing; changes and reversions retai
   });
 });
 
-test('raw import US2: a new revision must sort after the latest revision', async () => {
+void test('raw import US2: a new revision must sort after the latest revision', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('revision-order.txt', 'first');
@@ -490,7 +490,7 @@ test('raw import US2: a new revision must sort after the latest revision', async
   });
 });
 
-test('raw import US2: equal bytes at different paths have distinct sources', async () => {
+void test('raw import US2: equal bytes at different paths have distinct sources', async () => {
   await fixture(async f => {
     await f.init();
     const paths = [await f.file('one.txt'), await f.file('two.txt')];
@@ -504,7 +504,7 @@ test('raw import US2: equal bytes at different paths have distinct sources', asy
   });
 });
 
-test('raw import US2: two source records for one original fail the item', async () => {
+void test('raw import US2: two source records for one original fail the item', async () => {
   await fixture(async f => {
     await f.init();
     const first = await f.file('first.txt');
@@ -536,7 +536,7 @@ test('raw import US2: two source records for one original fail the item', async 
   });
 });
 
-test('raw import US3: only listed files are admitted without user exclusions', async () => {
+void test('raw import US3: only listed files are admitted without user exclusions', async () => {
   await fixture(async f => {
     await f.init();
     const listed = await f.file('listed.txt');
@@ -551,7 +551,7 @@ test('raw import US3: only listed files are admitted without user exclusions', a
   });
 });
 
-test('raw import US3: excluded roots and resolved aliases are refused', async () => {
+void test('raw import US3: excluded roots and resolved aliases are refused', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = await f.file('private/excluded.txt');
@@ -586,7 +586,7 @@ test('raw import US3: excluded roots and resolved aliases are refused', async ()
   });
 });
 
-test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
+void test('raw import US3: excluded paths stay refused through an escaping directory symlink', async () => {
   await fixture(async f => {
     await f.init();
     const excluded = join(f.home, 'excluded');
@@ -610,7 +610,7 @@ test('raw import US3: excluded paths stay refused through an escaping directory 
   });
 });
 
-test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
+void test('raw import US3: symlinks, folders, missing files, FIFOs and invalid UTF-8 are refused', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('original.txt');
@@ -707,7 +707,7 @@ for (const invalid of [
   'not object',
   'invalid JSON',
 ]) {
-  test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
+  void test(`raw import US3: ${invalid} selection is rejected before any write`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -742,7 +742,7 @@ for (const config of [
   '[wiki.raw_import]\nexclude = [1]',
   '[wiki.raw_import]\nexclude = ["relative"]',
 ]) {
-  test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
+  void test(`raw import US3: malformed configuration fails closed (${config})`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('valid.txt');
@@ -763,7 +763,7 @@ for (const config of [
   });
 }
 
-test('raw import US3: an existing source cannot change kind', async () => {
+void test('raw import US3: an existing source cannot change kind', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('kind.txt');
@@ -787,7 +787,7 @@ for (const stage of [
   'partial record',
   'complete bag',
 ]) {
-  test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
+  void test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
     await fixture(async f => {
       await f.init();
       const path = await f.file('recovery.txt');
@@ -821,7 +821,7 @@ for (const stage of [
   });
 }
 
-test('raw import US4: a publication failure keeps other items and can be retried', async () => {
+void test('raw import US4: a publication failure keeps other items and can be retried', async () => {
   await fixture(async f => {
     await f.init();
     const blocked = await f.file('blocked.txt', 'first');
@@ -856,7 +856,7 @@ test('raw import US4: a publication failure keeps other items and can be retried
   });
 });
 
-test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
+void test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
   await fixture(async f => {
     await f.init();
     const small = await f.file('finished.txt');
@@ -940,7 +940,7 @@ sys.exit('timed out observing the import lock')
   });
 });
 
-test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
+void test('raw import US5: init copies the schema and creates an uncommitted Wiki with raw ignored', async () => {
   await fixture(async f => {
     const initialized = await f.init();
     assert(initialized.created.length > 0);
@@ -992,7 +992,7 @@ test('raw import US5: init copies the schema and creates an uncommitted Wiki wit
   });
 });
 
-test('raw import US5: unnamed commands use the work vault under vaults', async () => {
+void test('raw import US5: unnamed commands use the work vault under vaults', async () => {
   await fixture(async f => {
     await f.init();
     const path = await f.file('work-vault.txt');
@@ -1028,7 +1028,7 @@ test('raw import US5: unnamed commands use the work vault under vaults', async (
   });
 });
 
-test('raw import US5: repeated init preserves every byte and modification time', async () => {
+void test('raw import US5: repeated init preserves every byte and modification time', async () => {
   await fixture(async f => {
     await f.init();
     await writeFile(join(f.instance, 'AGENTS.md'), 'existing schema\n');
@@ -1040,7 +1040,7 @@ test('raw import US5: repeated init preserves every byte and modification time',
   });
 });
 
-test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
+void test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
   await fixture(async f => {
     const initialized = await f.run('--wiki', 'selected', 'init');
     assertEquals(initialized.code, 0, initialized.stderr);
@@ -1087,7 +1087,7 @@ test('raw import US5: named Wiki and all four kinds use their own roots', async 
   });
 });
 
-test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
+void test('raw import US1-US3: a synthetic ChatGPT export gives chat and work two revisions', async () => {
   await fixture(async f => {
     const path = join(f.home, 'Documents/chatgpt/chatgpt-export.zip');
     await f.fileAt(path, '');
@@ -1235,7 +1235,7 @@ with zipfile.ZipFile(path, "w") as archive:
 });
 
 for (const value of ['unset', '', 'relative']) {
-  test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
+  void test(`raw import US5: ${value || 'empty'} XDG values use HOME defaults`, async () => {
     await fixture(async f => {
       for (const name of ['DATA', 'STATE', 'CACHE', 'CONFIG']) {
         if (value === 'unset') delete f.env[`XDG_${name}_HOME`];
@@ -1297,7 +1297,7 @@ for (const value of ['unset', '', 'relative']) {
   });
 }
 
-test('raw import: invalid arguments and Wiki names write nothing', async () => {
+void test('raw import: invalid arguments and Wiki names write nothing', async () => {
   await fixture(async f => {
     for (const args of [
       [],
