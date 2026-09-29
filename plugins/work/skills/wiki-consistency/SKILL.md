@@ -61,11 +61,12 @@ no Hangul, Chinese or Japanese text except roster names and one quote of at
 most 100 characters with its English translation on the same line, as
 `"<original>" (<translation>)` or `"<translation>" ("<original>")`, with
 `"…"`, `“…”`, `‘…’`, `「…」` or `『…』` as quotation marks; no roster school
-name in Hangul outside such a quote and no romanized name ending in
-`Elementary School`, `Middle School` or `High School`; dates as YYYY-MM-DD
+name in Hangul outside such a quote; dates as YYYY-MM-DD
 and times with `Z`, an offset from `-14:00` to `+14:00` (a minus offset
-only in an ISO date-time), or a UTC form. A failure names the page, line
-and rule but not the matched text. `check` reads the roster through
+only in an ISO date-time), or a UTC form. The language, school and date
+rules skip link targets (link destinations, autolinks and bare URLs), which
+a page cannot change without breaking the link. A failure names the page,
+line and rule but not the matched text. `check` reads the roster through
 backfire's `education.toml` only when a student page or such text exists;
 it then fails if the file is missing. The instance's `AGENTS.md` lists the
 rules that stay with the judgment step.

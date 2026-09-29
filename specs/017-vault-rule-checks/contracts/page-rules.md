@@ -41,8 +41,8 @@ Everything else, other front matter fields included, is checked text.
 | `id-number` | a registration number (below) | pages hold no resident or foreign registration numbers |
 | `address` | a postal address (below) | pages hold no postal addresses |
 | `student-roster` | a student page whose student is not a roster `name` | add the student to the backfire roster or fix the page name |
-| `english` | a CJK letter outside name spans and allowed quotes | write pages in English |
-| `school` | a school span holding a CJK letter outside allowed quotes, or a romanized school name | write the school as its domain ID |
+| `english` | a CJK letter outside name spans, allowed quotes and link targets | write pages in English |
+| `school` | a school span holding a CJK letter outside allowed quotes and link targets | write the school as its domain ID |
 | `date` | a date form other than YYYY-MM-DD, or a YYYY-MM-DD date that is not a calendar date | write dates as YYYY-MM-DD |
 | `time` | a time of day without a time zone | write the time with its time zone |
 
@@ -95,22 +95,29 @@ line, an allowed quote is either of:
 The original holds at most 100 characters between its marks and at least
 one CJK letter. The translation holds at least one Latin letter and no CJK
 letter outside name spans. Only the original's characters are exempt from
-`english` and from the Hangul part of `school`; the contact rules still
-apply inside it. Link text and code spans get no other exception.
+`english` and `school`; the contact rules still apply inside it. Link text
+and code spans get no other exception.
 
-### Romanized school name
+### Link targets
 
-One or more words that start with a capital letter, each followed by
-spaces, then `Elementary School`, `Middle School` or `High School`, matched
-case-sensitively. `high school year 2` and `Middle School` alone do not
-match.
+Link targets are link destinations (`[text](destination)`, where the
+destination is either `<…>` without a line break or `<` or `>` inside, so
+it may hold spaces and `)`, or the text up to the first `)`), CommonMark
+autolinks (`<scheme:...>` or `<name@domain>`, without spaces) and bare URLs
+(`http://` or `https://` up to the next space). Other text in angle
+brackets, such as an HTML comment, is not a link target. `english`,
+`school` and `date` do not check link targets, which a page cannot change
+without breaking the link; link text is checked. `phone`, `email`,
+`id-number`, `address` and `time` check link targets too.
+
+`school` tests only roster school spans that hold a CJK letter, so text in
+Latin letters passes it: a domain ID, and a phrase that merely ends in
+`Middle School`, such as the book title `Synthetic Words Middle School
+Basic`.
 
 ### Date forms
 
-Dates are not checked inside link destinations (`[text](destination)`),
-CommonMark autolinks (`<scheme:...>` or `<name@domain>`, without spaces) or
-bare URLs (`http://` or `https://` up to the next space). Other text in
-angle brackets, such as an HTML comment, is checked. Elsewhere, each of these fails:
+Outside link targets, each of these fails:
 
 | Form | Examples |
 | --- | --- |
@@ -130,8 +137,9 @@ the match. `85/100`, `3/4`, `September 2026`, a revision name such as
 ### Time forms
 
 A time is `H:MM` or `HH:MM` with hour 0 to 23 and minute 0 to 59, optional
-`:SS`, optionally followed by `AM`, `PM`, `a.m.` or `p.m.`; or an hour 1 to
-12 followed by one of those four. A digit or `:` directly before or after
+`:SS` with an optional decimal fraction (`.` and one or more digits, as in
+`15:54:00.420`), optionally followed by `AM`, `PM`, `a.m.` or `p.m.`; or an
+hour 1 to 12 followed by one of those four. A digit or `:` directly before or after
 prevents the match; a `T` before it (as in `2026-09-29T14:30`) does not.
 
 A time passes when an accepted zone follows it. A range, two times joined

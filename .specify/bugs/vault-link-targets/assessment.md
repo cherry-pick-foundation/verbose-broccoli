@@ -109,7 +109,15 @@ targets.
 
 The two count lists are page text, not dates, and the contract's `M/D/YY`
 form has no calendar check, so the pages change: write them as comma lists.
-For the 9 book-title lines, see the open question.
+
+For the 9 book-title lines the user chose, through the develop session on
+2026-09-29, to change the pattern and keep the real titles: the school rule
+flags only real school names, the roster's schools and their official
+names, which the roster holds in Hangul. So the generic romanized school
+name check (`_ROMANIZED_SCHOOL`) goes, and a roster school span holding a
+CJK letter outside allowed quotes and link targets stays the rule. A
+romanized name of a real school is left to the judgment step, which the
+schema template already gives "school names in other forms".
 
 **Alternatives**:
 
@@ -126,8 +134,8 @@ For the 9 book-title lines, see the open question.
 - `packages/wiki-consistency/tests/test_rules.py`
 - `specs/017-vault-rule-checks/contracts/page-rules.md`, the schema template
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
-  `plugins/work/skills/wiki-consistency/SKILL.md`, `docs/architecture.md`
-  and `docs/examples/wiki/AGENTS.md`, where they describe the rules
+  `plugins/work/skills/wiki-consistency/SKILL.md` and
+  `docs/architecture.md`, where they describe the rules
 
 **Tests to add or update**:
 
@@ -136,7 +144,10 @@ For the 9 book-title lines, see the open question.
   link text still fails.
 - A time with fractional seconds and `Z`, or with `+09:00`, passes `time`;
   one with fractional seconds and no zone still fails.
-- Both tests fail without the fix.
+- A made-up title ending in `Middle School`, such as `Synthetic Words
+  Middle School Basic`, passes `school`; a Hangul roster school name still
+  fails.
+- Each test fails without its fix.
 
 ## Risks & Considerations
 
@@ -147,10 +158,12 @@ For the 9 book-title lines, see the open question.
   text would hide that text; English pages make this rare.
 - Once the fix lands, the vaults' `AGENTS.md` copy the updated template, so
   the template's rule summary must describe the new exception.
+- Without the romanized pattern, `check` no longer catches a school written
+  as an invented English name; only the judgment step can.
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: how to fix the 9 `school` problems from the book
-  title: rewrite the title in the pages (for example `Word Master Middle
-  Basic`), or change the romanized school name pattern. Asked through the
-  develop session on 2026-09-29.]
+- Resolved on 2026-09-29, relayed by the develop session: the user chose
+  the time pattern fix and the page fix for the count lists as proposed, and
+  for the book title a school rule that flags only real school names, with
+  the titles unchanged.
