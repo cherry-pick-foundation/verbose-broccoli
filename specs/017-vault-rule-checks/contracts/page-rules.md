@@ -96,17 +96,23 @@ The original holds at most 100 characters between its marks and at least
 one CJK letter. The translation holds at least one Latin letter and no CJK
 letter outside name spans. Only the original's characters are exempt from
 `english` and `school`; the contact rules still apply inside it. Link text
-and code spans get no other exception.
+and code spans get no other exception, apart from link targets written in
+them (below).
 
 ### Link targets
 
-Link targets are link destinations (`[text](destination)`, where the
-destination is either `<…>` without a line break or an unescaped `<` or `>`
-inside, so it may hold spaces and `)`, or the text up to the first
-unescaped `)`; a backslash escapes the character after it), CommonMark
-autolinks (`<scheme:...>` or `<name@domain>`, without spaces) and bare URLs
-(`http://` or `https://` up to the next space). Other text in angle
-brackets, such as an HTML comment, is not a link target. `english`,
+Link targets are:
+
+- what follows `](` up to its closing `)`, as in `[text](destination)`:
+  either `<…>` without a line break or an unescaped `<` or `>` inside, so
+  it may hold spaces and `)`, or the text up to the first unescaped `)`,
+  a link title included; a backslash escapes the character after it;
+- CommonMark autolinks (`<scheme:...>` or `<name@domain>`, without spaces);
+- bare URLs (`http://` or `https://` up to the next space).
+
+The patterns do not parse Markdown, so these forms count inside code spans
+too. Other text in angle brackets, such as an HTML comment, is not a link
+target. `english`,
 `school` and `date` do not check link targets, which a page cannot change
 without breaking the link; link text is checked. `phone`, `email`,
 `id-number`, `address` and `time` check link targets too.

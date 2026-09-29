@@ -20,7 +20,7 @@ generic romanized school name check is gone.
 | File                                                        | Change        | Notes                                                                                                                                                      |
 | ----------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/wiki-consistency/src/wiki_consistency/rules.py`   | modified      | `_DATE_SKIP` becomes `_LINK_TARGETS`; `_mask_link_targets` builds the mask once per page for `english`, `school` and `date`; `_TIME` and `_OFFSET_PREFIX` accept `.` and digits after `:SS`; `_ROMANIZED_SCHOOL` removed. |
-| `packages/wiki-consistency/tests/test_rules.py`             | tests         | Four new tests; the parametrized `school` case and the roster-school test now use only the Hangul roster school.                                          |
+| `packages/wiki-consistency/tests/test_rules.py`             | tests         | Five new test functions, a sixth and a date case from the merge review; the parametrized `school` case and the roster-school test now use only the Hangul roster school. |
 | `specs/017-vault-rule-checks/contracts/page-rules.md`       | contract      | New "Link targets" section; the `english` and `school` rows name the exception; the romanized school name section is removed; times take a fraction.      |
 | `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`      | template      | The rule summary drops the romanized school name and says which rules skip link targets.                                                                   |
 | `plugins/work/skills/wiki-consistency/SKILL.md`             | skill         | The same two changes in the skill's rule summary.                                                                                                          |
@@ -40,6 +40,12 @@ generic romanized school name check is gone.
   zone fails `time`.
 - `test_romanized_book_title_passes_school_rule`: the made-up title
   `Synthetic Words Middle School Basic` passes `school`.
+- Added after the develop merge review of the code (`9aebec6`), passing
+  without code changes: `test_page_rules_check_time_and_phone_in_link_targets`
+  (`time`, `phone`), a time and a phone number in a link destination still
+  fail their rules; and the case
+  `angle-bracket-destination-with-parenthesis` of
+  `test_page_rules_skip_autolinks_and_link_destinations_for_dates`.
 - `test_roster_school_name_fails_school_rule` (was
   `test_roster_school_name_and_romanized_school_fail_school_rule`) and the
   parametrized `school` case of
