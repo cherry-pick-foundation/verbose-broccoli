@@ -2,10 +2,17 @@ line-length = 80
 indent-width = 4
 preview = false
 # FR-005 keeps vendored upstream Spec Kit extensions in their upstream form.
-extend-exclude = [".specify/extensions/"]
+extend-exclude = [
+  ".specify/extensions/",
+  "packages/jev-ultrafast/src/jev_ultrafast/*.py",
+  "packages/jev-ultrafast/tests/test_agent.py",
+  "packages/jev-ultrafast/examples/*.py",
+  "packages/jev-ultrafast/scripts/check_guards.py",
+]
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
+  "packages/jev-ultrafast/src",
   "packages/wiki-consistency/src",
 ]
 

@@ -1,0 +1,15 @@
+[typesafe]
+protocol = "systemone"
+url = "https://api.typesafe.ai/v1/systemone"
+key_env = "TYPESAFE_API_KEY"
+
+[vercel]
+protocol = "evaluation-model"
+url = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
+key_env = "AI_GATEWAY_API_KEY"
+model = "typesafe-ai/jev"
+
+[vercel.headers]
+ai-gateway-protocol-version = "0.0.1"
+ai-gateway-auth-method = "api-key"
+ai-evaluation-model-specification-version = "4"

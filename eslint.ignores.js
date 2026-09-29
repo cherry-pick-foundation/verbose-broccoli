@@ -6,6 +6,7 @@ module.exports = [
   'tools/',
   'specs/',
   'docs/',
+  'packages/jev-ultrafast/src/jev_ultrafast/',
   'scripts/vendor/',
   'plugins/code/hooks/',
   'plugins/code/tests/hooks.test.js',
