@@ -147,13 +147,14 @@ from `packages/backfire`.
 
 ## Phase 3: User Story 2 — CHE-37 fixed, CHE-38 handed upstream (Priority: P1)
 
-- [ ] T012 [US2] (core worker) Write the CHE-37 test in
-  `packages/backfire/tests/test_regex_executor.py` and run it against
-  PyModel's default regex executor; record the failing output under T012.
-  Then add `packages/backfire/src/backfire/regex_executor.py` as
-  [plan.md](plan.md) section 5 says, pin `regex==2026.9.29`, pass it to the
-  `Runtime`, and make the test pass; add the runaway, concurrent and
-  cancellation cases with `(a|aa)+$` on 60 `a` and a `b` (FR-004, FR-013).
+- [ ] T012 [US2] (core worker) Rerun CHE-37's heavy-load reproduction
+  (`.specify/bugs/extract-regex-startup-timeout/assessment.md` on branch
+  `feature/backfire-extract-test`) against PyModel's own regex executor
+  through backfire's server: 80 busy processes, simple and runaway fields,
+  several runs; record under T012 how many simple-pattern fields timed out
+  falsely. Runaway patterns use one that runs away under Python's `re`,
+  such as `(a+)+$` (FR-004, FR-013). The user dropped the `regex` library
+  on 2026-09-30: no `regex` pin and no custom executor.
 - [ ] T013 [US2] (core worker) Adapt
   `packages/backfire/tests/test_bounded_work.py` to the rebuilt server:
   PyModel's twelve tools and `jev_noul`, runaway extract fields that run away
@@ -164,8 +165,10 @@ from `packages/backfire`.
 - [ ] T014 [P] [US2] (upstream worker) Prepare the PyModel contribution in
   `specs/021-backfire-rebuild/upstream/` as [plan.md](plan.md) section 6
   says: `pymodel.patch` against `v0.6.0` with PyModel-style tests, and
-  `pull-request.md`; run PyModel's suite on the patched clone and the
-  `jev_verify` load case against it; publish nothing (FR-014).
+  `pull-request.md`; include CHE-37's fix only if its rerun (T012 and the
+  worker's own check) shows false time-outs; run PyModel's suite on the
+  patched clone and the `jev_verify` load case against it; publish nothing
+  (FR-013, FR-014).
 
 ---
 
@@ -188,10 +191,11 @@ from `packages/backfire`.
   Vercel profile; record the call counts and outcomes under T016 (SC-006).
 - [ ] T017 [P] Update `docs/backfire.md`, `docs/architecture.md`, the
   backfire skills in both plugins (`jev_` names; `upstream.json`
-  `local_modifications`), `licenses/THIRD_PARTY_NOTICES.md` (jev-judge-mcp
-  as a dependency, jev-agent-tools for the Vercel port, the jev-mcp 0.9.0
-  entry removed unless still needed), and regenerate `docs/reference/` if
-  its inputs changed (FR-012, FR-015).
+  `local_modifications`), `licenses/THIRD_PARTY_NOTICES.md` (notices only
+  for copied code: add jev-agent-tools for the Vercel port, keep jev-mcp
+  only for the skill text, remove the jev-judge-mcp and system-one-adapter
+  entries, update the python-phonenumbers entry), and regenerate
+  `docs/reference/` if its inputs changed (FR-012, FR-015).
 - [ ] T018 Count backfire's own code against `develop` with its file list
   and report it; stop and ask before exceeding 500 lines (FR-017, SC-007).
 - [ ] T019 Run the document judgment step the develop merge review uses and
@@ -211,7 +215,7 @@ from `packages/backfire`.
 ## Dependencies & Execution Order
 
 - T006 first; T007–T011 follow in the core worker's order; T012 and T013
-  after T007 (the CHE-37 test needs the rebuilt entry point).
+  after T007 (both measure through the rebuilt entry point).
 - T014 is independent and runs in parallel from the start.
 - T015 after T011 (it needs the removed build and final entry command).
 - T016–T020 after T006–T015.

@@ -12,11 +12,12 @@ Its entry point builds PyModel's `JevMCPServer` from PyModel's `Toolset`,
 plugs in only through PyModel's own arguments: `provider_factory` (backfire
 profiles: Hive through system-one-adapter, or a Jev provider through
 PyModel's `resolve_provider` or the ported Vercel provider, wrapped by
-pseudonymization in the work plugin) and `regex_executor` (the `regex`
-library, CHE-37). Everything else backfire owned goes: the port, the
-boundary, records, readiness, size limits, extra Hive checks, acceptance
-tools, the plugin build tool and the vendored copy. What needs PyModel's
-code (CHE-38 and three smaller gaps) is prepared as a patch and a
+pseudonymization in the work plugin). `jev_extract` keeps PyModel's own
+regex worker pool (the user dropped the `regex` library on 2026-09-30).
+Everything else backfire owned goes: the port, the boundary, records,
+readiness, size limits, extra Hive checks, acceptance tools, the plugin
+build tool and the vendored copy. What needs PyModel's code (CHE-38, and
+CHE-37 if its rerun shows false time-outs) is prepared as a patch and a
 pull-request text for PyModel.
 
 ## Technical Context
@@ -25,8 +26,8 @@ pull-request text for PyModel.
 backfire's floor is Python 3.12, PyModel's.
 
 **Primary Dependencies**: `jev-judge-mcp` 0.6.0 (PyPI, MIT), `mcp` 2.2.0,
-`system-one-adapter[openai]` 0.2.1, `typesafe-sdk` 0.7.1, `regex`
-2026.9.29, and `phonenumbers` for the education extra; all pinned in
+`system-one-adapter[openai]` 0.2.1, `typesafe-sdk` 0.7.1, and
+`phonenumbers` for the education extra; all pinned in
 `packages/backfire/pyproject.toml` and `uv.lock`.
 
 **Storage**: profiles in the shipped `config.toml` files and the operator's
@@ -45,8 +46,7 @@ stdio from the repository checkout.
 processes; every tool except the known CHE-38 case keeps event-loop stalls
 under 1 second with 16.
 
-**Constraints**: no edit of PyModel's code, and no copy of it except the
-short candidate loop that CHE-37 needs (section 5); about 300 to 500 lines
+**Constraints**: no edit or copy of PyModel's code; about 300 to 500 lines
 of own code outside tests and pseudonymization, reported against
 `develop`; vendor details in configuration; no private data in fixtures;
 billed calls only in the final live checks.
@@ -60,9 +60,9 @@ design in the worktree) down to about 500, plus the pseudonymization module.
 
 | Principle | Check | Result |
 | --- | --- | --- |
-| I. Proven dependencies | `jev-judge-mcp`, `regex` pinned in `pyproject.toml` and `uv.lock`. | Pass |
+| I. Proven dependencies | `jev-judge-mcp` pinned in `pyproject.toml` and `uv.lock`. | Pass |
 | II. Working capabilities | CHE-38's fix in PyModel is recorded as open, not counted as done. | Pass |
-| V. Observable acceptance | Stubs for each provider, a failing-first CHE-37 test, the CHE-38 known failure recorded, unperformed checks recorded. | Pass |
+| V. Observable acceptance | Stubs for each provider, CHE-37's load numbers, the CHE-38 known failure recorded, unperformed checks recorded. | Pass |
 | VII. Minimum implementation | Reuse order: the published dependency and its extension points, one ported 60-line provider, glue only. Code the user no longer needs is removed. | Pass |
 | IX. Layout | Source stays in `packages/backfire/src/`; plugins name repository paths; no new package. | Pass |
 | Product boundaries | No private data in fixtures; the held-out file outside the repository stays untouched. | Pass |
@@ -89,7 +89,7 @@ specs/021-backfire-rebuild/
 
 ```text
 packages/backfire/
-├── pyproject.toml          # jev-judge-mcp==0.6.0 and regex; no vendored module
+├── pyproject.toml          # jev-judge-mcp==0.6.0; no vendored module
 ├── src/
 │   ├── backfire/
 │   │   ├── __main__.py     # serve-mcp [--education]
@@ -98,7 +98,6 @@ packages/backfire/
 │   │   ├── failures.py     # JudgmentError only
 │   │   ├── providers.py    # provider factory: Hive, Jev profiles, education wrapper
 │   │   ├── vercel.py       # Vercel provider ported from jev-agent-tools 0.1.2
-│   │   ├── regex_executor.py  # CHE-37
 │   │   └── noul.py         # jev_noul on PyModel's tool framework
 │   └── backfire_education/ # the pseudonymization module, unchanged
 └── tests/                  # rewritten and small
@@ -125,7 +124,7 @@ merge small modules if the result is simpler.
 `backfire serve-mcp [--education]` follows PyModel's own `server.main()`
 for the stdio path: `load_settings()`, the startup gates that apply,
 `configure_logging`, then `JevMCPServer(toolset=Toolset(Runtime(settings,
-provider_factory=..., regex_executor=...), (*TOOLS, NOUL)), log_level=...)`,
+provider_factory=...), (*TOOLS, NOUL)), log_level=...)`,
 `freeze_startup_heap()`, `anyio.run(serve, server, settings)`, and PyModel's
 exit sequence. `--education` selects the education configuration
 (pseudonymization on, the education profile), which today the work build
@@ -179,16 +178,14 @@ description already says "Must exceed 0.5") and a `Refinement` on
 
 ### 5. CHE-37
 
-`regex_executor.py` implements PyModel's `RegexExecutor` protocol: each
-field's search runs in a thread with `concurrent=True` and one second of
-`regex` timeout carried across the candidate pipeline's searches; flags map
-by name (`regex.ASCII` is 128, `re.ASCII` 256); PyModel's `Timeout` and
-`Invalid` results keep its reasons. PyModel's `match_all` hard-codes
-`re.compile`, so the executor carries its own copy of that candidate loop
-(about 25 lines, credited to PyModel); this is the one exception to "no
-copy", and the upstream contribution adds a compile parameter so the copy
-can go later. The CHE-37 test is written first against PyModel's default
-`ProcessRegexExecutor` and must fail.
+`jev_extract` keeps PyModel's default `ProcessRegexExecutor` (a warmed
+pool of worker processes running Python's `re`). CHE-37's heavy-load
+reproduction (80 busy processes, simple and runaway patterns, including
+right after a runaway pattern killed a worker) is rerun against it through
+backfire's server. If simple patterns never time out falsely, the record
+says the warmed pool resolves CHE-37; if they do, the smallest fix (for
+example counting only the worker's own CPU time for the one-second limit)
+goes into the PyModel contribution with a test that fails before it.
 
 ### 6. CHE-38 and the upstream contribution
 
@@ -197,8 +194,8 @@ its 1-second check, marks the `jev_verify` case as an expected failure
 naming CHE-38, and checks every other tool, `jev_noul` included. A worker
 clones PyModel at `v0.6.0` under `/tmp`, writes the fixes (linear
 `ensure_unique_ids`, a bounded stdin line, `exclusiveMinimum` in the
-argument compiler, a compile parameter for `match_all`, and moving the
-measured synchronous steps off the event loop) with PyModel-style tests,
+argument compiler, moving the measured synchronous steps off the event
+loop, and CHE-37's fix if its numbers call for one) with PyModel-style tests,
 runs PyModel's suite, checks that the `jev_verify` case passes against the
 patched package, and stores `upstream/pymodel.patch` and
 `upstream/pull-request.md` in this feature. Nothing is published.
@@ -216,8 +213,8 @@ ready and evaluation scripts.
 
 1. **Core** (Codex worker): `packages/backfire` (source, tests,
    `pyproject.toml`), `uv.lock`, the backfire scripts in `package.json` and
-   `turbo.json`, `scripts/backfire/`; the CHE-37 test first, then the
-   executor; the bounded-work known failure.
+   `turbo.json`, `scripts/backfire/`; CHE-37's load numbers; the
+   bounded-work known failure.
 2. **Upstream patch** (Codex worker, parallel with 1): the PyModel
    contribution under `specs/021-backfire-rebuild/upstream/`, built in a
    `/tmp` clone.

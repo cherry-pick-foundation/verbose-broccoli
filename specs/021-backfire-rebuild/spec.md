@@ -111,6 +111,16 @@ feature's `research.md`.
   names that file as its key file instead of copying the key, and once the
   Vercel provider works, one live Jev judgment runs through it and its call
   count is reported. The key is never read into logs or output.
+- Regex engine, revised (user's decision): the `regex` library has no other
+  use in the repository, so it is dropped: no `regex` dependency, no custom
+  regex executor and no copy of PyModel's candidate loop. `jev_extract`
+  uses PyModel's own default regex executor (its warmed worker pool with
+  Python's `re`) unchanged. This replaces the 2026-09-29 choice of the
+  `regex` library. CHE-37's heavy-load reproduction is rerun against
+  PyModel's executor: if simple patterns no longer time out falsely, the
+  record says PyModel's warmed pool resolves CHE-37; if they still do, the
+  smallest fix (for example counting only the worker's own CPU time) goes
+  into the PyModel contribution, not into local code.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -163,18 +173,17 @@ with synthetic input.
 ### User Story 2 - Fair regex limits under load, and CHE-38 handed upstream (Priority: P1)
 
 The machine is busy. `jev_extract` still finds matches for simple patterns
-and still stops runaway patterns (CHE-37). The event-loop stall behind
+and still stops runaway patterns (CHE-37), with PyModel's own regex worker
+pool. The event-loop stall behind
 CHE-38 lives in PyModel's own code, so its fix is prepared as a
 contribution to PyModel, and backfire's load check records it as a known
 failure until PyModel releases the fix.
 
-**Why this priority**: The user decided CHE-37 must be fixed in the
-rebuild and CHE-38 must be handed upstream rather than patched locally.
+**Why this priority**: The user decided CHE-37 must be resolved and CHE-38
+handed upstream, both without local code in backfire.
 
 **Independent Test**: Run the bounded-work checks with 16 and with 80 busy
-low-priority processes, as the CHE-37 assessment describes; run the new
-CHE-37 test against PyModel's default regex executor and against
-backfire's.
+low-priority processes, as the CHE-37 assessment describes.
 
 **Acceptance Scenarios**:
 
@@ -182,10 +191,13 @@ backfire's.
    **When** `jev_extract` runs a pattern that needs at most 2 ms of
    processor time, **Then** it returns the pattern's matches and never a
    time-out.
-2. **Given** a pattern that runs away under `regex`, **When** `jev_extract`
-   runs it, **Then** that field reports PyModel's time-out reason.
-3. **Given** PyModel's default regex executor, **When** the CHE-37 test
-   runs, **Then** it fails; with backfire's executor it passes.
+2. **Given** a pattern that runs away under Python's `re`, **When**
+   `jev_extract` runs it, **Then** that field reports PyModel's time-out
+   reason.
+3. **Given** CHE-37's heavy-load reproduction, **When** it runs against
+   PyModel's executor, **Then** its numbers are recorded, and any false
+   time-out has a fix in the PyModel contribution with a test that fails
+   before it.
 4. **Given** the `jev_verify` load case with 100,000 identical evidence
    IDs, **When** the checks run, **Then** it is reported as a known failure
    naming CHE-38, and every other tool's worst event-loop stall stays under
@@ -234,9 +246,8 @@ repository; count backfire's own lines against `develop`.
 - Pseudonymization finds two keys that become equal: the call fails with the
   existing conflict error.
 - Several runaway patterns arrive at once, in one call or in concurrent
-  calls: simple patterns waiting behind them still match.
-- `regex` finishes a pattern that jev-mcp's engine would stop, such as
-  `(a+)+$`: it returns its matches.
+  calls: the numbers for simple patterns waiting behind them are recorded
+  with CHE-37's reproduction.
 - `jev_noul`'s `auto_accept` of exactly 0.5 is rejected and 0.51 is
   accepted, although PyModel's argument compiler lacks `exclusiveMinimum`.
 
@@ -248,10 +259,7 @@ repository; count backfire's own lines against `develop`.
 
 - **FR-001**: `backfire serve-mcp` MUST construct PyModel's `JevMCPServer`
   with a `Toolset` over PyModel's `Runtime` and run PyModel's `serve()`;
-  backfire MUST NOT edit PyModel's code or copy it, except the short
-  candidate loop of PyModel's `match_all` that the regex executor needs
-  until PyModel takes a compile parameter (credited, and named in the
-  upstream contribution).
+  backfire MUST NOT edit or copy PyModel's code.
 - **FR-002**: The server MUST list PyModel 0.6.0's eleven tools, unchanged,
   followed by `jev_noul`.
 - **FR-003**: `jev_noul` MUST keep jev-mcp 0.9.0's Noul definition,
@@ -260,10 +268,8 @@ repository; count backfire's own lines against `develop`.
   enforce a keyword (`exclusiveMinimum`), the same bound MUST be enforced
   with PyModel's refinement mechanism, and the difference in the published
   schema MUST be recorded.
-- **FR-004**: `jev_extract` MUST run patterns through backfire's regex
-  executor (CHE-37): the `regex` library in a thread with
-  `concurrent=True`, one second of `regex`'s own timeout per field,
-  PyModel's result fields, caps and reasons.
+- **FR-004**: `jev_extract` MUST use PyModel's own default regex executor
+  unchanged; backfire adds no regex engine or executor.
 
 **Providers**
 
@@ -310,12 +316,16 @@ repository; count backfire's own lines against `develop`.
 
 **Load**
 
-- **FR-013** (CHE-37): a test MUST fail with PyModel's default regex
-  executor for the reason CHE-37 describes and pass with backfire's; tests
-  of runaway patterns MUST use a pattern that runs away under `regex`.
+- **FR-013** (CHE-37): CHE-37's heavy-load reproduction MUST be rerun
+  against PyModel's executor and its numbers recorded. If simple patterns
+  still time out falsely, the smallest fix MUST go into the PyModel
+  contribution with a test that fails before it; otherwise the record
+  states that PyModel's warmed pool resolves CHE-37. Tests of runaway
+  patterns use a pattern that runs away under Python's `re`.
 - **FR-014** (CHE-38): the fixes that need PyModel's code (linear
-  duplicate IDs, the stdin line limit, `exclusiveMinimum`, and moving the
-  measured synchronous steps off the event loop) MUST be prepared as a
+  duplicate IDs, the stdin line limit, `exclusiveMinimum`, moving the
+  measured synchronous steps off the event loop, and CHE-37's fix if
+  FR-013's numbers call for one) MUST be prepared as a
   patch against PyModel 0.6.0 with its own tests and a pull-request text,
   stored in this feature's records; nothing is opened on GitHub. The
   bounded-work check MUST mark the `jev_verify` case as a known failure
@@ -323,11 +333,15 @@ repository; count backfire's own lines against `develop`.
 
 **Boundaries**
 
-- **FR-015**: `jev-judge-mcp==0.6.0` and `regex` MUST be pinned in
-  `packages/backfire/pyproject.toml` and `uv.lock`; the credits for
-  jev-judge-mcp (a dependency) and jev-agent-tools (ported code) MUST be in
-  `licenses/THIRD_PARTY_NOTICES.md`, and the jev-mcp 0.9.0 entry MUST go
-  unless something that still ships needs it.
+- **FR-015**: `jev-judge-mcp==0.6.0` MUST be pinned in
+  `packages/backfire/pyproject.toml` and `uv.lock`. License notices in
+  `licenses/THIRD_PARTY_NOTICES.md` MUST cover only code copied into the
+  repository (user's decision, 2026-09-30): the Vercel provider ported from
+  jev-agent-tools 0.1.2 and the backfire skill text from jev-mcp 0.9.0, each
+  with its source revision; no notice for installed packages such as
+  jev-judge-mcp or system-one-adapter; the jev-mcp entry covers only the
+  skill text, and the python-phonenumbers entry matches what remains after
+  the build tool goes.
 - **FR-016**: Private backfire records, student data and evaluation data
   MUST NOT enter fixtures, snapshots or reports; no implementer opens the
   held-out evaluation file.
@@ -356,9 +370,10 @@ repository; count backfire's own lines against `develop`.
 - **SC-002**: Each profile kind and each named Jev provider, Vercel
   included, passes a test against a local stub; no billed call is made
   outside the final live check.
-- **SC-003**: The CHE-37 test fails with PyModel's default executor and
-  passes with backfire's; with 80 busy processes, 5 of 5 runs of the extract
-  load case find the simple pattern's match, and runaway patterns time out.
+- **SC-003**: With 80 busy processes, CHE-37's reproduction against
+  PyModel's executor is recorded; either 5 of 5 runs find the simple
+  pattern's match, or the contribution's fix makes them do so against a
+  patched PyModel. Runaway patterns time out in every run.
 - **SC-004**: With 16 busy processes, every tool except the known CHE-38
   case keeps its worst event-loop stall under 1 second in 3 of 3 runs; the
   contribution's patch makes the `jev_verify` case pass against a patched
