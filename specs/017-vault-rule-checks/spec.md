@@ -8,6 +8,12 @@
 
 **Linear issue**: CHE-26
 
+**Amended**: 2026-09-29 by bug CHE-35 (`.specify/bugs/vault-link-targets/`):
+the English, school and date rules skip link targets outside code, a time
+may carry a decimal fraction after its seconds, and the school rule fails
+only on roster school names, so romanized names stay with the judgment
+step. User Story 2 and FR-009, FR-011, FR-012 and FR-013 say so.
+
 **Input**: Linear issue CHE-26, "Enforce the vault schema's page rules in the
 offline check", and the develop session's task brief of 2026-09-29: make the
 vault's offline check enforce the schema's page rules that a tool can test,
@@ -134,7 +140,7 @@ detail repeated; then remove them and confirm that the check passes.
 ### User Story 2 - Pages stay in English, with roster names and school IDs (Priority: P1)
 
 An agent writes a page from Korean evidence and leaves a Korean sentence, a
-Korean school name or a romanized school name in it. The check fails and
+Korean school name in it. The check fails and
 names the page and line. Student names in the roster's Hangul spelling pass,
 and so does a short Korean quote with its English translation beside it.
 
@@ -143,15 +149,14 @@ judged by backfire, which only replaces names spelled as the roster spells
 them.
 
 **Independent Test**: In a temporary vault with a synthetic roster, write
-pages with a Korean sentence, a Hangul school name, a romanized school name,
-a roster name, and a short quote with and without a translation; confirm
+pages with a Korean sentence, a Hangul school name, a roster name, and a short quote with and without a translation; confirm
 that exactly the pages that break the rule fail.
 
 **Acceptance Scenarios**:
 
-1. **Given** a page with Hangul, Chinese or Japanese letters that are neither
-   a roster name nor inside an allowed quote, **When** the check runs,
-   **Then** it fails and names the page and line.
+1. **Given** a page with Hangul, Chinese or Japanese letters that are not
+   a roster name, inside an allowed quote or in a link target outside code,
+   **When** the check runs, **Then** it fails and names the page and line.
 2. **Given** a page that names a student, a student's given name or a
    guardian in the roster's spelling, **When** the check runs, **Then** the
    English rule passes for those names.
@@ -160,9 +165,9 @@ that exactly the pages that break the rule fail.
    rule passes; **Given** a quote without a translation or longer than the
    limit, **Then** it fails.
 4. **Given** a page that writes a school by the roster's Hangul school name
-   outside an allowed quote, or by a romanized name such as "Example High
-   School", **When** the check runs, **Then** it fails and says to write the
-   school's domain ID.
+   outside an allowed quote and outside a link target outside code, **When**
+   the check runs, **Then** it fails and says to write the school's domain
+   ID.
 5. **Given** a page that writes schools only as domain IDs, **When** the
    check runs, **Then** the school rule passes.
 
@@ -297,16 +302,18 @@ documents that describe the check.
 - **FR-009**: The check MUST fail on Hangul, Chinese (Han) or Japanese (kana)
   letters except where they are part of a roster student name, a given name
   that backfire derives from the roster, or a roster guardian name, matched
-  exactly as backfire matches them; or part of an allowed quote.
+  exactly as backfire matches them; or part of an allowed quote; or part
+  of a link target outside code (a link destination, autolink or bare URL),
+  which a page cannot change without breaking the link.
 - **FR-010**: An allowed quote MUST be one passage in quotation marks, of
   at most 100 characters inside the marks, with its English translation
   right beside it on the same line, one of the two in parentheses. Link
   text and code spans get no other exception.
 - **FR-011**: The check MUST fail on a roster `school` value that contains
   Hangul, Chinese or Japanese letters when it appears outside an allowed
-  quote, and on a romanized school name, one or more capitalized words
-  followed by `Elementary School`, `Middle School` or `High School`; the
-  failure says to write the school's domain ID.
+  quote or a link target outside code; the failure says to write the
+  school's domain ID. A school written in Latin letters is left to the
+  judgment step.
 
 **Dates and times (User Story 3)**
 
@@ -316,10 +323,11 @@ documents that describe the check.
   number; or a Korean date with 년, 월 or 일. It MUST also fail on a
   YYYY-MM-DD date that is not a calendar date. An English month without a
   day, such as "September 2026", is not a date and passes; a Korean year
-  and month, such as "2026년 9월", fails. Link destinations are not checked
-  for dates.
+  and month, such as "2026년 9월", fails. Link targets outside code are not
+  checked for dates.
 - **FR-013**: The check MUST fail on a time of day, written as `HH:MM` with
-  optional seconds or with `AM` or `PM` (`a.m.`, `p.m.`), that is not
+  optional seconds and an optional decimal fraction after them, or with
+  `AM` or `PM` (`a.m.`, `p.m.`), that is not
   followed by a time zone. A time range such as `14:00–15:30` counts as
   zoned when a zone follows its end. The accepted zones are `Z`, a numeric
   offset from `-14:00` to `+14:00` such as `+09:00`, `UTC`, and `UTC` with

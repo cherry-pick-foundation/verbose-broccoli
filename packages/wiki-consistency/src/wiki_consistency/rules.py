@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import unicodedata
 
+from markdown_it import MarkdownIt
 import yaml
 from yaml.nodes import MappingNode
 from yaml.nodes import ScalarNode
@@ -54,11 +55,13 @@ _ROAD_ADDRESS = (
     re.compile(rf"(?<![A-Za-z0-9-]){_ROAD}[ ]+{_NUMBER}(?![0-9])"),
 )
 _LOT_ADDRESS = re.compile(rf"(?<![0-9]){_NUMBER}[ ]*번지(?![0-9])")
-_ROMANIZED_SCHOOL = re.compile(
-    r"(?<![A-Za-z])(?:[A-Z][A-Za-z]*[ ]+)+"
-    r"(?:Elementary|Middle|High)[ ]+School(?![A-Za-z])"
-)
 _ISO_DATE = re.compile(r"(?<![0-9])[0-9]{4}-[0-9]{2}-[0-9]{2}(?![0-9])")
+_CODE_SPANS = re.compile(
+    r"(?<!\\)(?:\\\\)*(?<!`)(?P<ticks>`+)(?!`)"
+    r"(?:(?!\r?\n[ \t]*\r?\n).)*?(?<!`)(?P=ticks)(?!`)",
+    re.DOTALL,
+)
+_MARKDOWN = MarkdownIt("commonmark")
 _DATE_PATTERNS = (
     re.compile(r"(?<![0-9])[0-9]{4}[./][0-9]{1,2}[./][0-9]{1,2}(?![0-9])"),
     re.compile(r"(?<![0-9])([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?![0-9])"),
@@ -82,7 +85,7 @@ _DATE_PATTERNS = (
     ),
     re.compile(r"(?<![0-9])[0-9]{1,2}[ ]*월[ ]*[0-9]{1,2}[ ]*일(?![0-9])"),
 )
-_DATE_SKIP = (
+_LINK_TARGETS = (
     re.compile(r"https?://\S+"),
     re.compile(
         r"<(?:[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\s]*|"
@@ -90,11 +93,18 @@ _DATE_SKIP = (
         r"[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?"
         r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"
     ),
-    re.compile(r"\]\((?P<destination>(?:\\.|[^)\n])*)\)"),
+    re.compile(
+        r"\]\([ \t]*(?P<destination><(?:\\.|[^<>\\\n])*>|"
+        r"(?:\\.|[^()\s\\]|\((?:\\.|[^()\s\\])*\))*)"
+        r"(?:[ \t]+(?P<title>\"(?:\\.|[^\"\\\n])*\"|"
+        r"'(?:\\.|[^'\\\n])*'|\((?:\\.|[^)\\\n])*\)))?"
+        r"[ \t]*\)"
+    ),
 )
 _TIME = re.compile(
     r"(?<![0-9:])(?:(?P<clock_hour>[0-9]{1,2}):(?P<minute>[0-9]{2})"
-    r"(?::(?P<second>[0-9]{2}))?(?:[ ]*(?P<clock_suffix>AM|PM|a\.m\.|p\.m\.))?"
+    r"(?::(?P<second>[0-9]{2})(?:\.[0-9]+)?)?"
+    r"(?:[ ]*(?P<clock_suffix>AM|PM|a\.m\.|p\.m\.))?"
     r"|(?P<meridiem_hour>[0-9]{1,2})[ ]*(?P<suffix>AM|PM|a\.m\.|p\.m\.))"
     r"(?![0-9:])"
 )
@@ -102,7 +112,8 @@ _NUMERIC_ZONE = re.compile(
     r"(?P<sign>[+-])(?P<hour>[0-9]{2}):?(?P<minute>[0-9]{2})(?![0-9])"
 )
 _OFFSET_PREFIX = re.compile(
-    r"(?P<clock>(?<![0-9:])(?:[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?"
+    r"(?P<clock>(?<![0-9:])(?:[0-9]{1,2}:[0-9]{2}"
+    r"(?::[0-9]{2}(?:\.[0-9]+)?)?"
     r"|[0-9]{1,2}[ ]*(?:AM|PM|a\.m\.|p\.m\.))"
     r"(?:[ ]*(?:AM|PM|a\.m\.|p\.m\.))?)[ ]*(?P<sign>[+-])$"
 )
@@ -301,22 +312,55 @@ def _allowed_originals(text, name_marks):
     return result
 
 
-def _dates(text):
+def _blank(chars, start, stop):
+    for index in range(start, stop):
+        if chars[index] not in "\r\n":
+            chars[index] = " "
+
+
+def _mask_link_targets(text):
+    searchable = list(text)
+    starts = _line_starts(text)
+    for token in _MARKDOWN.parse(text):
+        if token.type not in {"fence", "code_block"} or token.map is None:
+            continue
+        start = starts[token.map[0]]
+        stop = starts[token.map[1]] if token.map[1] < len(starts) else len(text)
+        _blank(searchable, start, stop)
+    searchable_text = "".join(searchable)
+    for match in _CODE_SPANS.finditer(searchable_text):
+        start, stop = match.span()
+        searchable[start:stop] = " " * (stop - start)
+    searchable_text = "".join(searchable)
+
     masked = list(text)
-    for pattern in _DATE_SKIP:
-        for match in pattern.finditer(text):
+    excluded = []
+    for match in _LINK_TARGETS[2].finditer(searchable_text):
+        destination = match.span("destination")
+        _blank(masked, *destination)
+        excluded.append(destination)
+        if match["title"] is not None:
+            excluded.append(match.span("title"))
+
+    url_text = list(searchable_text)
+    for start, stop in excluded:
+        _blank(url_text, start, stop)
+    url_text = "".join(url_text)
+    for pattern in _LINK_TARGETS[:2]:
+        for match in pattern.finditer(url_text):
             start, stop = match.span(match.lastindex or 0)
-            for index in range(start, stop):
-                if masked[index] not in "\r\n":
-                    masked[index] = " "
-    source = "".join(masked)
-    for match in _ISO_DATE.finditer(source):
+            _blank(masked, start, stop)
+    return "".join(masked)
+
+
+def _dates(text):
+    for match in _ISO_DATE.finditer(text):
         try:
             date.fromisoformat(match[0])
         except ValueError:
             yield match.start()
     for index, pattern in enumerate(_DATE_PATTERNS):
-        for match in pattern.finditer(source):
+        for match in pattern.finditer(text):
             if index == 1 and len(match[2]) == len(match[3]) == 2:
                 continue
             yield match.start()
@@ -456,6 +500,7 @@ def check(root):
                 _add(problems, seen, document, 1, "student-roster")
 
     for _, document, text in pages:
+        link_target_free = _mask_link_targets(text)
         starts = _line_starts(text)
         spans = find_spans(text, identifiers, pattern)
         name_ranges = [
@@ -504,7 +549,7 @@ def check(root):
                 )
 
         if roster_error is None:
-            for index, character in enumerate(text):
+            for index, character in enumerate(link_target_free):
                 if (
                     _is_cjk(character)
                     and not name_marks[index]
@@ -520,7 +565,7 @@ def check(root):
 
             for start, stop in school_ranges:
                 if any(
-                    _is_cjk(text[index]) and not quote_marks[index]
+                    _is_cjk(link_target_free[index]) and not quote_marks[index]
                     for index in range(start, stop)
                 ):
                     _add(
@@ -530,16 +575,7 @@ def check(root):
                         _line_number(starts, start),
                         "school",
                     )
-        for match in _ROMANIZED_SCHOOL.finditer(text):
-            _add(
-                problems,
-                seen,
-                document,
-                _line_number(starts, match.start()),
-                "school",
-            )
-
-        for offset in _dates(text):
+        for offset in _dates(link_target_free):
             _add(problems, seen, document, _line_number(starts, offset), "date")
 
         tokens = list(_time_tokens(text))
