@@ -41,8 +41,8 @@ repository or into Orca or Linear messages.
   `pylintrc` as [research.md](research.md) decides, with a one-line reason
   per rule group, left-out rule and exemption; extend it from each
   package's `pyproject.toml`; add `[*.py] indent_size = 4` to
-  `.editorconfig`; exclude `.specify/`; fill research.md's rule table
-  (FR-002, FR-005, FR-007).
+  `.editorconfig`; exclude `.specify/extensions/`; fill research.md's rule
+  table (FR-002, FR-005, FR-007).
 - [x] T004 [US1] Run `ruff check` in the `lint` task, `ruff format --check`
   in `format:check`, and the writing forms in `lint:fix` and `format`, all
   offline and without a cache directory (FR-003, FR-004).
@@ -50,7 +50,7 @@ repository or into Orca or Linear messages.
   `test` dependencies: a public function without a docstring and an
   81-column line fail, an 80-column line and an undocumented test function
   pass, unformatted code fails the format check, and a file under
-  `.specify/` is excluded (FR-008).
+  `.specify/extensions/` is excluded (FR-008).
 - [x] T006 [P] [US1] Name the Ruff check and version in
   `docs/architecture.md` and regenerate `docs/reference/` with
   `deno task docs:generate` (FR-009).
@@ -170,3 +170,14 @@ Commit Phase 1 before T007.
     80-column format cases added to `scripts/ruff_test.ts`. The
     coordinator's syntax-tree comparison found only renamed unused
     arguments and loop variables.
+  - 2026-09-29: Merge review, second round, on `b7fef87`. A fresh Claude
+    Code reviewer (`claude-sonnet-5-5`, high effort; dispatch
+    `ctx_df03ba11675b`) reviewed `5fdb5aa` and `e855b62`: approve after
+    fixes, 1 major and 5 minor findings. `PIE790` also flags `pass`, which
+    the `pylintrc` allows; `A003` has no Pylint counterpart; the
+    dummy-variable pattern was wider than the `pylintrc`'s; two new `SLF001`
+    exemptions covered code Pylint does not flag; one rule-table row gave a
+    wrong reason; and these task lines still named `.specify/`. A Codex
+    worker (dispatch `ctx_fea155adf859`) resolved the first five in
+    `207aa37` and `bbb9da3`, which the coordinator checked; the coordinator
+    corrected the task lines.
