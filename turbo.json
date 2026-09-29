@@ -36,6 +36,7 @@
     },
     "//#test:doctor": { "cache": false },
     "//#test:ruff": { "cache": false },
+    "//#test:gts": { "cache": false },
     "//#test:git-flow": { "cache": false },
     "//#test:worktree-branch": { "cache": false },
     "//#test:commit-msg": { "cache": false },
@@ -130,6 +131,7 @@
       "dependsOn": [
         "//#test:doctor",
         "//#test:ruff",
+        "//#test:gts",
         "//#test:git-flow",
         "//#test:worktree-branch",
         "//#test:commit-msg",

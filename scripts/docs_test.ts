@@ -119,7 +119,7 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
       'package-lock.json',
       'turbo.json',
       'tsconfig.json',
-      'biome.json',
+      'eslint.ignores.js',
     ])
       await copyFile(join(root, name), join(repo, name));
     await symlink(
@@ -809,7 +809,7 @@ test('references: local and PR check entrypoints agree without Node actions', as
         `--allow-fs-read=${join(repo, 'package-lock.json')}`,
         `--allow-fs-read=${join(repo, 'turbo.json')}`,
         `--allow-fs-read=${join(repo, 'tsconfig.json')}`,
-        `--allow-fs-read=${join(repo, 'biome.json')}`,
+        `--allow-fs-read=${join(repo, 'eslint.ignores.js')}`,
         '--allow-child-process',
         join(repo, 'scripts/docs.ts'),
         'unknown',

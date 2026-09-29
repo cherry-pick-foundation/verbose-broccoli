@@ -31,11 +31,12 @@ Root tasks reuse Node.js and Ajv with the unmodified official Agent Plugins
 schemas. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
 shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
 suites, the reference drift check and the document region check (see
-[Document consistency](#document-consistency--2026-09-28)). Biome formats and lints code and JSON with
-one root `biome.json`, which keeps the Google TypeScript style settings, turns
-on its floating-promise check, and bans runtime and I/O globals in `domain/`
-folders; Prettier formats YAML. Biome 2.5.14 is a pinned npm dependency,
-and its package ships a platform-specific native binary that `package-lock.json` pins.
+[Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
+JavaScript and TypeScript with Google's TypeScript rules and Prettier
+formatting; its configuration bans runtime and I/O globals in `domain/`
+folders. Prettier uses gts's settings for JSON and YAML. gts, ESLint 10.10.0
+and Prettier 3.9.9 are pinned npm dependencies in `package.json`, with their
+dependency tree pinned in `package-lock.json`.
 Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
 The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
 which the Google shell style guide recommends, checks the repository's own
@@ -120,7 +121,7 @@ Codes are `INVALID_ARGUMENT`, `EXECUTION_FAILED` and `CHECK_FAILED`. The
 including loop evidence, graph diagnostics and skill guidance when a workflow
 gate fails. A selected REVIEW mode is not a failed check and still exits 0.
 Use `npm run --silent <command>` for machine consumption; npm's own banners
-and launch failures are outside this contract, and Biome, Prettier and Node
+and launch failures are outside this contract, and gts, Prettier and Node
 test output keep their native form.
 
 `npm run test:cli-contract` checks these rules with real child processes, and

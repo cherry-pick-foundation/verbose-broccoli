@@ -3,7 +3,7 @@ import {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assert, assertThrows} from '@std/assert';
-import {dirname, fromFileUrl, join} from '@std/path';
+import {dirname, fromFileUrl, join, relative} from '@std/path';
 import {analyzeImportGraph, importRules} from './clean_architecture.ts';
 
 const repository = fromFileUrl(new URL('../', import.meta.url));
@@ -223,25 +223,71 @@ test('architecture: domain runtime APIs, aliases, globalThis and valid local bin
     ['plugins/demo/infrastructure/value.ts', "process.env.get('KEY');"],
   ];
   try {
-    await copyFile(join(repository, 'biome.json'), join(root, 'biome.json'));
+    for (const config of [
+      'eslint.config.js',
+      'eslint.ignores.js',
+      '.prettierrc.js',
+    ])
+      await copyFile(join(repository, config), join(root, config));
+    await writeFile(
+      join(root, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          target: 'ESNext',
+          types: ['node'],
+        },
+        include: ['**/*.ts'],
+      }),
+    );
     for (const [path, source] of [...invalid, ...valid]) {
       await mkdir(dirname(join(root, path)), {recursive: true});
       await writeFile(join(root, path), source);
     }
-    const output = commandOutput(join(repository, 'node_modules/.bin/biome'), {
-      args: ['lint', '--vcs-enabled=false', '--reporter=json', '.'],
+    const result = commandOutput(
+      join(repository, 'node_modules/.bin/eslint'),
+      {
+        args: [
+          '--format=json',
+          ...[...invalid, ...valid].map(([path]) => String(path)),
+        ],
       cwd: root,
-    });
-    const report = JSON.parse(new TextDecoder().decode(output.stdout)) as {
-      diagnostics: {category: string; location: {path: string}}[];
-    };
-    const flagged = new Set(
-      report.diagnostics
-        .filter(item => item.category === 'lint/style/noRestrictedGlobals')
-        .map(item => item.location.path),
+        env: {
+          NODE_PATH: join(repository, 'node_modules'),
+        },
+      },
     );
+    assert(!result.success, new TextDecoder().decode(result.stderr));
+    const stdout = new TextDecoder().decode(result.stdout);
+    assert(stdout, new TextDecoder().decode(result.stderr));
+    const report = JSON.parse(stdout) as {
+      filePath: string;
+      messages: {ruleId: string | null; message: string}[];
+    }[];
+    const diagnostics = report.flatMap(item =>
+      item.messages
+        .filter(message => message.ruleId === 'no-restricted-globals')
+        .map(message => ({
+          path: relative(root, item.filePath),
+          message: message.message,
+        })),
+    );
+    const flagged = new Set(diagnostics.map(item => item.path));
     for (const [path, source] of invalid) assert(flagged.has(path), source);
     for (const [path] of valid) assert(!flagged.has(path), path);
+    assert(
+      diagnostics.some(item =>
+        item.message.includes('Domain code must not use runtime or I/O globals.'),
+      ),
+    );
+    assert(
+      diagnostics.some(item =>
+        item.message.includes(
+          'Domain code must not reach globals through the global object.',
+        ),
+      ),
+    );
   } finally {
     await rm(root, {recursive: true});
   }

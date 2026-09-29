@@ -158,7 +158,7 @@ export async function collectHelp(root: string) {
         'package-lock.json',
         'turbo.json',
         'tsconfig.json',
-        'biome.json',
+        'eslint.ignores.js',
       ].map(async path => {
         const scope = join(root, path);
         return [
