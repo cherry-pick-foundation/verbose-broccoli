@@ -20,7 +20,6 @@ dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
 [tool.uv]
 required-version = ">=0.11.32"
 
-# Keep install metadata inside .venv, as backfire does.
 [tool.uv.build-backend]
 module-name = "doc_regions"
 module-root = "src"

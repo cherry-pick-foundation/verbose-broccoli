@@ -23,6 +23,7 @@ interface PackageConfig {
 const ioPackages =
   '(@hono/hono|hono|@electric-sql/pglite|@kysely/kysely|kysely|drizzle-orm|@modelcontextprotocol/sdk|webdav)';
 const ioImport = `^(?:(?:npm|jsr):)?${ioPackages}(?:@|/|$)`;
+const resolvedIOImport = `(^|/)node_modules/${ioPackages}/`;
 const escapeRegExp = RegExp.escape;
 
 function readPackageConfig(path: string): PackageConfig {
@@ -100,7 +101,7 @@ export function importRules(cwd: string) {
   const external = ['^(?:npm|jsr|node|https?):'];
   const externalAliases: {name: string; pattern: RegExp}[] = [];
   const localNames = new Set<string>();
-  const forbiddenIO = [ioImport];
+  const forbiddenIO = [ioImport, resolvedIOImport];
   const forbidden: NonNullable<IConfiguration['forbidden']> = [
     {name: 'no-cycles', severity: 'error', from: {}, to: {circular: true}},
     {

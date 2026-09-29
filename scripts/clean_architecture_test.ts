@@ -18,6 +18,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`Child process terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -26,11 +28,29 @@ function commandOutput(
   };
 }
 
+test('architecture: command helper rejects signal termination', () => {
+  assertThrows(
+    () =>
+      commandOutput(process.execPath, {
+        args: ['-e', "process.kill(process.pid, 'SIGKILL')"],
+      }),
+    Error,
+    'SIGKILL',
+  );
+});
+
 test('architecture: dependency directions, cycles, public APIs and package aliases', async () => {
   const cwd = process.cwd();
   const root = await mkdtemp(join(tmpdir(), 'architecture-'));
   const files = {
-    'package.json': JSON.stringify({dependencies: {}}),
+    'package.json': JSON.stringify({
+      dependencies: {'@electric-sql/pglite': '0.0.0'},
+    }),
+    'node_modules/@electric-sql/pglite/package.json': JSON.stringify({
+      name: '@electric-sql/pglite',
+      exports: './index.js',
+    }),
+    'node_modules/@electric-sql/pglite/index.js': 'export const PGlite = 1;',
     'plugins/a/package.json': JSON.stringify({
       imports: {
         '@platform': './src/infrastructure/db.ts',
@@ -51,6 +71,8 @@ test('architecture: dependency directions, cycles, public APIs and package alias
     'plugins/a/src/domain/value.ts': 'export const value = 1;',
     'plugins/a/src/domain/sdk.ts':
       "export {Server} from '@sdk/server/index.js';",
+    'plugins/a/src/domain/installed.ts':
+      "export {PGlite} from '@electric-sql/pglite';",
     'plugins/a/src/infrastructure/sdk.ts':
       "export {Server} from '@sdk/server/index.js';",
     'scripts/file-subpath.ts': "export {value} from '@file/missing.js';",
@@ -99,6 +121,17 @@ test('architecture: dependency directions, cycles, public APIs and package alias
     process.chdir(root);
     const result = await analyzeImportGraph();
     const violations = result.summary.violations;
+    const ioRule = importRules(root).forbidden?.find(
+      rule => rule.name === 'no-io-packages-in-inner-layers',
+    );
+    assert(ioRule && 'to' in ioRule);
+    const ioPaths = ioRule.to?.path;
+    assert(ioPaths);
+    assert(
+      (Array.isArray(ioPaths) ? ioPaths : [ioPaths]).some(path =>
+        new RegExp(path).test('node_modules/@electric-sql/pglite/index.js'),
+      ),
+    );
     for (const [from, rule] of [
       ['plugins/a/src/domain/outer.ts', 'domain-dependency-direction'],
       ['plugins/a/src/domain/type-only.ts', 'domain-dependency-direction'],

@@ -11,7 +11,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {assert, assertEquals, assertMatch, assertThrows} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
@@ -47,6 +47,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -54,6 +56,14 @@ function commandOutput(
     stderr: result.stderr ?? Buffer.alloc(0),
   };
 }
+
+test('git-flow test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
+    Error,
+    'SIGTERM',
+  );
+});
 
 function output(result: ReturnType<typeof commandOutput>) {
   return decoder.decode(result.stdout) + decoder.decode(result.stderr);

@@ -4,6 +4,7 @@ import {
   assertEquals,
   assertNotEquals,
   assertRejects,
+  assertThrows,
 } from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
@@ -72,8 +73,23 @@ async function impact(root: string, file: string) {
   };
 }
 
-async function cli(root: string, ...args: string[]) {
-  const result = spawnSync(
+function commandOutput(command: string, args: string[], cwd?: string) {
+  const result = spawnSync(command, args, {
+    cwd,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`Child process terminated by signal ${result.signal}`);
+  return {
+    code: result.status ?? 1,
+    stdout: result.stdout,
+    stderr: result.stderr,
+  };
+}
+
+function cli(root: string, ...args: string[]) {
+  return commandOutput(
     process.execPath,
     [
       '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
@@ -85,15 +101,21 @@ async function cli(root: string, ...args: string[]) {
       fromFileUrl(new URL('./workflow.ts', import.meta.url)),
       ...args,
     ],
-    {cwd: root, stdio: ['ignore', 'pipe', 'pipe']},
+    root,
   );
-  if (result.error) throw result.error;
-  return {
-    code: result.status ?? 1,
-    stdout: result.stdout,
-    stderr: result.stderr,
-  };
 }
+
+test('workflow graph: command helper rejects signal termination', () => {
+  assertThrows(
+    () =>
+      commandOutput(process.execPath, [
+        '-e',
+        "process.kill(process.pid, 'SIGKILL')",
+      ]),
+    Error,
+    'SIGKILL',
+  );
+});
 
 test('workflow graph: aliases and re-exports reach transitive consumers and affected tests only', async () => {
   const prefix = 'plugins/demo/src/';

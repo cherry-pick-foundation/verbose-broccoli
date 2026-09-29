@@ -26,7 +26,7 @@ interface Signals {
 }
 
 const reviewPaths =
-  /(^|\/)(AGENTS\.md|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|plugin\.json|mcp\.json|tsconfig[^/]*\.json|biome\.jsonc?|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
+  /(^|\/)(AGENTS\.md|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|turbo\.json|uv\.lock|pyproject\.toml|\.npmrc|plugin\.json|mcp\.json|tsconfig[^/]*\.json|biome\.jsonc?|eslint[^/]*\.[cm]?js|\.prettier[^/]*|\.editorconfig)$|(^|\/)(domain|infrastructure|platform|migrations?|schemas?|contracts)(\/|\.)|^(packages|\.agents|\.codex|\.github|\.specify)\//;
 const entryPath = /(^|\/)(mod|index)\.[cm]?[jt]sx?$/;
 const diffOptions = [
   '--no-ext-diff',

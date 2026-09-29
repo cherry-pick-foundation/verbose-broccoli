@@ -29,7 +29,14 @@ const versions = {
 type Tool = keyof typeof versions;
 interface NpmLock {
   lockfileVersion?: number;
-  packages?: Record<string, {version?: string}>;
+  packages?: Record<
+    string,
+    {
+      version?: string;
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+    }
+  >;
 }
 interface Options {
   quarto?: string;
@@ -186,7 +193,7 @@ async function probeNodeVersion(path: string) {
       error.code === 'ENOENT'
     )
       throw new Error(
-        'Node.js 22 or later is required, but node was not found.',
+        'Node.js 24.12.0 or later is required, but node was not found.',
       );
     throw error;
   }
@@ -195,8 +202,10 @@ async function probeNodeVersion(path: string) {
   const output = new TextDecoder().decode(result.stdout).trim();
   const version = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(output);
   if (!version) throw new Error('node version probe failed');
-  if (Number(version[1]) < 22)
-    throw new Error(`Node.js 22 or later is required (found ${output}).`);
+  const major = Number(version[1]);
+  const minor = Number(version[2]);
+  if (major < 24 || (major === 24 && minor < 12))
+    throw new Error(`Node.js 24.12.0 or later is required (found ${output}).`);
   return output.replace(/^v/, '');
 }
 
@@ -278,16 +287,45 @@ async function checkGitHooksPath(git: string) {
   return value;
 }
 
+export function lockedDependencies(packages: NonNullable<NpmLock['packages']>) {
+  const direct = {
+    ...(packages['']?.dependencies ?? {}),
+    ...(packages['']?.devDependencies ?? {}),
+  };
+  return Object.fromEntries(
+    Object.keys(direct).map(name => {
+      const version = packages[`node_modules/${name}`]?.version;
+      if (!version) throw new Error(`Missing locked dependency: ${name}`);
+      return [name, version];
+    }),
+  );
+}
+
 async function dependencies() {
   const path = fromFileUrl(new URL('../package-lock.json', import.meta.url));
   const bytes = await readFile(path);
   const lock = JSON.parse(new TextDecoder().decode(bytes)) as NpmLock;
-  const selected = Object.fromEntries(
-    Object.entries(lock.packages ?? {})
-      .filter(([name, pkg]) => name && pkg.version)
-      .map(([name, pkg]) => [name, pkg.version]),
-  );
+  const selected = lockedDependencies(lock.packages ?? {});
   return {path, sha256: await sha256(bytes), dependencies: selected};
+}
+
+export async function probeTurboVersion(path: string, expected: string) {
+  let result: Awaited<ReturnType<typeof command>>;
+  try {
+    result = await command(path, ['--version'], {
+      signal: AbortSignal.timeout(5000),
+      stdout: 'piped',
+      stderr: 'null',
+    });
+  } catch {
+    throw new Error('turbo version probe failed; run npm ci.');
+  }
+  if (!result.success || result.stdout.length > 4096)
+    throw new Error('turbo version probe failed; run npm ci.');
+  const output = new TextDecoder().decode(result.stdout).trim();
+  if (output !== expected)
+    throw new Error(`turbo must report version ${expected}; run npm ci.`);
+  return output;
 }
 
 async function writeReport(path: string, contents: string) {
@@ -330,6 +368,11 @@ export async function runDoctor(options: Options = {}) {
     probeNodeVersion(node.canonical),
     dependencies(),
   ]);
+  const root = fromFileUrl(new URL('../', import.meta.url));
+  const turboVersion = await probeTurboVersion(
+    join(root, 'node_modules/.bin/turbo'),
+    lock.dependencies.turbo,
+  );
   const specKit = await checkUvEnvironment(uv.canonical, 'tools/spec-kit');
   const shellCheck = await checkUvEnvironment(uv.canonical, 'tools/shellcheck');
   const ruff = await checkUvEnvironment(uv.canonical, 'tools/ruff');
@@ -355,6 +398,7 @@ export async function runDoctor(options: Options = {}) {
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
     lychee: {...lychee, version: lycheeVersion},
+    turbo: {path: 'node_modules/.bin/turbo', version: turboVersion},
     node: {...node, version: nodeVersion},
     gitHooksPath,
     specKit,

@@ -16,7 +16,7 @@ import {
 } from 'node:fs/promises';
 import {readdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {basename, dirname, fromFileUrl, join, relative} from '@std/path';
 import {spawn, type ChildProcess} from 'node:child_process';
 
@@ -53,7 +53,11 @@ function output(command: ChildProcess) {
       command.stdout?.on('data', (chunk: Buffer) => stdout.push(chunk));
       command.stderr?.on('data', (chunk: Buffer) => stderr.push(chunk));
       command.once('error', reject);
-      command.once('close', code => {
+      command.once('close', (code, signal) => {
+        if (signal) {
+          reject(new Error(`Child process terminated by signal ${signal}`));
+          return;
+        }
         resolve({
           code: code ?? 1,
           stdout: decoder.decode(Buffer.concat(stdout)),
@@ -63,6 +67,15 @@ function output(command: ChildProcess) {
     },
   );
 }
+
+test('wiki raw import test helper rejects signal termination', async () => {
+  const command = spawn(
+    process.execPath,
+    ['-e', "process.kill(process.pid, 'SIGKILL')"],
+    {stdio: ['ignore', 'pipe', 'pipe']},
+  );
+  await assertRejects(() => output(command), Error, 'SIGKILL');
+});
 
 async function uvLocation(...args: string[]) {
   const result = await output(

@@ -23,6 +23,7 @@ import {
   assertEquals,
   assertRejects,
   assertStringIncludes,
+  assertThrows,
 } from '@std/assert';
 import {fromFileUrl, join, resolve} from '@std/path';
 import {
@@ -66,6 +67,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`Child process terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -73,6 +76,17 @@ function commandOutput(
     stderr: result.stderr ?? Buffer.alloc(0),
   };
 }
+
+test('references: command helper rejects signal termination', () => {
+  assertThrows(
+    () =>
+      commandOutput(process.execPath, {
+        args: ['-e', "process.kill(process.pid, 'SIGKILL')"],
+      }),
+    Error,
+    'SIGKILL',
+  );
+});
 
 function stubBuiltin<T extends object, K extends keyof T>(
   module: T,
@@ -153,6 +167,18 @@ async function fixture(run: (repo: string) => Promise<void>, realHelp = false) {
     await rm(repo, {recursive: true});
   }
 }
+
+test('references: docs must be a directory', async () => {
+  await fixture(async repo => {
+    await rm(join(repo, 'docs'), {recursive: true});
+    await writeFile(join(repo, 'docs'), 'regular file\n');
+    await assertRejects(
+      () => syncReferenceDocs(repo, 'check'),
+      Error,
+      'docs: Expected the repository documentation directory.',
+    );
+  });
+});
 
 async function pair(repo: string) {
   return await Promise.all(

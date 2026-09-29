@@ -4,14 +4,13 @@ import {
   copyFile,
   mkdir,
   mkdtemp,
-  readFile,
   rm,
   symlink,
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {test} from 'node:test';
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {assert, assertEquals, assertMatch, assertThrows} from '@std/assert';
 import {join} from '@std/path';
 import {constitutionVersion, isBreakingCommit} from './constitution_version.ts';
 
@@ -39,6 +38,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -46,6 +47,14 @@ function commandOutput(
     stderr: result.stderr ?? Buffer.alloc(0),
   };
 }
+
+test('commit-msg test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
+    Error,
+    'SIGTERM',
+  );
+});
 
 function check(
   type: string | null | undefined,
@@ -189,11 +198,6 @@ async function createRepo(): Promise<Repo> {
   ]) {
     await copyFile(join(repositoryRoot, file), join(root, file));
   }
-  const packageJsonPath = join(root, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
-  packageJson.scripts.commitlint =
-    "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' commitlint --config scripts/commitlint.config.mjs";
-  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
   await symlink(
     join(repositoryRoot, 'node_modules'),
     join(root, 'node_modules'),
@@ -466,6 +470,7 @@ test('commit-msg hook: real commits, index handling, and Node lookup', async () 
       'feat: accept review trailers\n\nSpec-Kit-Task: T006\nReviewed-by: Reviewer\nReviewed-commit: abcdef123\nCo-Authored-By: Author <author@example.invalid>\nSigned-off-by: Commit Test <commit-test@example.invalid>',
     );
     assert(result.success, output(result));
+    assert(!output(result).includes('SecurityWarning'), output(result));
   });
 
   await withRepo(async repo => {
@@ -569,7 +574,7 @@ test('commit-msg hook: real commits, index handling, and Node lookup', async () 
     assert(!missing.success);
     assertMatch(
       output(missing),
-      /Commit refused: Node\.js 22 or later was not found\./,
+      /Commit refused: Node\.js 24\.12\.0 or later was not found\./,
     );
     assertEquals(output(await runGit(repo, ['rev-parse', 'HEAD'])), before);
   });

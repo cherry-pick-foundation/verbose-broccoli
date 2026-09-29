@@ -1,5 +1,10 @@
 import {test} from 'node:test';
-import {assert, assertEquals, assertNotEquals} from '@std/assert';
+import {
+  assert,
+  assertEquals,
+  assertNotEquals,
+  assertRejects,
+} from '@std/assert';
 import {join} from '@std/path';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
@@ -242,6 +247,42 @@ test('workflow verification: malformed or invalid evidence fails closed', async 
       await assertUnavailable(root, options);
     });
   }
+});
+
+test('workflow verification: Deno evidence is skipped but malformed Node evidence fails', async () => {
+  await repository(passing, async (root, options) => {
+    const result = await evaluateVerification(root, {
+      ...options,
+      verify: true,
+    });
+    assertEquals(result.phase, 'VERIFIED');
+    const [started] = await records(result.evidence_path);
+    const legacy = {
+      ...started,
+      run_id: crypto.randomUUID(),
+      context: {...started.context, deno_version: '2.0.0'},
+    };
+    delete (legacy.context as Record<string, unknown>).node_version;
+    await writeFile(result.evidence_path, `${JSON.stringify(legacy)}\n`, {
+      flag: 'a',
+    });
+    assertEquals((await evaluateVerification(root, options)).phase, 'VERIFIED');
+
+    const malformed = {
+      ...started,
+      run_id: crypto.randomUUID(),
+      context: {...started.context},
+    };
+    delete (malformed.context as Record<string, unknown>).node_version;
+    await writeFile(result.evidence_path, `${JSON.stringify(malformed)}\n`, {
+      flag: 'a',
+    });
+    await assertRejects(
+      () => evaluateVerification(root, options),
+      Error,
+      'Invalid workflow evidence:',
+    );
+  });
 });
 
 test('workflow verification: an interrupted run supersedes older successful evidence', async () => {

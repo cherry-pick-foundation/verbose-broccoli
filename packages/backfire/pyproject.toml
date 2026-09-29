@@ -26,7 +26,6 @@ dev = ["pytest==9.1.1"]
 required-version = ">=0.11.32"
 constraint-dependencies = ["typesafe-sdk==0.7.1"]
 
-# Keep install metadata inside the copy's .venv, leaving only .venv/ and __pycache__/ writes.
 [tool.uv.build-backend]
 module-name = ["backfire", "backfire_tools", "backfire_education"]
 module-root = "src"

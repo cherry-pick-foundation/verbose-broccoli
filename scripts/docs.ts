@@ -569,7 +569,7 @@ export async function syncReferenceDocs(
 ) {
   root = resolve(root);
   const docs = await info(root, 'docs');
-  if (!docs?.isDirectory)
+  if (!docs?.isDirectory())
     fail('docs', 'Expected the repository documentation directory.');
   // ponytail: one native directory lock for this pair; split locks only for new output owners.
   await using _lock =

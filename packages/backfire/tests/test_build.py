@@ -5,6 +5,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tomllib
 
 import pytest
 
@@ -99,6 +100,20 @@ def test_build_preserves_plugin_and_copies_only_runtime(
     assert result.stdout == f"{output}\n"
     assert result.stderr == ""
     projects = ("doc-regions", "wiki-consistency") if plugin == "work" else ()
+    root_lock_pairs = {
+        (package["name"], package["version"])
+        for package in tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+    }
+    for built in (output / "backfire", *(output / name for name in projects)):
+        lock_pairs = {
+            (package["name"], package["version"])
+            for package in tomllib.loads((built / "uv.lock").read_text())[
+                "package"
+            ]
+        }
+        assert lock_pairs <= root_lock_pairs, (
+            f"{built.name} lock has package versions absent from root uv.lock"
+        )
     plugin_files = {
         path: contents
         for path, contents in tree(output).items()

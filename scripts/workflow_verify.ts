@@ -77,7 +77,7 @@ async function load(path: string) {
         value.context === null
       )
         return true;
-      return 'node_version' in value.context;
+      return !('deno_version' in value.context);
     })
     .map(validate);
   const started = new Map<string, EvidenceRecord>();

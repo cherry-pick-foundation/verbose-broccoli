@@ -1,7 +1,15 @@
 import {spawnSync} from 'node:child_process';
-import {copyFile, cp, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {
+  copyFile,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import {test} from 'node:test';
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {assert, assertEquals, assertMatch, assertThrows} from '@std/assert';
 import {fromFileUrl, join} from '@std/path';
 import {delimiter, dirname} from 'node:path';
 import {tmpdir} from 'node:os';
@@ -32,6 +40,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -39,6 +49,14 @@ function commandOutput(
     stderr: result.stderr ?? Buffer.alloc(0),
   };
 }
+
+test('CLI test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', ['-c', 'kill -TERM $$']),
+    Error,
+    'SIGTERM',
+  );
+});
 
 function execute(command: string, args: string[], cwd = root) {
   return commandOutput(command, args, cwd, {
@@ -81,6 +99,16 @@ function errorResult(
   assertEquals(Object.keys(parsed.error).sort(), ['code', 'message']);
   return parsed;
 }
+
+test('CLI contract: backfire install syncs the complete Python workspace', async () => {
+  const packageJson = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
+  assertEquals(
+    packageJson.scripts['backfire:install'],
+    'uv sync --locked --all-packages --extra education',
+  );
+});
 
 async function git(cwd: string, args: string[]) {
   const result = commandOutput(

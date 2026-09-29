@@ -11,9 +11,21 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
+import {
+  assert,
+  assertEquals,
+  assertMatch,
+  assertRejects,
+  assertThrows,
+} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
-import {checkNpmEnvironment, probeVersion, runDoctor} from './doctor.ts';
+import {
+  checkNpmEnvironment,
+  lockedDependencies,
+  probeTurboVersion,
+  probeVersion,
+  runDoctor,
+} from './doctor.ts';
 import {sha256} from './hash.ts';
 
 const executable = process.execPath;
@@ -34,6 +46,8 @@ function commandOutput(
     encoding: null,
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`${command} terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     success: result.status === 0,
@@ -116,6 +130,32 @@ test('doctor: direct Node CLI works from an empty HOME', async () => {
   });
 });
 
+test('doctor: installed root Turborepo matches the lock', async () => {
+  const report = await runDoctor();
+  assertEquals(report.turbo.version, '2.11.5');
+});
+
+test('doctor: Turborepo probe requires the locked version and npm ci repair', async () => {
+  await temporary(async root => {
+    const wrong = await fixture(root, 'wrong-turbo', "console.log('2.11.4');");
+    await assertRejects(
+      () => probeTurboVersion(wrong, '2.11.5'),
+      Error,
+      'run npm ci',
+    );
+    const right = await fixture(root, 'right-turbo', "console.log('2.11.5');");
+    assertEquals(await probeTurboVersion(right, '2.11.5'), '2.11.5');
+  });
+});
+
+test('doctor test commands reject children terminated by a signal', () => {
+  assertThrows(
+    () => commandOutput('sh', {args: ['-c', 'kill -TERM $$']}),
+    Error,
+    'SIGTERM',
+  );
+});
+
 test('doctor: installed identities, versions and root lock work outside the checkout', async () => {
   await temporary(async root => {
     const output = await cli(root);
@@ -130,7 +170,11 @@ test('doctor: installed identities, versions and root lock work outside the chec
     assertEquals(report.uv.version, '0.11.32');
     assertEquals(report.gitFlow.version, '2.1.0');
     assertEquals(report.lychee.version, '0.24.2');
-    assert(Number.parseInt(report.node.version, 10) >= 22);
+    const [nodeMajor, nodeMinor] = report.node.version.split('.').map(Number);
+    assert(
+      nodeMajor > 24 || (nodeMajor === 24 && nodeMinor >= 12),
+      report.node.version,
+    );
     assertEquals(report.gitFlow.config.status, 'PASS');
     assertEquals(report.specKit, {
       project: 'tools/spec-kit',
@@ -169,10 +213,29 @@ test('doctor: installed identities, versions and root lock work outside the chec
     });
     assertEquals(report.lock.path, lock);
     assertEquals(report.lock.sha256, await sha256(await readFile(lock)));
+    const packageLock = JSON.parse(await readFile(lock, 'utf8'));
+    const directDependencies = {
+      ...packageLock.packages[''].dependencies,
+      ...packageLock.packages[''].devDependencies,
+    };
     assertEquals(
-      report.lock.dependencies['node_modules/@std/assert'],
-      '1.0.19',
+      report.lock.dependencies,
+      Object.fromEntries(
+        Object.keys(directDependencies).map(name => [
+          name,
+          packageLock.packages[`node_modules/${name}`].version,
+        ]),
+      ),
     );
+    assertThrows(
+      () =>
+        lockedDependencies({
+          '': {dependencies: {missing: '^1.0.0'}},
+        }),
+      Error,
+      'Missing locked dependency: missing',
+    );
+    assertEquals(report.turbo.version, '2.11.5');
     assert(!new TextDecoder().decode(output.stdout).includes('HOME='));
   });
 });
@@ -487,15 +550,33 @@ test('doctor: npm ls success does not hide npm package-lock drift', async () => 
   });
 });
 
-test('doctor: Node must be installed and at least version 22', async () => {
+test('doctor: Node must be installed and at least version 24.12.0', async () => {
   await temporary(async root => {
     const git = await fakeGit(root, 'scripts/git-hooks');
     const missing = {node: join(root, 'missing-node'), git};
     await assertRejects(() => runDoctor(missing), Error, 'not found');
 
-    const old = await fixture(root, 'old-node', "console.log('v20.19.0');");
-    const oldNode = {node: old, git};
-    await assertRejects(() => runDoctor(oldNode), Error, '22 or later');
+    for (const [name, version] of [
+      ['old-node', 'v24.11.1'],
+      ['unsupported-node', 'v22.20.0'],
+    ]) {
+      const old = await fixture(root, name, `console.log('${version}');`);
+      await assertRejects(
+        () => runDoctor({node: old, git}),
+        Error,
+        'Node.js 24.12.0 or later',
+      );
+    }
+
+    const supported = await fixture(
+      root,
+      'supported-node',
+      "console.log('v24.12.0');",
+    );
+    assertEquals(
+      (await runDoctor({node: supported, git})).node.version,
+      '24.12.0',
+    );
   });
 });
 

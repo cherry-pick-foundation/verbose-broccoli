@@ -1,5 +1,5 @@
 import {test} from 'node:test';
-import {assert, assertEquals, assertMatch} from '@std/assert';
+import {assert, assertEquals, assertMatch, assertRejects} from '@std/assert';
 import {basename, dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
@@ -30,19 +30,32 @@ function gitEnv(cwd: string) {
   };
 }
 
-async function runScript(cwd: string) {
-  const result = spawnSync('sh', [script], {
+async function runScript(cwd: string, scriptPath = script) {
+  const result = spawnSync('sh', [scriptPath], {
     cwd,
     env: {...process.env, ...gitEnv(cwd)},
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   if (result.error) throw result.error;
+  if (result.signal)
+    throw new Error(`sh terminated by signal ${result.signal}`);
   return {
     code: result.status ?? 1,
     stdout: decoder.decode(result.stdout).trim(),
     stderr: decoder.decode(result.stderr).trim(),
   };
 }
+
+test('worktree branch test runner rejects signal-terminated scripts', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'worktree-branch-signal-'));
+  try {
+    const killed = join(root, 'killed.sh');
+    await writeFile(killed, 'kill -TERM $$\n');
+    await assertRejects(() => runScript(root, killed), Error, 'SIGTERM');
+  } finally {
+    await rm(root, {recursive: true});
+  }
+});
 
 type AddWorktree = (
   repo: string,
