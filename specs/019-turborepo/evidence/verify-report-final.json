@@ -1,0 +1,268 @@
+{
+  "tool": "backfire_verify",
+  "date": "2026-09-29",
+  "arguments": {
+    "claims": [
+      "86 files changed against develop f444287 outside specs/: 11,633 lines added and 7,382 removed; without lock files, the generated docs/reference/ and the CLI snapshot, 74 files: 3,345 added and 2,035 removed.",
+      "Locally owned code and tooling configuration: 39,854 lines in 181 files on develop, 41,119 in 184 files on the branch (+1,265).",
+      "develop's deno task check took 2:19.25 and 2:16.91 wall-clock with 394.6 s and 376.1 s user CPU; the branch's npm run check took 2:19.68 and 2:22.35 with 436.4 s and 434.6 s.",
+      "The branch is about 3 s (2 %) slower in wall-clock time and uses about 13 % more CPU time than develop.",
+      "npm run check passed all 27 Turborepo tasks, and npm run verify finished VERIFIED with the deno executable removed from PATH.",
+      "The TypeScript suites on the branch passed 229 tests; backfire passed 1,364 with 3 deselected, doc-regions 106 and wiki-consistency 291.",
+      "The full-removal classification had 193 rows: 184 selected by backfire, 5 selected by the user's rule after staying review, and 4 left.",
+      "backfire classified 26 final review findings: 12 fixed, 3 sent to a decision (D19 to D21) and 11 not changed in code.",
+      "The final reviewers found no blocker, 15 should-fix findings and 18 notes.",
+      "backfire made twenty-one design decisions and none escaped to the user; D18 chose package_json_same_fields at 0.85, D19 floor_24_12 at 0.80, D20 only_needed at 0.70 and D21 root_lock_stands_in at 0.68.",
+      "The root uv.lock takes develop's newer openai 3.20.0, starlette 1.7.0, pyjwt 2.15.1 and sse-starlette 3.5.0 and keeps typesafe-sdk at 0.7.1.",
+      "The clean-code skill needs Node.js 24.12.0 or later, stated in SKILL.md and in its package.json engines field, and users install its packages once with npm ci --prefix <skill-root>.",
+      "Node.js 24.19 has no network permission flag, and no permission flag for environment variables.",
+      "npm run doctor prints Node's SecurityWarning on stderr."
+    ],
+    "evidence": [
+      {
+        "id": "diff-size",
+        "text": "git diff --no-renames --numstat f444287 HEAD -- . ':!specs' summed: 86 files, 11633 added, 7382 removed\nSame, without *.lock, package-lock.json, *.snap, *.snapshot and docs/reference/: 74 files, 3345 added, 2035 removed\n"
+      },
+      {
+        "id": "loc",
+        "text": "Non-blank lines of locally owned code and tooling configuration (the report's Method), counted at develop f444287 and at the branch HEAD:\n== f444287\n181 files 39854 lines\n== HEAD\n184 files 41119 lines\n"
+      },
+      {
+        "id": "timing",
+        "text": "/usr/bin/time -v excerpts. time-base-N: deno task check in a detached worktree at develop f444287; time-branch-N: npm run check on the branch; run alternately on the same machine:\ntime-base-1.txt:\n\tUser time (seconds): 394.57\n\tSystem time (seconds): 56.04\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 2:19.25\n\tMaximum resident set size (kbytes): 516308\n\tExit status: 0\n\ntime-base-2.txt:\n\tUser time (seconds): 376.08\n\tSystem time (seconds): 54.77\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 2:16.91\n\tMaximum resident set size (kbytes): 451836\n\tExit status: 0\n\ntime-branch-1.txt:\n\tUser time (seconds): 436.43\n\tSystem time (seconds): 74.97\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 2:19.68\n\tMaximum resident set size (kbytes): 1004952\n\tExit status: 0\n\ntime-branch-2.txt:\n\tUser time (seconds): 434.59\n\tSystem time (seconds): 74.46\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 2:22.35\n\tMaximum resident set size (kbytes): 984896\n\tExit status: 0\n"
+      },
+      {
+        "id": "check",
+        "text": "Test counts and the Turborepo summary of the verified run:\n//:test:ruff: ℹ tests 1\n//:test:ruff: ℹ pass 1\n//:test:ruff: ℹ fail 0\n//:test:clean-architecture: ℹ tests 5\n//:test:clean-architecture: ℹ pass 5\n//:test:clean-architecture: ℹ fail 0\n//:test:worktree-branch: ℹ tests 4\n//:test:worktree-branch: ℹ pass 4\n//:test:worktree-branch: ℹ fail 0\n//:test:plugin-skills: ℹ tests 3\n//:test:plugin-skills: ℹ pass 3\n//:test:plugin-skills: ℹ fail 0\n//:test:clean-code: ℹ tests 35\n//:test:clean-code: ℹ pass 35\n//:test:clean-code: ℹ fail 0\ndoc-regions:test: ============================= 106 passed in 8.71s ==============================\n//:test:git-flow: ℹ tests 21\n//:test:git-flow: ℹ pass 21\n//:test:git-flow: ℹ fail 0\n//:test:workflow: ℹ tests 58\n//:test:workflow: ℹ pass 58\n//:test:workflow: ℹ fail 0\n//:test:cli-contract: ℹ tests 16\n//:test:cli-contract: ℹ pass 16\n//:test:cli-contract: ℹ fail 0\n//:test:doctor: ℹ tests 20\n//:test:doctor: ℹ pass 20\n//:test:doctor: ℹ fail 0\n//:test:commit-msg: ℹ tests 6\n//:test:commit-msg: ℹ pass 6\n//:test:commit-msg: ℹ fail 0\n//:test:wiki-raw-import: ℹ tests 44\n//:test:wiki-raw-import: ℹ pass 44\n//:test:wiki-raw-import: ℹ fail 0\n//:test:docs: ℹ tests 16\n//:test:docs: ℹ pass 16\n//:test:docs: ℹ fail 0\nbackfire:test: ================ 1364 passed, 3 deselected in 99.41s (0:01:39) =================\nwiki-consistency:test: ======================= 291 passed in 147.58s (0:02:27) ========================\n Tasks:    27 successful, 27 total\n  Time:    2m32.407s \n\nnpm run verify: which deno: not found (deno hidden); exit 0; phase VERIFIED."
+      },
+      {
+        "id": "selection",
+        "text": "# Selected change sites: full Deno removal\n\nGenerated on 2026-09-29 from [classify-full-removal.json](classify-full-removal.json), the classification of the merged tree (after `develop` 8ce9b2a) for removing Deno completely. SELECT means must_change or delete with an `auto` decision. Rows re-asked with their file context (batch 21) replace their first result. `SELECT(user rule)` rows stayed `review` after the re-ask and are selected by the user's rule instead (see `user_rule` in the JSON). `leave` rows stay unchanged.\n\nCounts: SELECT: 184; SELECT(user rule): 5; leave: 4 (total 193).\n"
+      },
+      {
+        "id": "review-findings",
+        "text": "# Review findings and what backfire selected\n\nBatch 24 of `backfire_classify` ([classify-review.json](classify-review.json))\nclassified the findings of the final reviews ([CR1](review-CR1.md),\n[CR2](review-CR2.md), [CR3](review-CR3.md), [R3](review-R3.md)). Only\n`must_change` rows with an `auto` decision are fixed (FIX); `manual_review`\nrows went to a decision, D19 to D21 (DECIDE); the other rows stay as they\nare and are listed in the report (leave). F1, F2 and F3 are the fix tasks.\n\n- FIX `V01` must_change (auto, 0.97) → F1: package.json:30\n- FIX `V02` must_change (auto, 0.96) → F2: scripts/workflow.ts:28-29; scripts/workflow_test.ts:81-85\n- FIX `V03` must_change (auto, 0.90) → F2: scripts/clean_architecture.ts:24-25,225,247\n- FIX `V04` must_change (auto, 0.97) → F2: scripts/docs.ts:572\n- DECIDE `V05` manual_review (review, 0.70) → F1 (D19): scripts/doctor.ts:197-199; turbo.json:22; scripts/git-hooks/commit-msg:15; scripts/doctor_test.ts:115,133\n- leave `V06` can_stay (auto, 0.95): scripts/constitution_version.ts:31; doctor.ts:80; docs.ts:176; workflow_git.ts:17; workflow_skills.ts:65; workflow_verify.ts:154; docs.ts:30; workflow_verify.ts:11\n- FIX `V07` must_change (auto, 0.85) → F1: scripts/commit_msg_test.ts:192-196; package.json commitlint script\n- leave `V08` can_stay (review, 0.75): scripts/docs_test.ts:350; specs/019-turborepo/report.md:175-180\n- FIX `V09` must_change (auto, 0.96) → F3: packages/backfire/tests/test_build.py:122-125,143,163\n- FIX `V10` must_change (auto, 0.88) → F3: packages/doc-regions/src/doc_regions/__main__.py:25-27; packages/doc-regions/tests/test_requests.py:372\n- FIX `V11` must_change (auto, 0.92) → F3: packages/backfire/pyproject.toml:29; packages/doc-regions/pyproject.toml:23; packages/wiki-consistency/pyproject.toml:30\n- leave `V12` can_stay (auto, 0.92): scripts/cli_contract_test.ts:210-233\n- FIX `V13` must_change (auto, 0.92) → F1, F2: scripts/wiki_raw_import_test.ts:58,148,978,1150 and eight other command helpers\n- FIX `V14` must_change (auto, 0.86) → F2: scripts/workflow_verify.ts:71-80\n- DECIDE `V15` manual_review (review, 0.60) → F3 (D20): pyproject.toml:2-10\n- leave `V16` can_stay (auto, 0.90): scripts/doctor_test.ts:401\n- DECIDE `V17` manual_review (review, 0.80) → report (D21): orca.yaml; .github/workflows/check.yml; scripts/workflow_skills.ts:67\n- leave `V18` must_change (review, 0.75), an open question: docs/architecture.md:11,22\n- leave `V19` must_change (review, 0.55); main completed the evidence record anyway, since it is a record, not a code site: specs/019-turborepo/evidence/decide-d18.json\n- leave `V20` can_stay (auto, 0.90): scripts/docs_test.ts:77\n- leave `V21` can_stay (review, 0.65): packages/backfire/src/backfire_tools/build.py:66-92\n- leave `V22` can_stay (auto, 0.90): packages/backfire/src/backfire/ready.py:186-193,157\n- leave `V23` can_stay (review, 0.80): package.json:33-41; turbo.json:48-126\n- FIX `V24` must_change (auto, 0.85) → F1: scripts/doctor.ts:286\n- leave `V25` can_stay (auto, 0.90): biome.json:49 (deleted Deno entry); scripts/clean_architecture_test.ts:163-170\n- FIX `V26` must_change (auto, 0.85) → F1: scripts/doctor.ts (no Turborepo probe)\n"
+      },
+      {
+        "id": "review-counts",
+        "text": "Counts of findings by severity in the four final review reports: CR1: should-fix 6, notes 5, blockers 0. CR2: should-fix 4, notes 7, blockers 0. CR3: should-fix 4, notes 5, blockers 0. R3: should-fix 1, notes 1, blockers 0."
+      },
+      {
+        "id": "decisions",
+        "text": "backfire_decide results saved in the evidence:\ndecide-d1.json: selected shim_plus_rewrite, escaped False, probabilities {'shim_with_glue': 0.08, 'shim_plus_rewrite': 0.88, 'rewrite_to_node': 0.02, 'ask_user': 0.01, 'investigate': 0.005, 'none': 0.005}\ndecide-d2.json: selected strip_only, escaped False, probabilities {'strip_only': 0.88, 'transform_flag': 0.05, 'tsx_loader': 0.02, 'ask_user': 0.02, 'investigate': 0.02, 'none': 0.01}\ndecide-d3.json: selected prettier_yaml, escaped False, probabilities {'prettier_yaml': 0.86, 'keep_deno_fmt': 0.05, 'drop_yaml_check': 0.02, 'ask_user': 0.04, 'investigate': 0.02, 'none': 0.01}\ndecide-d4.json: selected node_permission, escaped False, probabilities {'node_permission': 0.85, 'no_permissions': 0.01, 'ask_user': 0.09, 'investigate': 0.04, 'none': 0.01}\ndecide-d5.json: selected keep_skill_on_deno, escaped False, probabilities {'keep_skill_on_deno': 0.82, 'move_skill_to_node': 0.08, 'ask_user': 0.05, 'investigate': 0.03, 'none': 0.02}\ndecide-d6.json: selected uv_build_root_venv, escaped False, probabilities {'uv_build_root_venv': 0.8, 'per_package_env': 0.04, 'uv_build_backfire_env': 0.05, 'ask_user': 0.02, 'investigate': 0.05, 'none': 0.04}\ndecide-d7.json: selected lock_in_copy, escaped False, probabilities {'lock_in_copy': 0.88, 'pylock_install': 0.04, 'keep_second_lock': 0.04, 'ask_user': 0.01, 'investigate': 0.02, 'none': 0.01}\ndecide-d8.json: selected cache_off_outside, escaped False, probabilities {'declare_inputs': 0.3, 'cache_off_outside': 0.5, 'cache_off_all': 0.1, 'ask_user': 0.03, 'investigate': 0.05, 'none': 0.02}\ndecide-d9.json: selected npm_scripts, escaped False, probabilities {'npm_scripts': 0.7, 'turbo_tasks': 0.16, 'keep_deno_aliases': 0.06, 'ask_user': 0.04, 'investigate': 0.03, 'none': 0.01}\ndecide-d10.json: selected per_project_locks, escaped False, probabilities {'per_project_locks': 0.86, 'plugin_workspace': 0.04, 'ask_user': 0.02, 'investigate': 0.05, 'none': 0.03}\ndecide-d11.json: selected preload_glue, escaped False, probabilities {'preload_glue': 0.9, 'rewrite_sites': 0.07, 'ask_user': 0.01, 'investigate': 0.01, 'none': 0.01}\ndecide-d12.json: selected proper_lockfile, escaped False, probabilities {'proper_lockfile': 0.85, 'wx_lockfile': 0.02, 'report_gap': 0.1, 'ask_user': 0.01, 'investigate': 0.01, 'none': 0.01}\ndecide-d13.json: selected glob_without_members, escaped False, probabilities {'glob_without_members': 0.91, 'rename_npm_package': 0.03, 'report_gap': 0.01, 'ask_user': 0.01, 'investigate': 0.03, 'none': 0.01}\ndecide-d14.json: selected buffer_rewrite, escaped False, probabilities {'buffer_rewrite': 0.86, 'corejs_polyfill': 0.08, 'v8_flag': 0.01, 'ask_user': 0.02, 'investigate': 0.02, 'none': 0.01}\ndecide-d15.json: selected node_snapshot, escaped False, probabilities {'node_snapshot': 0.72, 'loader_hook': 0.22, 'ask_user': 0.03, 'investigate': 0.02, 'none': 0.01}\ndecide-d16.json: selected skill_node_rewrite, escaped False, probabilities {'skill_shim_preload': 0.05, 'skill_node_rewrite': 0.87, 'ask_user': 0.01, 'investigate': 0.02, 'none': 0.05}\ndecide-d17.json: selected feat_minor, escaped False, probabilities {'docs_patch': 0.25, 'feat_minor': 0.65, 'breaking_major': 0.05, 'ask_user': 0.03, 'investigate': 0.02, 'none': 0}\ndecide-d18.json: selected package_json_same_fields, escaped False, probabilities {'package_json_same_fields': 0.85, 'nested_exports_count': 0.1, 'root_only_custom_field': 0.025, 'drop_empty_public_api': 0.01, 'ask_user': 0.005, 'investigate': 0.005, 'none': 0.005}\ndecide-d19.json: selected floor_24_12, escaped False, probabilities {'pin_exact_24_19': 0.15, 'floor_24_12': 0.8, 'keep_22_record': 0.02, 'ask_user': 0.01, 'investigate': 0.01, 'none': 0.01}\ndecide-d20.json: selected only_needed, escaped False, probabilities {'comment_pins': 0.2, 'only_needed': 0.7, 'keep_as_is': 0.04, 'ask_user': 0.03, 'investigate': 0.02, 'none': 0.01}\ndecide-d21.json: selected root_lock_stands_in, escaped False, probabilities {'root_lock_stands_in': 0.68, 'install_skill_lock': 0.18, 'align_root_lock': 0.05, 'ask_user': 0.03, 'investigate': 0.04, 'none': 0.02}"
+      },
+      {
+        "id": "versions",
+        "text": "develop f444287 packages (three per-package locks): 77 ; root uv.lock packages: 77\nopenai: develop ['3.19.2', '3.20.0'] -> root 3.20.0\npyjwt: develop ['2.15.0', '2.15.1'] -> root 2.15.1\nsse-starlette: develop ['3.4.11', '3.5.0'] -> root 3.5.0\nstarlette: develop ['0.52.1', '1.7.0'] -> root 1.7.0\ntypesafe-sdk: develop ['0.7.1', '0.7.2'] -> root 0.7.1\n"
+      },
+      {
+        "id": "skill",
+        "text": "plugins/code/skills/clean-code/SKILL.md excerpt:\n## Mechanical Applicability\n\nRequires Node.js 24.12.0 or later. The scripts use Node's built-in TypeScript\ntype stripping, `import.meta.main`, and `fsPromises.glob`; type stripping is\nstable in v24.12.0, `import.meta.main` was added in v24.2.0, and `glob` became\nstable in v24.0.0. See the [TypeScript](https://nodejs.org/download/release/v24.19.0/docs/api/typescript.html),\n[ES modules](https://nodejs.org/download/release/v24.19.0/docs/api/esm.html),\nand [file system](https://nodejs.org/download/release/v24.19.0/docs/api/fs.html)\ndocumentation.\n\nFrom the target workspace root, run `npm run clean-code:scope` before using\nthis skill. Its `selected` array is the complete shared scope for this skill\nand `clean_code.ts`. Scope errors stop the review. Never select files by their\nnames, imported package roles, perceived simplicity, SQL meaning, or expected\nbenefit from refactoring. Do not select individual functions from excluded\nfiles. An empty selection means this skill does not apply.\n\nFor a separately installed plugin, from the target workspace root install the\nskill's packages once, then run its scope command with the installed skill's\nabsolute path:\n\n```sh\nnpm ci --prefix <skill-root> --prefer-offline --ignore-scripts --no-audit --no-fund\nnode <skill-root>/scripts/clean_code.ts --scope\n```\n\nIn this repository, run `npm run clean-code:scope` before review and\n`npm run clean-code` after changes. For a separately installed plugin, rerun\nthe Node command without `--scope` after changes. Report scope changes and\ncheck failures. A line-count, type, or unused-code violation never rem\n\nplugins/code/skills/clean-code/package.json:\n{\n  \"name\": \"clean-code-skill\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"engines\": {\n    \"node\": \">=24.12.0\"\n  },\n  \"dependencies\": {\n    \"@cliffy/command\": \"npm:@jsr/cliffy__command@1.2.1\",\n    \"@std/assert\": \"npm:@jsr/std__assert@1.0.19\",\n    \"@std/path\": \"npm:@jsr/std__path@1.1.6\",\n    \"@typescript-eslint/utils\": \"8.70.0\",\n    \"eslint\": \"10.10.0\",\n    \"typescript\": \"6.0.3\",\n    \"typescript-eslint\": \"8.70.0\"\n  }\n}\n"
+      },
+      {
+        "id": "node-permissions",
+        "text": "node --help on Node.js 24.19.0 lists these permission flags: --allow-addons --allow-child-process --allow-fs-read --allow-fs-write --allow-inspector --allow-wasi --allow-worker. npm run --silent doctor prints on stderr: (node:49072) SecurityWarning: The flag --allow-child-process must be used with extreme caution. It could invalidate the permission model."
+      }
+    ]
+  },
+  "result": {
+    "tool": "backfire_verify",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "auto_accept": 0.8,
+    "summary": {
+      "verified": 14,
+      "contradicted": 0,
+      "unsupported": 0,
+      "needs_review": 0
+    },
+    "results": [
+      {
+        "id": "claim0",
+        "claim": "86 files changed against develop f444287 outside specs/: 11,633 lines added and 7,382 removed; without lock files, the generated docs/reference/ and the CLI snapshot, 74 files: 3,345 added and 2,035 removed.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "diff-size"
+      },
+      {
+        "id": "claim1",
+        "claim": "Locally owned code and tooling configuration: 39,854 lines in 181 files on develop, 41,119 in 184 files on the branch (+1,265).",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "loc"
+      },
+      {
+        "id": "claim2",
+        "claim": "develop's deno task check took 2:19.25 and 2:16.91 wall-clock with 394.6 s and 376.1 s user CPU; the branch's npm run check took 2:19.68 and 2:22.35 with 436.4 s and 434.6 s.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "timing"
+      },
+      {
+        "id": "claim3",
+        "claim": "The branch is about 3 s (2 %) slower in wall-clock time and uses about 13 % more CPU time than develop.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "timing"
+      },
+      {
+        "id": "claim4",
+        "claim": "npm run check passed all 27 Turborepo tasks, and npm run verify finished VERIFIED with the deno executable removed from PATH.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "check"
+      },
+      {
+        "id": "claim5",
+        "claim": "The TypeScript suites on the branch passed 229 tests; backfire passed 1,364 with 3 deselected, doc-regions 106 and wiki-consistency 291.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "check"
+      },
+      {
+        "id": "claim6",
+        "claim": "The full-removal classification had 193 rows: 184 selected by backfire, 5 selected by the user's rule after staying review, and 4 left.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "selection"
+      },
+      {
+        "id": "claim7",
+        "claim": "backfire classified 26 final review findings: 12 fixed, 3 sent to a decision (D19 to D21) and 11 not changed in code.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "review-findings"
+      },
+      {
+        "id": "claim8",
+        "claim": "The final reviewers found no blocker, 15 should-fix findings and 18 notes.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "review-counts"
+      },
+      {
+        "id": "claim9",
+        "claim": "backfire made twenty-one design decisions and none escaped to the user; D18 chose package_json_same_fields at 0.85, D19 floor_24_12 at 0.80, D20 only_needed at 0.70 and D21 root_lock_stands_in at 0.68.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "decisions"
+      },
+      {
+        "id": "claim10",
+        "claim": "The root uv.lock takes develop's newer openai 3.20.0, starlette 1.7.0, pyjwt 2.15.1 and sse-starlette 3.5.0 and keeps typesafe-sdk at 0.7.1.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "versions"
+      },
+      {
+        "id": "claim11",
+        "claim": "The clean-code skill needs Node.js 24.12.0 or later, stated in SKILL.md and in its package.json engines field, and users install its packages once with npm ci --prefix <skill-root>.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "skill"
+      },
+      {
+        "id": "claim12",
+        "claim": "Node.js 24.19 has no network permission flag, and no permission flag for environment variables.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "node-permissions"
+      },
+      {
+        "id": "claim13",
+        "claim": "npm run doctor prints Node's SecurityWarning on stderr.",
+        "verdict": "verified",
+        "probabilities": {
+          "supports": 1,
+          "contradicts": 0,
+          "says_nothing": 0
+        },
+        "confidence": 1,
+        "action": "auto",
+        "supporting_evidence": "node-permissions"
+      }
+    ],
+    "usage": {
+      "input_tokens": 13660,
+      "output_tokens": 4447
+    }
+  }
+}

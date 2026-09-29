@@ -172,6 +172,12 @@ selection was redone on the merged tree
     review of main's report and hook line, the review record, then the
     finish through develop-bf. Tools and specs are in
     [evidence/method/](evidence/method/).
+  - 2026-09-29 (after the restart): Main rewrote [report.md](report.md) for
+    the real change, reran `npm run verify` with Deno hidden (VERIFIED), and
+    ran `backfire_gate` and `backfire_verify` (all claims verified). The
+    helper scripts left `evidence/method/`, because the linters check them.
+    Next: a fresh Claude Code review of the fixes and a fresh Codex review of
+    Main's report and records.
 
 ## Dependencies
 

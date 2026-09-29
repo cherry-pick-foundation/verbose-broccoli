@@ -1,0 +1,41 @@
+//:test:ruff: ℹ tests 1
+//:test:ruff: ℹ pass 1
+//:test:ruff: ℹ fail 0
+//:test:clean-architecture: ℹ tests 5
+//:test:clean-architecture: ℹ pass 5
+//:test:clean-architecture: ℹ fail 0
+//:test:worktree-branch: ℹ tests 4
+//:test:worktree-branch: ℹ pass 4
+//:test:worktree-branch: ℹ fail 0
+//:test:plugin-skills: ℹ tests 3
+//:test:plugin-skills: ℹ pass 3
+//:test:plugin-skills: ℹ fail 0
+//:test:clean-code: ℹ tests 35
+//:test:clean-code: ℹ pass 35
+//:test:clean-code: ℹ fail 0
+doc-regions:test: ============================= 106 passed in 8.71s ==============================
+//:test:git-flow: ℹ tests 21
+//:test:git-flow: ℹ pass 21
+//:test:git-flow: ℹ fail 0
+//:test:workflow: ℹ tests 58
+//:test:workflow: ℹ pass 58
+//:test:workflow: ℹ fail 0
+//:test:cli-contract: ℹ tests 16
+//:test:cli-contract: ℹ pass 16
+//:test:cli-contract: ℹ fail 0
+//:test:doctor: ℹ tests 20
+//:test:doctor: ℹ pass 20
+//:test:doctor: ℹ fail 0
+//:test:commit-msg: ℹ tests 6
+//:test:commit-msg: ℹ pass 6
+//:test:commit-msg: ℹ fail 0
+//:test:wiki-raw-import: ℹ tests 44
+//:test:wiki-raw-import: ℹ pass 44
+//:test:wiki-raw-import: ℹ fail 0
+//:test:docs: ℹ tests 16
+//:test:docs: ℹ pass 16
+//:test:docs: ℹ fail 0
+backfire:test: ================ 1364 passed, 3 deselected in 99.41s (0:01:39) =================
+wiki-consistency:test: ======================= 291 passed in 147.58s (0:02:27) ========================
+ Tasks:    27 successful, 27 total
+  Time:    2m32.407s 
