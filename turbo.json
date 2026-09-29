@@ -19,9 +19,10 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
       "cache": false
     },
+    "//#own-code": {"cache": false},
     "//#format:check": {"cache": false},
     "//#lint": {"cache": false},
     "//#lint:shell": {"cache": false},
@@ -35,6 +36,7 @@
       "cache": false
     },
     "//#test:doctor": {"cache": false},
+    "//#test:own-code": {"cache": false},
     "//#test:ruff": {"cache": false},
     "//#test:gts": {"cache": false},
     "//#test:git-flow": {"cache": false},
@@ -129,6 +131,7 @@
       "command": ["true"],
       "dependsOn": [
         "//#test:doctor",
+        "//#test:own-code",
         "//#test:ruff",
         "//#test:gts",
         "//#test:git-flow",
@@ -163,6 +166,7 @@
       "command": ["true"],
       "dependsOn": [
         "//#doctor",
+        "//#own-code",
         "//#format:check",
         "//#lint",
         "//#lint:shell",

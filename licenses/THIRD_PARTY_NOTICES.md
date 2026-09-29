@@ -1,11 +1,5 @@
 # Third-party notices
 
-## Node compatibility types
-
-- `@types/node@22.20.2` (MIT, DefinitelyTyped contributors) pins the existing
-  Deno compatibility API types for type checks. This adds no Node executable or
-  runtime adapter.
-
 ## wondelai/skills — clean-code
 
 - Source:
@@ -18,22 +12,6 @@
   length limit. Reference files remain unchanged.
 - Copyright (c) 2025 Wondel.ai sp. z o.o.
   [MIT license](../plugins/code/skills/clean-code/LICENSE).
-- `clean_code.ts` reuses ESLint, typescript-eslint, TypeScript, and Deno
-  standard libraries through the skill's isolated, pinned Deno configuration.
-  The local code connects the approved scope predicates to those
-  implementations.
-
-## runreal/deno-monorepo-template
-
-- Source: <https://github.com/runreal/deno-monorepo-template>
-- Revision: `7f7144cfce5f456fd5f59b50d525a872ddb338e0`
-- Reused: `apps/`, `packages/`, root `deno.jsonc` workspace organization and
-  root task orchestration.
-- Adaptation: three Agent Plugins replace the example web applications; approved
-  dependency pins and Deno permission policy replace the template stack. The
-  plugin roots now use `plugins/{chat,code,work}` and strict `deno.json`; the
-  original template attribution and parsed configuration remain preserved.
-- Copyright (c) 2025 runreal. [MIT license](runreal-deno-monorepo-template.txt).
 
 ## Agent Plugins
 
@@ -153,91 +131,3 @@ with the already approved Ajv dependency. Sources:
   build and the development environment. No source is copied into the
   repository.
 - Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
-
-## nedbat/cog — document regions
-
-- Source: <https://github.com/nedbat/cog>, published on PyPI as `cogapp`
-  3.6.0.
-- Used as a pinned Python dependency of `packages/doc-regions/`, locked in its
-  `uv.lock`, to check and regenerate mechanical regions. No source is copied
-  into the repository.
-- Copyright (c) 2004-2024 Ned Batchelder. MIT license.
-
-## executablebooks/markdown-it-py — document units
-
-- Source: <https://github.com/executablebooks/markdown-it-py>, published on
-  PyPI as `markdown-it-py` 4.2.0.
-- Used as a pinned Python dependency of `packages/doc-regions/`, locked in its
-  `uv.lock`, to split agent regions into units. No source is copied into the
-  repository.
-- Copyright (c) 2020 ExecutableBookProject. MIT license. It includes
-  markdown-it, Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin, MIT license.
-
-## lycheeverse/lychee — local link check
-
-- Source: <https://github.com/lycheeverse/lychee/releases/tag/lychee-v0.24.2>.
-- Used as a host tool at `~/.local/bin/lychee`, installed from the release's
-  `lychee-x86_64-unknown-linux-gnu.tar.gz` after a SHA-256 check, and run
-  offline by `deno task doc-regions:check`. Nothing is copied into the
-  repository.
-- Copyright (c) 2022 The lychee maintainers. MIT or Apache-2.0, at the user's
-  choice.
-
-## microsoft/markitdown — Wiki evidence conversion
-
-- Source: <https://github.com/microsoft/markitdown>, published on PyPI as
-  `markitdown` 0.1.8 with the `docx`, `pdf`, `pptx` and `xlsx` extras.
-- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
-  in its `uv.lock`, to convert cited raw revisions to Markdown in the cache.
-  No source is copied into the repository.
-- Copyright (c) Microsoft Corporation. MIT license.
-
-## airmang/python-hwpx — HWP and HWPX evidence conversion
-
-- Source: <https://github.com/airmang/python-hwpx>, published on PyPI as
-  `python-hwpx` 6.6.0.
-- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
-  in its `uv.lock`, to read HWP 5.0 and HWPX sources and export Markdown. No
-  source is copied into the repository.
-- Copyright 2025-2026 airmang (Dr. Wily). Apache-2.0.
-
-## tobi/qmd — Wiki candidate search
-
-- Source: <https://github.com/tobi/qmd>, published on npm as `@tobilu/qmd`
-  2.8.3.
-- Used as a pinned npm dependency of `packages/wiki-consistency/`, locked in
-  its `package-lock.json` and installed with `npm ci --ignore-scripts`, to
-  index Wiki pages and converted evidence in the cache and find candidate
-  passages. No source is copied into the repository.
-- Copyright (c) 2024-2026 Tobi Lutke. MIT license.
-
-## mrmlnc/fast-glob — Wiki document scan
-
-- Source: <https://github.com/mrmlnc/fast-glob>, published on npm as
-  `fast-glob` 3.3.3.
-- Used as a pinned npm dependency of `packages/wiki-consistency/`, locked in
-  its `package-lock.json`, to list a vault's pages and converted evidence
-  with the same options qmd uses, so the search index can be checked for
-  staleness. No source is copied into the repository.
-- Copyright (c) Denis Malinochkin. MIT license.
-
-## yaml/pyyaml — Wiki page metadata
-
-- Source: <https://github.com/yaml/pyyaml>, published on PyPI as `PyYAML`
-  6.0.3.
-- Used as a pinned Python dependency of `packages/wiki-consistency/`, locked
-  in its `uv.lock`, to read the front matter of Wiki pages. No source is
-  copied into the repository.
-- Copyright (c) 2017-2021 Ingy döt Net and Copyright (c) 2006-2016 Kirill
-  Simonov. MIT license.
-
-## RbBtSn0w/spec-kit-extensions — MemoryLint audit
-
-- Source:
-  <https://github.com/RbBtSn0w/spec-kit-extensions/releases/tag/memorylint-v1.5.1>,
-  archive `memorylint.zip` with SHA-256
-  `df4b31049dcd7f794e7bbed1460b5f5f5008b12a966939366e354926bb5f6648`.
-- Used by `deno task doc-regions:audit`, which downloads the archive into the
-  user's cache and runs its read-only `scripts/audit_workspace.py`. Nothing is
-  copied into the repository.
-- Copyright (c) 2026 Spec-kit Community. MIT license.
