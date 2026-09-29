@@ -31,7 +31,7 @@ install -m 600 /dev/null ~/.config/verbose-broccoli/chat/jev.env
 
 | Line | Needed for |
 | --- | --- |
-| `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel` |
+| `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel`; Jev needs paid AI Gateway credit, since the free tier refuses it |
 | `TYPESAFE_API_KEY=<key>` | `JEV_PROVIDER=typesafe` |
 | `TEXT_MODEL_API_KEY=<key>`, and optionally `TEXT_MODEL_BASE_URL`, `TEXT_MODEL`, `TEXT_MODEL_REASONING` | Steps that type text (upstream's OpenAI-compatible text helper) |
 

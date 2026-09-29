@@ -178,8 +178,25 @@ time limit.
 
 ## Phase 7: Acceptance, automation and finish
 
-- [ ] T015 Run `npm run workflow` and `npm run verify` on the combined result;
+- [x] T015 Run `npm run workflow` and `npm run verify` on the combined result;
   report the line count against the 300-line budget.
+  - 2026-09-30: merged `develop` (`63fe2fd`) and resolved the notices
+    conflict; `npm run verify -- --task che41-final --base develop` passed
+    (`VERIFIED`) at `495878b`. The document judgment step
+    (`doc-regions:prepare -- --base develop --max-evidence-chars 20000`)
+    sent 236 units in 12 `backfire_verify` requests and one
+    `backfire_classify` request on the development profile, which used
+    993,708 input and 207,009 output tokens. One target unit was out of
+    date and was corrected: the architecture guide said the live provider
+    check waits for the user's key, but Vercel's free tier refuses Jev. The
+    3 contradicted units are in `AGENTS.md` ("Reuse Before Implementing"),
+    report-only, and go to the user. The other 16 units flagged for review
+    describe the constitution, `AGENTS.md`, the README and unchanged
+    sections, and stand. Of the 7 new architecture units, the classifier
+    suggested 2 as mechanical candidates without auto-accepting them; both
+    describe choices, not facts a generator reads, so they stay agent-written.
+    `doc-regions:audit` reported the same 19 MemoryLint `boundary` warnings
+    on the constitution as earlier features. Lines: 282 of 300.
 - [ ] T016 Describe the automation (name, `0 */6 * * *` in `Asia/Seoul`,
   the `develop` worktree, the precheck command with `--notify`, the agent
   prompt, the provider, the empty `0600` credential file it needs) and ask

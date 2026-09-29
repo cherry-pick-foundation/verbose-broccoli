@@ -57,4 +57,6 @@ run's details.
   provider's own launch.
 - GitHub allows 60 unauthenticated API requests an hour per address; a run
   uses two.
-- Without the provider's key, a block with candidates ends with status 3.
+- Without a key for a provider that accepts Jev calls, a block with
+  candidates ends with status 3. Vercel AI Gateway's free tier refuses Jev,
+  so Vercel needs paid credit.

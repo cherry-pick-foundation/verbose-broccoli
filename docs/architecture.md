@@ -321,9 +321,10 @@ package two skills backed by two uv workspace packages.
   file.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
-- Not automated: the live provider check, which waits for the user's key;
-  catching up blocks the laptop slept through; screenshots and scrolling in an
-  Orca tab that is not drawn on screen.
+- Not automated: the live provider check, which waits for a provider that
+  accepts Jev calls, because Vercel AI Gateway's free tier does not include
+  Jev; catching up blocks the laptop slept through; screenshots and scrolling
+  in an Orca tab that is not drawn on screen.
 
 ## Sharing and distribution
 
