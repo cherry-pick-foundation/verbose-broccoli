@@ -138,6 +138,7 @@ test('architecture: dependency directions, cycles, public APIs and package alias
       ['plugins/a/src/domain/alias.ts', 'domain-dependency-direction'],
       ['plugins/a/src/domain/io.ts', 'no-io-packages-in-inner-layers'],
       ['plugins/a/src/domain/sdk.ts', 'no-io-packages-in-inner-layers'],
+      ['plugins/a/src/domain/installed.ts', 'no-io-packages-in-inner-layers'],
       ['scripts/file-subpath.ts', 'no-unresolved-local-imports'],
       ['scripts/prefix.ts', 'no-unresolved-local-imports'],
       [
@@ -157,6 +158,16 @@ test('architecture: dependency directions, cycles, public APIs and package alias
         `${from}: ${rule}\n${JSON.stringify(violations)}`,
       );
     }
+    const selectedEntryResult = await analyzeImportGraph(root, [
+      'plugins/a/src/domain/installed.ts',
+    ]);
+    assert(
+      selectedEntryResult.summary.violations.some(
+        item =>
+          item.from === 'plugins/a/src/domain/installed.ts' &&
+          item.rule.name === 'no-io-packages-in-inner-layers',
+      ),
+    );
     for (const from of [
       'plugins/a/src/domain/allowed.ts',
       'plugins/a/src/application/allowed.ts',

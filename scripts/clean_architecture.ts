@@ -245,11 +245,11 @@ export async function analyzeImportGraph(
       ruleSet: {forbidden},
       validate: true,
       tsPreCompilationDeps: true,
-      exclude: '(^|/)node_modules/|^scripts/vendor/|\\.md$',
+      exclude: '^scripts/vendor/|\\.md$',
       doNotFollow: {
         path: entryPaths
-          ? `^(?!(?:${entryPaths.map(escapeRegExp).join('|')})$)`
-          : '^(?!(?:plugins|packages|scripts|tests)/)',
+          ? `^(?!(?:${entryPaths.map(escapeRegExp).join('|')})$)|(^|/)node_modules/`
+          : '^(?!(?:plugins|packages|scripts|tests)/)|(^|/)node_modules/',
       },
     },
     {alias},

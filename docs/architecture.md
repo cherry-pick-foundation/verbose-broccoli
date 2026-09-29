@@ -250,7 +250,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run
-  doctor` checks them and Node 22. `npm run test:wiki-consistency` runs
+  doctor` checks them and Node.js 24.12.0 or later. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
