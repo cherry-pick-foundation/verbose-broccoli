@@ -127,7 +127,7 @@ async function noTempFiles(temp: string) {
   deepStrictEqual(await readdir(temp), []);
 }
 
-test('300 passes and 301 fails with sizes; both runs leave files, status and index unchanged', async t => {
+void test('300 passes and 301 fails with sizes; both runs leave files, status and index unchanged', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'feature.ts', code(300));
   const beforePass = await snapshot(repo);
@@ -158,7 +158,7 @@ test('300 passes and 301 fails with sizes; both runs leave files, status and ind
   await noTempFiles(temp);
 });
 
-test('400 added lines minus 150 deletions pass at net 250', async t => {
+void test('400 added lines minus 150 deletions pass at net 250', async t => {
   const {repo, temp} = await repository(t, {files: {'old.ts': code(150)}});
   await rm(join(repo, 'old.ts'));
   await put(repo, 'new.ts', code(400));
@@ -168,7 +168,7 @@ test('400 added lines minus 150 deletions pass at net 250', async t => {
   await noTempFiles(temp);
 });
 
-test('clean develop reports net zero', async t => {
+void test('clean develop reports net zero', async t => {
   const {repo, temp} = await repository(t, {feature: false});
   const result = runCheck(repo, temp);
   equal(result.status, 0, result.output);
@@ -176,7 +176,7 @@ test('clean develop reports net zero', async t => {
   await noTempFiles(temp);
 });
 
-test('untracked code counts and symbolic links do not', async t => {
+void test('untracked code counts and symbolic links do not', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'src.ts', code(17));
   const link = spawnSync('ln', ['-s', 'src.ts', 'linked.ts'], {
@@ -190,7 +190,7 @@ test('untracked code counts and symbolic links do not', async t => {
   await noTempFiles(temp);
 });
 
-test('missing develop fails and leaves no temporary files', async t => {
+void test('missing develop fails and leaves no temporary files', async t => {
   const {repo, temp} = await repository(t, {branch: 'main'});
   const result = runCheck(repo, temp);
   notEqual(result.status, 0, result.output);
@@ -198,7 +198,7 @@ test('missing develop fails and leaves no temporary files', async t => {
   await noTempFiles(temp);
 });
 
-test('new approvals in each allowed records area raise the limit and name the file', async t => {
+void test('new approvals in each allowed records area raise the limit and name the file', async t => {
   for (const path of [
     'specs/feature/spec.md',
     '.specify/bugs/BUG-1.md',
@@ -219,7 +219,7 @@ test('new approvals in each allowed records area raise the limit and name the fi
   }
 });
 
-test('largest new approval sets the limit', async t => {
+void test('largest new approval sets the limit', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'feature.ts', code(400));
   await put(repo, 'specs/feature/spec.md', '**Own-code limit**: 450\n');
@@ -231,7 +231,7 @@ test('largest new approval sets the limit', async t => {
   await noTempFiles(temp);
 });
 
-test('approval at or below 300 does not raise the limit', async t => {
+void test('approval at or below 300 does not raise the limit', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'feature.ts', code(301));
   await put(repo, 'specs/feature/spec.md', '**Own-code limit**: 300\n');
@@ -241,7 +241,7 @@ test('approval at or below 300 does not raise the limit', async t => {
   await noTempFiles(temp);
 });
 
-test('approval already present at the merge base is stale', async t => {
+void test('approval already present at the merge base is stale', async t => {
   const {repo, temp} = await repository(t, {
     files: {'specs/old/spec.md': '**Own-code limit**: 450\n'},
   });
@@ -252,7 +252,7 @@ test('approval already present at the merge base is stale', async t => {
   await noTempFiles(temp);
 });
 
-test('quoted approval text and an approval outside the records do not count', async t => {
+void test('quoted approval text and an approval outside the records do not count', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'feature.ts', code(301));
   await put(
@@ -267,7 +267,7 @@ test('quoted approval text and an approval outside the records do not count', as
   await noTempFiles(temp);
 });
 
-test('test paths and file-name suffixes do not count', async t => {
+void test('test paths and file-name suffixes do not count', async t => {
   const {repo, temp} = await repository(t);
   await put(repo, 'tests/under.ts', code(500));
   await put(repo, 'src/helper_test.ts', code(500));
@@ -278,7 +278,7 @@ test('test paths and file-name suffixes do not count', async t => {
   await noTempFiles(temp);
 });
 
-test('hashes in all upstream record forms exclude matching files', async t => {
+void test('hashes in all upstream record forms exclude matching files', async t => {
   const {repo, temp} = await repository(t);
   const copy = code(500);
   const hash = createHash('sha256').update(copy).digest('hex');
@@ -298,7 +298,7 @@ test('hashes in all upstream record forms exclude matching files', async t => {
   await noTempFiles(temp);
 });
 
-test('a patched upstream copy counts in full', async t => {
+void test('a patched upstream copy counts in full', async t => {
   const {repo, temp} = await repository(t);
   const original = code(500);
   const patched = original.replace('= 0;', '= 1;');
@@ -311,7 +311,7 @@ test('a patched upstream copy counts in full', async t => {
   await noTempFiles(temp);
 });
 
-test('non-programming files do not count', async t => {
+void test('non-programming files do not count', async t => {
   const {repo, temp} = await repository(t);
   await put(
     repo,
