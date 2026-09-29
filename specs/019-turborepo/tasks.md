@@ -133,9 +133,34 @@ selection was redone on the merged tree
   - 2026-09-29: Main: constitution 2.2.0 in `b1f8fff` (feat, confirmed by the
     user, D17) and the prose in `d5eb6be`. Only dated history still names
     Deno.
+- [x] T016 [P] Review fixes F1: `backfire:install` syncs the whole workspace;
+  the doctor requires Node.js 24.12 (D19), reports the direct npm
+  dependencies and checks Turborepo; the commit-msg tests run the real
+  `commitlint` script; test helpers fail on a killed child (rows V01, V05,
+  V07, V13, V24, V26 in
+  [evidence/review-findings.md](evidence/review-findings.md)).
+  - 2026-09-29: Codex (`ctx_23530a8e0236`). Both the hook and the
+    `commitlint` script need `--disable-warning=SecurityWarning`, because
+    Node passes the permission flags to npm's children; Main added braces to
+    the hook line for ShellCheck.
+- [x] T017 [P] Review fixes F2: review routing for the new tooling files, the
+  IO-package rule for installed packages, the `docs` directory guard, the
+  Deno-era evidence filter, and test helpers (V02, V03, V04, V13, V14).
+  - 2026-09-29: Codex (`ctx_70ef84e524cf`). Each fix has a case that failed
+    before it.
+- [x] T018 [P] Review fixes F3: the build test compares built locks with the
+  root lock, the dead separator branch in doc-regions goes, three stale
+  `pyproject.toml` comments go, and the root constraints keep only what is
+  needed (V09, V10, V11, V15, D20).
+  - 2026-09-29: Codex (`ctx_3a05d4d03026`). All 78 locked versions stayed
+    the same; the build test rejected an injected 99.99.99 pin.
 - [ ] T015 Main: `npm run verify`; a fresh Claude Code reviewer for the Codex
   code and a fresh Codex reviewer for main's changes; the review record;
   `git flow feature finish`; CHE-32 to Done.
+  - 2026-09-29: Main: three Claude Code reviewers (CR1 to CR3, Opus 5.5 at
+    high effort) and one Codex reviewer (R3) reviewed `9d8af61`; backfire
+    batch 24 selected the findings to fix (T016 to T018) and D19 to D21
+    decided three more. Next: review the fixes, verify, record the review.
 
 ## Dependencies
 

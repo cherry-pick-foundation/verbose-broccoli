@@ -136,7 +136,10 @@ evidence.
 - **Decision**: The work build copies `doc-regions` and `wiki-consistency`
   as today and writes each copy's standalone `uv.lock` the way D7 does. In
   the copied `wiki-consistency/pyproject.toml` only, it replaces
-  `doc-regions = { workspace = true }` with the path source `../doc-regions`.
+  `doc-regions = { workspace = true }` with the path source `../doc-regions`,
+  and, since the `develop` merge made `backfire` a workspace source of
+  `wiki-consistency` too, `backfire = { workspace = true }` with `../backfire`
+  (T012).
   The install and run commands in the work plugin's `wiki-consistency`
   skill stay the same.
 - **Backfire**: `per_project_locks` (0.86) over a plugin-root workspace
@@ -187,6 +190,9 @@ evidence.
 - **Evidence**: the shim's `FsFile` has no `lock` or `unlock`, and Node.js
   24.19 has no file-lock API. The package was last published in 2022-06; the
   report lists that as a maintenance risk.
+- **Limit**: both locks retry 600 times at one-second intervals, so a second
+  `npm run verify` waiting behind a slow check fails with `ELOCKED` after ten
+  minutes; Deno's `FsFile.lock()` waited without a limit (review CR1, N3).
 
 ### Scope change of 2026-09-29
 
@@ -225,6 +231,41 @@ defined", while `@std/path`, `@std/assert`, `@std/testing/mock` and
 - **Backfire**: `package_json_same_fields` (0.85) over nested exports
   counting toward the plugin (0.10), a custom root field (0.025) and dropping
   the empty public API (0.01) ([d18](evidence/decide-d18.json)).
+
+### D19. The Node.js version the doctor requires
+
+- **Decision**: Node.js 24.12.0 or later, in the doctor, its Turborepo
+  description and the commit-msg hook's message. The scripts use
+  `RegExp.escape` (Node.js 24) and type stripping (stable in 24.12.0), and
+  the shipped skill states the same floor; the old "22 or later" let the
+  doctor pass where the checks crash (reviews CR1 F5, CR2 F3).
+- **Backfire**: `floor_24_12` (0.80) over an exact 24.19.0 pin (0.15) and
+  keeping 22 (0.02) ([d19](evidence/decide-d19.json)).
+
+### D20. The root uv constraints
+
+- **Decision**: the root `pyproject.toml` keeps only `typesafe-sdk==0.7.1`
+  (backfire's pin, which uv applies only from the workspace root; FR-013's
+  exception) and `magika<=0.6.3` (it keeps `develop`'s 0.6.2 lock entry for
+  Windows), each with a comment. The four `==` pins of the newer versions
+  go: `uv lock` keeps locked versions anyway, and the pins would silently
+  hold those packages in a later `uv lock --upgrade` (review CR3 F8).
+- **Backfire**: `only_needed` (0.70) over commented pins (0.20) and no
+  change (0.04) ([d20](evidence/decide-d20.json)).
+
+### D21. The lock the repository checks the clean-code skill with
+
+- **Decision**: the root lock stands in. Setup and CI install only the root
+  packages, which pin the skill's direct packages at the skill's versions,
+  so `npm run clean-code`, `test:clean-code` and the workflow's skill scope
+  resolve from the root `node_modules`. The two locks differ in five
+  transitive entries and three entries exist only in the skill's lock
+  (review CR1, N1); the audit workflow still audits the skill's lock. An
+  install of the skill's lock in setup put `node_modules/.bin` symlinks under
+  the plugin, which `test:plugin-skills` rejects as packaged resources.
+- **Backfire**: `root_lock_stands_in` (0.68) over installing the skill's
+  lock (0.18) and aligning the root lock (0.05)
+  ([d21](evidence/decide-d21.json)).
 
 ## Other findings
 

@@ -1,0 +1,68 @@
+{
+  "tool": "backfire_review",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
+  "provider": "compatible",
+  "truncated": false,
+  "safe_to_apply": 0.6,
+  "scores": {
+    "correctness": {
+      "score": 1.78,
+      "confidence": 0.6699999999999999,
+      "probabilities": {
+        "0": 0.02,
+        "1": 0.18,
+        "2": 0.8
+      }
+    },
+    "spec_match": {
+      "score": 1.8599999999999999,
+      "confidence": 0.79,
+      "probabilities": {
+        "0": 0.01,
+        "1": 0.12,
+        "2": 0.87
+      }
+    },
+    "test_gap": {
+      "score": 1.25,
+      "confidence": 0.17499999999999993,
+      "probabilities": {
+        "0": 0.15,
+        "1": 0.45,
+        "2": 0.4
+      }
+    },
+    "blast_radius": {
+      "score": 1,
+      "confidence": 0.55,
+      "probabilities": {
+        "0": 0.15,
+        "1": 0.7,
+        "2": 0.15
+      }
+    }
+  },
+  "weights": {
+    "correctness": 0.4,
+    "spec_match": 0.3,
+    "test_gap": 0.15,
+    "blast_radius": 0.15
+  },
+  "thresholds": {
+    "auto_accept": 0.8,
+    "review_at": 0.5,
+    "composite_floor": 0.7
+  },
+  "action": "escalate",
+  "composite": 0.76625,
+  "reason_codes": [
+    "confidence_below_review"
+  ],
+  "limiting_rubrics": [
+    "test_gap"
+  ],
+  "usage": {
+    "input_tokens": 8337,
+    "output_tokens": 3453
+  }
+}

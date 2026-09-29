@@ -1,87 +1,119 @@
 {
   "tool": "backfire_decide",
-  "model": "deepseek-ai/deepseek-v4.1-flash",
-  "provider": "compatible",
-  "recommendation": {
-    "selected": "package_json_same_fields",
-    "escaped": false,
-    "confidence": 0.8249999999999998,
-    "probabilities": {
-      "package_json_same_fields": 0.85,
-      "nested_exports_count": 0.1,
-      "root_only_custom_field": 0.025,
-      "drop_empty_public_api": 0.01,
-      "ask_user": 0.005,
-      "investigate": 0.005,
-      "none": 0.005
-    }
+  "date": "2026-09-29",
+  "arguments": {
+    "decision": "After Deno is removed, where does scripts/clean_architecture.ts (the repository's import-boundary check built on dependency-cruiser) read each plugin's and package's public exports and local import aliases, which it read from plugins/**/deno.json and packages/**/deno.json until now?",
+    "evidence": "Until now importRules() globbed plugins/**/deno.json and packages/**/deno.json and read name, imports and exports from each; it also reads the root package.json (dependencies, devDependencies, imports) with readPackageConfig(). A config at exactly plugins/<x> or packages/<x> produces a public-api:<owner> rule whose allowed targets are its exports; directories without a config get an empty config, so nothing inside them may be imported from outside. The only such file in the repository was plugins/code/deno.json: {\"publish\": false, \"exports\": {\"./cli\": \"./skills/clean-code/scripts/cli.ts\"}}; it was deleted because Deno is removed (selected row). The skill plugins/code/skills/clean-code now has its own package.json (name, type module, dependencies, no exports). Five root scripts (clean_architecture.ts, docs.ts, doctor.ts, validate_plugins.ts, workflow.ts) import ../plugins/code/skills/clean-code/scripts/cli.ts. With only the root package.json read, npm run workflow --graph policy reports five public-api:plugins/code violations for those imports, and the test suite's fixtures, which declare plugin and package aliases (@platform, @safe, @database, @sdk, @demo/shared) and exports in deno.json files, fail three cases (aliases unresolved, a plugin export outside the plugin no longer throws, a member alias conflict no longer throws). Node.js package.json supports the same three fields (name, exports, imports); Node itself resolves only '#'-prefixed imports keys, but the check builds its own dependency-cruiser alias map from the JSON. No other Deno-era config file exists in plugins/ or packages/.",
+    "candidates": [
+      {
+        "id": "package_json_same_fields",
+        "description": "importRules() reads plugins/**/package.json and packages/**/package.json (outside node_modules) where it read deno.json, with the same fields (name, imports, exports) through the existing readPackageConfig(); a new plugins/code/package.json (private, type module, exports {\"./cli\": \"./skills/clean-code/scripts/cli.ts\"}) replaces the deleted plugins/code/deno.json; the test fixtures write package.json where they wrote deno.json."
+      },
+      {
+        "id": "nested_exports_count",
+        "description": "importRules() reads nested package.json files as in the first option, but no file is added at plugins/code; instead the skill's package.json gets exports {\"./cli\": \"./scripts/cli.ts\"} and the rule logic changes so exports declared by any package.json inside a plugin count toward that plugin's public API."
+      },
+      {
+        "id": "root_only_custom_field",
+        "description": "importRules() keeps reading only the root package.json (as now) and gets each plugin's public exports and aliases from a new custom field in the root package.json; test fixtures move their declarations into that field."
+      },
+      {
+        "id": "drop_empty_public_api",
+        "description": "importRules() keeps reading only the root package.json, and the fallback that gives config-less plugin and package directories an empty public API is removed, so imports into plugins are no longer restricted; the fixture cases for plugin and package aliases and exports are deleted."
+      }
+    ],
+    "requirements": [
+      "The check keeps enforcing each plugin's and package's declared public API and keeps rejecting alias conflicts and exports outside their owner.",
+      "Uses a file format that Node.js or npm defines, not a custom field.",
+      "Needs no new behavior in the rule logic beyond swapping the file it reads."
+    ],
+    "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, the trial is now the real change: Deno is removed completely, with no deno.json anywhere):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
   },
-  "requirements_checked": 3,
-  "checks": [
-    {
-      "candidate": "package_json_same_fields",
-      "requirement": 0,
-      "answer": "supported"
+  "result": {
+    "tool": "backfire_decide",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "recommendation": {
+      "selected": "package_json_same_fields",
+      "escaped": false,
+      "confidence": 0.8249999999999998,
+      "probabilities": {
+        "package_json_same_fields": 0.85,
+        "nested_exports_count": 0.1,
+        "root_only_custom_field": 0.025,
+        "drop_empty_public_api": 0.01,
+        "ask_user": 0.005,
+        "investigate": 0.005,
+        "none": 0.005
+      }
     },
-    {
-      "candidate": "package_json_same_fields",
-      "requirement": 1,
-      "answer": "supported"
-    },
-    {
-      "candidate": "package_json_same_fields",
-      "requirement": 2,
-      "answer": "supported"
-    },
-    {
-      "candidate": "nested_exports_count",
-      "requirement": 0,
-      "answer": "supported"
-    },
-    {
-      "candidate": "nested_exports_count",
-      "requirement": 1,
-      "answer": "supported"
-    },
-    {
-      "candidate": "nested_exports_count",
-      "requirement": 2,
-      "answer": "contradicted"
-    },
-    {
-      "candidate": "root_only_custom_field",
-      "requirement": 0,
-      "answer": "supported"
-    },
-    {
-      "candidate": "root_only_custom_field",
-      "requirement": 1,
-      "answer": "contradicted"
-    },
-    {
-      "candidate": "root_only_custom_field",
-      "requirement": 2,
-      "answer": "contradicted"
-    },
-    {
-      "candidate": "drop_empty_public_api",
-      "requirement": 0,
-      "answer": "contradicted"
-    },
-    {
-      "candidate": "drop_empty_public_api",
-      "requirement": 1,
-      "answer": "supported"
-    },
-    {
-      "candidate": "drop_empty_public_api",
-      "requirement": 2,
-      "answer": "contradicted"
+    "requirements_checked": 3,
+    "checks": [
+      {
+        "candidate": "package_json_same_fields",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "package_json_same_fields",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "package_json_same_fields",
+        "requirement": 2,
+        "answer": "supported"
+      },
+      {
+        "candidate": "nested_exports_count",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "nested_exports_count",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "nested_exports_count",
+        "requirement": 2,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "root_only_custom_field",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "root_only_custom_field",
+        "requirement": 1,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "root_only_custom_field",
+        "requirement": 2,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "drop_empty_public_api",
+        "requirement": 0,
+        "answer": "contradicted"
+      },
+      {
+        "candidate": "drop_empty_public_api",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "drop_empty_public_api",
+        "requirement": 2,
+        "answer": "contradicted"
+      }
+    ],
+    "warnings": [],
+    "usage": {
+      "input_tokens": 4021,
+      "output_tokens": 8557
     }
-  ],
-  "warnings": [],
-  "usage": {
-    "input_tokens": 4021,
-    "output_tokens": 8557
   }
 }

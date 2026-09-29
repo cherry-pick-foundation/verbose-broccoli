@@ -1,0 +1,83 @@
+{
+  "tool": "backfire_decide",
+  "date": "2026-09-29",
+  "arguments": {
+    "decision": "Should the repository's own checks run the shipped clean-code skill with the skill's own package-lock.json, or keep resolving the skill's imports from the root node_modules?",
+    "evidence": "The clean-code skill (plugins/code/skills/clean-code) ships its own package.json, package-lock.json and .npmrc; users run 'npm ci --prefix <skill-root>' and then 'node <skill-root>/scripts/clean_code.ts' (D16). In the repository, orca.yaml and the GitHub check workflows run npm ci only at the root, and the root package.json pins the skill's direct packages at the same versions (eslint 10.10.0, typescript-eslint 8.70.0, @typescript-eslint/utils 8.70.0, typescript 6.0.3, and the JSR aliases), so 'npm run clean-code', 'test:clean-code' and the workflow's skill scope resolve from the root node_modules. The two locks differ in 5 transitive entries (for example picomatch 4.0.7 in the skill lock, 4.0.5 at the root) and 3 transitive entries exist only in the skill lock. On develop the repository ran the skill with its own deno.json and deno.lock --frozen. The audit workflow runs npm audit on the skill's lock. An earlier attempt to run 'npm ci --prefix plugins/code/skills/clean-code' in setup made test:plugin-skills fail, because the test treats every symlink under a plugin's skills directory as a non-local packaged resource and node_modules/.bin holds symlinks; node_modules is gitignored and not shipped.",
+    "candidates": [
+      {
+        "id": "root_lock_stands_in",
+        "description": "Keep the current setup and record in the report that the root lock stands in for the skill's lock in the repository's checks, with the transitive differences named."
+      },
+      {
+        "id": "install_skill_lock",
+        "description": "Run 'npm ci --prefix plugins/code/skills/clean-code --ignore-scripts --no-audit --no-fund' in orca.yaml and the check workflows, make test:plugin-skills skip node_modules, so the repository runs the skill with the lock users install; the root ESLint pins can then go."
+      },
+      {
+        "id": "align_root_lock",
+        "description": "Change the root lock's transitive versions to match the skill's lock."
+      }
+    ],
+    "requirements": [
+      "The repository's checks of the clean-code skill run what the skill's users install, or the report names the difference.",
+      "No change to the user's global tools."
+    ],
+    "priorities": "User and repository priorities (verbose-broccoli, feature/turborepo, Linear CHE-32, the trial is now the real change: Deno is removed completely; this is the fix round after the final reviews, before merging into develop, and a review before develop favors speed):\n1. The user chose to move the TypeScript side from Deno to Node.js and to run the three Python packages (backfire, doc-regions, wiki-consistency) as one native uv workspace under Turborepo's experimental Python support.\n2. Change only the parts that must change; leave everything else as it is. The smallest change that reaches the goal wins.\n3. AGENTS.md reuse order: first existing repository, runtime, standard-library or dependency functionality; then a stable upstream dependency; then an unstable upstream with the smallest patch; last, minimal glue. Minimize locally owned code; prefer reducing locally owned implementation over reducing dependency count. If the goal needs substantial new local implementation, stop and report instead.\n4. Requirements that stay: built backfire plugins install offline, stay self-contained and write only into their own .venv; readiness proves the server runs from its own .venv.\n5. Dropping a check, changing scope, changing governance documents, or changing the user's global tools (Node, npm, uv, Codex) is the user's decision, not the agent's.\n"
+  },
+  "result": {
+    "tool": "backfire_decide",
+    "model": "deepseek-ai/deepseek-v4.1-flash",
+    "provider": "compatible",
+    "recommendation": {
+      "selected": "root_lock_stands_in",
+      "escaped": false,
+      "confidence": 0.6160000000000001,
+      "probabilities": {
+        "root_lock_stands_in": 0.68,
+        "install_skill_lock": 0.18,
+        "align_root_lock": 0.05,
+        "ask_user": 0.03,
+        "investigate": 0.04,
+        "none": 0.02
+      }
+    },
+    "requirements_checked": 2,
+    "checks": [
+      {
+        "candidate": "root_lock_stands_in",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "root_lock_stands_in",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "install_skill_lock",
+        "requirement": 0,
+        "answer": "supported"
+      },
+      {
+        "candidate": "install_skill_lock",
+        "requirement": 1,
+        "answer": "supported"
+      },
+      {
+        "candidate": "align_root_lock",
+        "requirement": 0,
+        "answer": "unknown"
+      },
+      {
+        "candidate": "align_root_lock",
+        "requirement": 1,
+        "answer": "supported"
+      }
+    ],
+    "warnings": [],
+    "usage": {
+      "input_tokens": 2523,
+      "output_tokens": 2675
+    }
+  }
+}

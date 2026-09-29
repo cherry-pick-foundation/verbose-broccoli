@@ -1,0 +1,545 @@
+{
+  "tool": "backfire_classify",
+  "date": "2026-09-29",
+  "batch": 24,
+  "purpose": "Select which findings of the final reviews of the Deno removal must be fixed before the feature merges into develop; only must_change findings will be edited now.",
+  "classes": [
+    {
+      "id": "must_change",
+      "description": "The finding shows a defect the feature introduced and the fix is within the feature's scope: compared with develop, a command, check, test, guard or documented step now fails, silently stops checking something, or states something false, and no recorded decision or user choice accepts that loss. Examples: an install command that now removes other packages from a shared environment; a guard that tests a method as a property so it never fires; a review-routing pattern that lost the files replacing deno.json; a test that compares an output with itself; a comment that describes removed settings; a version floor lower than the features the scripts use. Takes precedence over can_stay when the evidence shows the regression."
+    },
+    {
+      "id": "can_stay",
+      "description": "The site works as intended and the finding is an optional cleanup, a style preference, a duplication that existed as a recorded design, or a loss a recorded decision already accepts (for example D4's weaker Node permission scopes, or the user's rule to remove every Deno mention). Examples: a helper repeated in several files that behaves correctly; a heuristic that is correct for every layout the repository builds; a note that only needs a sentence in the report. Also use it when changing the site would widen the feature beyond the Deno removal without fixing a regression."
+    },
+    {
+      "id": "manual_review",
+      "description": "The finding needs a choice between reasonable designs or a user decision before any edit: for example which Node version to require, or whether the repository checks the shipped skill against its own lock. Use it when the evidence supports a change but more than one resolution fits and none is recorded."
+    }
+  ],
+  "context": "Feature CHE-32 on branch feature/turborepo: the repository's TypeScript tooling moved from Deno to Node.js 24.19 and Turborepo 2.11.5, Deno was removed completely (the user's decision of 2026-09-29), the three Python packages became one root uv workspace, and develop 8ce9b2a was merged. Four fresh reviewers (three Claude Code, one Codex) reviewed the final diff read-only against develop and the requirements. Each item below is one review finding with its evidence. Requirements: FR-003 every check that deno task check ran must still run and fail when it fails; FR-004 reuse runtime and dependency features before local code; FR-006 built plugins install offline and stay self-contained; FR-007 the doctor checks the new environments and names the repair command; FR-011 no Deno anywhere; FR-013 newer develop pins except the recorded typesafe-sdk exception. AGENTS.md: the smallest change that satisfies the request; minimize locally owned code; a review before merging into develop favors speed. Recorded decisions include D4 (Node's permission model; its weaker scopes accepted by the user, losses to be listed in the report), D6 (one root .venv synced with --all-packages), D7 and D10 (a lock generated inside each built plugin copy), D12 (proper-lockfile), D16 (the clean-code skill on Node with its own package.json and lock), D18 (the import-boundary check reads package.json). Only must_change findings will be fixed now; manual_review findings go to a decision; can_stay findings are listed in the report.\n",
+  "items": [
+    {
+      "id": "V01",
+      "file": "package.json",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "package.json:30: CR1 F1, CR3 F1: 'backfire:install' is still 'uv sync --project packages/backfire --frozen --extra education'. In the root workspace it syncs the shared root .venv to backfire alone: a --dry-run prints 'Would uninstall 32 packages' including doc-regions and wiki-consistency; afterwards the doctor's 'uv sync --locked --check --all-packages --extra education' exits 1 and the doc-regions and wiki-consistency tests fail. On develop it wrote only packages/backfire/.venv. docs/backfire.md:20 tells users to run it first, and .github/workflows/check.yml:50 runs it before npm run check. Suggested: 'uv sync --locked --all-packages --extra education', the command orca.yaml and the doctor's repair text use."
+    },
+    {
+      "id": "V02",
+      "file": "scripts/workflow.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/workflow.ts:28-29; scripts/workflow_test.ts:81-85: CR1 F2, CR2 F1: the workflow's reviewPaths regex dropped deno.jsonc?|deno.lock without adding their replacements. A probe gives turbo.json DIRECT, uv.lock DIRECT, pyproject.toml DIRECT, .npmrc DIRECT; on develop deno.json, deno.lock and packages/backfire/uv.lock (via ^packages/) selected REVIEW. The test list now names package.json twice where develop listed deno.jsonc, deno.lock and package.json. Suggested: add turbo\\.json, uv\\.lock, pyproject\\.toml and \\.npmrc to the pattern and replace the duplicate in the test."
+    },
+    {
+      "id": "V03",
+      "file": "scripts/clean_architecture.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/clean_architecture.ts:24-25,225,247: CR1 F3: the no-io-packages-in-inner-layers rule matches the import against the dependency's path and excludes node_modules/. Once npm installs a package, dependency-cruiser resolves it to node_modules/<name>/..., which the pattern misses: a probe with plugins/a/src/domain/io.ts importing hono gave no violation with node_modules/hono present and the violation without it. On develop Deno ran with nodeModulesDir none, so npm imports stayed unresolved and the rule caught them. No IO package is installed and no domain/ file exists today, so nothing fails now. Suggested: also forbid (^|/)node_modules/<ioPackages>/, with a fixture that installs a package."
+    },
+    {
+      "id": "V04",
+      "file": "scripts/docs.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/docs.ts:572: CR1 F4: 'if (!docs?.isDirectory)' kept develop's Deno property form, but info() now returns a Node Stats where isDirectory is a method and always truthy, so the guard never fires: with docs as a regular file, syncReferenceDocs(root, 'check') failed later with 'package.json: Expected a regular input file.' instead of 'docs: Expected the repository documentation directory.' It is the only such site in the non-test scripts. Suggested: docs?.isDirectory(), with a test case."
+    },
+    {
+      "id": "V05",
+      "file": "scripts/doctor.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/doctor.ts:197-199; turbo.json:22; scripts/git-hooks/commit-msg:15; scripts/doctor_test.ts:115,133: CR1 F5, CR2 F3: the doctor and the commit-msg hook accept Node.js 22 or later, but the scripts use RegExp.escape (Node 24: scripts/clean_architecture.ts:26, workflow_graph.ts:78, workflow_plan.ts:68) and type stripping, the skill's SKILL.md and engines require 24.12.0, and CI pins 24.19.0. On develop the doctor pinned the exact runtime (Deno 2.9.6) and the test asserted it; the branch test asserts only version >= 22. So the doctor reports PASS on Node 22 where the checks crash. Resolutions: pin 24.19.0 as Deno was pinned, or require at least 24.12.0, in the doctor, its description, the hook message and the test."
+    },
+    {
+      "id": "V06",
+      "file": "scripts/constitution_version.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/constitution_version.ts:31; doctor.ts:80; docs.ts:176; workflow_git.ts:17; workflow_skills.ts:65; workflow_verify.ts:154; docs.ts:30; workflow_verify.ts:11: CR1 F6: six near-identical promise wrappers map execFile to a {success, code, stdout, stderr} result (written by the trial when Deno.Command became node:child_process, decision D1), and the proper-lockfile type is hand-declared twice through createRequire. They behave correctly. Suggested: one shared helper module or util.promisify(execFile), and @types/proper-lockfile."
+    },
+    {
+      "id": "V07",
+      "file": "scripts/commit_msg_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/commit_msg_test.ts:192-196; package.json commitlint script: CR2 F2: the commit-msg tests rewrite the fixture's scripts.commitlint to a NODE_OPTIONS without the real script's '--permission --allow-fs-read=* --allow-child-process', so the hook tests no longer run the real commitlint script (on develop the fixture copied deno.json unchanged). A scratch reproduction with the real package.json shows the real script works but prints 'SecurityWarning: The flag --allow-child-process must be used with extreme caution' on every commit. Suggested: run the real script in the fixture and add --disable-warning=SecurityWarning to the real script's NODE_OPTIONS."
+    },
+    {
+      "id": "V08",
+      "file": "scripts/docs_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/docs_test.ts:350; specs/019-turborepo/report.md:175-180: CR2 F4: develop's test queried the net permission; Node 24.19 has no network permission flag, so help commands started by scripts/docs.ts can reach the network. The branch test checks only fs.write, child and one read path, but its name still says 'help cannot write, spawn, use network', and the report's permissions list omits the lost network restriction. Suggested: rename the test to what it checks and add the network loss to the report."
+    },
+    {
+      "id": "V09",
+      "file": "packages/backfire/tests/test_build.py",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "packages/backfire/tests/test_build.py:122-125,143,163: CR3 F2: the build test takes the expected uv.lock bytes from the built output itself, so it compares the built lock with itself; on develop the copied lock was compared byte for byte with the source lock. No other test reads a built lock. If lock_copy mis-wrote the pins, the test would still pass. The versions are right today. Suggested: compare each built lock's name/version pairs with the root lock's (or uv export output)."
+    },
+    {
+      "id": "V10",
+      "file": "packages/doc-regions/src/doc_regions/__main__.py",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "packages/doc-regions/src/doc_regions/__main__.py:25-27; packages/doc-regions/tests/test_requests.py:372: CR3 F3: the comment says 'npm run forwards a second separator after the positional config path', but npm drops the first '--': a probe script printed ['prepare', 'cfg.toml', '--base', 'develop'] for 'npm run -s p -- --base develop'. A '--' arrives only if the user types '-- --'. The documented call is 'npm run doc-regions:prepare -- --base develop', so lines 26-27 never run; the Deno task behavior they served is gone. The covering test is still named test_cli_accepts_deno_task_separator. Suggested: remove lines 25-27 and that test, or make the comment true."
+    },
+    {
+      "id": "V11",
+      "file": "packages/backfire/pyproject.toml",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "packages/backfire/pyproject.toml:29; packages/doc-regions/pyproject.toml:23; packages/wiki-consistency/pyproject.toml:30: CR3 F4: the comment 'Keep install metadata inside .venv' described egg_base = '.venv', which the move to uv_build removed; it now sits above [tool.uv.build-backend], which selects modules and places no metadata. These comments were left as review rows in the trial. Suggested: delete the three comments or say which modules the table selects."
+    },
+    {
+      "id": "V12",
+      "file": "scripts/cli_contract_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/cli_contract_test.ts:210-233: CR2 F7: the copied clean-code skill test installs with 'npm ci --prefer-offline' (network allowed) and runs the checker without the permission model; develop copied the four runtime files, ran with --cached-only and granted only --allow-read --allow-env. The new form matches D16 and SKILL.md. Suggested (optional): --offline in the test, and --permission --allow-fs-read=* for the run."
+    },
+    {
+      "id": "V13",
+      "file": "scripts/wiki_raw_import_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/wiki_raw_import_test.ts:58,148,978,1150 and eight other command helpers: CR2 F9: every test command helper maps a missing exit status (a signal kill) to 1. wiki_raw_import_test.ts:148 kills a child after 30 seconds, which then resolves with code 1; develop used AbortSignal.timeout(30_000), which made output() reject. Checks such as code !== 0 at :978 and :1150 would pass for a hung child. Suggested: fail the helper when signal is set."
+    },
+    {
+      "id": "V14",
+      "file": "scripts/workflow_verify.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/workflow_verify.ts:71-80: CR1 N2: to keep old Deno-era records from breaking npm run verify, load() drops every evidence record whose context lacks node_version before validate(). That also hides a malformed or truncated new record that develop would have rejected. No test covers it. Suggested: skip only records that carry deno_version, and add a test."
+    },
+    {
+      "id": "V15",
+      "file": "pyproject.toml",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "pyproject.toml:2-10: CR3 F8: the root constraints pin starlette, openai, pyjwt and sse-starlette with == and cap magika<=0.6.3 without a comment; FR-013 needs only typesafe-sdk==0.7.1 at the root (member constraints are ignored), since uv lock keeps locked versions. They also make a later uv lock --upgrade silently keep these packages. Suggested: a comment pointing to FR-013, or keep only typesafe-sdk."
+    },
+    {
+      "id": "V16",
+      "file": "scripts/doctor_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/doctor_test.ts:401: CR2 F11: a test is still named 'a missing or stale doc-regions environment fails with sync guidance' but now checks the root uv workspace (--all-packages)."
+    },
+    {
+      "id": "V17",
+      "file": "orca.yaml",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "orca.yaml; .github/workflows/check.yml; scripts/workflow_skills.ts:67: CR1 N1: setup and CI run npm ci only at the root, and the skill directory has no node_modules, so npm run clean-code, test:clean-code and the workflow's skill scope resolve the skill's imports from the root node_modules. The two locks differ in 5 transitive entries (for example picomatch 4.0.7 in the skill lock, 4.0.5 at the root) and 3 are only in the skill lock. On develop the tasks ran the skill with its own deno.json and deno.lock --frozen. An earlier per-skill npm ci in setup made test:plugin-skills fail, because node_modules/.bin symlinks count as packaged resources. Resolutions: install the skill's lock in setup and CI (and make the packaged-resource test skip node_modules), or record that the root lock stands in."
+    },
+    {
+      "id": "V18",
+      "file": "docs/architecture.md",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "docs/architecture.md:11,22: R3 F1: docs/architecture.md:11 says only the clean-code skill has its own npm package manifest, but plugins/code/package.json (D18, the ./cli export for the import-boundary check) is a second package.json at the plugin root. Suggested: say that the plugin-root file is import-boundary metadata and the skill's is its dependency manifest."
+    },
+    {
+      "id": "V19",
+      "file": "specs/019-turborepo/evidence/decide-d18.json",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "specs/019-turborepo/evidence/decide-d18.json: R3 note 2: the saved D18 decision has only the tool result, not the arguments (question, evidence, candidates, requirements, priorities), unlike decide-d17.json, so a reader cannot audit its inputs (FR-002)."
+    },
+    {
+      "id": "V20",
+      "file": "scripts/docs_test.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/docs_test.ts:77: CR2 F10: docs_test.ts adds a stubBuiltin helper with hand-written restore() calls in try/finally, where node:test's t.mock.method records calls and restores at the end of the test; six test files each define the same 15-line commandOutput wrapper. They behave correctly."
+    },
+    {
+      "id": "V21",
+      "file": "packages/backfire/src/backfire_tools/build.py",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "packages/backfire/src/backfire_tools/build.py:66-92: CR3 F6: lock_copy writes the exported pins into the copy's pyproject.toml, runs uv lock --offline, then restores the file, so the built lock's manifest lists constraints the file lacks and 'uv lock --check --offline' fails in all four built projects. Installs use --frozen and work. The trial report already lists this as a behavior difference (D7, D10)."
+    },
+    {
+      "id": "V22",
+      "file": "packages/backfire/src/backfire/ready.py",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "packages/backfire/src/backfire/ready.py:186-193,157: CR3 F5: _project_root treats the package as a workspace member when its parent directory is named packages and the grandparent has a pyproject.toml; uv workspace dir answers the same question. It misfires only if a plugin is built into a directory named packages under a pyproject.toml. The message 'this component's .venv' is inaccurate in the workspace. Optional."
+    },
+    {
+      "id": "V23",
+      "file": "package.json",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "package.json:33-41; turbo.json:48-126: CR1 N4, CR3 F9: the Python members' pytest commands are defined in package.json and again in turbo.json (the graph uses the turbo.json copies); develop's tasks first checked for the environment and printed the repair command, neither copy does now; the doctor still names the repair. This layout is the trial's design (members run through Turborepo's Python support)."
+    },
+    {
+      "id": "V24",
+      "file": "scripts/doctor.ts",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/doctor.ts:286: CR1 N5: the doctor now reports every entry in package-lock.json (all transitive packages keyed by node_modules path) instead of the direct dependencies, and no longer throws on a missing locked dependency. Written by the trial (T003) when deno.lock became package-lock.json."
+    },
+    {
+      "id": "V25",
+      "file": "biome.json",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "biome.json:49 (deleted Deno entry); scripts/clean_architecture_test.ts:163-170: CR2 F5: Biome's deniedGlobals for domain code lost 'Deno' (Bun remains), selected by the user's rule of no Deno anywhere (row X140); domain code can call Deno.* without a lint error. Denying a global does not require or invoke Deno."
+    },
+    {
+      "id": "V26",
+      "file": "scripts/doctor.ts (no Turborepo probe)",
+      "lines": [],
+      "kind": "review_finding",
+      "text": "scripts/doctor.ts (no Turborepo probe): CR2 F6: FR-007 names Turborepo, but the doctor has no turbo --version probe; Turborepo is covered only as a package of the root npm lock check (report.rootNpm), which names npm ci as the repair."
+    }
+  ],
+  "results": {
+    "V08": {
+      "id": "V08",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.2,
+        "can_stay": 0.75,
+        "manual_review": 0.05
+      },
+      "confidence": 0.625,
+      "margin": 0.55,
+      "top_probability": 0.75,
+      "decision": "review"
+    },
+    "V09": {
+      "id": "V09",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.96,
+        "can_stay": 0.02,
+        "manual_review": 0.02
+      },
+      "confidence": 0.94,
+      "margin": 0.94,
+      "top_probability": 0.96,
+      "decision": "auto"
+    },
+    "V10": {
+      "id": "V10",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.88,
+        "can_stay": 0.07,
+        "manual_review": 0.05
+      },
+      "confidence": 0.8199999999999998,
+      "margin": 0.81,
+      "top_probability": 0.88,
+      "decision": "auto"
+    },
+    "V11": {
+      "id": "V11",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.92,
+        "can_stay": 0.06,
+        "manual_review": 0.02
+      },
+      "confidence": 0.8799999999999999,
+      "margin": 0.8600000000000001,
+      "top_probability": 0.92,
+      "decision": "auto"
+    },
+    "V12": {
+      "id": "V12",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.04,
+        "can_stay": 0.92,
+        "manual_review": 0.04
+      },
+      "confidence": 0.8799999999999999,
+      "margin": 0.88,
+      "top_probability": 0.92,
+      "decision": "auto"
+    },
+    "V13": {
+      "id": "V13",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.92,
+        "can_stay": 0.04,
+        "manual_review": 0.04
+      },
+      "confidence": 0.8799999999999999,
+      "margin": 0.88,
+      "top_probability": 0.92,
+      "decision": "auto"
+    },
+    "V14": {
+      "id": "V14",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.86,
+        "can_stay": 0.04,
+        "manual_review": 0.1
+      },
+      "confidence": 0.7899999999999998,
+      "margin": 0.76,
+      "top_probability": 0.86,
+      "decision": "auto"
+    },
+    "V01": {
+      "id": "V01",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.97,
+        "can_stay": 0.02,
+        "manual_review": 0.01
+      },
+      "confidence": 0.955,
+      "margin": 0.95,
+      "top_probability": 0.97,
+      "decision": "auto"
+    },
+    "V02": {
+      "id": "V02",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.96,
+        "can_stay": 0.03,
+        "manual_review": 0.01
+      },
+      "confidence": 0.94,
+      "margin": 0.9299999999999999,
+      "top_probability": 0.96,
+      "decision": "auto"
+    },
+    "V03": {
+      "id": "V03",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.9,
+        "can_stay": 0.08,
+        "manual_review": 0.02
+      },
+      "confidence": 0.8499999999999999,
+      "margin": 0.8200000000000001,
+      "top_probability": 0.9,
+      "decision": "auto"
+    },
+    "V04": {
+      "id": "V04",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.97,
+        "can_stay": 0.02,
+        "manual_review": 0.01
+      },
+      "confidence": 0.955,
+      "margin": 0.95,
+      "top_probability": 0.97,
+      "decision": "auto"
+    },
+    "V05": {
+      "id": "V05",
+      "classification": "manual_review",
+      "probabilities": {
+        "must_change": 0.25,
+        "can_stay": 0.05,
+        "manual_review": 0.7
+      },
+      "confidence": 0.5499999999999999,
+      "margin": 0.44999999999999996,
+      "top_probability": 0.7,
+      "decision": "review"
+    },
+    "V06": {
+      "id": "V06",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.03,
+        "can_stay": 0.95,
+        "manual_review": 0.02
+      },
+      "confidence": 0.9249999999999999,
+      "margin": 0.9199999999999999,
+      "top_probability": 0.95,
+      "decision": "auto"
+    },
+    "V07": {
+      "id": "V07",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.85,
+        "can_stay": 0.12,
+        "manual_review": 0.03
+      },
+      "confidence": 0.7749999999999998,
+      "margin": 0.73,
+      "top_probability": 0.85,
+      "decision": "auto"
+    },
+    "V22": {
+      "id": "V22",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.05,
+        "can_stay": 0.9,
+        "manual_review": 0.05
+      },
+      "confidence": 0.8499999999999999,
+      "margin": 0.85,
+      "top_probability": 0.9,
+      "decision": "auto"
+    },
+    "V23": {
+      "id": "V23",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.15,
+        "can_stay": 0.8,
+        "manual_review": 0.05
+      },
+      "confidence": 0.7000000000000001,
+      "margin": 0.65,
+      "top_probability": 0.8,
+      "decision": "review"
+    },
+    "V24": {
+      "id": "V24",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.85,
+        "can_stay": 0.05,
+        "manual_review": 0.1
+      },
+      "confidence": 0.7749999999999998,
+      "margin": 0.75,
+      "top_probability": 0.85,
+      "decision": "auto"
+    },
+    "V25": {
+      "id": "V25",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.05,
+        "can_stay": 0.9,
+        "manual_review": 0.05
+      },
+      "confidence": 0.8499999999999999,
+      "margin": 0.85,
+      "top_probability": 0.9,
+      "decision": "auto"
+    },
+    "V26": {
+      "id": "V26",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.85,
+        "can_stay": 0.05,
+        "manual_review": 0.1
+      },
+      "confidence": 0.7749999999999998,
+      "margin": 0.75,
+      "top_probability": 0.85,
+      "decision": "auto"
+    },
+    "V15": {
+      "id": "V15",
+      "classification": "manual_review",
+      "probabilities": {
+        "must_change": 0.15,
+        "can_stay": 0.25,
+        "manual_review": 0.6
+      },
+      "confidence": 0.39999999999999997,
+      "margin": 0.35,
+      "top_probability": 0.6,
+      "decision": "review"
+    },
+    "V16": {
+      "id": "V16",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.05,
+        "can_stay": 0.9,
+        "manual_review": 0.05
+      },
+      "confidence": 0.8499999999999999,
+      "margin": 0.85,
+      "top_probability": 0.9,
+      "decision": "auto"
+    },
+    "V17": {
+      "id": "V17",
+      "classification": "manual_review",
+      "probabilities": {
+        "must_change": 0.1,
+        "can_stay": 0.1,
+        "manual_review": 0.8
+      },
+      "confidence": 0.7000000000000001,
+      "margin": 0.7000000000000001,
+      "top_probability": 0.8,
+      "decision": "review"
+    },
+    "V18": {
+      "id": "V18",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.75,
+        "can_stay": 0.15,
+        "manual_review": 0.1
+      },
+      "confidence": 0.625,
+      "margin": 0.6,
+      "top_probability": 0.75,
+      "decision": "review"
+    },
+    "V19": {
+      "id": "V19",
+      "classification": "must_change",
+      "probabilities": {
+        "must_change": 0.55,
+        "can_stay": 0.3,
+        "manual_review": 0.15
+      },
+      "confidence": 0.32500000000000007,
+      "margin": 0.25000000000000006,
+      "top_probability": 0.55,
+      "decision": "review"
+    },
+    "V20": {
+      "id": "V20",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.05,
+        "can_stay": 0.9,
+        "manual_review": 0.05
+      },
+      "confidence": 0.8499999999999999,
+      "margin": 0.85,
+      "top_probability": 0.9,
+      "decision": "auto"
+    },
+    "V21": {
+      "id": "V21",
+      "classification": "can_stay",
+      "probabilities": {
+        "must_change": 0.25,
+        "can_stay": 0.65,
+        "manual_review": 0.1
+      },
+      "confidence": 0.47500000000000003,
+      "margin": 0.4,
+      "top_probability": 0.65,
+      "decision": "review"
+    }
+  }
+}
