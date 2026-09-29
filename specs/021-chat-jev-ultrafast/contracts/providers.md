@@ -7,7 +7,9 @@ Applies to `packages/jev-ultrafast/src/jev_ultrafast/model.py` and
 ## Configuration
 
 `providers.toml` holds one table per provider. It is the only place that
-names a provider's address, headers, model or credential variable.
+names a provider's address, headers or credential variable, and Vercel's
+model. TypeSafe's model stays upstream's `TYPESAFE_MODEL` environment
+variable (default `jev-latest`), so the TypeSafe request is unchanged.
 
 ```toml
 [typesafe]

@@ -173,8 +173,10 @@ compare it with the recorded interval.
   upstream with its reason.
 - **FR-002**: Jev Ultrafast's Jev calls MUST go to the provider selected by
   configuration: TypeSafe or Vercel AI Gateway. Each provider's address,
-  headers, model name and credential variable name MUST come from a
-  configuration file.
+  headers and credential variable name, and Vercel's model name, MUST come
+  from a configuration file. TypeSafe's model keeps upstream's setting, the
+  `TYPESAFE_MODEL` environment variable with the default `jev-latest`, so
+  the TypeSafe request stays exactly upstream's.
 - **FR-003**: The Vercel request and answer conversion MUST follow jev-mcp
   0.9.0's Vercel carrier, which that release takes from its locked dependency
   `@jkudish/jev-agent-tools` 0.1.2.
@@ -232,7 +234,7 @@ compare it with the recorded interval.
 - **SC-002**: A run with no new offers finishes in under 30 seconds and makes
   no Jev call; a run with candidates makes exactly one Jev call.
 - **SC-003**: At the schedule of 4 runs a day, Jev calls stay below 125 a
-  month, which costs well under one cent at Jev's listed price once a
+  month, which costs about 1 to 2 cents at Jev's listed price once a
   provider accepts the calls (research R10).
 - **SC-004**: The recorded average interval can be recomputed from the
   recorded data to the same value.

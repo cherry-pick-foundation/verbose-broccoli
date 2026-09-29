@@ -237,8 +237,10 @@ At 4 runs a day that is at most 124 calls in a 31-day month. Vercel lists
 Jev at $0.042 per million input tokens, served by `typesafe-ai` and
 `digitalocean` (<https://vercel.com/ai-gateway/models/jev>, read
 2026-09-30); the tracker recorded OpenRouter's price as "$0.042/M input
-tokens and $0.00/M output tokens". At a few thousand input tokens per call,
-a month of runs costs well under one cent.
+tokens and $0.00/M output tokens". The size of a real request was not
+measured. At 2,000 to 3,000 input tokens per call, 124 calls cost
+124 × 2,000 × $0.042 / 1,000,000 ≈ $0.010 to
+124 × 3,000 × $0.042 / 1,000,000 ≈ $0.016 a month, so about 1 to 2 cents.
 
 **Finding (2026-09-30)**: Jev is not available on Vercel AI Gateway's free
 tier, so the monthly free credit cannot pay for it. With the user's key,

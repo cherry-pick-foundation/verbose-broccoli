@@ -38,11 +38,15 @@ left afterwards.
 ## Live search without a key
 
 ```sh
-install -m 600 /dev/null ~/.config/verbose-broccoli/chat/jev.env   # only if missing
-JEV_PROVIDER=vercel uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/chat/jev.env \
+empty=$(mktemp "${XDG_RUNTIME_DIR:?}/credit-offers-empty.XXXXXX")   # mode 0600
+env -u AI_GATEWAY_API_KEY JEV_PROVIDER=vercel uv run --frozen --offline --no-sync \
+  --env-file "$empty" \
   --package credit-offers credit-offers --end <a past block boundary>
+rm -- "$empty"
 ```
+
+The check uses its own empty file, so the real credential file is never
+created, read or changed.
 
 Expected: a block with no new offer exits 1 with `jev_calls=0`; a block with
 candidates exits 3 naming `AI_GATEWAY_API_KEY`, and prints no key.

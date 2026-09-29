@@ -46,7 +46,7 @@ block has no new candidate, otherwise 1.
 | 3 | The tracker, GitHub, the provider or the notification failed; the message names it and never shows a key |
 
 An Orca automation precheck treats anything but 0 as "skip this run". The
-scheduled automation appends `; exit 1` to the command, so Orca never starts
+approved automation appends `; exit 1` to the command, so Orca never starts
 an agent and records every run as skipped, with the command's output in the
 run's details.
 

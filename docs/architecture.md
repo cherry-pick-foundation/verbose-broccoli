@@ -313,9 +313,10 @@ package two skills backed by two uv workspace packages.
   offers that entered its published list during the latest 6-hour block,
   asks Jev once per run whether each costs nothing and states no time limit
   or end date, and sends a desktop notification for those that do. It saves
-  nothing. The `credit-offers` skill runs it, and an Orca automation on the
-  user's laptop runs it every 6 hours as a precheck; the interval comes from
-  the tracker's history ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
+  nothing. The `credit-offers` skill runs it, and the user approved an Orca
+  automation on the laptop that runs it every 6 hours as a precheck; the
+  interval comes from the tracker's history
+  ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
 - Keys live in `~/.config/verbose-broccoli/chat/jev.env` with mode `0600`,
   passed to the process by `uv run --env-file`; the code never reads the
   file.

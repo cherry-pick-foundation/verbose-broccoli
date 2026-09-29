@@ -22,11 +22,13 @@ upstream; its `UPSTREAM.md` lists every difference:
 
 Keys live only in `~/.config/verbose-broccoli/chat/jev.env`, readable by the
 user alone. Create the file once, empty, then add the key lines the chosen
-provider needs:
+provider needs. The second command does nothing when the file exists, so it
+never empties a file that already holds a key:
 
 ```sh
 install -d -m 700 ~/.config/verbose-broccoli/chat
-install -m 600 /dev/null ~/.config/verbose-broccoli/chat/jev.env
+[ -e ~/.config/verbose-broccoli/chat/jev.env ] ||
+  install -m 600 /dev/null ~/.config/verbose-broccoli/chat/jev.env
 ```
 
 | Line | Needed for |
