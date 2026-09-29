@@ -2,8 +2,8 @@
 
 Backfire is a local Model Context Protocol (MCP) server that the code and work
 plugins each ship in their own build. Each client session starts its own
-server process. The server uses Python 3.14.4 and uv 0.11.32 or later; Deno and
-Node are not needed at runtime.
+server process. The server uses Python 3.14.4 and uv 0.11.32 or later; Node.js is
+not needed at runtime.
 
 The two builds share one judgment core. The code build is for development
 work. The work build is for education work: before a judgment leaves for the

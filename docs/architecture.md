@@ -8,7 +8,7 @@ are not requirement, evidence or implementation sources.
 ## Current skeleton
 
 Each package has a `plugin.json`; the code and work packages also have
-`skills/`. Only `code` has a Deno workspace configuration. Current versions and MCP declarations come from
+`skills/`. Only the `code` package's clean-code skill has its own npm package manifest. Current versions and MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
@@ -19,12 +19,12 @@ The `work` package contains the `quarto-authoring`, `session-migrate`,
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains only its manifest and license; it
-has no skills, Deno configuration, MCP declaration or scripts, and its
+has no skills, package manifest, MCP declaration or scripts, and its
 persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
 
-Root tasks reuse Deno and Ajv with the unmodified official Agent Plugins
+Root tasks reuse Node.js and Ajv with the unmodified official Agent Plugins
 schemas. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
 shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
 suites, the reference drift check and the document region check (see
@@ -45,7 +45,7 @@ POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
-selected standalone Deno/Quarto executables, uv, git-flow and lychee from
+selected standalone Quarto executable, uv, git-flow and lychee from
 `PATH`, the Spec Kit, ShellCheck, Ruff, doc-regions and wiki-consistency
 environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
@@ -261,7 +261,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
 stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
 --frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
-package lives in `packages/backfire/src/backfire/`, outside the root Deno
+package lives in `packages/backfire/src/backfire/`, a member of the root uv
 workspace. The work plugin's additions, the pseudonymization module and the
 education profile, live in `packages/backfire/src/backfire_education/`.
 `npm run backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
@@ -292,7 +292,8 @@ Reuse existing dependencies directly first. Constitution IX puts reusable
 implementation packages, including libraries and MCP servers, under
 `packages/<name>/src/`; add one only for a concrete shared need. A package joins
 a toolchain workspace only when it has executable code for that toolchain, so
-the Python package `packages/backfire/` stays outside the root Deno workspace.
+the Python package `packages/backfire/` joins the root uv workspace and no npm
+workspace.
 Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
@@ -494,8 +495,8 @@ and `package-lock.json` and run by `npm run commitlint`.
   scripts/git-hooks`. The path is relative, so each worktree runs its own
   checkout's hook, and a worktree whose checkout has no `scripts/git-hooks/`
   runs none. Orca's setup script sets it, and `npm run doctor` fails when it
-  differs. The hook finds Deno at `~/.deno/bin/deno` or on `PATH` and refuses
-  the commit when neither exists.
+  differs. The hook finds Node.js on `PATH` and refuses
+  the commit when it is missing.
 - `npm run test:commit-msg` checks the rule and real commits in temporary
   repositories.
 

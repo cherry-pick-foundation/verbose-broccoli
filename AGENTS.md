@@ -1,6 +1,6 @@
 # verbose-broccoli
 
-A personal Deno workspace of three agent plugins for education and knowledge
+A personal workspace of three agent plugins for education and knowledge
 work. `.specify/memory/constitution.md` governs; this file holds the rules every
 change follows. Constitution principle IX and `docs/architecture.md` describe the
 repository layout. Detailed procedures live in skills. Claude-only additions are
@@ -47,8 +47,8 @@ If the requirement cannot be met without substantial new local implementation, s
 ## Workflow and verification
 
 - Before editing, after scope changes, and before completion, run
-  `deno task workflow` and follow the execution instructions it prints.
-- Before completion, `deno task verify` must pass; it runs all checks and
+  `npm run workflow` and follow the execution instructions it prints.
+- Before completion, `npm run verify` must pass; it runs all checks and
   records evidence.
 - The main agent chooses each worker's and reviewer's model, reasoning effort
   and time budget from the code plugin's backfire judgments.
