@@ -57,9 +57,11 @@ _ROAD_ADDRESS = (
 _LOT_ADDRESS = re.compile(rf"(?<![0-9]){_NUMBER}[ ]*번지(?![0-9])")
 _ISO_DATE = re.compile(r"(?<![0-9])[0-9]{4}-[0-9]{2}-[0-9]{2}(?![0-9])")
 _CODE_SPANS = re.compile(
-    r"(?<!\\)(?:\\\\)*(?<!`)(?P<ticks>`+)(?!`).*?(?<!`)(?P=ticks)(?!`)",
+    r"(?<!\\)(?:\\\\)*(?<!`)(?P<ticks>`+)(?!`)"
+    r"(?:(?!\r?\n[ \t]*\r?\n).)*?(?<!`)(?P=ticks)(?!`)",
     re.DOTALL,
 )
+_MARKDOWN = MarkdownIt("commonmark")
 _DATE_PATTERNS = (
     re.compile(r"(?<![0-9])[0-9]{4}[./][0-9]{1,2}[./][0-9]{1,2}(?![0-9])"),
     re.compile(r"(?<![0-9])([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})(?![0-9])"),
@@ -92,7 +94,8 @@ _LINK_TARGETS = (
         r"(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+)>"
     ),
     re.compile(
-        r"\]\([ \t]*(?P<destination><(?:\\.|[^<>\n])*>|(?:\\.|[^)\s])*)"
+        r"\]\([ \t]*(?P<destination><(?:\\.|[^<>\\\n])*>|"
+        r"(?:\\.|[^()\s\\]|\((?:\\.|[^()\s\\])*\))*)"
         r"(?:[ \t]+(?P<title>\"(?:\\.|[^\"\\\n])*\"|"
         r"'(?:\\.|[^'\\\n])*'|\((?:\\.|[^)\\\n])*\)))?"
         r"[ \t]*\)"
@@ -309,17 +312,21 @@ def _allowed_originals(text, name_marks):
     return result
 
 
+def _blank(chars, start, stop):
+    for index in range(start, stop):
+        if chars[index] not in "\r\n":
+            chars[index] = " "
+
+
 def _mask_link_targets(text):
     searchable = list(text)
     starts = _line_starts(text)
-    for token in MarkdownIt("commonmark").parse(text):
+    for token in _MARKDOWN.parse(text):
         if token.type not in {"fence", "code_block"} or token.map is None:
             continue
         start = starts[token.map[0]]
         stop = starts[token.map[1]] if token.map[1] < len(starts) else len(text)
-        for index in range(start, stop):
-            if searchable[index] not in "\r\n":
-                searchable[index] = " "
+        _blank(searchable, start, stop)
     searchable_text = "".join(searchable)
     for match in _CODE_SPANS.finditer(searchable_text):
         start, stop = match.span()
@@ -327,25 +334,22 @@ def _mask_link_targets(text):
     searchable_text = "".join(searchable)
 
     masked = list(text)
-    titles = []
+    excluded = []
     for match in _LINK_TARGETS[2].finditer(searchable_text):
-        start, stop = match.span("destination")
-        for index in range(start, stop):
-            if masked[index] not in "\r\n":
-                masked[index] = " "
+        destination = match.span("destination")
+        _blank(masked, *destination)
+        excluded.append(destination)
         if match["title"] is not None:
-            titles.append(match.span("title"))
+            excluded.append(match.span("title"))
 
     url_text = list(searchable_text)
-    for start, stop in titles:
-        url_text[start:stop] = " " * (stop - start)
+    for start, stop in excluded:
+        _blank(url_text, start, stop)
     url_text = "".join(url_text)
     for pattern in _LINK_TARGETS[:2]:
         for match in pattern.finditer(url_text):
             start, stop = match.span(match.lastindex or 0)
-            for index in range(start, stop):
-                if masked[index] not in "\r\n":
-                    masked[index] = " "
+            _blank(masked, start, stop)
     return "".join(masked)
 
 

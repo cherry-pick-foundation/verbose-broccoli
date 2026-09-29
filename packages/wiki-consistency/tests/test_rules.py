@@ -711,9 +711,27 @@ def test_page_rules_skip_autolinks_and_link_destinations_for_dates(
             "010-0000-0000",
             id="phone",
         ),
+        pytest.param(
+            "email",
+            "[a](https://example.invalid/synthetic@example.test)",
+            "synthetic@example.test",
+            id="email",
+        ),
+        pytest.param(
+            "id-number",
+            "[a](https://example.invalid/000229-3000000)",
+            "000229-3000000",
+            id="id-number",
+        ),
+        pytest.param(
+            "address",
+            "[a](</home/user/무지개길 12.pdf>)",
+            "무지개길 12",
+            id="address",
+        ),
     ],
 )
-def test_page_rules_check_time_and_phone_in_link_targets(
+def test_page_rules_check_privacy_and_time_in_link_targets(
     tmp_path, rule, body, matched
 ):
     instance = ready_vault(tmp_path)
@@ -739,6 +757,10 @@ def test_page_rules_check_time_and_phone_in_link_targets(
         pytest.param(
             f"[Original](/home/user/Documents/{SCHOOL}/record\\)1.pdf)",
             id="escaped-parenthesis-destination",
+        ),
+        pytest.param(
+            "[Original](/d/가상(중)/기록.pdf)",
+            id="balanced-parentheses-in-destination",
         ),
         pytest.param(
             f"<file:///home/user/Documents/{SCHOOL}/기록.pdf>",
@@ -771,6 +793,19 @@ def test_hangul_in_link_text_still_fails_english(tmp_path):
     problems = checked(instance, tmp_path)
 
     assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
+
+
+def test_inline_code_span_does_not_cross_paragraphs(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance,
+        "It`s here.\n\n[O](/d/가상.pdf)\n\nAnother ` tick.",
+    )
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "english", "wiki/overview.md"), problems
 
 
 @pytest.mark.parametrize(
@@ -811,6 +846,26 @@ def test_bare_url_inside_code_span_fails_english(tmp_path):
     problems = checked(instance, tmp_path)
 
     assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
+
+
+def test_page_rules_check_non_iso_date_inside_link_like_code(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "`[O](https://example.invalid/2026.09.29)`")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "date", "2026.09.29")
+
+
+def test_bare_url_pass_keeps_text_after_a_link_destination_visible(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "[O](https://x.invalid/a.pdf)기록 end")
+
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "english", "기록")
 
 
 @pytest.mark.parametrize(
