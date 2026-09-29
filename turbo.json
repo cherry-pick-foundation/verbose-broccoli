@@ -128,6 +128,26 @@
       ],
       "cache": false
     },
+    "credit-offers#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "credit-offers",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/credit-offers/tests"
+      ],
+      "cache": false
+    },
     "wiki-consistency#test": {
       "command": [
         "env",
@@ -165,6 +185,7 @@
         "backfire#test",
         "doc-regions#test",
         "jev-ultrafast#test",
+        "credit-offers#test",
         "wiki-consistency#test",
         "//#test:wiki-raw-import"
       ],

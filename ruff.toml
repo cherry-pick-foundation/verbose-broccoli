@@ -12,6 +12,7 @@ extend-exclude = [
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
+  "packages/credit-offers/src",
   "packages/jev-ultrafast/src",
   "packages/wiki-consistency/src",
 ]
