@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 from typing import Mapping, Sequence
 
+from mcp.client.session import ClientSession
+from mcp.client.stdio import StdioServerParameters
+from mcp.client.stdio import stdio_client
 import yaml
 
 from wiki_consistency import evidence
@@ -17,16 +22,46 @@ from wiki_consistency.evidence import _tree_size
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
+MODEL_TOKENS = (
+    "HF_TOKEN",
+    "HF_TOKEN_PATH",
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "HF_ENDPOINT",
+    "MODEL_ENDPOINT",
+)
 
 
 def _paths(wiki_id: str, cache: Path) -> tuple[Path, Path, Path]:
     wiki_id = _component(wiki_id)
-    qmd_root = Path(cache) / "qmd"
+    cache_root = Path(cache).resolve()
+    qmd_root = cache_root / "qmd"
     index_path = qmd_root / f"{wiki_id}.sqlite"
     config_path = qmd_root / "config" / f"{wiki_id}.yml"
-    if not index_path.resolve().is_relative_to(qmd_root.resolve()):
-        raise ValueError("qmd index path escapes the cache")
+    qmd_resolved = qmd_root.resolve()
+    if (
+        not qmd_resolved.is_relative_to(cache_root)
+        or not index_path.resolve().is_relative_to(qmd_resolved)
+        or not config_path.parent.resolve().is_relative_to(qmd_resolved)
+        or (
+            config_path.is_symlink()
+            and not config_path.resolve().is_relative_to(qmd_resolved)
+        )
+    ):
+        raise ValueError("qmd path escapes the cache")
     return qmd_root, index_path, config_path
+
+
+def _secure_cache(cache: Path) -> None:
+    cache_root = Path(cache).resolve()
+    cache_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+    cache_root.chmod(0o700)
+    qmd_root, _, _ = _paths("wiki", cache_root)
+    qmd_root.mkdir(mode=0o700, exist_ok=True)
+    qmd_root.chmod(0o700)
+    config_dir = qmd_root / "config"
+    config_dir.mkdir(mode=0o700, exist_ok=True)
+    config_dir.chmod(0o700)
 
 
 def _qmd_path() -> Path:
@@ -43,13 +78,16 @@ def _check_budget(root: Path, action: str) -> None:
 
 
 def _environment(cache: Path) -> dict[str, str]:
-    qmd_root = Path(cache) / "qmd"
+    qmd_root = Path(cache).resolve() / "qmd"
     environment = os.environ.copy()
+    for name in MODEL_TOKENS:
+        environment.pop(name, None)
     environment.update(
         {
             "XDG_CACHE_HOME": str(Path(cache).resolve()),
             "QMD_CONFIG_DIR": str((qmd_root / "config").resolve()),
             "QMD_EMBED_MODEL": EMBED_MODEL,
+            "QMD_FORCE_CPU": "1",
             "MESA_SHADER_CACHE_DIR": str(
                 (qmd_root / "mesa_shader_cache").resolve()
             ),
@@ -68,6 +106,7 @@ def _run_qmd(
     qmd = _qmd_path()
     if not qmd.is_file():
         raise FileNotFoundError(f"qmd is not installed at {qmd}")
+    _secure_cache(cache)
     qmd_root, _, _ = _paths(wiki_id, cache)
     _check_budget(qmd_root, budget_action)
     return subprocess.run(
@@ -77,6 +116,7 @@ def _run_qmd(
         check=True,
         capture_output=True,
         text=True,
+        umask=0o077,
     )
 
 
@@ -93,8 +133,7 @@ def _ensure_collections(
     cache: Path,
     expected: Mapping[str, Path],
 ) -> None:
-    qmd_root, _, config_path = _paths(wiki_id, cache)
-    (qmd_root / "config").mkdir(parents=True, exist_ok=True)
+    _, _, config_path = _paths(wiki_id, cache)
     configured = _collections(config_path)
     for name in sorted(configured):
         value = configured[name]
@@ -103,7 +142,12 @@ def _ensure_collections(
             if isinstance(value, dict)
             else None
         )
-        if name not in expected or path != expected[name].resolve():
+        update_hook = isinstance(value, dict) and bool(value.get("update"))
+        if (
+            name not in expected
+            or path != expected[name].resolve()
+            or update_hook
+        ):
             _run_qmd(
                 wiki_id,
                 cache,
@@ -144,11 +188,34 @@ def _markdown_count(root: Path) -> int:
     )
 
 
+def _collection_document_counts(wiki_id: str, cache: Path) -> dict[str, int]:
+    _, index_path, _ = _paths(wiki_id, cache)
+    if not index_path.is_file():
+        raise LookupError(
+            f"qmd index is missing; run wiki-consistency index for {wiki_id}"
+        )
+    output = _run_qmd(
+        wiki_id, cache, ["ls"], budget_action="collection count"
+    ).stdout
+    counts = {}
+    for line in output.splitlines():
+        match = re.fullmatch(r"\s*qmd://([^/]+)/\s+\((\d+) files\)", line)
+        if match:
+            counts[match.group(1)] = int(match.group(2))
+    return counts
+
+
 def _collection_chunk_count(wiki_id: str, cache: Path, collection: str) -> int:
-    result = _run_search_mjs(
-        wiki_id, cache, {"operation": "chunk-count", "collection": collection}
-    )
-    return int(result["count"])
+    return _collection_document_counts(wiki_id, cache).get(collection, 0)
+
+
+def _update_index(wiki_id: str, cache: Path, index_path: Path) -> None:
+    try:
+        with _clean_on_signals():
+            _run_qmd(wiki_id, cache, ["update"], budget_action="update")
+    except BaseException:
+        _remove_index(index_path)
+        raise
 
 
 def index(
@@ -161,7 +228,8 @@ def index(
     """Build or refresh qmd's pages and evidence collections."""
     wiki_id = _component(wiki_id)
     instance = Path(instance)
-    cache = Path(cache)
+    cache = Path(cache).resolve()
+    _secure_cache(cache)
     wiki_root = instance / "wiki"
     evidence_root = (
         cache
@@ -173,20 +241,13 @@ def index(
         raise ValueError(f"Wiki pages directory is missing: {wiki_root}")
     evidence_root.mkdir(parents=True, exist_ok=True)
     qmd_root, index_path, _ = _paths(wiki_id, cache)
-    qmd_root.mkdir(parents=True, exist_ok=True)
     _check_budget(qmd_root, "collection setup")
     _ensure_collections(
         wiki_id,
         cache,
         {"pages": wiki_root.resolve(), "evidence": evidence_root.resolve()},
     )
-
-    try:
-        with _clean_on_signals():
-            _run_qmd(wiki_id, cache, ["update"], budget_action="update")
-    except BaseException:
-        _remove_index(index_path)
-        raise
+    _update_index(wiki_id, cache, index_path)
 
     model_cached = _model_is_cached(cache)
     embedding_attempted = model_cached or download
@@ -203,27 +264,18 @@ def index(
         semantic_error = (
             "qmd embed completed but semantic search is still not ready"
         )
-    counts = _run_search_mjs(
-        wiki_id,
-        cache,
-        {
-            "operation": "counts",
-            "roots": {
-                "pages": str(wiki_root.resolve()),
-                "evidence": str(evidence_root.resolve()),
-            },
-        },
-    )
+    counts = _collection_document_counts(wiki_id, cache)
 
     return {
-        "pages": counts["pages"],
-        "evidence": counts["evidence"],
+        "pages": counts.get("pages", 0),
+        "evidence": counts.get("evidence", 0),
         "semantic": semantic,
         "semantic_error": semantic_error,
     }
 
 
 def _relative_path(filepath: str, collection: str, root: Path) -> str:
+    filepath = filepath.split("?", 1)[0]
     prefix = f"qmd://{collection}/"
     if filepath.startswith(prefix):
         return Path(filepath[len(prefix) :]).as_posix()
@@ -233,35 +285,67 @@ def _relative_path(filepath: str, collection: str, root: Path) -> str:
     return path.as_posix()
 
 
-def _run_search_mjs(
-    wiki_id: str, cache: Path, payload: Mapping[str, object]
-) -> dict[str, object]:
-    _, index_path, _ = _paths(wiki_id, cache)
-    if not index_path.is_file():
-        raise LookupError(
-            f"qmd index is missing; run wiki-consistency index for {wiki_id}"
-        )
-    environment = _environment(cache)
-    environment["QMD_SEMANTIC_AVAILABLE"] = (
-        "1" if _model_is_cached(cache) else "0"
-    )
-    process = subprocess.run(
-        [
-            "node",
-            str(Path(__file__).with_name("search.mjs")),
-            str(index_path.resolve()),
+def _mcp_parameters(wiki_id: str, cache: Path) -> StdioServerParameters:
+    qmd = _qmd_path()
+    if not qmd.is_file():
+        raise FileNotFoundError(f"qmd is not installed at {qmd}")
+    _secure_cache(cache)
+    qmd_root, _, _ = _paths(wiki_id, cache)
+    _check_budget(qmd_root, "MCP search")
+    return StdioServerParameters(
+        command="/bin/sh",
+        args=[
+            "-c",
+            'umask 077; exec "$@"',
+            "qmd",
+            str(qmd),
+            "--index",
+            wiki_id,
+            "mcp",
         ],
-        cwd=Path(__file__).resolve().parents[2],
-        env=environment,
-        input=json.dumps(payload, ensure_ascii=False),
-        check=True,
-        capture_output=True,
-        text=True,
+        cwd=str(qmd.parents[2]),
+        env=_environment(cache),
     )
-    result = json.loads(process.stdout)
-    if "error" in result:
-        raise LookupError(result["error"])
-    return result
+
+
+def _mcp_data(result: object, tool: str) -> dict[str, object]:
+    if getattr(result, "is_error", False):
+        detail = " ".join(
+            str(getattr(item, "text", ""))
+            for item in getattr(result, "content", [])
+        ).strip()
+        raise LookupError(detail or f"qmd MCP {tool} failed")
+    data = getattr(result, "structured_content", None)
+    if not isinstance(data, dict):
+        raise LookupError(f"qmd MCP {tool} returned no structured result")
+    return data
+
+
+async def _mcp_search(
+    parameters: StdioServerParameters,
+    vector_queries: Sequence[Mapping[str, object]],
+) -> tuple[bool, list[dict[str, object]]]:
+    async with stdio_client(parameters) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            status = _mcp_data(await session.call_tool("status", {}), "status")
+            if status.get("needsEmbedding") != 0:
+                return False, []
+            results = [
+                _mcp_data(await session.call_tool("query", query), "query")
+                for query in vector_queries
+            ]
+            return True, results
+
+
+def _run_mcp_search(
+    wiki_id: str,
+    cache: Path,
+    vector_queries: Sequence[Mapping[str, object]],
+) -> tuple[bool, list[dict[str, object]]]:
+    parameters = _mcp_parameters(wiki_id, cache)
+    with _clean_on_signals():
+        return asyncio.run(_mcp_search(parameters, vector_queries))
 
 
 def semantic_ready(wiki_id: str, cache: Path) -> bool:
@@ -269,9 +353,54 @@ def semantic_ready(wiki_id: str, cache: Path) -> bool:
     cache = Path(cache)
     if not _model_is_cached(cache):
         return False
-    return bool(
-        _run_search_mjs(wiki_id, cache, {"operation": "semantic"})["semantic"]
-    )
+    _, index_path, _ = _paths(wiki_id, cache)
+    if not index_path.is_file():
+        raise LookupError(
+            f"qmd index is missing; run wiki-consistency index for {wiki_id}"
+        )
+    ready, _ = _run_mcp_search(wiki_id, cache, [])
+    return ready
+
+
+def _mapped_hits(
+    raw_hits: Sequence[Mapping[str, object]],
+    query: Mapping[str, object],
+    root: Path,
+    mode: str,
+) -> list[dict[str, object]]:
+    collection = str(query["collection"])
+    allowed_paths = query.get("allowed_paths")
+    allowed = set(allowed_paths) if isinstance(allowed_paths, list) else None
+    hits = []
+    for hit in raw_hits:
+        try:
+            path = _relative_path(str(hit["file"]), collection, root)
+            document = (root / path).resolve()
+            if not document.is_relative_to(root.resolve()):
+                continue
+        except KeyError, ValueError:
+            continue
+        if allowed is not None and path not in allowed:
+            continue
+        try:
+            if (
+                not document.is_file()
+                or not document.read_text(encoding="utf-8").strip()
+            ):
+                continue
+        except OSError, UnicodeError:
+            continue
+        hits.append(
+            {
+                "query": query["id"],
+                "collection": collection,
+                "path": path,
+                "line": int(hit["line"]),
+                "score": float(hit["score"]),
+                "mode": mode,
+            }
+        )
+    return hits
 
 
 def search(
@@ -281,7 +410,7 @@ def search(
     *,
     expected_pages_root: Path | None = None,
 ) -> list[dict[str, object]]:
-    """Search all queries in one qmd library process and map hits to lines."""
+    """Search all queries through qmd's CLI and one MCP server."""
     wiki_id = _component(wiki_id)
     cache = Path(cache)
     _, index_path, config_path = _paths(wiki_id, cache)
@@ -338,34 +467,57 @@ def search(
             f"run wiki-consistency index for {wiki_id}"
         )
 
-    result = _run_search_mjs(
-        wiki_id,
-        cache,
-        {
-            "queries": queries,
-            "roots": {
-                name: str(root.resolve()) for name, root in roots.items()
-            },
-        },
-    )
-    raw_hits = result["hits"]
-    hits: list[dict[str, object]] = []
-    for hit in raw_hits:
-        collection = str(hit["collection"])
-        path = _relative_path(
-            str(hit["filepath"]), collection, roots[collection]
+    _update_index(wiki_id, cache, index_path)
+    hits_by_query: list[list[dict[str, object]]] = [[] for _ in queries]
+    vector_queries = []
+    vector_indexes = []
+    if _model_is_cached(cache):
+        for index, query in enumerate(queries):
+            vector_queries.append(
+                {
+                    "searches": [{"type": "vec", "query": str(query["text"])}],
+                    "collections": [str(query["collection"])],
+                    "limit": (
+                        100000
+                        if query.get("allowed_paths") is not None
+                        else query.get("limit", 10)
+                    ),
+                    "minScore": 0,
+                    "rerank": False,
+                }
+            )
+            vector_indexes.append(index)
+
+    for index, query in enumerate(queries):
+        args = [
+            "search",
+            str(query["text"]),
+            "-c",
+            str(query["collection"]),
+            "--format",
+            "json",
+        ]
+        if query.get("allowed_paths") is not None:
+            args.append("--all")
+        else:
+            args.extend(["-n", str(query.get("limit", 20))])
+        results = json.loads(
+            _run_qmd(wiki_id, cache, args, budget_action="search").stdout
         )
-        document = roots[collection] / path
-        if not document.is_file():
-            continue
-        hits.append(
-            {
-                "query": hit["query"],
-                "collection": collection,
-                "path": path,
-                "line": int(hit["line"]),
-                "score": float(hit["score"]),
-                "mode": hit["mode"],
-            }
+        hits_by_query[index].extend(
+            _mapped_hits(results, query, roots[str(query["collection"])], "lex")
         )
-    return hits
+
+    if vector_queries:
+        ready, results = _run_mcp_search(wiki_id, cache, vector_queries)
+        if ready:
+            for index, result in zip(vector_indexes, results, strict=True):
+                hits_by_query[index].extend(
+                    _mapped_hits(
+                        result.get("results", []),
+                        queries[index],
+                        roots[str(queries[index]["collection"])],
+                        "vec",
+                    )
+                )
+    return [hit for query_hits in hits_by_query for hit in query_hits]

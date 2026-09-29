@@ -1,8 +1,10 @@
+from contextlib import asynccontextmanager
 import json
 import os
 from pathlib import Path
 import signal
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -52,6 +54,7 @@ def _qmd_environment(cache):
         "XDG_CACHE_HOME": str(cache),
         "QMD_CONFIG_DIR": str(cache / "qmd" / "config"),
         "QMD_EMBED_MODEL": MODEL,
+        "QMD_FORCE_CPU": "1",
         "MESA_SHADER_CACHE_DIR": str(cache / "qmd" / "mesa_shader_cache"),
     }
 
@@ -63,9 +66,24 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     real_run = search.subprocess.run
 
     def record_run(command, *args, **kwargs):
-        calls.append((tuple(map(str, command)), kwargs.get("env", {})))
+        calls.append(
+            (
+                tuple(map(str, command)),
+                kwargs.get("env", {}),
+                kwargs.get("umask"),
+            )
+        )
         return real_run(command, *args, **kwargs)
 
+    for name in (
+        "HF_TOKEN",
+        "HF_TOKEN_PATH",
+        "GITHUB_TOKEN",
+        "GH_TOKEN",
+        "HF_ENDPOINT",
+        "MODEL_ENDPOINT",
+    ):
+        monkeypatch.setenv(name, "synthetic-secret")
     monkeypatch.setattr(search.subprocess, "run", record_run)
 
     result = search.index(instance, "wiki-a", cache, download=False)
@@ -103,14 +121,41 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
             / f"markitdown-{evidence.CONVERTER_VERSION}"
         ).resolve()
     )
-    for command, env in calls:
+    for command, env, umask in calls:
         assert {
             key: env[key] for key in _qmd_environment(cache)
         } == _qmd_environment(cache)
+        assert umask == 0o077
+        assert all(name not in env for name in search.MODEL_TOKENS)
         if Path(command[0]).name == "qmd":
             assert command[1:3] == ("--index", "wiki-a")
-    assert any("update" in command for command, _ in calls)
-    assert not any("embed" in command for command, _ in calls)
+    verbs = {command[3] for command, _, _ in calls}
+    assert {"update", "search", "ls"} <= verbs
+    assert not verbs & {"embed", "pull", "query", "vsearch"}
+    assert cache.stat().st_mode & 0o777 == 0o700
+    assert (cache / "qmd").stat().st_mode & 0o777 == 0o700
+    assert (cache / "qmd" / "config").stat().st_mode & 0o777 == 0o700
+
+
+def test_index_embeds_only_after_download_is_requested(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    calls = []
+    run_qmd = search._run_qmd
+
+    def record_qmd(wiki_id, cache_root, args, *, budget_action):
+        calls.append(tuple(args))
+        if list(args) == ["embed"]:
+            return subprocess.CompletedProcess(
+                ["qmd", "embed"], 0, stdout="", stderr=""
+            )
+        return run_qmd(wiki_id, cache_root, args, budget_action=budget_action)
+
+    monkeypatch.setattr(search, "_run_qmd", record_qmd)
+
+    search.index(instance, "wiki-a", cache, download=True)
+
+    assert ("embed",) in calls
+    assert all(args[0] != "pull" for args in calls)
 
 
 def test_search_refuses_a_missing_index(tmp_path):
@@ -169,107 +214,143 @@ def test_search_rejects_allowed_paths_for_pages_queries(tmp_path):
         )
 
 
-@pytest.mark.parametrize("change", ["modified", "added", "deleted"])
-def test_search_refuses_stale_document_paths_and_content_hashes(
-    tmp_path, change
+@pytest.mark.parametrize(
+    ("change", "text", "expected_paths"),
+    [
+        ("modified", "fresh changed phrase", {"concepts/quad.md"}),
+        ("added", "fresh added phrase", {"concepts/new.md"}),
+        ("deleted", "quadratic formula", set()),
+        ("empty", "quadratic formula", set()),
+    ],
+)
+def test_search_refreshes_stale_index_with_qmd_update(
+    tmp_path, change, text, expected_paths
 ):
     instance, cache = _wiki(tmp_path)
     search.index(instance, "wiki-a", cache, download=False)
     page = instance / "wiki" / "concepts" / "quad.md"
     if change == "modified":
-        page.write_text(page.read_text() + "A changed synthetic line.\n")
+        page.write_text("# Changed page\n\nFresh changed phrase.\n")
     elif change == "added":
-        (instance / "wiki" / "concepts" / "new.md").write_text("# New page\n")
-    else:
+        (instance / "wiki" / "concepts" / "new.md").write_text(
+            "# New page\n\nFresh added phrase.\n"
+        )
+    elif change == "deleted":
         page.unlink()
+    else:
+        page.write_text(" \t\n", encoding="utf-8")
 
-    with pytest.raises(LookupError, match="wiki-consistency index") as error:
-        search.search(
-            "wiki-a",
-            cache,
-            [
-                {
-                    "id": "q1",
-                    "text": "quadratic formula",
-                    "collection": "pages",
-                    "limit": 5,
-                }
-            ],
-        )
-    if change == "deleted":
-        assert "deleted: concepts/quad.md" in str(error.value)
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [
+            {
+                "id": "q1",
+                "text": text,
+                "collection": "pages",
+                "limit": 5,
+            }
+        ],
+    )
+
+    assert {
+        hit["path"] for hit in hits if hit["collection"] == "pages"
+    } == expected_paths
 
 
-def test_search_stale_error_lists_sorted_paths_and_counts_rest(tmp_path):
+def test_evidence_allowed_paths_return_hits_beyond_limit(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
-    pages = instance / "wiki" / "concepts"
-    for name in ("a-changed", "b-whitespace", "c-whitespace"):
-        (pages / f"{name}.md").write_text(
-            f"# {name}\n\nSynthetic {name} page.\n", encoding="utf-8"
-        )
-    search.index(instance, "wiki-a", cache, download=False)
-
-    (pages / "a-changed.md").write_text(
-        "# Changed\n\nFirst changed text.\n", encoding="utf-8"
+    evidence_root = (
+        cache
+        / "wiki-evidence"
+        / "wiki-a"
+        / f"markitdown-{evidence.CONVERTER_VERSION}"
+        / "source"
     )
-    for name in ("b-whitespace", "c-whitespace"):
-        (pages / f"{name}.md").write_text(" \t\n", encoding="utf-8")
-    search.index(instance, "wiki-a", cache, download=False)
-    (pages / "a-changed.md").write_text(
-        "# Changed again\n\nSecond changed text.\n", encoding="utf-8"
-    )
-    for name in (
-        "d-added",
-        "e-added",
-        "f-added",
-        "g-added",
-        "h-added",
-        "i-added",
-        "j-added",
-    ):
-        (pages / f"{name}.md").write_text(
-            f"# {name}\n\nSynthetic {name} page.\n", encoding="utf-8"
+    for index in range(5):
+        (evidence_root / f"a-{index}.md").write_text(
+            "# Synthetic evidence\n\n" + "rarephrase " * 50,
+            encoding="utf-8",
         )
+    target_path = "source/z-late.md"
+    (evidence_root / "z-late.md").write_text(
+        "# Synthetic evidence\n\nrarephrase\n", encoding="utf-8"
+    )
+    search.index(instance, "wiki-a", cache, download=False)
+    assert search._collection_chunk_count("wiki-a", cache, "evidence") > 1
 
-    with pytest.raises(LookupError) as error:
-        search.search(
+    limited = json.loads(
+        search._run_qmd(
             "wiki-a",
             cache,
             [
-                {
-                    "id": "q1",
-                    "text": "quadratic formula",
-                    "collection": "pages",
-                    "limit": 5,
-                }
+                "search",
+                "rarephrase",
+                "-c",
+                "evidence",
+                "--format",
+                "json",
+                "-n",
+                "1",
             ],
-        )
-
-    assert str(error.value) == (
-        "qmd pages collection is stale; changed: concepts/a-changed.md, "
-        "empty: concepts/b-whitespace.md, empty: concepts/c-whitespace.md, "
-        "added: concepts/d-added.md, added: concepts/e-added.md, 5 more; "
-        "fill or delete empty files (running index alone cannot clear them "
-        "because qmd keeps their old rows), then run wiki-consistency index"
+            budget_action="search",
+        ).stdout
     )
+    assert all(
+        hit["file"].split("?", 1)[0] != f"qmd://evidence/{target_path}"
+        for hit in limited
+    )
+
+    calls = []
+    real_run = search.subprocess.run
+
+    def record_run(command, *args, **kwargs):
+        calls.append(tuple(map(str, command)))
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(search.subprocess, "run", record_run)
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [
+            {
+                "id": "evidence-query",
+                "text": "rarephrase",
+                "collection": "evidence",
+                "limit": 1,
+                "allowed_paths": [target_path],
+            }
+        ],
+    )
+
+    assert any(hit["path"] == target_path for hit in hits)
+    assert any(
+        command[3] == "search" and "--all" in command for command in calls
+    )
+
+
+def test_collection_chunk_count_uses_qmd_document_count(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+
+    assert search._collection_chunk_count("wiki-a", cache, "evidence") == 1
 
 
 def test_collection_chunk_count_propagates_qmd_errors(tmp_path, monkeypatch):
-    index_path = tmp_path / "cache" / "qmd" / "wiki-a.sqlite"
-    index_path.parent.mkdir(parents=True)
-    index_path.touch()
+    qmd_root = tmp_path / "cache" / "qmd"
+    qmd_root.mkdir(parents=True)
+    (qmd_root / "wiki-a.sqlite").touch()
 
-    def fail(*args, **kwargs):
-        del args, kwargs  # Unused.
-        raise RuntimeError("synthetic qmd error")
+    def fail_qmd(unused_wiki_id, unused_cache, unused_args, **unused_kwargs):
+        raise subprocess.CalledProcessError(1, ["qmd", "ls"])
 
-    monkeypatch.setattr(search, "_run_search_mjs", fail)
+    monkeypatch.setattr(search, "_run_qmd", fail_qmd)
 
-    with pytest.raises(RuntimeError, match="synthetic qmd error"):
+    with pytest.raises(subprocess.CalledProcessError):
         search._collection_chunk_count("wiki-a", tmp_path / "cache", "evidence")
 
 
-def test_qmd_internal_import_uses_pinned_version():
+def test_qmd_cli_uses_pinned_version():
     package = (
         Path(search.__file__).parents[2]
         / "node_modules"
@@ -511,9 +592,7 @@ def test_failed_or_interrupted_update_deletes_the_index(
     assert not index_path.exists()
 
 
-def test_batched_search_uses_one_node_process_and_matches_qmd_cli(
-    tmp_path, monkeypatch
-):
+def test_batched_lexical_search_matches_qmd_cli(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
     search.index(instance, "wiki-a", cache, download=False)
     queries = [
@@ -539,14 +618,10 @@ def test_batched_search_uses_one_node_process_and_matches_qmd_cli(
 
     monkeypatch.setattr(search.subprocess, "run", record_run)
     hits = search.search("wiki-a", cache, queries)
-    node_calls = [
-        command for command in calls if Path(command[0]).name == "node"
-    ]
-
-    assert len(node_calls) == 1
+    search_calls = [command for command in calls if command[3] == "search"]
+    assert len(search_calls) == len(queries)
     qmd = search._qmd_path()
-    env = os.environ.copy()
-    env.update(_qmd_environment(cache))
+    env = search._environment(cache)
     for query in queries:
         cli = real_run(
             [
@@ -566,26 +641,120 @@ def test_batched_search_uses_one_node_process_and_matches_qmd_cli(
             capture_output=True,
             check=True,
             text=True,
+            umask=0o077,
         )
         cli_hits = json.loads(cli.stdout)
-        api_paths = {
-            hit["path"]
+        api_results = {
+            (hit["path"], hit["line"], hit["score"])
             for hit in hits
             if hit["query"] == query["id"] and hit["mode"] == "lex"
         }
-        cli_paths = {
-            str(hit["file"]).split("?", 1)[0].removeprefix("qmd://pages/")
+        cli_results = {
+            (
+                str(hit["file"]).split("?", 1)[0].removeprefix("qmd://pages/"),
+                hit["line"],
+                hit["score"],
+            )
             for hit in cli_hits
         }
-        cli_lines = {hit["line"] for hit in cli_hits}
-        api_lines = {
-            hit["line"]
-            for hit in hits
-            if hit["query"] == query["id"] and hit["mode"] == "lex"
-        }
-        assert api_paths
-        assert api_paths == cli_paths
-        assert api_lines == cli_lines
+        assert api_results
+        assert api_results == cli_results
+
+
+def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+    monkeypatch.setattr(search, "_model_is_cached", lambda unused_cache: True)
+    calls = []
+    servers = []
+
+    class FakeSession:
+        def __init__(self, read, write):
+            del read, write
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *unused_args):
+            return None
+
+        async def initialize(self):
+            return None
+
+        async def call_tool(self, name, arguments):
+            calls.append((name, arguments))
+            if name == "status":
+                return SimpleNamespace(
+                    is_error=False,
+                    structured_content={"needsEmbedding": 0},
+                )
+            collection = arguments["collections"][0]
+            path = (
+                "concepts/quad.md" if collection == "pages" else "source/r1.md"
+            )
+            return SimpleNamespace(
+                is_error=False,
+                structured_content={
+                    "results": [
+                        {
+                            "file": f"qmd://{collection}/{path}?index=wiki-a",
+                            "line": 2,
+                            "score": 0.76,
+                        }
+                    ]
+                },
+            )
+
+    @asynccontextmanager
+    async def fake_stdio_client(server):
+        servers.append(server)
+        yield object(), object()
+
+    monkeypatch.setattr(search, "ClientSession", FakeSession)
+    monkeypatch.setattr(search, "stdio_client", fake_stdio_client)
+
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [
+            {
+                "id": "page-query",
+                "text": "a semantic page query",
+                "collection": "pages",
+                "limit": 4,
+            },
+            {
+                "id": "evidence-query",
+                "text": "a semantic evidence query",
+                "collection": "evidence",
+                "limit": 1,
+                "allowed_paths": ["source/r1.md"],
+            },
+        ],
+    )
+
+    assert len(servers) == 1
+    assert servers[0].args[-3:] == ["--index", "wiki-a", "mcp"]
+    assert servers[0].env["QMD_FORCE_CPU"] == "1"
+    assert calls[0] == ("status", {})
+    vector_calls = [arguments for name, arguments in calls if name == "query"]
+    assert len(vector_calls) == 2
+    assert vector_calls[0]["searches"] == [
+        {"type": "vec", "query": "a semantic page query"}
+    ]
+    assert vector_calls[1]["searches"] == [
+        {"type": "vec", "query": "a semantic evidence query"}
+    ]
+    assert vector_calls[0]["limit"] == 4
+    assert vector_calls[1]["limit"] == 100000
+    assert all(arguments["rerank"] is False for arguments in vector_calls)
+    assert all(arguments["minScore"] == 0 for arguments in vector_calls)
+    assert {
+        (hit["query"], hit["mode"]) for hit in hits if hit["mode"] == "vec"
+    } == {
+        ("page-query", "vec"),
+        ("evidence-query", "vec"),
+    }
 
 
 def test_search_uses_converter_version_from_evidence(tmp_path, monkeypatch):
