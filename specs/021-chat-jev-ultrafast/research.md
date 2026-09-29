@@ -230,12 +230,36 @@ launch date; many tracker additions are older free tiers the curator added
 later. The search reads the same tracker, so this is the rate at which it
 will see new qualifying offers.
 
-## R10. Cost of Jev calls
+## R10. Cost of Jev calls and Vercel's free tier
 
 Each run with new candidates makes one Jev call; a run without makes none.
-At 4 runs a day that is at most 124 calls in a 31-day month. The tracker
-recorded OpenRouter's Jev price as "$0.042/M input tokens and $0.00/M output
-tokens" (`offers/vercel-ai-gateway-jev-free.yaml`, comment); at a few thousand
-tokens per call the month costs a few cents, inside Vercel's $5 monthly
-credit. Vercel's own current Jev price was not checked, because the free
-promotion listed there ended on 2026-09-25 and no key is available yet.
+At 4 runs a day that is at most 124 calls in a 31-day month. Vercel lists
+Jev at $0.042 per million input tokens, served by `typesafe-ai` and
+`digitalocean` (<https://vercel.com/ai-gateway/models/jev>, read
+2026-09-30); the tracker recorded OpenRouter's price as "$0.042/M input
+tokens and $0.00/M output tokens". At a few thousand input tokens per call,
+a month of runs costs well under one cent.
+
+**Finding (2026-09-30)**: Jev is not available on Vercel AI Gateway's free
+tier, so the monthly free credit cannot pay for it. With the user's key,
+three requests to the evaluation-model endpoint were refused before any
+provider was tried (`providerAttemptCount: 0`), so nothing was charged:
+
+| Time (UTC) | Status | Vercel's message |
+| --- | --- | --- |
+| about 19:46 | 403 | not captured (upstream's error hides the body) |
+| about 19:48 | 429 | "No access to this model at this time." (`rate_limit_exceeded`) |
+| 19:57:07 | 403 | "Free tier users do not have access to this model. Upgrade to paid credits … for unrestricted access." (`no_providers_available`) |
+
+Vercel's pricing page (<https://vercel.com/docs/ai-gateway/pricing>, last
+updated 2026-09-08) says: "The free tier includes a subset of models, not
+the full catalog." and "Once you purchase credits, your account transitions
+to the paid tier and the monthly free credit no longer applies." The Vercel
+promotion that made Jev free ended on 2026-09-25 (the tracker's
+`offers/vercel-ai-gateway-jev-free.yaml`). A Vercel Community report of
+2026-09-29 describes the same 429 message for `typesafe-ai/jev` even after
+buying credits
+(<https://community.vercel.com/t/ai-gateway-typesafe-ai-jev-returns-free-tier-429-despite-paid-credits/49935>).
+The user decides how Jev calls are paid for; the request format itself is
+covered by the stub tests, and the live check waits for a provider that
+accepts the calls.
