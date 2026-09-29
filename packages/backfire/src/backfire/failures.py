@@ -116,7 +116,9 @@ def map_error(error: Exception, profile: Mapping[str, Any]) -> JudgmentError:
     return JudgmentError("provider_error")
 
 
-def _connect_failure(error: BaseException) -> bool:
+def _retryable_failure(error: BaseException) -> bool:
+    if isinstance(error, JudgmentError):
+        return error.error_type == "provider_error"
     # The SDK's connection class also covers reads; only a known connect cause
     # is safe.
     if not isinstance(error, TypeSafeAPIConnectionError):
@@ -135,7 +137,7 @@ def retry_policy(
     profile: Mapping[str, Any], *, remaining_seconds: float
 ) -> RetryPolicy:
     """Build retries within the caller's remaining time budget."""
-    statuses = {429}
+    statuses = {429, *range(500, 600)}
     for status, error_type in profile.get("statuses", {}).items():
         if not 400 <= int(status) <= 599:
             continue
@@ -150,6 +152,6 @@ def retry_policy(
         respect_retry_after=True,
         api_connection_error=False,
         api_timeout_error=False,
-        predicate=_connect_failure,
+        predicate=_retryable_failure,
         timeout=remaining_seconds,
     )

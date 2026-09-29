@@ -176,12 +176,23 @@ def test_mapping_typed_error_discards_attached_diagnostics(profile):
     assert mapped.__cause__ is None
 
 
-@pytest.mark.parametrize(
-    "status", [400, 401, 403, 404, 405, 408, 422, 500, 502, 503, 504, 599]
-)
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 405, 408, 422])
 def test_shipped_profile_non_retryable_statuses_fail_once(profile, status):
     assert profile["statuses"]["405"] == "balance_exhausted"
     assert asyncio.run(failed_attempts(http_error(status), profile)) == (1, [])
+
+
+@pytest.mark.parametrize("status", [500, 599])
+def test_unoverridden_server_errors_have_four_total_attempts(profile, status):
+    error = http_error(status, {"Retry-After": "0"})
+    assert asyncio.run(failed_attempts(error, profile)) == (4, [0, 0, 0])
+
+
+def test_profile_can_disable_server_error_retry():
+    profile = {"statuses": {"503": "request_rejected"}}
+    error = http_error(503)
+    assert map_error(error, profile).error_type == "request_rejected"
+    assert asyncio.run(failed_attempts(error, profile)) == (1, [])
 
 
 @pytest.mark.parametrize(
@@ -281,12 +292,22 @@ def test_real_adapter_preserves_connect_and_read_causes(
     asyncio.run(exercise())
 
 
-@pytest.mark.parametrize("error_type", list(MESSAGES))
+@pytest.mark.parametrize(
+    "error_type", [name for name in MESSAGES if name != "provider_error"]
+)
 def test_typed_failures_are_never_retried(profile, error_type):
     assert asyncio.run(failed_attempts(JudgmentError(error_type), profile)) == (
         1,
         [],
     )
+
+
+def test_provider_error_is_retried_four_times(profile):
+    attempts, waits = asyncio.run(
+        failed_attempts(JudgmentError("provider_error"), profile)
+    )
+    assert attempts == 4
+    assert len(waits) == 3
 
 
 def test_sdk_validation_failure_not_retried_with_success_status_override():

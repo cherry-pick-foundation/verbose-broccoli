@@ -381,14 +381,17 @@ check reports either success or the specific failure.
   MUST fail with an explicit reason and MUST NOT return a default or
   fabricated answer.
 - **FR-007**: Every tool call MUST answer or fail within 120 seconds, a limit
-  that covers waiting, retries and split requests. Only network errors and rate
-  limits MAY be retried, in exactly one layer, with at most four attempts in
+  that covers waiting, retries and split requests. Only network errors, rate
+  limits and provider server errors (a 5xx status, or a success reply without
+  an answer) MAY be retried, in exactly one layer, with at most four attempts in
   total including the first. Credential errors, insufficient balance and
   unsupported settings MUST fail at once, classified by the selected
   provider's documented responses as its profile records them (for Hive, 405
   for insufficient balance) rather than by generic status codes. A valid
   verdict with low confidence, a negative outcome or too
-  little evidence is final and MUST NOT be requested again.
+  little evidence is final and MUST NOT be requested again. (Provider server
+  errors were added on 2026-09-29 by CHE-33; see research.md, "Provider
+  failures in bursts".)
 - **FR-008**: The backend MUST NOT rescale probabilities. Probabilities that
   sum to one within 0.01 pass unchanged; a larger deviation, a missing option
   or level, a value outside zero to one, or a placeholder value is a response

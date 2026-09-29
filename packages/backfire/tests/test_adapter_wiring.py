@@ -252,9 +252,14 @@ def test_real_adapter_debug_never_reaches_results_logs_errors_or_records(
     body["choices"][0]["message"]["reasoning_content"] = RAW
     if outcome == "malformed_output":
         body["choices"][0]["message"]["content"] = RAW
-    reply = Reply({"error": RAW}, 500) if outcome == "provider_error" else body
+    reply = (
+        Reply({"error": RAW}, 500, {"Retry-After": "0"})
+        if outcome == "provider_error"
+        else body
+    )
+    replies = [reply] * 4 if outcome == "provider_error" else [reply]
     with (
-        FakeProvider([reply]) as fake,
+        FakeProvider(replies) as fake,
         RecordFile(xdg_path("state") / "backfire/records") as records,
     ):
         monkeypatch.setenv("BACKFIRE_TEST_PROVIDER_BASE_URL", fake.base_url)
@@ -269,13 +274,16 @@ def test_real_adapter_debug_never_reaches_results_logs_errors_or_records(
             assert not hasattr(caught.value, "debug")
             public = "".join(traceback.format_exception(caught.value))
         (debug,) = debug_objects
-        (attempt,) = debug["llm_attempts"]
-        (request,) = fake.requests
-        assert attempt["messages"] == request["body"]["messages"]
+        attempts = debug["llm_attempts"]
+        expected_attempts = 4 if outcome == "provider_error" else 1
+        assert len(attempts) == len(fake.requests) == expected_attempts
+        for attempt, request in zip(attempts, fake.requests):
+            assert attempt["messages"] == request["body"]["messages"]
         assert PRIVATE in json.dumps(debug) and RAW in json.dumps(debug)
         (entry,) = read_records(records.path)
         assert entry["outcome"] == outcome
         assert entry["results"] == ([{"p": 0.5}] if outcome == "ok" else None)
+        assert entry["attempts"] == expected_attempts
         output = capsys.readouterr()
         exposed = (
             public

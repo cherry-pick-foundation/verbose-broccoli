@@ -125,14 +125,14 @@ def test_invalid_configuration_names_its_file_and_skips_the_provider(
         (408, "provider_error", 1),
         (422, "provider_error", 1),
         (429, "rate_limited", 4),
-        (500, "provider_error", 1),
-        (502, "provider_error", 1),
-        (503, "provider_error", 1),
-        (504, "provider_error", 1),
-        (599, "provider_error", 1),
+        (500, "provider_error", 4),
+        (502, "provider_error", 4),
+        (503, "provider_error", 4),
+        (504, "provider_error", 4),
+        (599, "provider_error", 4),
     ],
 )
-def test_http_faults_have_fixed_text_and_only_rate_limits_retry(
+def test_http_faults_retry_rate_limits_and_server_errors(
     configured,
     monkeypatch,
     status,

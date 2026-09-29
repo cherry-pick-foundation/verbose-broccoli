@@ -531,6 +531,8 @@ checking 100,000 items).
 
 Superseded in part on 2026-09-27 by [Python package](#python-package--2026-09-27): the retry layer stays the SDK's policy, but the endpoint's 80 s and the transport's 82 s layers are gone; the 118 s call deadline cancels the in-process judgment directly.
 
+Superseded in part on 2026-09-29 by [Provider failures in bursts](#provider-failures-in-bursts--2026-09-29): the same policy also retries every 5xx status and a success reply without an answer.
+
 Decision: the copied transport runs with `JEV_MCP_MAX_ATTEMPTS=1` and
 `JEV_MCP_REQUEST_TIMEOUT_MS=82000`. The endpoint owns every retry through the
 TypeSafe SDK's `RetryPolicy`, passed to the adapter, and ends each request
@@ -588,6 +590,36 @@ the whole session at the deadline (the first plan's relay; it also ended other
 open calls); running every call in its own worker so that blocking work can be
 terminated (kept as the fallback if the feasibility gate finds unbounded work;
 it adds a worker per call and a message protocol).
+
+## Provider failures in bursts — 2026-09-29
+
+Decision: the SDK retry policy also retries every 5xx status that the
+selected profile does not map to another type, and the `provider_error` that
+the judge raises for a success reply without an answer. The attempt limit,
+backoff, `Retry-After` handling and time budget stay as above; other statuses,
+read errors and timeouts after sending, and answer failures stay final.
+
+Rationale: in the records of 2026-09-28, 19:00-21:00 UTC, 175 of 780
+judgments failed with `provider_error`, in 30 bursts. In each burst every
+judgment waiting for the provider failed within 0.81 s of the others, across
+server sessions, and the first judgment started after a burst succeeded in 26
+of 30 cases. Our own load did not trigger them: in 19 bursts no judgment had
+started in the 5 s before, never more than 2 had, and 5 bursts met only one
+open judgment. Hive documents 5 requests per second and no concurrency limit,
+so pacing would not have prevented them. Hive sends its 200 status before the
+model finishes, so a failure during generation arrives as a reply without an
+answer, and one that meets a new request arrives as a 5xx status
+(`.specify/bugs/answerless-provider-reply/assessment.md`). A retry about 1 s
+later would have saved about 144 of the 175 judgments. A judgment has no
+effect at the provider beyond its bill, so a repeated request is safe; each
+retry is billed again. The analysis is in
+`.specify/bugs/provider-error-bursts/assessment.md`.
+
+Alternatives considered: pacing requests or limiting concurrency (the bursts
+did not follow either); retrying only 5xx statuses (most failures arrived as
+replies without an answer); a profile switch for these retries (5xx is the
+standard server-error class, and `statuses` already lets a profile take a
+status out of the retry set).
 
 ## Answer validation without rescaling — 2026-09-26
 
