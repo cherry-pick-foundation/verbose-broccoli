@@ -255,6 +255,9 @@ time limit.
     high) found the spec listing both 560 and 567; the spec now keeps one
     temporary allowance, 568, which covers that fix. No fifth round: both
     fixes are small and were checked by main.
+  - 2026-09-30: live check with the user's GitHub token: both API responses
+    reported `x-ratelimit-limit: 5000`; the latest block had no new active
+    offer (exit 1, no Jev call). `npm run verify` passed at `0c829eb`.
 
 - [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
   folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the
