@@ -15,6 +15,7 @@
     "scripts/commit_msg_test.ts",
     "scripts/docs_test.ts",
     "scripts/doctor_test.ts",
+    "scripts/own_code_test.ts",
     "scripts/git_flow_test.ts",
     "scripts/gts_test.ts",
     "scripts/plugin_skills_test.ts",
@@ -30,6 +31,7 @@
     "scripts/validate_plugins.ts",
     "scripts/clean_architecture.ts",
     "scripts/workflow.ts",
+    "scripts/own_code.ts",
     "scripts/docs.ts",
     "scripts/constitution_version.ts"
   ]

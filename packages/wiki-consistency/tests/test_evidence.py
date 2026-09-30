@@ -4,8 +4,12 @@ import json
 import os
 import signal
 import socket
+import warnings
 import zipfile
 
+from hwpx import Hwp5ConversionWarning
+from hwpx import HwpxDocument
+from openpyxl import Workbook
 from pptx import Presentation
 from pptx.util import Inches
 import pytest
@@ -238,6 +242,44 @@ def test_convert_supported_files_and_pass_through(tmp_path, monkeypatch):
     }
 
 
+def test_convert_xlsx_hwp_and_hwpx_sources(tmp_path, monkeypatch):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+
+    xlsx = tmp_path / "source.xlsx"
+    workbook = Workbook()
+    workbook.active["A1"] = "Synthetic XLSX evidence"
+    workbook.save(xlsx)
+    workbook.close()
+
+    hwp = tmp_path / "source.hwp"
+    hwpx = tmp_path / "source.hwpx"
+    for path in (hwp, hwpx):
+        document = HwpxDocument.new()
+        document.add_paragraph(f"Synthetic {path.suffix[1:].upper()} evidence")
+        document.save_to_path(path)
+        document.close()
+    # python-hwpx writes a .hwp path as an HWP 5.0 compound file.
+    assert hwp.read_bytes()[:8] == b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
+    items = [
+        _revision(instance, "xlsx", "r1", xlsx.name, xlsx.read_bytes()),
+        _revision(instance, "hwp", "r1", hwp.name, hwp.read_bytes()),
+        _revision(instance, "hwpx", "r1", hwpx.name, hwpx.read_bytes()),
+    ]
+    monkeypatch.setattr(socket, "socket", _no_socket)
+
+    result = evidence.convert(instance, "wiki-a", cache, _revisions(*items))
+
+    assert result["unreadable"] == []
+    for source_id in ("xlsx", "hwp", "hwpx"):
+        assert (
+            f"Synthetic {source_id.upper()} evidence"
+            in evidence.read(cache, "wiki-a", source_id, "r1")["text"]
+        )
+
+
 def test_unreadable_revisions_record_the_reason(tmp_path):
     instance = tmp_path / "instance"
     cache = tmp_path / "cache"
@@ -248,9 +290,16 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
     items = [
         _revision(
             instance,
+            "unsupported",
+            "r1",
+            "unsupported.foo",
+            b"\xff\xfe\x00\x00",
+        ),
+        _revision(
+            instance,
             "hwp",
             "r1",
-            "unsupported.hwp",
+            "damaged.hwp",
             b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1",
         ),
         _revision(
@@ -269,7 +318,8 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
 
     reasons = {entry["id"]: entry["reason"] for entry in result["unreadable"]}
     assert reasons == {
-        "hwp": "unsupported_format",
+        "unsupported": "unsupported_format",
+        "hwp": "conversion_failed",
         "image-pdf": "empty_text",
         "damaged": "conversion_failed",
     }
@@ -283,6 +333,55 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
         assert evidence.read(cache, "wiki-a", source_id, "r1") == {
             "unreadable": reason
         }
+
+
+def test_hwp5_conversion_warning_is_marked_and_reused(tmp_path, monkeypatch):
+    instance = tmp_path / "instance"
+    cache = tmp_path / "cache"
+    instance.mkdir()
+
+    document = HwpxDocument.new()
+    document.add_paragraph("Synthetic partial HWP evidence")
+    hwp = tmp_path / "source.hwp"
+    document.save_to_path(hwp)
+    document.close()
+    item = _revision(instance, "hwp", "r1.2", hwp.name, hwp.read_bytes())
+
+    detail = "Synthetic HWP5 conversion warning"
+    original_open = HwpxDocument.open.__func__
+
+    def open_with_warning(cls, source):
+        warnings.warn(detail, Hwp5ConversionWarning)
+        return original_open(cls, source)
+
+    monkeypatch.setattr(HwpxDocument, "open", classmethod(open_with_warning))
+
+    write_immutable = evidence._write_immutable
+    write_order = []
+
+    def record_write(target, content, root, budget_bytes):
+        write_order.append(target.name)
+        return write_immutable(target, content, root, budget_bytes)
+
+    monkeypatch.setattr(evidence, "_write_immutable", record_write)
+
+    first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    partial = [{"id": "hwp", "revision": "r1.2", "detail": detail}]
+    partial_mark = _evidence_root(cache, "wiki-a") / "hwp" / "r1.2.partial.json"
+
+    assert first["partial"] == partial
+    assert first["unreadable"] == []
+    assert write_order == ["r1.2.partial.json", "r1.2.md"]
+    assert json.loads(partial_mark.read_text()) == {"detail": detail}
+    assert (
+        "Synthetic partial HWP evidence"
+        in evidence.read(cache, "wiki-a", "hwp", "r1.2")["text"]
+    )
+
+    second = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+
+    assert second["partial"] == partial
+    assert second["present"] == 1
 
 
 def test_convert_never_rewrites_and_reads_unconverted_as_missing(tmp_path):
@@ -475,3 +574,6 @@ def test_evidence_cache_path_uses_a_local_converter_revision(tmp_path):
     path = _evidence_root(tmp_path, "wiki-a")
 
     assert path.name != f"markitdown-{version('markitdown')}"
+    assert evidence.CONVERTER_VERSION == (
+        f"{version('markitdown')}-hwpx-{version('python-hwpx')}-json-2"
+    )

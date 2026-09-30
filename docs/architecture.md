@@ -30,7 +30,8 @@ remains open.
 Root tasks reuse Node.js and Ajv with the unmodified official Agent Plugins
 schemas. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
 shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
-suites, the reference drift check and the document region check (see
+suites, the reference drift check, the own-code limit (see
+[Own-code limit](#own-code-limit--2026-09-30)) and the document region check (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -50,8 +51,8 @@ formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
 selected standalone Quarto executable, uv, git-flow and lychee from
-`PATH`, the Spec Kit, ShellCheck, Ruff, doc-regions and wiki-consistency
-environments, the git-flow configuration
+`PATH`, the Spec Kit, ShellCheck, Ruff, scc, doc-regions and
+wiki-consistency environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
 verification evidence and three additive skill triggers; `verify` uses that same
 loop. In REVIEW mode it asks the implementer or the orchestrator to review the
@@ -97,6 +98,35 @@ runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
 or selects a model. Model selection remains a separate client decision.
+
+### Own-code limit — 2026-09-30
+
+A feature branch may add at most 300 net lines of the repository's own code
+against its merge base with `develop`, unless the user approves more
+([feature 022](../specs/022-own-code-limit/spec.md), CHE-42). `npm run
+own-code` (`scripts/own_code.ts`), part of `npm run check`, measures the
+worktree and the merge base, prints both sizes and the net change, and fails
+over the limit. The feature finish hook runs `npm run verify`, so the limit
+also guards the merge into `develop`; `develop` itself measures net 0.
+
+- scc 4.1.0 counts code lines, neither blank nor comment. `tools/scc/` is a uv
+  project whose `uv.lock` pins `scc-bin` 4.1.0, the PyPI wheels of scc's
+  release binaries; Orca's setup script syncs it.
+- Code is a file whose scc language GitHub Linguist's data
+  (`linguist-languages` 9.5.0) classes as programming, so Markdown, JSON,
+  YAML and TOML do not count.
+- Tests do not count: paths under a `tests/` folder or named `*_test.*` or
+  `*.test.*`.
+- Upstream copies do not count: files whose SHA-256 appears in an
+  `UPSTREAM.md`, an `upstream.json` or a Spec Kit install manifest
+  (`.specify/integrations/*.manifest.json`) of the same tree. A patched copy
+  no longer matches, so it counts in full. Copies without recorded hashes,
+  such as Ponytail's hook modules and Spec Kit's extension scripts, count as
+  own code.
+- The user's approval of a larger limit is a line
+  `**Own-code limit**: <number>, approved by the user on <date>` that the
+  branch adds to its records under `specs/`, `.specify/bugs/` or
+  `.specify/assessments/`. A line already on `develop` does not count.
 
 ## CLI contract
 
@@ -232,10 +262,13 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   needs no cache. `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
-  Markdown with markitdown 0.1.8 under
-  `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default `~/.cache`)
-  (1 GiB budget); HWP files and scanned PDFs are reported as unreadable, and
-  claims resting only on them as unverifiable. `index` builds qmd 2.8.3
+  Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
+  `~/.cache`) (1 GiB budget): markitdown 0.1.8 reads XLSX and other supported
+  formats, and python-hwpx 6.6.0 reads HWP and HWPX. An HWP file that
+  python-hwpx converts only in part keeps its text and is listed under
+  `partial`, with a `<revision>.partial.json` mark beside the text. Scanned
+  PDFs remain unreadable, so claims resting only on them are unverifiable.
+  `index` builds qmd 2.8.3
   collections of the pages and the converted evidence under
   `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget), with the multilingual
   Qwen3 embedding model, a 610 MB download on first use. Without the model,
@@ -257,8 +290,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
-  new schema template to an existing instance, and converting HWP files or
-  scanned PDFs.
+  new schema template to an existing instance, and converting scanned PDFs.
 
 ### Backfire server
 
