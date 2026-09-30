@@ -126,7 +126,7 @@ below.
     minutes; the exam 281 sentences, 6,247 proposals, about 24 minutes. The
     exam paper's default pdftotext order split 13 sentences across columns;
     extraction now uses `pdftotext -raw` (d3d79e6), which keeps them whole.
-- [ ] T009 [US2] Run `check` for both materials; write the hand-check sheet
+- [x] T009 [US2] Run `check` for both materials; write the hand-check sheet
   of 30 sampled sentences; ask the user to return it and the review sheets.
   - 2026-09-30: a 5-sentence probe found `result.isError` (mcp 2.2.0 has
     `is_error`) and calls of about 86,000 tokens that failed above 30
@@ -142,10 +142,22 @@ below.
     about 5.5 minutes. Against the first run, 93 to 94% of outcomes agree;
     confidence moved by a median of 0.04 (0.1 at the 90th percentile),
     mostly from unclear to kept.
-- [ ] T010 [US2] Run `record --reviewed`, `wiki-consistency update` and
+  - 2026-09-30: the develop session pre-filled the hand-check and the user
+    accepted it (287 ticked, 52 unticked, 22 missing keys in 9 sentences);
+    scored in [pilot-report.md](pilot-report.md) (0dad386).
+- [x] T010 [US2] Run `record --reviewed`, `wiki-consistency update` and
   `check`, log and commit in the vault; score the hand-check; report
   accuracy, calls, tokens and time to the user and record the decision on
   the full run here; delete the run folders.
+  - 2026-09-30: the user decided (spec Clarifications): tier families as
+    one concept for stage 2, keep at confidence 0.5 (`record
+    --auto-accept`, e4c11b2), both records now, the full run later. Records
+    written: the volume 250 sentences, 4,752 kept, 37 dropped, 2,563
+    unclear; the exam 281 sentences, 4,610 kept, 32 dropped, 1,605 unclear.
+    `check`: 0 problems on the record pages. Vault commit f18732e. The
+    judgment step had 2 units, both unverifiable (they describe the record);
+    semantic search was not ready. The run folder's deletion waits for the
+    user's answer on keeping the answer key for stage 2.
 
 ---
 
@@ -174,6 +186,12 @@ below.
 - [ ] T011 Measure the change size against `develop`; move CHE-57 to In
   Review and the worktree's board status to `in-review`; merge `develop`;
   run `npm run verify`.
+  - 2026-09-30: 1,982 lines against develop d677430 merged (e9002f7): 1,040
+    in the Spec Kit records, 942 in the skill, script, tests, template and
+    docs. Not split: it is one capability, and the records are documents.
+  - Develop merge reviewer: Codex `gpt-6-luna` at medium (backfire through
+    OpenRouter Jev: model 0.62, confidence 0.57; effort 0.77, confidence
+    0.73); the code was written by Claude Code sessions.
 - [ ] T012 Develop merge review by a fresh reviewer from the other provider,
   given only the scope and requirements; resolve findings; add the
   review-record commit; check `develop` has not moved; `git flow feature
