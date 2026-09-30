@@ -296,6 +296,11 @@ def test_provider_receives_no_number_or_field_value_identifier(
         "born on June 17th of 2012",
         "DOB: June 17, year 2012",
         "born on June 17 in 2012",
+        "DOB: June 17, [ 2012 ]",
+        "born on 17.  06.  2012",
+        "born on 2012 . 06 . 17",
+        "born on June 2012, on the 17th",
+        "born on [June 17, 2012]",
     ],
 )
 def test_provider_receives_no_part_of_a_birth_date(
@@ -309,8 +314,11 @@ def test_provider_receives_no_part_of_a_birth_date(
     assert not re.search(r"2012|June|\b17\b|\b06\b", sent)
 
 
+@pytest.mark.parametrize(
+    "text", ["born on June 17 (2012)", "born on June 17 [2012]"]
+)
 def test_a_year_left_beside_a_replaced_birth_date_is_refused(
-    synthetic_roster, monkeypatch
+    synthetic_roster, monkeypatch, text
 ):
     del synthetic_roster  # Unused.
     real, seen = education.find_spans, set()
@@ -322,15 +330,15 @@ def test_a_year_left_beside_a_replaced_birth_date_is_refused(
             return spans
         seen.add(text)
         return [
-            (start, text.index(" (", start), identifier)
-            if identifier[0] == "birth" and " (" in text[start:stop]
+            (start, start + len("June 17"), identifier)
+            if identifier[0] == "birth" and text[start:].startswith("June 17 ")
             else (start, stop, identifier)
             for start, stop, identifier in spans
         ]
 
     monkeypatch.setattr(education, "find_spans", stop_before_the_year)
     with FakeProvider([completion({"q": 0.5})]) as fake:
-        error = send(monkeypatch, fake, {"note": "born on June 17 (2012)"})
+        error = send(monkeypatch, fake, {"note": text})
     assert str(error).startswith("identifier_remaining:")
     assert "2012" not in str(error)
     assert fake.requests == []

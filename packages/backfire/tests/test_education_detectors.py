@@ -236,9 +236,9 @@ def test_birth_dates_follow_a_keyword_or_end_in_nyeonsaeng(
     ("text", "matched"),
     [
         ("DOB = 2011-04-23", "2011-04-23"),
-        ('DOB: "2011-04-23"', "2011-04-23"),
+        ('DOB: "2011-04-23"', '2011-04-23"'),
         ("Date of birth - 2011-04-23", "2011-04-23"),
-        ("birthday='2011-04-23'", "2011-04-23"),
+        ("birthday='2011-04-23'", "2011-04-23'"),
         ("DOB: 23/04/2011", "23/04/2011"),
         ("born on 04/23/2011", "04/23/2011"),
         ("born on 9.3.2011", "9.3.2011"),
@@ -281,6 +281,16 @@ def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
         ("DOB: June 17, year 2012", "June 17, year 2012"),
         ("born on June 17 in 2012", "June 17 in 2012"),
         ("born on 17 June [2012]", "17 June [2012]"),
+        ("DOB: June 17, [ 2012 ]", "June 17, [ 2012 ]"),
+        ("born on 17.  06.  2012", "17.  06.  2012"),
+        ("born on 2012 . 06 . 17", "2012 . 06 . 17"),
+        ("born on June 2012, on the 17th", "June 2012, on the 17th"),
+        ("born in two thousand, twelve", "two thousand, twelve"),
+        ("born on [June 17, 2012]", "June 17, 2012]"),
+        ("born on June 17, ［ 2012 ］", "June 17, ［ 2012 ］"),
+        ("DOB: June 17 ; 2012", "June 17 ; 2012"),
+        ("born on June 17, anno 2012", "June 17, anno 2012"),
+        ("born in nineteen ninety-eight", "nineteen ninety-eight"),
     ],
 )
 def test_birth_dates_in_english_prose_and_words(found, text, matched):
@@ -288,10 +298,17 @@ def test_birth_dates_in_english_prose_and_words(found, text, matched):
 
 
 @pytest.mark.parametrize(
-    "text", ["born on \x00 (2012)", "DOB: \x00, (2012)", "born on \x00 in 2012"]
+    ("text", "matched"),
+    [
+        ("born on \x00 (2012)", "2012)"),
+        ("DOB: \x00, (2012)", "2012)"),
+        ("born on \x00 in 2012", "2012"),
+        ("born on \x00 [2012]", "2012]"),
+        ("DOB: \x00, [ 2012 ]", "2012 ]"),
+    ],
 )
-def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text):
-    assert [(m, kind) for m, kind, _ in found(text)] == [("2012", "birth")]
+def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text, matched):
+    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
 
 
 @pytest.mark.parametrize(

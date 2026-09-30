@@ -55,33 +55,31 @@ _CARDINAL_WORDS = "|".join(_CARDINAL)
 _MARKUP = "|*_`~\"'“”‘’"
 _PUNCT = "\\-–—:：=>→" + _MARKUP
 _US_HIGH = {"freshman": 9, "sophomore": 10, "junior": 11, "senior": 12}
-_MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
-# A day of the month: 23, 23rd or twenty-third.
-_DAY = (
-    r"(?:\d{1,2}(?:st|nd|rd|th)?|(?:(?:twenty|thirty)[\s-]?)?"
+_MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*+\.?"
+# A day of the month in words: first, twenty-third, thirtieth.
+_DAY_WORD = (
+    r"(?:(?:twenty|thirty)[\s-]?)?"
     r"(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)"
     r"|tenth|eleventh|twelfth|(?:thir|four|fif|six|seven|eigh|nine)teenth"
-    r"|twentieth|thirtieth)"
+    r"|twentieth|thirtieth"
 )
-# A year in digits or words: 2011, two thousand and eleven, twenty eleven.
-_TAIL = rf"(?:twenty(?:[\s-]+(?:{'|'.join(_UNITS)}))?|{'|'.join(_UNITS)})"
-_YEAR_NUMBER = (
-    rf"(?:\d{{4}}|two[\s-]+thousand(?:[\s-]+and)?(?:[\s-]+{_TAIL})?"
-    rf"|twenty(?:[\s-]+oh)?[\s-]+{_TAIL})"
+# One part of a date: a number (23, 23rd, 2011, 2011년), a month, a day in
+# words, or a number word (twenty, ninety, eleven, thousand).
+_DATE_PART = (
+    rf"(?:\d++(?:st|nd|rd|th|년|월|일)?|{_MONTH}|(?:{_DAY_WORD}"
+    rf"|{'|'.join(_UNITS)}|(?:twen|thir|for|fif|six|seven|eigh|nine)ty"
+    r"|thousand|hundred|oh)(?![A-Za-z]))"
 )
-# The year after a day and month: ", 2011", " (2011)", " of 2011", " in 2011"
-# or ", year 2011".
-_YEAR_AFTER = rf",?[\s-]*(?:[(\[]|(?:of|in|year)\s+)?{_YEAR_NUMBER}[)\]]?"
-# Year first (2011-04-23), day or month first (23/04/2011, 17. 06. 2012,
-# 04/23), or spelled.
+# Anything but a letter or digit may join the parts of a date: spaces,
+# punctuation, brackets and quotes of any script.
+_DATE_GAP = r"[\W_]"
+# A whole date: parts joined by gaps, or by of, in, on, the, year, anno or
+# and with gaps around them, as in "June 17, [ 2012 ]", "2012 . 06 . 17",
+# "June 2012, on the 17th" or "nineteen ninety-eight"; a closing bracket or
+# quote ends it.
 _DATE = (
-    r"\d{4}[-./]\s?\d{1,2}(?:[-./]\s?\d{1,2})?"
-    r"|\d{1,2}[-./]\s?\d{1,2}(?:[-./]\s?\d{1,4})?"
-    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년"
-    rf"|{_MONTH}[\s-]+(?:(?:the\s+)?{_DAY}(?:{_YEAR_AFTER})?"
-    rf"|(?:of\s+)?{_YEAR_NUMBER})"
-    rf"|{_DAY}[\s-]+(?:of\s+)?{_MONTH}(?:{_YEAR_AFTER})?"
-    rf"|\d{{8}}|\d{{6}}|{_YEAR_NUMBER}(?:,?\s+{_MONTH}(?:\s+{_DAY})?)?"
+    rf"{_DATE_PART}(?:{_DATE_GAP}*+(?:(?:of|in|on|the|year|anno|and)"
+    rf"{_DATE_GAP}++)*+{_DATE_PART})*+(?:\s*+[\])}}）］】」』\"'”’»〉》])?"
 )
 # Words that may sit between a birth keyword and its date.
 _BIRTH_WORDS = (
@@ -321,9 +319,10 @@ _DETECTORS = [
         re.compile(
             r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
             r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
-            # A blanked stand-in in the gap lets the scan after the swap find
-            # a year left beside a replaced date.
-            rf"(?:[\s{_PUNCT},(){_BLANK}]"
+            # Anything but a letter or digit may sit between the keyword and
+            # the date. That includes a blanked stand-in, so the scan after
+            # the swap finds a year left beside a replaced date.
+            r"(?:[\W_]"
             rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
             rf"(?P<date>{_DATE})(?![0-9A-Za-z])",
             re.IGNORECASE,
