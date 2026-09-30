@@ -5,7 +5,7 @@ chose (research R1 of `specs/022-own-code-limit/`); tests are not counted.
 The per-swap counts in Results compare each replaced file at `3bd2e7f`
 (the first `develop` merged into this branch) with the branch tip; the
 whole-tree count compares the branch's merge base with `develop`
-(`b9a0293`) with the tip.
+(`845255f`) with the tip.
 
 ## R0. Security review and licenses
 
@@ -176,8 +176,8 @@ whole-tree count compares the branch's merge base with `develop`
 Own-code lines are scc 4.1.0 Code lines of programming-language files,
 tests excluded, for the replaced files at `3bd2e7f` (the first `develop`
 merged into this branch) and at the branch tip. For the whole tree, the
-branch's merge base with `develop` (`b9a0293`) counts 14,486 lines and the
-tip 11,962: **net -2,524**.
+branch's merge base with `develop` (`845255f`, after the last merge of
+`develop`) counts 14,565 lines and the tip 12,053: **net -2,512**.
 
 | Swap | Tool, pin, license | Review | Removed | Own code | Dropped behaviours |
 | --- | --- | --- | --- | --- | --- |
