@@ -216,7 +216,7 @@ from `packages/backfire`.
 
 ## Phase 5: Polish and acceptance (coordinator)
 
-- [ ] T016 Run the live checks: one judgment per tool through the shipped
+- [x] T016 Run the live checks: one judgment per tool through the shipped
   Hive profile (at most 15 billed calls) and one judgment through the
   Vercel profile; record the call counts and outcomes under T016 (SC-006).
   - 2026-09-30: Hive, shipped profile: one call to each of the twelve
@@ -224,7 +224,8 @@ from `packages/backfire`.
     plugin's key file: the gateway accepted the key and answered HTTP 429
     "No access to this model at this time." for `typesafe-ai/jev`; about 6
     refused attempts over two runs, no judgment. The Vercel live check is
-    not done; the user was asked whether to enable the model.
+    not done: Vercel's free tier does not give access to the Jev model,
+    and the user decided to record it as not done.
 - [x] T017 [P] Update `docs/backfire.md`, `docs/architecture.md`, the
   backfire skills in both plugins (`jev_` names; `upstream.json`
   `local_modifications`), `licenses/THIRD_PARTY_NOTICES.md` (notices only
@@ -232,13 +233,14 @@ from `packages/backfire`.
   only for the skill text, remove the jev-judge-mcp and system-one-adapter
   entries, update the python-phonenumbers entry), and regenerate
   `docs/reference/` if its inputs changed (FR-012, FR-015).
-- [ ] T018 Count backfire's own code against `develop` with its file list
+- [x] T018 Count backfire's own code against `develop` with its file list
   and report it; stop and ask before exceeding 500 lines (FR-017, SC-007).
   - 2026-09-30, at `ed1294f`: 791 lines (`providers.py` 225, `noul.py` 204,
     `config.py` 145, `vercel.py` 125, `__main__.py` 47, `failures.py` 23,
-    `config.toml` 21, `__init__.py` 1), above the 500-line target; the
-    user's approval was asked for through the develop session.
-- [ ] T019 Run the document judgment step the develop merge review uses and
+    `config.toml` 21, `__init__.py` 1), above the 500-line target; 803
+    after the review fixes in `934c259`. The user accepted this size on
+    2026-09-30 and kept every part.
+- [x] T019 Run the document judgment step the develop merge review uses and
   resolve contradicted units; run `npm run verify` three times in a row
   without a rerun and record each result (SC-005).
   - 2026-09-30: `doc-regions:prepare` gave 27 requests over 244 units. A
@@ -256,6 +258,9 @@ from `packages/backfire`.
     follow-up run of 7 requests (7 attempts) judged the 13 changed or
     unjudged units: none contradicted. MemoryLint's 19 warnings on the
     constitution go to the user unchanged.
+  - `npm run verify` passed three times in a row on `9a0eefe` and again
+    three times in a row on `934c259` after the review fixes (task
+    `che39-final`, base `ae8cadf`, phase `VERIFIED` each time).
 - [ ] T020 Write `specs/021-backfire-rebuild/report.md`, commit it, move
   CHE-39 to In Review, get the develop merge review (fresh Claude Code
   reviewer for code, fresh Codex reviewer for records), resolve findings,

@@ -1,8 +1,8 @@
 # Report: Backfire Rebuilt on jev-judge-mcp (CHE-39)
 
 **Branch**: `feature/backfire-rebuild`. **Dates**: 2026-09-29 to
-2026-09-30. **Status**: implemented and verified; waiting for the user's
-approval of the own-code size and the develop merge review.
+2026-09-30. **Status**: implemented, reviewed and verified; ready to finish into
+`develop`.
 
 ## Result
 
@@ -41,7 +41,10 @@ pseudonymization module) to 791 plus the unchanged pseudonymization module.
 ## Own code (user's size rule)
 
 Counted with `wc -l` over `packages/backfire/src/backfire/` (Python and
-TOML), tests and `backfire_education` excluded, at `ed1294f`: 791 lines.
+TOML), tests and `backfire_education` excluded: 791 lines at `ed1294f`,
+803 after the review fixes at `934c259` (`providers.py` 235,
+`__main__.py` 49; the pseudonymization module changed by 20 added and 2
+removed lines).
 
 | File | Lines | What it holds |
 | --- | --- | --- |
@@ -54,8 +57,9 @@ TOML), tests and `backfire_education` excluded, at `ed1294f`: 791 lines.
 | `config.toml` | 21 | shipped Hive profile and unselected Vercel profile |
 | `__init__.py` | 1 | package marker |
 
-This is above the 500-line target; the user's approval was asked for on
-2026-09-30 and is pending (see the develop session's thread).
+This is above the 500-line target. On 2026-09-30 the user accepted about
+791 lines plus what the privacy fix needed, and kept `jev_noul`, the Jev
+profiles and the Vercel provider.
 
 ## Load: CHE-37 and CHE-38
 
@@ -84,8 +88,10 @@ This is above the 500-line target; the user's approval was asked for on
 - Vercel AI Gateway, with the chat plugin's key file: the gateway accepted
   the key but answered HTTP 429 "No access to this model at this time." for
   `typesafe-ai/jev`; about 6 refused attempts over two runs, no judgment.
-  The Vercel provider passes its stub tests; the live check is not done
-  until the account can use that model.
+  Vercel's free tier does not give access to the Jev model (another session
+  got "Free tier users do not have access to this model"), so the user
+  decided to record the Vercel live check as not done. The Vercel provider
+  passes its stub tests.
 - Document judgment step before the merge review: 27 requests over 244
   units, run with the shipped Hive profile. About 20 attempts timed out
   under PyModel's 30-second default before the retry settings were added;
@@ -101,6 +107,28 @@ This is above the 500-line target; the user's approval was asked for on
 - `npm run test:backfire`: 142 passed, 1 strict expected failure (CHE-38).
 - doc-regions 106 passed, wiki-consistency 291 passed, `plugins:validate`
   passed.
+
+## Merge review
+
+- Code (fresh Claude Code reviewer, `claude-sonnet-5-5` at medium effort,
+  chosen with `jev_decide`): round 1 requested changes: one blocker (the
+  work plugin did not pseudonymize PyModel's question text), one major
+  (tests missed it) and five minors. All were fixed in `934c259`, with
+  tests that failed on the earlier code. Round 2 (a fresh reviewer, same
+  model) approved with two minors that stand: the load test measures
+  under whatever load the machine has rather than starting load itself,
+  as its 16- and 80-process runs are recorded in [tasks.md](tasks.md);
+  and the score-legend restore handles list rubrics only, which is what
+  PyModel's `jev_score` sends. That reviewer ran all twelve tools in the
+  work plugin's mode with a synthetic roster and a recording provider: no
+  roster name, guardian, school, phone number or email reached the
+  provider, and the answers came back restored.
+- Records (fresh Codex reviewer, `gpt-6-luna` at max effort): four majors
+  and two minors on the contracts, skills, license rule, report and error
+  text, fixed in `f07d66c`.
+- The document judgment step flagged principle VI's XDG namespace list in
+  the constitution as contradicted; it stays as written unless the user
+  says otherwise.
 
 ## Known limits and follow-ups
 
