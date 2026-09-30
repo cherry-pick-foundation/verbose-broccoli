@@ -13,7 +13,8 @@ upstream; its `UPSTREAM.md` lists every difference:
 
 - **Provider**: Jev calls go to the provider that `JEV_PROVIDER` names in
   `packages/jev-ultrafast/src/jev_ultrafast/providers.toml`: `typesafe`
-  (the default, as upstream) or `vercel` (Vercel AI Gateway).
+  (the default, as upstream), `vercel` (Vercel AI Gateway) or `cloudflare`
+  (Cloudflare Workers AI).
 - **Browser**: by default the agent opens its own tab in Orca's built-in
   browser, in the current worktree, and closes it at the end.
   `JEV_BROWSER=chrome` uses upstream's Chrome connection instead.
@@ -35,6 +36,7 @@ install -d -m 700 ~/.config/verbose-broccoli/chat
 | --- | --- |
 | `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel`; Jev needs paid AI Gateway credit, since the free tier refuses it |
 | `TYPESAFE_API_KEY=<key>` | `JEV_PROVIDER=typesafe` |
+| `CLOUDFLARE_API_TOKEN=<token>` and `CLOUDFLARE_ACCOUNT_ID=<id>` | `JEV_PROVIDER=cloudflare`; a token with the Workers AI permission for that account |
 | `TEXT_MODEL_API_KEY=<key>`, and optionally `TEXT_MODEL_BASE_URL`, `TEXT_MODEL`, `TEXT_MODEL_REASONING` | Steps that type text (upstream's OpenAI-compatible text helper) |
 
 Never print the file, paste a key into a prompt, or commit it.

@@ -334,8 +334,9 @@ package two skills backed by two uv workspace packages.
   [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
   the original file hashes and every difference. Its Jev calls go to the
   provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
-  `typesafe`, as upstream, or `vercel`, Vercel AI Gateway in the request
-  format of jev-mcp 0.9.0's Vercel carrier. By default the agent opens its own
+  `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
+  of jev-mcp 0.9.0's Vercel carrier; or `cloudflare`, Cloudflare Workers AI.
+  By default the agent opens its own
   tab in Orca's built-in browser and attaches to it through that tab's own
   browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
   connection. The `web-agent` skill runs it.
