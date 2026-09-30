@@ -11,9 +11,6 @@ from urllib.parse import urlsplit
 from backfire.failures import JudgmentError
 
 SHIPPED_CONFIG = Path(__file__).with_name("config.toml")
-EDUCATION_CONFIG = (
-    Path(__file__).parents[1] / "backfire_education" / "config.toml"
-)
 _CREDENTIAL = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
@@ -51,13 +48,13 @@ def _read(path: Path, *, optional: bool = False) -> dict:
     return value
 
 
-def load_profile(*, education: bool = False) -> dict:
-    """Select and minimally validate the configured provider profile."""
-    shipped_path = EDUCATION_CONFIG if education else SHIPPED_CONFIG
+def load_profiles() -> list[dict]:
+    """Load and validate the shared provider profiles in order."""
+    shipped_path = SHIPPED_CONFIG
     shipped = _read(shipped_path)
     operator_path = xdg_path("config") / "backfire" / "config.toml"
     operator = _read(operator_path, optional=True)
-    if set(operator) - {"provider", "providers"}:
+    if set(operator) - {"order", "providers"}:
         _invalid(operator_path)
     shipped_profiles = shipped.get("providers", {})
     operator_profiles = operator.get("providers", {})
@@ -66,48 +63,70 @@ def load_profile(*, education: bool = False) -> dict:
     ):
         _invalid(shipped_path)
     profiles = shipped_profiles | operator_profiles
-    name = operator.get("provider", shipped.get("provider"))
-    source = (
-        operator_path
-        if "provider" in operator
-        or (isinstance(name, str) and name in operator_profiles)
-        else shipped_path
-    )
-    profile = profiles.get(name) if isinstance(name, str) else None
-    if not isinstance(profile, dict) or profile.get("api") not in {
-        "openai",
-        "jev",
-    }:
-        _invalid(source)
-    if not isinstance(
-        profile.get("credential"), str
-    ) or not _CREDENTIAL.fullmatch(profile["credential"]):
-        _invalid(source)
-    if "credential_file" in profile and (
-        not isinstance(profile["credential_file"], str)
-        or not profile["credential_file"].strip()
+    order = operator.get("order", shipped.get("order"))
+    order_source = operator_path if "order" in operator else shipped_path
+    if not isinstance(order, list) or any(
+        not isinstance(name, str) or not name for name in order
     ):
-        _invalid(source)
-    if profile["api"] == "openai" and any(
-        not isinstance(profile.get(key), str) or not profile[key].strip()
-        for key in ("base_url", "model")
-    ):
-        _invalid(source)
-    if profile.get("jev_provider") == "vercel" and not profile.get("base_url"):
-        _invalid(source)
-    if "base_url" in profile:
-        try:
-            endpoint = urlsplit(profile["base_url"])
-            if (
-                endpoint.scheme not in {"http", "https"}
-                or not endpoint.hostname
-                or endpoint.username
-                or endpoint.password
-            ):
-                _invalid(source)
-        except (TypeError, ValueError):
+        _invalid(order_source)
+    result = []
+    for name in order:
+        source = operator_path if name in operator_profiles else order_source
+        profile = profiles.get(name)
+        if not isinstance(profile, dict) or profile.get("api") not in {
+            "openai",
+            "jev",
+        }:
             _invalid(source)
-    return {**profile, "name": name, "_config_dir": operator_path.parent}
+        if (
+            not isinstance(profile.get("credential"), str)
+            or not _CREDENTIAL.fullmatch(profile["credential"])
+            or profile["credential"] in {"HOME", "PATH"}
+        ):
+            _invalid(source)
+        if "credential_file" in profile and (
+            not isinstance(profile["credential_file"], str)
+            or not profile["credential_file"].strip()
+        ):
+            _invalid(source)
+        if "codexbar" in profile and (
+            not isinstance(profile["codexbar"], str)
+            or not profile["codexbar"].strip()
+        ):
+            _invalid(source)
+        if "insufficient_balance" in profile and (
+            not isinstance(profile["insufficient_balance"], list)
+            or any(
+                type(status) is not int or not 100 <= status <= 599
+                for status in profile["insufficient_balance"]
+            )
+        ):
+            _invalid(source)
+        if profile["api"] == "openai" and any(
+            not isinstance(profile.get(key), str) or not profile[key].strip()
+            for key in ("base_url", "model")
+        ):
+            _invalid(source)
+        if profile.get("jev_provider") == "vercel" and not profile.get(
+            "base_url"
+        ):
+            _invalid(source)
+        if "base_url" in profile:
+            try:
+                endpoint = urlsplit(profile["base_url"])
+                if (
+                    endpoint.scheme not in {"http", "https"}
+                    or not endpoint.hostname
+                    or endpoint.username
+                    or endpoint.password
+                ):
+                    _invalid(source)
+            except (TypeError, ValueError):
+                _invalid(source)
+        result.append(
+            {**profile, "name": name, "_config_dir": operator_path.parent}
+        )
+    return result
 
 
 def load_credential(profile: dict) -> str:

@@ -1,8 +1,10 @@
-"""Education mode selects its own profile and accepts operator overrides."""
+"""Education mode uses shared provider profiles and accepts overrides."""
 
+from jev_judge_mcp.settings import Settings
 import pytest
 
 from backfire import config
+from backfire.providers import provider_factory
 
 
 @pytest.fixture
@@ -13,19 +15,21 @@ def operator_config(tmp_path, monkeypatch):
     return path
 
 
-def test_education_mode_uses_the_work_profile(operator_config):
-    code = config.load_profile()
-    work = config.load_profile(education=True)
-    assert code["name"] == "hive"
-    assert work["name"] == "education"
-    assert work["model"] == code["model"]
-    assert work["credential"] == code["credential"]
+def test_education_mode_uses_the_shared_profile_order(operator_config):
+    provider = provider_factory(education=True)(Settings.model_construct())
+    assert provider._education is True
+    assert [profile["name"] for profile in provider._profiles] == [
+        "hive",
+        "openrouter",
+        "vercel",
+    ]
+    assert provider._profiles == config.load_profiles()
     assert not operator_config.exists()
 
 
-def test_operator_selection_applies_to_both_profiles(operator_config):
+def test_operator_selection_applies_to_shared_profiles(operator_config):
     operator_config.write_text(
-        """provider = "synthetic"
+        """order = ["synthetic"]
 [providers.synthetic]
 api = "openai"
 base_url = "https://provider.invalid/v1"
@@ -34,12 +38,10 @@ credential = "SYNTHETIC_KEY"
 """,
         encoding="utf-8",
     )
-    for education in (False, True):
-        selected = config.load_profile(education=education)
-        assert (selected["name"], selected["model"]) == (
-            "synthetic",
-            "synthetic-model",
-        )
+    selected = config.load_profiles()
+    assert [(profile["name"], profile["model"]) for profile in selected] == [
+        ("synthetic", "synthetic-model")
+    ]
 
 
 def test_operator_may_replace_only_the_selected_profile(operator_config):
@@ -52,8 +54,5 @@ credential = "SYNTHETIC_KEY"
 """,
         encoding="utf-8",
     )
-    selected = config.load_profile()
-    work = config.load_profile(education=True)
-    assert selected["model"] == "synthetic-model"
-    assert work["name"] == "education"
-    assert work["model"] != "synthetic-model"
+    selected = config.load_profiles()
+    assert selected[0]["model"] == "synthetic-model"

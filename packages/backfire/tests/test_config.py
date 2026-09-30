@@ -17,10 +17,10 @@ def operator(tmp_path, monkeypatch):
     return path
 
 
-def write_profile(path, *, provider="local"):
+def write_profile(path, *, profile="local"):
     path.write_text(
-        f'''provider = "{provider}"
-[providers.{provider}]
+        f'''order = ["{profile}"]
+[providers.{profile}]
 api = "openai"
 base_url = "http://127.0.0.1:8080/v1"
 model = "synthetic-model"
@@ -31,20 +31,25 @@ request = {{ max_tokens = 32 }}
     )
 
 
-def test_shipped_selection_and_unselected_vercel_profile_are_present(operator):
+def test_shipped_order_and_provider_profiles_are_present(operator):
     shipped = tomllib.loads(config.SHIPPED_CONFIG.read_text(encoding="utf-8"))
-    selected = config.load_profile()
-    assert selected["name"] == shipped["provider"]
-    assert (
-        selected["model"] == shipped["providers"][shipped["provider"]]["model"]
-    )
+    selected = config.load_profiles()
+    assert [profile["name"] for profile in selected] == shipped["order"]
+    assert [profile["name"] for profile in selected] == [
+        "hive",
+        "openrouter",
+        "vercel",
+    ]
     assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
+    assert shipped["providers"]["hive"]["insufficient_balance"] == [405]
+    assert shipped["providers"]["openrouter"]["codexbar"] == "openrouter"
+    assert shipped["providers"]["vercel"]["codexbar"] == "vercel"
     assert not operator.exists()
 
 
 def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
     write_profile(operator)
-    selected = config.load_profile()
+    selected = config.load_profiles()[0]
     credential = operator.parent / "local.env"
     credential.write_text(
         "SYNTHETIC_API_KEY=synthetic-value\n", encoding="utf-8"
@@ -57,7 +62,7 @@ def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
 
 def test_operator_retry_table_is_passed_through(operator):
     operator.write_text(
-        """provider = "local"
+        """order = ["local"]
 [providers.local]
 api = "openai"
 base_url = "http://127.0.0.1:8080/v1"
@@ -70,23 +75,42 @@ budget = 2
         encoding="utf-8",
     )
 
-    assert config.load_profile()["retry"] == {
+    assert config.load_profiles()[0]["retry"] == {
         "per_attempt_timeout": 1,
         "budget": 2,
     }
 
 
-def test_education_profile_is_selected_without_loading_its_key(operator):
-    selected = config.load_profile(education=True)
-    assert selected["name"] == "education"
-    assert selected["api"] == "openai"
-    assert not operator.exists()
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("codexbar", '"   "'),
+        ("insufficient_balance", '["402"]'),
+        ("insufficient_balance", "[99]"),
+        ("insufficient_balance", "[true]"),
+        ("credential", '"PATH"'),
+    ],
+)
+def test_bad_optional_profile_fields_fail(operator, field, value):
+    operator.write_text(
+        f"""order = ["local"]
+[providers.local]
+api = "openai"
+base_url = "http://127.0.0.1:8080/v1"
+model = "synthetic-model"
+credential = "SYNTHETIC_API_KEY"
+{field} = {value}
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(JudgmentError, match="^backend_not_configured:"):
+        config.load_profiles()
 
 
 @pytest.mark.parametrize("mode", [0o644, 0o400])
 def test_key_file_must_be_owned_and_private(operator, mode):
     write_profile(operator)
-    selected = config.load_profile()
+    selected = config.load_profiles()[0]
     path = operator.parent / "local.env"
     path.write_text("SYNTHETIC_API_KEY=synthetic-value\n", encoding="utf-8")
     path.chmod(mode)
@@ -96,16 +120,16 @@ def test_key_file_must_be_owned_and_private(operator, mode):
 
 
 def test_invalid_profile_fails_with_safe_configuration_error(operator):
-    operator.write_text('provider = "missing"\n', encoding="utf-8")
+    operator.write_text('order = ["missing"]\n', encoding="utf-8")
     with pytest.raises(JudgmentError) as caught:
-        config.load_profile()
+        config.load_profiles()
     assert caught.value.error_type == "backend_not_configured"
     assert str(operator) in str(caught.value)
 
 
 def test_bad_credential_file_fails_without_exposing_contents(operator):
     write_profile(operator)
-    selected = config.load_profile()
+    selected = config.load_profiles()[0]
     path = operator.parent / "local.env"
     path.write_text("OTHER_KEY=synthetic-secret-marker\n", encoding="utf-8")
     path.chmod(0o600)

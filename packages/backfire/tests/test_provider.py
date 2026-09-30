@@ -16,7 +16,7 @@ import pytest
 
 from backfire.providers import _jev_provider
 from backfire.providers import _OpenAIProvider
-from backfire.providers import _ProfileProvider
+from backfire.providers import _OrderProvider
 from backfire.providers import provider_factory
 
 QUESTIONS = {
@@ -104,7 +104,7 @@ def test_profile_retry_policy_allows_reply_after_default_attempt(monkeypatch):
             "retry": retry,
         }
         monkeypatch.setattr(
-            "backfire.providers.load_profile", lambda **_: profile
+            "backfire.providers.load_profiles", lambda **_: [profile]
         )
         monkeypatch.setattr(
             "backfire.providers.load_credential", lambda _: "synthetic-key"
@@ -121,13 +121,14 @@ def test_profile_retry_policy_allows_reply_after_default_attempt(monkeypatch):
             ),
         )
         client = provider_factory()(Settings.model_construct())
-        assert client._provider._retry == policy
 
         async def run():
             try:
-                return await client.evaluate(
+                result = await client.evaluate(
                     {"claim": "synthetic"}, QUESTIONS, "model", 2
                 )
+                assert client._current[1]._retry == policy
+                return result
             finally:
                 await client.aclose()
 
@@ -144,17 +145,26 @@ def test_profile_retry_policy_allows_reply_after_default_attempt(monkeypatch):
     ],
 )
 def test_invalid_profile_retry_fails_before_key_load(monkeypatch, retry):
+    profile = {
+        "name": "synthetic-profile",
+        "api": "openai",
+        "retry": retry,
+    }
     monkeypatch.setattr(
-        "backfire.providers.load_profile",
-        lambda **_: {"name": "synthetic-profile", "retry": retry},
+        "backfire.providers.load_profiles", lambda **_: [profile]
     )
     monkeypatch.setattr(
         "backfire.providers.load_credential",
         lambda _: pytest.fail("invalid retry reached credential loading"),
     )
 
+    client = provider_factory()(Settings.model_construct())
+
+    async def run():
+        await client.evaluate({"claim": "synthetic"}, QUESTIONS, "model", 2)
+
     with pytest.raises(ProviderConfigError, match="synthetic-profile"):
-        provider_factory()(Settings.model_construct())
+        asyncio.run(run())
 
 
 @pytest.mark.parametrize(
@@ -199,22 +209,29 @@ def test_jev_profiles_require_provider_fields_before_key_load(
     monkeypatch, name
 ):
     monkeypatch.setattr(
-        "backfire.providers.load_profile",
-        lambda **_: {
-            "name": "synthetic-profile",
-            "api": "jev",
-            "jev_provider": name,
-        },
+        "backfire.providers.load_profiles",
+        lambda **_: [
+            {
+                "name": "synthetic-profile",
+                "api": "jev",
+                "jev_provider": name,
+            }
+        ],
     )
     monkeypatch.setattr(
         "backfire.providers.load_credential",
         lambda _: pytest.fail("incomplete profile reached credential loading"),
     )
 
+    client = provider_factory()(Settings.model_construct())
+
+    async def run():
+        await client.evaluate({"claim": "synthetic"}, QUESTIONS, "model", 2)
+
     with pytest.raises(
         ProviderConfigError, match="^backend_not_configured:"
     ) as caught:
-        provider_factory()(Settings.model_construct())
+        asyncio.run(run())
     assert "synthetic-profile" in str(caught.value)
 
 
@@ -234,8 +251,16 @@ def test_vercel_profile_receives_pymodel_retry():
 
 
 def test_profile_configuration_failure_is_a_pymodel_provider_error():
+    client = provider_factory()(Settings.model_construct())
+
+    async def run():
+        try:
+            await client.evaluate({"claim": "synthetic"}, QUESTIONS, "model", 2)
+        finally:
+            await client.aclose()
+
     with pytest.raises(ProviderConfigError, match="^backend_not_configured:"):
-        provider_factory()(Settings.model_construct())
+        asyncio.run(run())
 
 
 def test_education_wrapper_pseudonymizes_before_delegating(monkeypatch):
@@ -263,7 +288,20 @@ def test_education_wrapper_pseudonymizes_before_delegating(monkeypatch):
         )
 
     monkeypatch.setattr("backfire.providers.pseudonymize", pseudonymize)
-    wrapped = _ProfileProvider(Stub(), "profile-model", education=True)
+    monkeypatch.setattr(
+        "backfire.providers.load_credential", lambda _: "synthetic-key"
+    )
+    monkeypatch.setattr("backfire.providers._build_provider", lambda *_: Stub())
+    wrapped = _OrderProvider(
+        [
+            {
+                "name": "synthetic-profile",
+                "credential": "SYNTHETIC_KEY",
+                "model": "profile-model",
+            }
+        ],
+        education=True,
+    )
 
     async def run():
         return await wrapped.evaluate(
