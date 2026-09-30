@@ -126,3 +126,16 @@ with the already approved Ajv dependency. Sources:
   `npm run backfire:install` for the work plugin's `serve-mcp --education`.
   No source is copied into the repository.
 - Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
+
+## browser-use/jev-ultrafast — chat web agent
+
+- Source:
+  <https://github.com/browser-use/jev-ultrafast/tree/1231850a0bf1a0c0341fe408ef1668dbbfdfac46>
+- Revision: `1231850a0bf1a0c0341fe408ef1668dbbfdfac46`.
+- Reused: the `jev_ultrafast` package, its offline tests, `examples/run.py`,
+  `examples/flights.py` and `scripts/check_guards.py`, copied into
+  `packages/jev-ultrafast/` with its license.
+  `packages/jev-ultrafast/UPSTREAM.md` records the original files' SHA-256
+  and every difference (provider selection and Orca browser mode).
+- Copyright (c) 2026 Browser Use.
+  [MIT license](../packages/jev-ultrafast/LICENSE).

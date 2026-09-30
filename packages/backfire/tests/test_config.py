@@ -39,6 +39,25 @@ def test_shipped_selection_and_unselected_vercel_profile_are_present(operator):
         selected["model"] == shipped["providers"][shipped["provider"]]["model"]
     )
     assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
+    assert shipped["providers"]["hive"]["credential_file"] == (
+        "../providers/hive.env"
+    )
+    assert shipped["providers"]["vercel"]["credential_file"] == (
+        "../providers/vercel.env"
+    )
+    education = tomllib.loads(
+        config.EDUCATION_CONFIG.read_text(encoding="utf-8")
+    )
+    assert education["providers"]["education"]["credential_file"] == (
+        "../providers/hive.env"
+    )
+    assert shipped["provider"] != "openrouter"
+    assert shipped["providers"]["openrouter"] == {
+        "api": "jev",
+        "jev_provider": "openrouter",
+        "credential": "OPENROUTER_API_KEY",
+        "credential_file": "../providers/openrouter.env",
+    }
     assert not operator.exists()
 
 
@@ -52,6 +71,17 @@ def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
     credential.chmod(0o600)
     selected["credential_file"] = "local.env"
     assert selected["model"] == "synthetic-model"
+    assert config.load_credential(selected) == "synthetic-value"
+
+
+def test_shipped_key_file_in_the_shared_provider_folder_is_read(operator):
+    operator.parent.rmdir()
+    shared = operator.parent.parent / "providers/hive.env"
+    shared.parent.mkdir()
+    shared.write_text("HIVE_API_KEY=synthetic-value\n", encoding="utf-8")
+    shared.chmod(0o600)
+    selected = config.load_profile()
+    assert selected["credential_file"] == "../providers/hive.env"
     assert config.load_credential(selected) == "synthetic-value"
 
 
