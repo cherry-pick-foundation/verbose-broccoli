@@ -116,10 +116,11 @@ the optional `github.env`; the skill and the architecture document say so.
 - **FR-004**: Each answer MUST be validated with PyModel's upstream
   `validate_choice` over `qualifies` and `excluded`; an invalid answer ends
   with status 3.
-- **FR-005**: Exit statuses MUST stay: 0 at least one strong offer
-  (notified with `--notify`), 1 no strong offer, 2 invalid arguments, 3 a
-  tracker, GitHub, backfire, validation or notification failure. No message
-  may show a key.
+- **FR-005**: Exit statuses MUST stay: 0 at least one strong offer,
+  whether or not `--notify` sends the notification; 1 no strong offer,
+  including a block without candidates; 2 invalid arguments; 3 a tracker,
+  GitHub, backfire, validation or notification failure. No message may
+  show a key.
 - **FR-006**: The search MUST NOT use backfire's education mode; the offers
   are public data.
 - **FR-007**: The search MUST NOT read `JEV_PROVIDER` or provider keys from

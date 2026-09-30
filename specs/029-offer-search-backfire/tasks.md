@@ -41,7 +41,7 @@ files and can run in parallel.
 
 - [X] T005 Live run on a past block with a candidate; record the call
   count in `report.md`. Coordinator.
-- [ ] T006 Review by a fresh reviewer from the other provider; resolve
+- [X] T006 Review by a fresh reviewer from the other provider; resolve
   findings. Coordinator.
 - [ ] T007 Merge `develop`, `npm run verify`, review record, `git flow
   feature finish`; send the precheck for approval, update the automation,
@@ -59,3 +59,8 @@ files and can run in parallel.
   gap. After `develop` brought CHE-44's lefthook hooks (merge `a50cc59`)
   and setup ran, the work was committed in `b89c72f`; next come the
   review and the finish.
+- T006 review: Claude Code Sonnet at medium for the code (`jev_decide`
+  probability 0.81, confidence 0.77) and Codex `gpt-6-luna` at medium for
+  the records (0.74, 0.69); the code fixes went to Codex `gpt-6-luna` at
+  medium (0.88, 0.85), commit `f4b98ff`. Next: verify, review record,
+  finish, the precheck approval, and Done.

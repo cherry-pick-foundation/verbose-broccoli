@@ -8,8 +8,9 @@ The credit-offer search in `packages/credit-offers` sends its one judgment
 per run through backfire's library (`backfire.providers.provider_factory`),
 so it follows backfire's shared provider order, the CodexBar credit check
 and the switch on insufficient balance. The state, the choice questions,
-the printed lines and the exit statuses (0 notified, 1 nothing new, 2 bad
-arguments, 3 failed request) are unchanged. Answers are checked with
+the printed lines and the exit statuses (0 at least one strong offer, with
+or without `--notify`; 1 no strong offer; 2 bad arguments; 3 failed
+request) are unchanged. Answers are checked with
 PyModel's `validate_choice`. The package depends on `backfire` instead of
 `jev-ultrafast`; the web agent keeps `jev-ultrafast` and OpenRouter.
 
@@ -69,6 +70,24 @@ was new, so no `jev_classify` request was made.
   all "boundary" findings that suggest moving rules from
   `.specify/memory/constitution.md` to `AGENTS.md`. None comes from this
   feature; they are reported to the user and the files are unchanged.
+
+## Develop merge review
+
+Fresh read-only reviewers, started through Orca in the coordinator's child
+Run with models chosen by backfire's `jev_decide`, reviewed the branch at
+`45c7cd5`:
+
+- Code, tests, skill and the architecture section (written by Codex): a
+  Claude Code reviewer (Sonnet, medium effort) approved with 0 blockers,
+  0 majors and 2 minors: `credit-offers` imported `jev_judge_mcp` without
+  declaring it, and one test's "no key shown" check could not fail. A Codex
+  worker (`gpt-6-luna`, medium) fixed both; the fix also adds a test that
+  runs the real provider factory with a missing key file.
+- Records and document edits (written by the Claude Code coordinator): a
+  Codex reviewer (`gpt-6-luna`, medium) requested changes with 1 minor: the
+  exit statuses were described as depending on the notification. The spec
+  and this report now say status 0 means at least one strong offer, with or
+  without `--notify`.
 
 ## Size
 
