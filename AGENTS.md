@@ -61,6 +61,10 @@ If the requirement cannot be met without substantial new local implementation, s
   Codex or Copilot), preferring Copilot when Claude Code and Codex both
   implemented parts of a feature, and give it only the review scope and the
   requirements, not suspected defects, prior findings, or expected outcomes.
+- Workers and reviewers that read student data (the work vault's student
+  pages, backfire's roster or raw student sources) run only on Claude Code or
+  Codex, the user's own Claude and ChatGPT accounts, never on Copilot or OMP;
+  this overrides the Copilot preference above.
 - Resolve actionable findings, rerun the affected verification, and repeat the
   review when fixes change the implementation materially.
 - Before each commit, the implementer or the orchestrator reviews the diff.

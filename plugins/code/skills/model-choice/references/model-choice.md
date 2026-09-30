@@ -35,6 +35,11 @@ effort outside Orca's catalog is still a candidate; it launches through the
 terminal path. Orca's catalog does not cover Copilot, so Copilot always
 launches through the terminal path.
 
+A task that reads student data (the work vault's student pages, backfire's
+roster or raw student sources) takes only Claude Code and Codex candidates,
+which run on the user's own Claude and ChatGPT accounts; never Copilot or
+OMP.
+
 ## Evidence
 
 Give backfire facts:

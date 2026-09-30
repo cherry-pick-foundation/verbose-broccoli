@@ -107,8 +107,8 @@ digit boundaries so they never match inside a longer word or number.
 
 ### Region list (generated)
 
-A Node script (for example `scripts/backfire_regions.ts`, run by
-`npm run backfire:regions`) reads the vendored ZIP, decodes CP949 with
+A Node script, `scripts/backfire-regions.ts`, run by
+`npm run backfire:regions`, reads the vendored ZIP, decodes CP949 with
 `TextDecoder("euc-kr")`, and takes every level-1 code (`XX00000000`) and
 level-2 code (`XXYYY00000`, including `3611000000`), current or abolished.
 Each space-separated part after the province (`수원시`, `장안구`) and each
@@ -129,6 +129,15 @@ Korean forms are the full entry (`평택시`, `경기도`). The script writes
 the check runs in `npm run verify` through Turborepo. es-hangul's known gap:
 `ㄱ/ㄷ/ㅂ + ㅎ` in proper nouns (`묵호` → official `Mukho`, es-hangul
 `muko`); document it as a limit.
+
+As built (T002-T003): the units also include `직할시`. es-hangul inserts ㄴ
+between a final consonant and a following 이/야/여/요/유 syllable (`안양` →
+`annyang`, official `Anyang`), so the list also holds the stem romanized in
+parts at those boundaries whenever the two spellings differ. Latin roster
+names match through a separate pattern (`compile_name_pattern`) that
+`find_spans` takes as an optional argument, so `compile_roster_pattern` stays
+exact for its two other callers. The vendored ZIP and its record live in
+`packages/backfire/vendor/legal-district-codes/`.
 
 ### Refusals
 

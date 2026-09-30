@@ -73,6 +73,11 @@ the subject.
 Use the code plugin's Backfire only for development work, never for student
 records: it replaces nothing and refuses Hangul.
 
+Only Claude Code and Codex agents, which run on the operator's own Claude and
+ChatGPT accounts, may read student records: the Wiki's student pages,
+backfire's roster and raw student sources. Never hand such work to a Copilot,
+OMP or other agent.
+
 ## Advisory results
 
 The tools return advice. Nothing requires an agent to call them or follow their
