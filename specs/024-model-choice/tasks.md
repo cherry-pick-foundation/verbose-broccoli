@@ -162,8 +162,24 @@ providers it can read, with no key in its output or files.
   backfire: reuse 0.92, confidence 0.90). `scripts/doctor_test.ts` needed no
   change: its helper already merges the parent environment (line 45).
 
-- [ ] T014 Run `npm run verify` on the feature and on the result merged with
+- [x] T014 Run `npm run verify` on the feature and on the result merged with
   `develop` (FR-013, SC-004).
+  - 2026-09-30: `develop` at 65f3ea3 (CHE-41's finish) merged as f760003,
+    resolving the skill table in `docs/architecture.md` by keeping both sides
+    and regenerating `docs/reference/commands.md`. `npm run verify` reported
+    VERIFIED on f760003, with the seven mise and rustup variables exported.
+  - Size: 1,168 added lines against `develop`, of which 706 are these
+    records, 174 the unchanged upstream `SKILL.md` and `LICENSE` and 92 the
+    generated command reference; the authored change is about 240 lines, so
+    the feature is not split.
+  - Document regions: `doc-regions:prepare --base develop` gave five
+    `jev_verify` requests over 237 units. None was contradicted. Nineteen
+    were flagged for review with a contradiction probability of at most 0.05:
+    units this diff says nothing about (for example `docs/backfire.md`, which
+    CHE-41 changed) or supports only in part. They stand unchanged.
+  - `doc-regions:audit` (MemoryLint 1.5.1) reported 19 warnings, all about
+    the constitution's structure (sync report and principles it would move
+    to `AGENTS.md`), none from this feature; reported to the user only.
 - [ ] T015 Develop merge review by a fresh reviewer from a provider other
   than the implementer's; resolve findings; record the review; finish with
   `git flow feature finish` and move CHE-45 to Done.
