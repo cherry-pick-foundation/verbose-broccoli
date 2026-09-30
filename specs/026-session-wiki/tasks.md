@@ -28,12 +28,12 @@ parallel.
 
 - [x] T005 [P] [US3] Write the catalog,
   `references/session-catalog.json` (FR-009, FR-013).
-- [ ] T006 [P] [US3] Implement `scripts/session_select.py` with `render`,
+- [x] T006 [P] [US3] Implement `scripts/session_select.py` with `render`,
   `digest` and `classify`, and its tests on synthetic fixtures (FR-006 to
   FR-012, FR-014).
-- [ ] T007 [US3] Write `references/session-selection.md` and point the skill
+- [x] T007 [US3] Write `references/session-selection.md` and point the skill
   to it (FR-006 to FR-010).
-- [ ] T008 [US3] Run the procedure on a small sample of real sessions and
+- [x] T008 [US3] Run the procedure on a small sample of real sessions and
   send the user the backfire call count, the tokens and an estimate for the
   whole set (FR-011).
 
@@ -61,3 +61,26 @@ parallel.
   tagged 42% of digests as student data, because one two-syllable given name
   also occurs inside common Korean words; counting word-start matches only
   gives 16%.
+- The user asked to cut the review load before the full run. A sharper
+  catalog (`none` as the expected label for routine work and Orca worker
+  sessions, `default` no longer a fallback) and a fresh sample of 64 gave 8
+  `review` decisions (12.5%, from 34%) with 2 calls, 53,757 input and 15,986
+  output tokens: 58 `none`, 5 `default`, 1 `work`; all 19 Orca worker
+  sessions passed as `none`. backfire's auto-accept threshold is unchanged.
+  The four automatic `default` results were Codex's own approval reviews,
+  which make up 661 of the 1,325 digests; the digest step now holds them
+  back mechanically.
+- Second re-test, with Codex's approval reviews held back: 677 of them, plus
+  71 sessions without a user message and the same 21 with possible secrets,
+  left 664 digests. A fresh random 64 took 2 calls with 47,514 input and
+  15,673 output tokens: 52 `none`, 5 `work`, 4 `code`, 3 `default`, and 12
+  `review` decisions (19%), 7 of them between `code` and `none`. All 43
+  Orca worker sessions were labeled `none`. The estimate for the full run is
+  about 12 calls, 0.5 million input and 0.16 million output tokens, 6
+  minutes and 125 `review` results.
+- Size against the merge base with `develop`, before the develop merge
+  review: 2,378 added lines, of which 1,073 are records, documents and data
+  (the security report alone is 406), 738 tests and 567 script and
+  configuration. The feature is not split: the rule, the tool and the
+  procedure depend on one another, and the script is the only own code.
+

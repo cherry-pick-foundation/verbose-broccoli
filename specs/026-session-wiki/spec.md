@@ -123,6 +123,8 @@ and tokens.
 - A session that holds student data and would also suit another vault.
 - A digest over backfire's 2,000-character item limit.
 - A session with no user message.
+- A session that Codex started by itself to review an agent's action (half
+  of the digests on 2026-09-30).
 
 ## Requirements *(mandatory)*
 
@@ -146,7 +148,9 @@ and tokens.
   result to a staging folder outside every repository and outside every
   vault's `raw/`.
 - **FR-007**: Mechanical filters MUST run before the scan and the
-  classification; they MUST leave out sessions still running.
+  classification; they MUST leave out sessions still running, sessions
+  without a user message, and the approval reviews that Codex starts by
+  itself to judge an agent's action.
 - **FR-008**: A secret scan MUST run on the rendered text; a session with a
   finding MUST NOT be sent to backfire.
 - **FR-009**: Classification MUST use backfire in education mode on a

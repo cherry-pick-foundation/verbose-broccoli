@@ -82,7 +82,9 @@ uv --directory packages/backfire run --frozen --offline --no-sync \
    the next step and never sent to backfire. Tell the user how many sessions
    were held; do not show findings in any message.
 3. **Digest.** Run `SELECT digest --stage STAGE --scan STAGE/scan.json`. It
-   holds back sessions without a user message and those with a finding, tags
+   holds back sessions without a user message, those with a finding, and
+   Codex's own approval reviews, which Codex starts by itself to judge an
+   agent's action (`auto_review`); it tags
    Orca worker sessions and sessions in which backfire's roster finds a
    student, guardian or school (`student_data`), and writes one digest of at
    most 2,000 characters per session to `STAGE/digests.jsonl`. The roster check
