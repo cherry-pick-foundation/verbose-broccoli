@@ -50,7 +50,7 @@ POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
-selected standalone Quarto executable, uv, git-flow and lychee from
+selected standalone Quarto executable, uv, git-flow, lychee and CodexBar from
 `PATH`, the Spec Kit, ShellCheck, Ruff, scc, doc-regions and
 wiki-consistency environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
@@ -97,7 +97,12 @@ not a standardized or calibrated measure of coding difficulty. They infer no
 runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
-or selects a model. Model selection remains a separate client decision.
+or selects a model. Agents, models and efforts are chosen with the code
+plugin's `model-choice` skill.
+CodexBar 0.69.0, a host tool at `~/.local/bin/codexbar` linking to
+`~/.local/opt/codexbar-0.69.0/`, gives that skill the usage limits. It is the
+release's x86_64 Linux (glibc) archive, extracted whole after checking it
+against the release's checksum file.
 
 ### Own-code limit — 2026-09-30
 
@@ -403,7 +408,7 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 | Package | Owned skills |
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
