@@ -354,12 +354,24 @@ docs/                                                  # regenerated tables
 
 ## Stage 2 (a later feature)
 
-Stage 2 needs: the user's decision on the pilot numbers (unclear-share limit,
-threshold, claim wording); the list of volumes and exam papers to profile and
-their originals copied out of `~/data` where needed; a proposer choice that
-scales (Orca workers per material, or a direct API proposer if the pilot's
-tokens and time call for it); and the four reference mappings with a
-`map` step in the script.
+The user decided on 2026-09-30, after [pilot-report.md](pilot-report.md),
+that the full run starts once the catalog decision is in place. It needs:
+
+- Range-tier families as single concepts: a family column or rule in the
+  catalog record (families share category, subcategory and guideword; 75 of
+  them have two or more tiers), the proposer told to name the family, and
+  `catalog`, `check` and `record` treating a family as one concept.
+- The keep rule of 0.5 (`record --auto-accept 0.5`); `check` could pass the
+  same threshold to backfire so `review.md` matches it.
+- The list of volumes and exam papers to profile, their originals copied
+  out of `~/data` where needed, and a proposer choice that scales (the
+  pilot's Fable proposer took about 23 minutes and 2.5 to 4.8 million
+  cached input tokens per material).
+- A rerun of the pilot's two materials under the family rule and a fresh
+  hand-check, before the other materials.
+- The four reference mappings with a `map` step in the script, reading the
+  reference records' text files and keeping their Hangul lines out of
+  backfire calls.
 
 ## Complexity Tracking
 

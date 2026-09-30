@@ -86,6 +86,13 @@ The branch and worktree names stay as they are.
   verification-needed) are agent-made output, not sources, so they go into
   the Wiki layer, each citing its PDF's raw revision. The mappings stay a
   later feature. The book text stays in the private vault.
+- Q: After the pilot report, how does the method go on? → A: (1) The
+  catalog stays unchanged, but each range-tier family counts as one concept
+  when profiling; (2) a concept is kept when backfire says `verified` with
+  confidence 0.5 or more, applied to the stored results without new calls;
+  (3) both pilot records are written now against the current catalog with
+  that rule, unclear items listed and not reviewed; (4) the full run is a
+  later feature that starts once the catalog decision is in place.
 - Q: What counts as a sentence? → A: Every English sentence in passages,
   dialogues and full-sentence English answer choices; Korean text, headings,
   labels and phrase-only choices are skipped.
