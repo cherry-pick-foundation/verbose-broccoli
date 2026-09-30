@@ -5,7 +5,8 @@
 Backfire runs through the code plugin's local backend. For each judgment, it
 sends the tool inputs within the tool's size limits and the questions used for
 the judgment to an external model provider: the first profile in Backfire's
-order that has credit, OpenRouter and then Hive by default. Inputs can include claims, evidence, patches, test output,
+order that is not known to be out of credit, OpenRouter and then Hive by
+default. Inputs can include claims, evidence, patches, test output,
 source excerpts, or other text supplied to a tool. Never send secrets,
 credentials, or private personal records such as student data to these tools.
 

@@ -311,10 +311,10 @@ runtime a provider factory. The factory reads one ordered list of
 profiles, shared by both plugins, from
 `packages/backfire/src/backfire/config.toml` and the optional
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` (OpenRouter, then
-Hive, by default). It uses the first profile with credit: before first use
-it reads the provider's credit through CodexBar's command-line tool when the
-profile names a CodexBar provider, and it moves to the next profile when a
-provider answers insufficient balance. Each profile is either a
+Hive, by default). It uses the first profile not known to be out of
+credit: before first use it reads the provider's credit through CodexBar's
+command-line tool when the profile names a CodexBar provider, and it moves
+to the next profile when a provider answers insufficient balance. Each profile is either a
 general-model provider through system-one-adapter (Hive) or one of
 PyModel's Jev providers (OpenRouter). With `--education` it pseudonymizes
 every judgment with the module in `packages/backfire/src/backfire_education/`

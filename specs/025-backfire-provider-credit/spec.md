@@ -284,9 +284,9 @@ the two new profile fields, CodexBar's role and limits, and the new error.
   with pseudonymized text after a switch.
 - **SC-002**: `npm run verify` reports VERIFIED on the feature merged with
   the current `develop`.
-- **SC-003**: The feature adds well under 1,000 changed lines, so the
-  split review of `AGENTS.md` does not apply; the plan estimates its own
-  code and the report states the measured size.
+- **SC-003**: The report states the feature's measured change size
+  against `develop` and, for a change of 1,000 lines or more, the result of
+  the `AGENTS.md` split review.
 - **SC-004**: Live checks are limited to short OpenRouter checks and the
   fewest Hive, Vercel and Cloudflare calls a check needs, and the report
   counts every live call.

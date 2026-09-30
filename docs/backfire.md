@@ -44,7 +44,8 @@ start it.
 Both plugins read one shipped configuration,
 `packages/backfire/src/backfire/config.toml`. It lists provider profiles in
 an `order`, `openrouter` then `hive`, and backfire uses the first profile in
-it that has credit ([Credit and switching](#credit-and-switching)). The work
+it that is not known to be out of credit
+([Credit and switching](#credit-and-switching)). The work
 plugin differs only in pseudonymization and the response cache
 ([Work plugin](#work-plugin)).
 

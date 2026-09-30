@@ -22,7 +22,7 @@ differ, and reasoning tokens count as output.
   so the adapter asks for JSON-object output, not a JSON schema. Hive rejected
   the schema form with HTTP 400 (`specs/005-jev-decision-backend/research.md:89`).
 - A profile's `insufficient_balance` lists HTTP statuses only; the default is
-  `[402]` (`docs/backfire.md:83`).
+  `[402]` (`docs/backfire.md:79`).
 - The user's decision (`specs/025-backfire-provider-credit/spec.md:58-66`): the
   Cloudflare and Vercel profiles run a free model through this path; the user
   picks the models; a used-up allowance counts as insufficient balance.

@@ -152,9 +152,9 @@ credits"/"Available balance" row); `docs/cli.md` (JSON uses
   the CHE-41 branch).
 - OpenRouter: 402 for insufficient credits, per OpenRouter's API error
   documentation; the default `[402]` covers it.
-- Vercel AI Gateway: no insufficient-balance status was observed; its
-  free-tier refusals were 403 and 429, which stay ordinary errors. The
-  default `[402]` applies.
+- Vercel AI Gateway: no profile ships in this feature. Its statuses for
+  spent free credit, and Cloudflare's for a used-up free allowance, are in
+  `research.md` for CHE-51, which adds those profiles.
 
 ### Files and own-code estimate
 
@@ -170,10 +170,9 @@ credits"/"Available balance" row); `docs/cli.md` (JSON uses
 | `packages/backfire/tests/` | new and updated tests, JSON fixtures | about +450 |
 | `docs/backfire.md`, `licenses/THIRD_PARTY_NOTICES.md` | order, CodexBar, switch, error; Vercel port removed | about +60 / -40 |
 
-The first implementation pass measured about 940 changed lines of code,
-tests, docs and `turbo.json`, with about 250 lines of own non-test code;
-deleted files count as about one line each under the `AGENTS.md` split
-review. The final size is recorded in `report.md`.
+These were estimates. The measured size, about 1,500 changed lines
+without the Spec Kit records and most of them tests, and the `AGENTS.md`
+split review that followed are in `report.md` ("Size and split review").
 
 ### Parallel work
 
