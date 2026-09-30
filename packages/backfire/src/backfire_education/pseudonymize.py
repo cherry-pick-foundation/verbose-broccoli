@@ -84,13 +84,6 @@ _DAY_NUMBER = (
     r"(?:(?:twenty|thirty)(?:[\s-]?(?:one|two|three|four|five|six|seven"
     rf"|eight|nine))?|{'|'.join(_UNITS)})(?![A-Za-z])"
 )
-# One part of a date: a day, month or year.
-_DATE_PART = (
-    r"(?:\d{8}(?![0-9])|\d{6}(?![0-9])|\d{1,4}(?![0-9])(?:st|nd|rd|th|년|월|일)?"
-    rf"|{_MONTH}|{_DAY_WORD}|{_WORD_YEAR}|{_DAY_NUMBER}"
-    rf"|{_ROMAN_YEAR}(?![A-Za-z])"
-    r"|(?<=[./-])(?-i:X{0,1}I{1,3}|IV|VI{0,3}|IX|X)(?=[./-]))"
-)
 # Words that may sit inside a date: "in the summer of", "Sunday", "AD".
 _DATE_WORDS = (
     r"of|in|on|the|year|anno|AD|A\.D\.|CE|circa|ca\.|and|early|late|mid"
@@ -104,12 +97,43 @@ _TIME = (
     r"(?:T|[ ,]+(?:at\s+)?)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?"
     r"(?:\s*(?:Z|[ap]\.?m\.?|[+-]\d{2}:?\d{2}))?"
 )
-# A date is at most three parts, a day, a month and a year, so a score or a
-# lesson date after it stays; then a time of day and a closing bracket or
-# quote may follow.
+# A day, a month and a year of a date, and the punctuation between numbers.
+_DAY = rf"(?:\d{{1,2}}(?![0-9])(?:st|nd|rd|th)?|{_DAY_WORD}|{_DAY_NUMBER})"
+_ORDINAL_DAY = (
+    rf"(?:\d{{1,2}}(?![0-9])(?:st|nd|rd|th)|{_DAY_WORD}|{_DAY_NUMBER})"
+)
+_YEAR_PART = rf"(?:\d{{4}}(?![0-9])|{_WORD_YEAR}|{_ROMAN_YEAR}(?![A-Za-z]))"
+# Date punctuation between numbers; three numbers may also be joined by
+# spaces or tabs alone (17 06 2012).
+_NUMBER_PUNCT = r"\s*[./\-_／．－·–—]\s*"
+_NUMBER_JOIN = rf"(?:{_NUMBER_PUNCT}|[ \t]+)"
+_ROMAN_MONTH = r"(?-i:XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)(?![A-Za-z])"
+# A year after a month and a day may also be two digits: '12, or 12 when no
+# word, number, slash or percent sign follows, so "June 17, 85 points" keeps
+# its score.
+_YEAR_AFTER = (
+    rf"(?:{_YEAR_PART}|['’‘]\d{{2}}(?![0-9])"
+    r"|\d{2}(?![0-9])(?!\s*[A-Za-z0-9%/]))"
+)
+# A date in one of its shapes, so a score or a lesson date after it stays:
+# numbers (2012-06-17, 17 06 2012, 17.VI.2012, 04/23, 20110423), month first
+# (June 17, 2012; June 2012, on the 17th), day first (the 23rd of April 2011),
+# year first (2012 June 17; 2012, on the 17th of June), a year alone, or the
+# Korean form. A time of day and a closing bracket or quote may follow.
 _DATE = (
-    rf"{_DATE_PART}(?:{_DATE_JOIN}{_DATE_PART}){{0,2}}(?:{_TIME})?"
-    r"(?:\s*[\])}）］】」』\"'”’])?"
+    r"(?:\d{1,4}(?![0-9])"
+    + _NUMBER_JOIN
+    + rf"(?:\d{{1,2}}(?![0-9])|{_ROMAN_MONTH}){_NUMBER_JOIN}\d{{1,4}}(?![0-9])"
+    rf"|{_MONTH}{_DATE_JOIN}{_DAY}(?:{_DATE_JOIN}{_YEAR_AFTER})?"
+    rf"|{_DAY}{_DATE_JOIN}{_MONTH}(?:{_DATE_JOIN}{_YEAR_AFTER})?"
+    rf"|{_MONTH}{_DATE_JOIN}{_YEAR_PART}(?:{_DATE_JOIN}{_ORDINAL_DAY})?"
+    rf"|{_YEAR_PART}{_DATE_JOIN}{_MONTH}(?:{_DATE_JOIN}{_DAY})?"
+    rf"|{_YEAR_PART}{_DATE_JOIN}{_ORDINAL_DAY}{_DATE_JOIN}{_MONTH}"
+    r"|\d{1,4}(?![0-9])" + _NUMBER_PUNCT + r"\d{1,2}(?![0-9])"
+    r"|\d{8}(?![0-9])|\d{6}(?![0-9])"
+    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년"
+    rf"|{_YEAR_PART}|{_MONTH})"
+    rf"(?:{_TIME})?(?:\s*[\])}}）］】」』\"'”’])?"
 )
 # Words that may sit between a birth keyword and its date.
 _BIRTH_WORDS = (
@@ -270,28 +294,6 @@ def _count(word: str) -> str:
     return str(_ORDINAL.get(word) or _CARDINAL.get(word) or word)
 
 
-class _Dates:
-    """Birth-date matches that hold a digit, a month or a year.
-
-    A day or number in words alone, as in "born first" or "born in one
-    lesson", is not a date.
-    """
-
-    _SOLID = re.compile(
-        rf"\d|{_MONTH}|{_ROMAN_YEAR}(?![A-Za-z])|{_WORD_YEAR}", re.IGNORECASE
-    )
-
-    def __init__(self, pattern: re.Pattern[str]) -> None:
-        self.pattern = pattern
-
-    def finditer(self, text: str):
-        return (
-            match
-            for match in self.pattern.finditer(text)
-            if self._SOLID.search(match["date"])
-        )
-
-
 # (kind, pattern, group that is replaced, value of a match; None: the
 # replaced text, normalized)
 _DETECTORS = [
@@ -376,19 +378,17 @@ _DETECTORS = [
     ),
     (
         "birth",
-        _Dates(
-            re.compile(
-                r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
-                r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
-                # Spaces, markup and field punctuation may sit between the
-                # keyword and its date, and a line break after a colon, but
-                # not a sentence end or a semicolon.
-                r"(?:[ \t\u00a0\u3000:：=|*_~`>→\-–—,(\[{（［【「\"'“”‘’]"
-                r"|(?<=[:：=|])\s*\n"
-                rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
-                rf"(?P<date>{_DATE})(?![0-9])",
-                re.IGNORECASE,
-            )
+        re.compile(
+            r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
+            r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
+            # Spaces, markup and field punctuation may sit between the keyword
+            # and its date, and a line break after a colon, but not a
+            # sentence end or a semicolon.
+            r"(?:[ \t\u00a0\u3000:：=|*_~`>→\-–—,(\[{（［【「\"'“”‘’]"
+            r"|(?<=[:：=|])\s*\n"
+            rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
+            rf"(?P<date>{_DATE})(?![0-9])",
+            re.IGNORECASE,
         ),
         "date",
         None,

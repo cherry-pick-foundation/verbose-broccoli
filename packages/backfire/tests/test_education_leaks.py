@@ -339,6 +339,12 @@ def test_provider_receives_no_part_of_a_birth_date(
         ("born on 2012_06_17", ["2012"]),
         ("DOB: June 17 | 2012", ["2012", "June"]),
         ("DOB: June 17, in and of the year 2012", ["2012", "June"]),
+        ("born on 17–06–2012", ["2012", "17"]),
+        ("born on 17 06 2012", ["2012", "17"]),
+        ("DOB: 2012\t06\t17", ["2012", "17"]),
+        ("born on 2012, on the 17th of June", ["2012", "June"]),
+        ("born on June 17, '12", ["'12", "June"]),
+        ("DOB: June 17, 12", ["June", "12"]),
     ],
 )
 def test_provider_receives_no_birth_date_in_other_forms(
@@ -382,6 +388,8 @@ def test_provider_receives_no_birth_date_in_other_forms(
         ("The idea was born in Marching practice.", "Marching"),
         ("Her birthday may improve attendance.", "may improve"),
         ("She was born first in her family.", "first in her"),
+        ("born on June 17, 85 points on the reading test.", "85 points"),
+        ("born in June 2012, 85 points on the reading test.", "85 points"),
     ],
 )
 def test_learning_content_beside_a_birth_date_is_sent(

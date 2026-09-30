@@ -183,7 +183,7 @@ Stand-ins are English, so a provider never receives Hangul.
 | An email address | `Email 01` |
 | A province, city, county or district name, current or abolished, in Korean (`평택시`) or romanized (`Jongno-gu`, `Pyeongtaek`, `North Chungcheong`, `Chungbuk`), with a unit word after it such as `City` or `Province` | `Region 01` |
 | A school year: `Grade 10`, `Grade: 10`, `Grade ten`, `10th grade`, `tenth grade` (up to `twelfth`), `Year 11`, `year eleven` (spelled from `one` to `twelve`), `first-year high school student`, `fourth-year elementary school student` (first to sixth year), `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
-| A date or year after `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: the date that follows, up to three parts (a day, a month and a year) written as numbers in any script, capitalized month names, ordinals, day numbers or years in words, or Roman numerals, joined by anything but a letter, digit or line break or by words such as `of`, `in`, `the`, `year`, `AD`, a season or a weekday, with a time of day after it: `2011-04-23`, `17. 06. 2012`, `April 23rd, 2011`, `June 17, [ 2012 ]`, `17 June (Sunday), 2012`, `2012-06-17T00:00:00Z`, `the first of May, two thousand and eleven` or `nineteen ninety-eight`; and forms such as `2009년생` | `Birth date 01` |
+| A date or year after `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: the date that follows, as numbers in any script joined by date punctuation, spaces or tabs (`2011-04-23`, `17. 06. 2012`, `17 06 2012`, `17.VI.2012`, `04/23`, `20110423`), or a capitalized month name with a day and a year in either order, a year and a month, or a year alone, the day and year also as ordinals, words or Roman numerals and the year also as `'12`, joined by anything but a letter, digit or line break or by words such as `of`, `in`, `the`, `year`, `AD`, a season or a weekday, with a time of day after it: `April 23rd, 2011`, `June 17, [ 2012 ]`, `17 June (Sunday), 2012`, `June 2012, on the 17th`, `2012-06-17T00:00:00Z`, `the first of May, two thousand and eleven` or `nineteen ninety-eight`; and forms such as `2009년생` | `Birth date 01` |
 | The rest of a line or table cell after `address` or `주소`, and a run of romanized address parts, such as `Bijeon-ro 12`, `Ha-neul-ro 487`, `Solbit-ro 12-gil 487`, `Jungang-daero 45beon-gil 7`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jongno 1-ga`, with the building, lot or unit numbers (`487 Solbit-ro`, `Solbit-ro, 487`, `101-1203`, `Apt 1203`), postal codes and region names before or after it; the whole run becomes one stand-in | `Address 01` |
 
 Between a keyword and its value there may be spaces, punctuation (`:`, `=`,
@@ -239,9 +239,10 @@ numbers and field names included and ignoring the stand-ins it inserted. If
 anything is found, it sends nothing and fails with `identifier_remaining`.
 A year, month or year in words left beside a replaced birth date, as in
 `born on Birth date 01 (2012)`, counts as found; a score or lesson date after
-it, as in `born on Birth date 01; 85/100`, does not. A date has at most three
-parts, so text after a full date stays, and a birth keyword does not reach
-across a sentence end or a semicolon.
+it, as in `born on Birth date 01; 85/100`, does not. A date takes only its
+own day, month and year, so a score after it, as in `born on June 17, 85
+points`, stays, and a birth keyword does not reach across a sentence end or a
+semicolon.
 
 The same error refuses a birth-date, address or student-number field whose
 value was not replaced. Such a field is a key named for a birth date or an
@@ -300,9 +301,7 @@ text out of tool inputs. A student removed from the roster is no longer detected
 Ordinary words that equal a roster value, a region name or a given name are
 replaced too, and so are school-year and address forms in other senses, such as
 `year one of the project` or `the address of the lesson`, which can cost some
-judgment quality. A day-and-month or month-and-year birth date directly followed
-by a number, as in `born on June 17, 85 points`, takes that number as its third
-part.
+judgment quality.
 
 ### Mapping table
 
