@@ -1,0 +1,25 @@
+{
+  "purpose": "Decide which of the user's Wiki vaults, if any, should keep a local Claude Code or Codex session as raw evidence for pages written later. The user works in education (students, classes, exams, school administration) and also builds agent tools. Each item is a digest of one session: its first user request and its last agent message; for an Orca worker session, the task it was given and its final report. Judge the knowledge the session leaves behind, not the tool that was used. Choose one label.",
+  "classes": [
+    {
+      "id": "work",
+      "description": "Education work. Belongs: sessions about students, classes, lessons, teaching materials, exam passages and questions, grading, student records, school administration or documents, and the facts or decisions they produced, for example analysing which exam an English reading passage came from, or drafting a class handout. Does not belong: building or debugging software, even software for education, when the lasting value is the code or the tool (code), or the result already lives in a repository (none). Precedence: when a session holds both education knowledge and coding knowledge, choose work if the education knowledge is what a later page would cite. Any session that names a student, guardian or school is work or none, never another vault."
+    },
+    {
+      "id": "code",
+      "description": "Coding knowledge that helps work in any project: how a library, command-line tool, API or platform actually behaves, a debugging lesson, a design pattern, or a technical decision with its reasons, for example why a package manager's lock mode rejected an install and the fix. Belongs only when that knowledge is not already kept in a repository's code, commits or specification records. Does not belong: routine implementation whose result is in Git (none), this repository's own development history (none), education content (work). Precedence: over default when the knowledge is about software, tools or programming."
+    },
+    {
+      "id": "default",
+      "description": "Lasting knowledge that belongs to no single plugin: general research, explanations, personal organisation, writing, computer or account setup outside programming, and other topics that are neither education work nor coding, for example comparing options for a personal purchase or how an operating-system setting works for everyday use. Does not belong: education (work), programming and developer tools (code), web chat apps (chat), sessions without lasting knowledge (none)."
+    },
+    {
+      "id": "chat",
+      "description": "The user's web chat apps and what the chat plugin keeps: using ChatGPT or Claude on the web, their conversation exports, browser tasks on live web pages, and offers of free AI API credit, for example how to export ChatGPT conversations or which provider currently gives free credit. Does not belong: developing the chat plugin's code (code or none), education topics discussed in a chat app (work), general topics (default). Precedence: only when the web chat app or the credit offers are the subject, not just the tool."
+    },
+    {
+      "id": "none",
+      "description": "No lasting value: nothing a later Wiki page would cite. Belongs: sessions whose result is fully kept elsewhere, such as code, commits, pull requests, specification records or the files they produced; routine commands, status checks, small edits, retries and aborted or empty attempts without a lesson; duplicates of another session; and Orca worker sessions (a task begins 'You are working inside Orca'), unless the final report holds a lesson or decision that Git and the specification records do not keep. Precedence: when a session also holds a lesson or decision kept nowhere else, choose the label of that knowledge instead."
+    }
+  ]
+}

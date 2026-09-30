@@ -1,6 +1,6 @@
 ---
 name: wiki-raw-import
-description: Copy original documents the user confirms into a verbose-broccoli Wiki instance's raw/ layer, one BagIt revision per file with its source recorded, and check raw/ integrity. Use when the user wants to admit documents as raw evidence, including ChatGPT exports, re-import changed originals, or verify raw/; not for writing Wiki pages.
+description: Copy original documents the user confirms into a verbose-broccoli Wiki instance's raw/ layer, one BagIt revision per file with its source recorded, and check raw/ integrity. Use when the user wants to admit documents as raw evidence, including ChatGPT exports and local Claude Code or Codex sessions, re-import changed originals, or verify raw/; not for writing Wiki pages.
 ---
 
 # Wiki Raw Import
@@ -60,7 +60,8 @@ lock, nothing was written.
    files to copy, with each file's raw kind: `files` (default), `notes` (the
    user's own text notes), `assets` (images and other media) or `web`
    (captured web pages). Exported conversations, admitted only into the
-   `chat` and `work` vaults, are `files`. Expand folders into files. Point
+   `chat` and `work` vaults, and exported Claude Code and Codex sessions,
+   admitted into any vault, are `files`. Expand folders into files. Point
    out files whose names or locations suggest operational or private data.
    Show the list and its total size to the user and wait for approval.
 5. **Write the selection.** Write the approved list as JSON Lines to
@@ -116,6 +117,13 @@ the `work` vault, whose pages about students can cite it.
    selection, log entry and commit. An unchanged export is reported as
    `already_admitted`.
 
+## Claude Code and Codex sessions
+
+To offer the local Claude Code and Codex sessions to the vaults, follow
+[references/session-selection.md](references/session-selection.md). It
+renders, filters, scans and classifies them and ends with the lists the user
+approves, which then go through steps 5 to 9 above, one selection per vault.
+
 ## Boundaries
 
 - Copy only files the user approved in a selection. Never move, change or
@@ -124,6 +132,7 @@ the `work` vault, whose pages about students can cite it.
   commits and Orca or Linear messages. Records there give locations,
   decisions and counts only.
 - Exported conversations are raw evidence only in the `chat` and `work`
-  vaults, and other conversation records in none. Program-owned data (for example a sync client's journals or a
+  vaults, exported Claude Code and Codex sessions in any vault they belong
+  to, and other conversation records in none. Program-owned data (for example a sync client's journals or a
   reference manager's database) is not raw evidence. Copy an item from a
   program-owned folder only when the user selects it.
