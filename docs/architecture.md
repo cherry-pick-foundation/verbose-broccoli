@@ -50,7 +50,7 @@ POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it. `doctor` checks the
-selected standalone Quarto executable, uv, git-flow and lychee from
+selected standalone Quarto executable, uv, git-flow, lychee and CodexBar from
 `PATH`, the Spec Kit, ShellCheck, Ruff, scc, doc-regions and
 wiki-consistency environments, the git-flow configuration
 and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
@@ -99,6 +99,10 @@ includes the policy version, scope, level, Korean description and measured facts
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
 or selects a model. Agents, models and efforts are chosen with the code
 plugin's `model-choice` skill.
+CodexBar 0.69.0, a host tool at `~/.local/bin/codexbar` linking to
+`~/.local/opt/codexbar-0.69.0/`, gives that skill the usage limits. It is the
+release's x86_64 Linux (glibc) archive, extracted whole after checking it
+against the release's checksum file.
 
 ### Own-code limit — 2026-09-30
 

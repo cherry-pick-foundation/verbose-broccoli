@@ -19,12 +19,14 @@ import {sha256} from './hash.ts';
 const defaults = {
   quarto: '/usr/local/bin/quarto',
   lychee: 'lychee',
+  codexbar: 'codexbar',
 };
 const versions = {
   quarto: '1.10.18',
   uv: '0.11.32',
   'git-flow': '2.1.0',
   lychee: '0.24.2',
+  codexbar: '0.69.0',
 };
 type Tool = keyof typeof versions;
 interface NpmLock {
@@ -127,7 +129,7 @@ export async function probeVersion(path: string, tool: Tool) {
       ? output
       : tool === 'git-flow'
         ? /^(\S+) \(git-flow-next\)$/.exec(output)?.[1]
-        : new RegExp(`^${tool} (\\S+)`).exec(output)?.[1];
+        : new RegExp(`^${tool} (\\S+)`, 'i').exec(output)?.[1];
   if (version !== versions[tool])
     throw new Error(`${tool} must report version ${versions[tool]}`);
   return version;
@@ -348,6 +350,7 @@ export async function runDoctor(options: Options = {}) {
     ? await executable(options.gitFlow, 'git-flow')
     : {selected: 'git-flow', canonical: 'git-flow'};
   const lychee = {selected: defaults.lychee, canonical: defaults.lychee};
+  const codexbar = {selected: defaults.codexbar, canonical: defaults.codexbar};
   const node = {
     selected: options.node ?? 'node',
     canonical: options.node ?? 'node',
@@ -358,6 +361,7 @@ export async function runDoctor(options: Options = {}) {
     uvVersion,
     gitFlowVersion,
     lycheeVersion,
+    codexbarVersion,
     nodeVersion,
     lock,
   ] = await Promise.all([
@@ -365,6 +369,7 @@ export async function runDoctor(options: Options = {}) {
     probeVersion(uv.canonical, 'uv'),
     probeVersion(gitFlow.canonical, 'git-flow'),
     probeVersion(lychee.canonical, 'lychee'),
+    probeVersion(codexbar.canonical, 'codexbar'),
     probeNodeVersion(node.canonical),
     dependencies(),
   ]);
@@ -399,6 +404,7 @@ export async function runDoctor(options: Options = {}) {
     uv: {...uv, version: uvVersion},
     gitFlow: {...gitFlow, version: gitFlowVersion, config: gitFlowConfig},
     lychee: {...lychee, version: lycheeVersion},
+    codexbar: {...codexbar, version: codexbarVersion},
     turbo: {path: 'node_modules/.bin/turbo', version: turboVersion},
     node: {...node, version: nodeVersion},
     gitHooksPath,
