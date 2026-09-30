@@ -652,8 +652,6 @@ or an agent region, written by agents. No part is human-written.
   syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
-- lychee is a host tool at `~/.local/bin/lychee`, installed from the release's
-  x86_64 Linux archive after checking it against the release's checksum.
 - Not automated: sending the backfire requests and acting on the results,
-  reporting drift in `AGENTS.md` and the constitution to the user, choosing
-  which candidates become mechanical regions, and installing lychee.
+  reporting drift in `AGENTS.md` and the constitution to the user, and
+  choosing which candidates become mechanical regions.
