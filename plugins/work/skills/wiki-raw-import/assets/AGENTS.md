@@ -170,6 +170,19 @@ one `wiki_consistency.sources` generator on named files of this instance. A
 source page may hold one `source_provenance` region for its source. Pages
 never quote the marker syntax.
 
+## Concept records
+
+- `wiki/catalogs/` holds catalog pages.
+- `wiki/profiles/` holds profile pages, each with a same-name JSON Lines data
+  file beside it. The data file is not a page.
+- `wiki/mappings/` holds mapping pages, each with a same-name JSON Lines data
+  file beside it. The data file is not a page.
+- `wiki/references/` holds reference pages, each citing the reference book's
+  raw PDF, with the book's extracted text in a same-name `.markdown` file
+  beside it. The text file is not a page.
+
+Use the work plugin's `concept-profile` skill for their layouts.
+
 ## Consistency
 
 The `wiki-consistency` skill of the verbose-broccoli work plugin runs these

@@ -155,6 +155,7 @@
       ],
       "cache": false
     },
+    "//#test:concept-profile": {"cache": false},
     "//#test:wiki-raw-import": {"cache": false},
     "verbose-broccoli-python#test": {
       "command": ["true"],
@@ -179,6 +180,7 @@
         "jev-ultrafast#test",
         "credit-offers#test",
         "wiki-consistency#test",
+        "//#test:concept-profile",
         "//#test:session-select",
         "//#test:wiki-raw-import"
       ],

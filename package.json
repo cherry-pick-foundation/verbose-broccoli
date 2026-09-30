@@ -46,6 +46,7 @@
     "doc-regions:audit": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions audit scripts/doc-regions.toml",
     "wiki-consistency:install": "uv sync --locked --all-packages --extra education --no-build-package grimp && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
     "test:wiki-consistency": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest packages/wiki-consistency/tests",
+    "test:concept-profile": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest -p no:cacheprovider plugins/work/skills/concept-profile/scripts/concept_profile_test.py",
     "test:doc-regions": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package doc-regions pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
     "test:plugins-validate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/plugins-validate-test.ts",
     "test:jev-ultrafast": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=packages/jev-ultrafast uv run --frozen --offline --no-sync --package jev-ultrafast pytest -p no:cacheprovider packages/jev-ultrafast/tests",
