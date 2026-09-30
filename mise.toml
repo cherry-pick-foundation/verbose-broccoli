@@ -4,6 +4,7 @@
 "aqua:vale-cli/vale" = "3.23.0"
 "github:betterleaks/betterleaks" = "1.9.0"
 "github:gittower/git-flow-next" = "2.1.0"
+"github:googleworkspace/cli" = "0.22.5"
 "github:specstoryai/getspecstory" = "2.15.1"
 
 [doctor.checks.quarto]
