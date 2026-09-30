@@ -66,7 +66,7 @@ worker owns T002; main owns the records, the commits and integration.
 
 ## Phase 4: Integration
 
-- [ ] T007 Review each diff, commit the repository and each vault, merge
+- [x] T007 Review each diff, commit the repository and each vault, merge
   `develop`, run `npm run verify`, and pass the `develop` merge review.
   Vault commits: work `ee089c4`; default `7035fe2`, chat `3d9a6be` and code
   `43d1dcc` for the rule. A fresh Codex reviewer (`gpt-6-luna`, high,
@@ -79,7 +79,10 @@ worker owns T002; main owns the records, the commits and integration.
   unit on the three plugins was flagged for review and stands, because this
   feature does not change the plugins' contents. MemoryLint reported the 19
   constitution boundary warnings that `develop` already has, none from this
-  feature.
+  feature. After CHE-52 landed, develop `c80e3fd` was merged without
+  conflicts in `9499037`, and `npm run verify` printed VERIFIED there.
+  Session note, 2026-09-30: the work is done and reviewed; next are the
+  finish into `develop` (T008) and CHE-59's completion comment (T009).
 - [ ] T008 Finish into `develop` with `git flow feature finish`.
 
 ## Phase 5: After the finish
