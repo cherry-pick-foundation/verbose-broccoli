@@ -109,7 +109,7 @@ messages.
 
 ## Phase 5: Pin (US4)
 
-- [ ] T010 [US4] After CHE-44 merges into `develop`, merge `develop`, pin
+- [x] T010 [US4] After CHE-44 merges into `develop`, merge `develop`, pin
   `"github:googleworkspace/cli" = "0.22.5"` in `mise.toml`, lock it,
   `mise trust` the reviewed file, `mise install --locked`, and check that
   the mise-installed `gws --version` prints 0.22.5 and that the lock's
@@ -121,6 +121,15 @@ messages.
     `.local/che-52-handoff/impl3.txt` (Claude Code, `fable`, medium, as
     chosen for T007 to T009), then T011. The reviewed binary is in
     `.local/gws/bin/`.
+  - Done, 2026-09-30: pinned gws in `mise.toml`, locked its seven platforms
+    with `mise lock` (each with GitHub attestation provenance; linux-x64 is
+    `sha256:de78ecdb…8c5c1f`, T006's checksum), and added it to `orca.yaml`'s
+    install line and `docs/architecture.md`. After `mise trust` and
+    `mise install --locked`, the mise-installed `gws --version` prints
+    `gws 0.22.5` and `cmp` finds the binary identical to `.local/gws/bin/gws`.
+    `.github/workflows/check.yml` still installs only the other four tools;
+    that stays, because no check runs gws. The coordinator compared all
+    seven locked checksums with the release's `.sha256` assets: all match.
 
 ## Phase 6: Finish
 

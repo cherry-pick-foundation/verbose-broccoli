@@ -57,7 +57,7 @@ project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
 official binary; Orca's setup script syncs it.
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-lychee 0.24.2, Vale 3.23.0 and git-flow-next 2.1.0, and `mise.lock` records
+lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0 and gws 0.22.5, and `mise.lock` records
 each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
 1.10.18 stays a separately installed converter. `npm run doctor` runs `mise
@@ -65,7 +65,7 @@ doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
 and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
 and lefthook's hooks, and name the repair command for each failure. The user's
 machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
-content; Orca's setup script trusts it and installs the four tools with
+content; Orca's setup script trusts it and installs the five tools with
 `mise install --locked`. The user's shell pins mise's and rustup's folders
 (`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
 so tests that use a temporary `HOME` still find mise's configuration and do
