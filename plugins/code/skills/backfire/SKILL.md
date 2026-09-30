@@ -48,7 +48,7 @@ Eleven tools built on TypeSafe's Jev. They return typed judgments and probabilit
 
 ## Data handling and cost
 
-- Tool inputs, within each tool's size limits, and the questions used for each judgment are sent through the code plugin's local Backfire backend to the external model provider selected in its profile; Hive is the default. Never send secrets, credentials, or private personal records such as student data to these tools.
+- Tool inputs, within each tool's size limits, and the questions used for each judgment are sent through the code plugin's local Backfire backend to an external model provider: the first profile in Backfire's order that has credit, OpenRouter and then Hive by default. Never send secrets, credentials, or private personal records such as student data to these tools.
 - Send only the evidence needed for the decision. Text is truncated per tool (limits in [`reference/tools.md`](reference/tools.md)), so chunk deliberately rather than hoping the tail survives.
 - Every successful result that called the model reports token usage. Report usage when cost matters. Judgments are signals, not proof — Jev can be wrong even at high confidence.
 
