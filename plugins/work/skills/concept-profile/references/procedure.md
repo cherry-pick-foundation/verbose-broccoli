@@ -67,10 +67,12 @@ Then it opens one `backfire serve-mcp --education` session, started from
 `packages/backfire`, and sends every unchecked sentence with concepts as one
 `jev_verify` call. Each concept, once and in key order, gives one claim: the
 catalog page's `catalog.claim` template filled with `{text}` (the normalized
-sentence), `{label}` and `{statement}`. The evidence is the item
-`{"id": "sentence", "text": "<sentence>"}`, then one item per concept with the
-catalog ID as `id` and the label, statement and examples on separate lines as
-`text`.
+sentence), `{label}` and `{statement}`. The evidence is one text: the line
+`Sentence: <sentence>`, then one block per concept with its catalog ID,
+label, statement and examples on separate lines. One text, not one item per
+concept, makes backfire ask one question per claim instead of two; on the
+pilot it cut a 29-claim call from about 86,000 to 16,500 tokens and let a
+36-claim call pass the provider's size limit.
 
 A result is kept when its verdict is `verified` with action `auto`, dropped
 when it is `contradicted` or `unsupported` with action `auto`, and unclear

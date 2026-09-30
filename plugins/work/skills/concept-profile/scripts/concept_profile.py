@@ -134,7 +134,7 @@ async def _backfire():
 
 async def _verify(session, arguments):
     result = await session.call_tool("jev_verify", arguments)
-    if result.isError:
+    if result.is_error:
         raise ValueError(result.content[0].text)
     return json.loads(result.content[0].text)
 
@@ -157,13 +157,13 @@ async def _send(run, todo, entries, claim, done):
             started = time.monotonic()
             found = [entries[key] for key in sorted(set(row["concepts"]))]
             text = _norm(row["text"])
-            parts = ("label", "statement", "examples")
-            items = [{"id": "sentence", "text": text}] + [
-                {"id": e["id"], "text": "\n".join(e[p] for p in parts)}
-                for e in found
-            ]
+            parts = ("id", "label", "statement", "examples")
+            evidence = "\n\n".join(
+                [f"Sentence: {text}"]
+                + ["\n".join(e[p] for p in parts) for e in found]
+            )
             claims = [claim.format(text=text, **e) for e in found]
-            arguments = {"claims": claims, "evidence": items}
+            arguments = {"claims": claims, "evidence": evidence}
             response = await _verify(session, arguments) if found else {}
             results = response.get("results", [])
             if len(results) != len(found):
@@ -210,6 +210,8 @@ def _check_command(args, root, run):
         try:
             asyncio.run(_send(run, todo, entries, claim, done))
         except Exception as error:  # noqa: BLE001 - any backfire failure.
+            while getattr(error, "exceptions", None):  # A task group.
+                error = error.exceptions[0]
             print(f"row {len(done) + 1}: {error}", file=sys.stderr)
             return 2
     by_id = {e["id"]: e for e in entries.values()}

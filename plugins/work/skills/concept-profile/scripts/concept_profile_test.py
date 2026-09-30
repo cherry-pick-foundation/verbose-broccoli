@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import json
 import os
@@ -7,6 +8,8 @@ import sys
 from types import SimpleNamespace
 
 import bagit
+from mcp.types import CallToolResult
+from mcp.types import TextContent
 from openpyxl import Workbook
 import pytest
 import yaml
@@ -160,9 +163,8 @@ def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
         call["claims"][0]
         == "First sentence. shows Keep / Group: Shows support."
     )
-    assert call["evidence"][0] == {"id": "sentence", "text": "First sentence."}
-    text = "Keep / Group\nShows support.\nOne.\nTwo."
-    assert call["evidence"][1] == {"id": "keep", "text": text}
+    assert call["evidence"].startswith("Sentence: First sentence.\n\n")
+    assert "keep\nKeep / Group\nShows support.\nOne.\nTwo." in call["evidence"]
     (check,) = _jsonl(run / "checks.jsonl")
     outcomes = [r["outcome"] for r in check["results"]]
     assert outcomes == ["kept", "dropped", "dropped", "unclear", "unclear"]
@@ -234,7 +236,7 @@ def test_failure_stops_the_run_and_a_rerun_resumes(backfire, capsys):
         stream.write('{"row": 2')  # A torn line from a killed run.
     backfire.reply = lambda _: ok
     assert _run(f"check --catalog {CATALOG}") == 0
-    sent = [c["evidence"][0]["text"] for c in backfire.calls]
+    sent = [c["evidence"].split("\n")[0][10:] for c in backfire.calls]
     assert sent == ["First sentence.", "Second sentence.", "Second sentence."]
     assert [c["row"] for c in _jsonl(checks)] == [1, 2]
 
@@ -244,3 +246,19 @@ def test_budget_refusal_happens_before_any_write(monkeypatch):
     monkeypatch.setattr(profile, "LIMIT", 1)
     assert _run(f"catalog --catalog {CATALOG}") == 2
     assert not (profile._run_dir("run") / "catalog.tsv").exists()
+
+
+def test_verify_reads_real_tool_results():
+    def session(is_error, text):
+        async def call_tool(*_):
+            content = [TextContent(type="text", text=text)]
+            return CallToolResult(content=content, is_error=is_error)
+
+        return SimpleNamespace(call_tool=call_tool)
+
+    reply = asyncio.run(profile._verify(session(False, json.dumps(REPLY)), {}))
+    assert reply == REPLY
+    with pytest.raises(ValueError, match="backend_not_configured"):
+        asyncio.run(
+            profile._verify(session(True, "backend_not_configured"), {})
+        )
