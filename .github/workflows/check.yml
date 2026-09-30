@@ -42,7 +42,7 @@ jobs:
       - name: Trust mise config and install locked tools
         run: |
           mise trust --yes "$GITHUB_WORKSPACE/mise.toml"
-          mise install --locked aqua:astral-sh/uv@0.11.32 aqua:lycheeverse/lychee@0.24.2 aqua:vale-cli/vale@3.23.0 github:gittower/git-flow-next@2.1.0
+          mise install --locked aqua:astral-sh/uv@0.11.32 aqua:loeffel-io/ls-lint@2.3.1 aqua:lycheeverse/lychee@0.24.2 aqua:vale-cli/vale@3.23.0 github:gittower/git-flow-next@2.1.0
       - name: Prepare Quarto 1.10.18
         run: |
           curl --fail --silent --show-error --location https://github.com/quarto-dev/quarto-cli/releases/download/v1.10.18/quarto-1.10.18-linux-amd64.deb --output "$RUNNER_TEMP/quarto.deb"

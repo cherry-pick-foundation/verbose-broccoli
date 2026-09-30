@@ -21,6 +21,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | format:check             | npm run format:check             |                                                                                                                      |
 | lint                     | npm run lint                     |                                                                                                                      |
 | lint:fix                 | npm run lint:fix                 |                                                                                                                      |
+| lint:names               | npm run lint:names               |                                                                                                                      |
 | lint:shell               | npm run lint:shell               |                                                                                                                      |
 | plugins:validate         | npm run plugins:validate         |                                                                                                                      |
 | python:imports           | npm run python:imports           |                                                                                                                      |

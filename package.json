@@ -26,6 +26,7 @@
     "test:mise-doctor": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/mise_doctor_test.ts",
     "lint": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' gts lint . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --no-cache .",
     "lint:shell": "git ls-files -z --cached --others --exclude-standard -- '*.sh' scripts/git-flow-hooks ':(exclude).specify/**' | xargs -0 uv run --project tools/shellcheck --frozen --offline --no-sync shellcheck",
+    "lint:names": "timeout 60 ls-lint",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "plugins:validate": "uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/plugin.schema.json plugins/chat/plugin.json plugins/code/plugin.json plugins/work/plugin.json && uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/mcp.schema.json plugins/code/mcp.json plugins/work/mcp.json",
     "clean-architecture": "env GIT_OPTIONAL_LOCKS=0 depcruise --config .dependency-cruiser.json --no-cache --no-progress --output-type err packages plugins scripts",

@@ -20,8 +20,12 @@ the naming rule to the Wiki schema template and the four vault schemas.
   extension part in turn with `*`; folder names are checked whole, so hidden
   folders such as `.github` need their own pattern; files without a dot use
   the `.` key. Source: `internal/linter/linter.go` at tag `v2.3.1`.
-- **Configuration**: `.ls-lint.yml` at the root; the ignore list holds only
-  untracked build and tool folders (`.git`, `node_modules`, `.venv`, caches).
+- **Configuration**: `.ls-lint.yml` at the root, with literal paths only;
+  the ignore list holds only untracked dependency, build and cache folders
+  (`.git`, `node_modules`, `.venv`, `.turbo`, `.local`).
+- **Controls from the security review**: every platform checksum in
+  `mise.lock` and `--locked` installs; `timeout 60` around ls-lint; no
+  wildcard paths in its configuration.
 - **Wiring**: an npm script `lint:names`, a Turborepo task in the `check`
   graph, the tool in `orca.yaml`'s setup and CI's `mise install` line.
 - **Vault files**: `AGENTS.md` of `default`, `chat`, `code` and `work` under
@@ -40,7 +44,7 @@ the naming rule to the Wiki schema template and the four vault schemas.
 
 | Name | Reason |
 | --- | --- |
-| `*.py`, `*.py.lock`, folders under `packages/*/src/` | Python modules and packages are imported by name, and a hyphen is not valid in an import name (PEP 8 names modules in lowercase with underscores); uv names a script's lock `<script>.py.lock`. |
+| `*.py`, `*.py.lock`, `__pycache__/*.pyc`, folders under each package's `src/` | Python files and packages are imported by name, and a hyphen is not valid in an import name. The Google Python style guide, which `ruff.toml` follows, says Python file names "must not contain dashes" (section 3.16.3). Python names its bytecode caches (PEP 3147), and uv names a script's lock `<script>.py.lock`. |
 | `AGENTS.md` | The AGENTS.md convention; Codex and Claude Code look it up by this name. |
 | `SKILL.md` | The Agent Skills format fixes a skill's entry file name. |
 | `README.md` | The convention that code hosts render by this name. |

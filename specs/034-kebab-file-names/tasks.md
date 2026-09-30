@@ -28,17 +28,30 @@ Codex, the provider other than the implementer's.
 
 ## Phase 1: Security check
 
-- [ ] T001 [US1] Review ls-lint 2.3.1's source and release read-only
+- [x] T001 [US1] Review ls-lint 2.3.1's source and release read-only
   (FR-001); report in [security/ls-lint-2.3.1.md](security/ls-lint-2.3.1.md).
   - 2026-09-30: Codex `gpt-daybreak-blue-latest` at high (backfire:
     0.78, confidence 0.74), time budget 35 minutes (backfire: 0.51).
+    Verdict: acceptable with controls; 0 high, 2 medium (checksum-only
+    release; exponential work on names with many dots), 1 low (wildcard
+    config paths follow symlinks). The user, through the `develop` session,
+    accepted ls-lint with the three controls: every platform checksum locked
+    and `--locked` installs, a 60-second timeout that fails the check, and
+    literal paths only in `.ls-lint.yml`.
 
 ## Phase 2: Naming check
 
-- [ ] T002 [US1] Pin ls-lint in `mise.toml` and `mise.lock`, add it to
-  `orca.yaml`'s setup and CI's install line (FR-001).
-- [ ] T003 [US1] Write `.ls-lint.yml` with the exception list and its
-  reasons, and run it in `npm run verify` (FR-002, FR-003).
+- [x] T002 [US1] Pin ls-lint in `mise.toml` and `mise.lock`, add it to
+  `orca.yaml`'s setup and CI's install line (FR-001). The seven locked
+  checksums match the reviewed release assets.
+- [x] T003 [US1] Write `.ls-lint.yml` with the exception list and its
+  reasons, and run it in `npm run verify` (FR-002, FR-003). A probe tree
+  confirmed that `Bad_Name.md`, `docs/NewPage.md`, `scripts/new_tool.ts`,
+  `Makefile`, `Bad_Dir/`, `.Hidden_Dir/` and `scripts/bad-module.py` fail,
+  and that `LICENSE`, `AGENTS.md`, `README.md`, `SKILL.md`, `.github/`,
+  snake_case Python files and packages, and `raw_import.py.lock` pass. Before
+  the renames it reports exactly the 130 paths of T006 and the Vale style
+  folder `Wiki/`.
 
 ## Phase 3: Vault schemas
 

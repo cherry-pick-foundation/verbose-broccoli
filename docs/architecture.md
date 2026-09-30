@@ -33,10 +33,10 @@ remains open.
 check-jsonschema 0.38.2 validates the plugin manifests offline against the
 unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
 project whose `uv.lock` pins it. `npm run check` (`turbo run check
---summarize`) runs the environment check, formatting, lint, the shell check,
-type checks, plugin schema validation, Clean Code, the TypeScript and Python
-import checks, the test suites and the document region check, which also
-covers the generated references (see
+--summarize`) runs the environment check, formatting, lint, the file-name
+check, the shell check, type checks, plugin schema validation, Clean Code,
+the TypeScript and Python import checks, the test suites and the document
+region check, which also covers the generated references (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -54,10 +54,14 @@ explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
-official binary; Orca's setup script syncs it.
+official binary; Orca's setup script syncs it. ls-lint 2.3.1 checks that
+every file and folder name is kebab-case: `npm run lint:names` runs it with
+a 60-second limit and the root `.ls-lint.yml`, which gives the reason for
+each name a language, tool or standard fixes (Python files and packages,
+`AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`).
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
+ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
 1.9.0 and SpecStory's command-line tool 2.15.1, and `mise.lock` records
 each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
@@ -66,7 +70,7 @@ doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
 and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
 and lefthook's hooks, and name the repair command for each failure. The user's
 machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
-content; Orca's setup script trusts it and installs the seven tools with
+content; Orca's setup script trusts it and installs the eight tools with
 `mise install --locked`. The user's shell pins mise's and rustup's folders
 (`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
 so tests that use a temporary `HOME` still find mise's configuration and do
