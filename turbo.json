@@ -20,7 +20,7 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, CodexBar 0.69.0, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
       "cache": false
     },
     "//#own-code": {"cache": false},
