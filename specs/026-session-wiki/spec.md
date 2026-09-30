@@ -21,8 +21,9 @@ with backfire and record them in the Wiki vaults", and the develop session's
 task brief of 2026-09-30. The user decided that every session Claude Code and
 the Codex CLI keep on this laptop, Orca worker sessions included, is a
 candidate for the Wiki vaults: about 165 Claude Code sessions
-(`~/.claude/projects`, 580 MB) and 1,312 Codex sessions (`~/.codex/sessions`,
-4.9 GB). OMP sessions are out of scope, and sessions still running wait until
+(`~/.claude/projects`, 580 MB) and about 1,312 Codex sessions
+(`~/.codex/sessions`, 4.9 GB); the plan gives the files counted on
+2026-09-30. OMP sessions are out of scope, and sessions still running wait until
 they end. SpecStory's command-line tool renders the sessions to Markdown,
 used unchanged with cloud sync off after a security review. Selection runs
 mechanical filters, a secret scan before any text leaves the laptop, and

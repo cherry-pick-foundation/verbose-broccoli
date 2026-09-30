@@ -88,7 +88,9 @@ uv --directory packages/backfire run --frozen --offline --no-sync \
    Orca worker sessions and sessions in which backfire's roster finds a
    student, guardian or school (`student_data`), and writes one digest of at
    most 2,000 characters per session to `STAGE/digests.jsonl`. The roster check
-   runs on this machine. A roster match counts only at a word start, and a
+   runs on this machine; an empty roster stops the step. It also stops when
+   the scan report is missing or older than a rendered file, so run step 2
+   again after every render. A roster match counts only at a word start, and a
    Latin-letter match only as a whole word, so a short given name inside a
    longer word does not tag a session; backfire still replaces every match
    before sending.

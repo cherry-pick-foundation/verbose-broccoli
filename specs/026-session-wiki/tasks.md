@@ -113,4 +113,13 @@ parallel.
   finder has no word-boundary rule, and PyModel's command line takes one
   request without backfire's education server. The trim left 551 lines and
   +496 net own code.
-
+- Develop merge review, on the branch with CHE-44 and CHE-46 merged: the
+  code reviewer (Claude Code Sonnet 5.5 medium) found 4 medium and 5 low
+  issues, the records reviewer (Codex gpt-6-luna medium) 1 medium and 1 low.
+  Fixed: secret findings matched on resolved paths, a missing or stale scan
+  report refused, an empty roster refused, a SpecStory timeout, invalid
+  Codex ids, a duplicate count, the session counts, and a trailing blank
+  line; the security report gained an addendum on `--print` with source
+  lines and the observed offline run. Accepted: the hard-linked mirror
+  (SpecStory only reads it) and a missed overlapping roster match inside a
+  rejected one, which the Korean and Latin cases in scope do not produce.

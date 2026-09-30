@@ -42,12 +42,15 @@ and is what SpecStory embeds.
 - Limits: `jev_classify` takes up to 64 items per call, cuts each item at
   2,000 characters and allows 250 classes; five classes are used.
 - Staging: `~/.cache/verbose-broccoli/sessions/`, mode `0700` (user decision).
-- mise: paranoid mode with content-bound trust. CHE-44 has not merged, so
-  this branch adds a root `mise.toml` with two `[tools]` lines and its
-  `mise.lock`; the user allowed `mise trust` on this worktree's file after
-  the review passes. Whoever finishes later combines both tool lists, reruns
-  `mise lock`, and adds both tools to CHE-44's `mise install --locked` list in
-  `orca.yaml`.
+- mise: paranoid mode with content-bound trust. The branch first added a
+  root `mise.toml` with the two tools and its `mise.lock` while CHE-44 was
+  unmerged; the user allowed `mise trust` on this worktree's file after each
+  reviewed change. After CHE-44 reached `develop`, the merge combined both
+  `[tools]` tables, regenerated the lock (CHE-44's entries unchanged) and
+  added both tools to the `mise install --locked` line in `orca.yaml`.
+- Constitution version: the `feat` commit raised it by hand from 2.3.0 to
+  2.4.0 while commitizen was not yet on `develop`; the merge with CHE-44's
+  2.3.1 set 2.4.0 again with `npm run constitution:bump -- MINOR`.
 
 ## Constitution Check
 

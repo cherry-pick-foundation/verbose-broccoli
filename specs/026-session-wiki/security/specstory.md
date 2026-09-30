@@ -404,3 +404,34 @@ run under `unshare -rn` or with the network off would confirm it.
 - Cryptographic checks of the betterleaks cosign signature and release
   attestation (F14), and how mise paranoid mode treats a tool without
   provenance (F8).
+
+## Addendum: `sync -s <id> --print`
+
+Added by the coordinator on 2026-09-30, after the develop merge review of the
+code noted that sections 1 to 7 do not cover `--print`. The selection
+procedure runs `specstory sync <claude|codex> -s <id> --print` with the flags
+and environment of section 7, but without `--output-dir`, and writes the
+printed Markdown itself.
+
+- `--print` skips the output setup and the live session index: with it,
+  `SetupOutputConfig` and `NewLiveIndexer` are not called
+  (`specstory-cli/main.go:632-656`), so this path writes no history folder,
+  `.project.json`, `statistics.json` or `sessions.db`.
+- The print branch generates the Markdown, redacts it unless
+  `--no-redact-secrets` is given, and writes it to standard output
+  (`main.go:747-781`, redaction at `main.go:763-769`). Cloud sync and file
+  writes happen only in the other branch (`main.go:782-792`).
+- `--print` cannot be combined with `--only-stats`, `--only-cloud-sync` or
+  `--console` (`main.go:113-121`).
+- What remains: the analytics events of the print branch (`main.go:778-781`),
+  which section 7's flag and configuration turn off; debug data only with
+  `--debug-raw` (`main.go:749`), which the procedure never passes; and the user
+  configuration file of F11, which the procedure writes first inside the
+  staged home.
+
+Observed on this laptop on 2026-09-30: the procedure rendered 1,467 sessions
+inside `bwrap --unshare-net`, where a connection attempt failed with "Network
+is unreachable". Afterwards `~/.specstory` did not exist, the staged home held
+only `.specstory/cli/`, and the Claude Code mirror folders were empty.
+
+The verdict stands: pass, with the procedure's command line.
