@@ -57,9 +57,10 @@ If the requirement cannot be met without substantial new local implementation, s
 ## Review
 
 - The provider that implemented a change does not give its final review. Use a
-  fresh reviewer from the other provider (Claude Code or Codex) and give it only
-  the review scope and the requirements, not suspected defects, prior findings,
-  or expected outcomes.
+  fresh reviewer from a provider other than the implementer's (Claude Code,
+  Codex or Copilot), preferring Copilot when Claude Code and Codex both
+  implemented parts of a feature, and give it only the review scope and the
+  requirements, not suspected defects, prior findings, or expected outcomes.
 - Resolve actionable findings, rerun the affected verification, and repeat the
   review when fixes change the implementation materially.
 - Before each commit, the implementer or the orchestrator reviews the diff.
@@ -93,7 +94,7 @@ If the requirement cannot be met without substantial new local implementation, s
 
 Follow these in every English reply to the user. They copy the English section
 under "Language techniques" in `~/.agents/skills/plain-language/references/REFERENCE.md`;
-change both together. `licenses/THIRD_PARTY_NOTICES.md` records their source.
+change both together. `licenses/third-party-notices.md` records their source.
 
 - Numbers are prompts for a second look, not caps: about 20 words per
   sentence, about 5 sentences per paragraph, and a list from three parallel

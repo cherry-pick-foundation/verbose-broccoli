@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/googleworkspace/cli",
+  "tag": "v0.22.5",
+  "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
+  "path": "skills/gws-slides",
+  "skill_sha256": "ac0feaccf8292d5a8de0f4e3fbbdc20b94cf15afea652d127ddc12f631e190a3",
+  "local_modifications": []
+}

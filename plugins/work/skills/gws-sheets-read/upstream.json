@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/googleworkspace/cli",
+  "tag": "v0.22.5",
+  "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
+  "path": "skills/gws-sheets-read",
+  "skill_sha256": "2308eab564907f4d8789de030dadebf9187988a944a57da9ffd49ce7a4ecafef",
+  "local_modifications": []
+}

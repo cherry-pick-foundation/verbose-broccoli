@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/googleworkspace/cli",
+  "tag": "v0.22.5",
+  "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
+  "path": "skills/gws-sheets-append",
+  "skill_sha256": "20611381c4ee91f4eeb6491185e0780207bfc08fff66d0c1d1c22c2c75c68657",
+  "local_modifications": []
+}

@@ -13,10 +13,13 @@ own npm package manifest with the skill's dependencies. Current versions and
 MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
-and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
+and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
-`wiki-raw-import`, `wiki-consistency` and `backfire` skills and an MCP declaration for its own
+`wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
+skill with ten copied `gws-*` skills
+(see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
+and an MCP declaration for its own
 `backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
@@ -30,10 +33,10 @@ remains open.
 check-jsonschema 0.38.2 validates the plugin manifests offline against the
 unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
 project whose `uv.lock` pins it. `npm run check` (`turbo run check
---summarize`) runs the environment check, formatting, lint, the shell check,
-type checks, plugin schema validation, Clean Code, the TypeScript and Python
-import checks, the test suites and the document region check, which also
-covers the generated references (see
+--summarize`) runs the environment check, formatting, lint, the file-name
+check, the shell check, type checks, plugin schema validation, Clean Code,
+the TypeScript and Python import checks, the test suites and the document
+region check, which also covers the generated references (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -51,10 +54,18 @@ explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
-official binary; Orca's setup script syncs it.
+official binary; Orca's setup script syncs it. ls-lint 2.3.1 checks that
+every file and folder name is kebab-case: `npm run lint:names` runs it with
+a 60-second limit and the root `.ls-lint.yml`, which gives the reason for
+each name a language, tool or standard fixes (Python files and packages,
+`AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`). ls-lint has no
+`.gitignore` support, so `scripts/lint-names.sh` passes it the paths that Git
+ignores, such as `.venv`, as literal `ignore` entries; untracked files that Git
+does not ignore are checked, and `npm run test:lint-names` covers both.
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-lychee 0.24.2, Vale 3.23.0 and git-flow-next 2.1.0, and `mise.lock` records
+ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
+1.9.0 and SpecStory's command-line tool 2.15.1, and `mise.lock` records
 each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
 1.10.18 stays a separately installed converter. `npm run doctor` runs `mise
@@ -62,7 +73,7 @@ doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
 and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
 and lefthook's hooks, and name the repair command for each failure. The user's
 machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
-content; Orca's setup script trusts it and installs the four tools with
+content; Orca's setup script trusts it and installs the eight tools with
 `mise install --locked`. The user's shell pins mise's and rustup's folders
 (`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
 so tests that use a temporary `HOME` still find mise's configuration and do
@@ -328,6 +339,19 @@ PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 [Backfire operator guide](backfire.md) for setup, profiles and
 troubleshooting.
 
+### Google Workspace through gws — 2026-09-30
+
+Feature 027 ([spec](../specs/027-google-workspace/spec.md)) lets agents work
+in the user's Google Workspace through gws, the Google Workspace CLI. gws is
+a host tool pinned through mise, not a dependency of any package, and keeps
+its OAuth client file and tokens in its own folder `~/.config/gws/`, outside
+the repository. The work package carries ten of gws's agent skills, copied
+from the pinned tag with an `upstream.json` each, and the local
+[`google-workspace` skill](../plugins/work/skills/google-workspace/SKILL.md)
+with this repository's rules: the approved scopes, how to invoke gws, and
+when to ask the user first. The security check of the pinned release is in
+`specs/027-google-workspace/security/`.
+
 ### Chat web agent and credit offers — 2026-09-30
 
 Feature 021 ([spec](../specs/021-chat-jev-ultrafast/spec.md)) gives the chat
@@ -335,7 +359,7 @@ package two skills backed by two uv workspace packages.
 
 - `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
   fixed revision and patched in two modules; its
-  [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
+  [`upstream.md`](../packages/jev-ultrafast/upstream.md) lists the revision,
   the original file hashes and every difference. Its Jev calls go to the
   provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
   `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
@@ -358,8 +382,9 @@ package two skills backed by two uv workspace packages.
 - Keys live in the shared provider folder
   `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
-  `openrouter.env`, `hive.env`, and `github.env` for the offer search's
-  optional GitHub token), which every plugin uses. The web agent gets its
+  `openrouter.env`, `hive.env`, `github.env` for the offer search's
+  optional GitHub token, and `copilot.env` for CodexBar's Copilot usage
+  call), which every plugin uses. The web agent gets its
   provider key through `uv run --env-file`; credit offers passes only the
   optional `github.env`. Backfire reads provider keys through its own shipped
   profiles' `credential_file` fields and follows its shared provider order.
@@ -408,14 +433,14 @@ Maintain each skill only in its owning package, without discovery links or
 duplicate source trees elsewhere in the repository. The one exception is the
 `backfire` skill: the code and work plugins each carry a vendored copy of the
 same upstream skill, because a plugin may not link to another plugin's files,
-and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
+and `scripts/plugin-skills-test.ts` keeps the copies' shared files identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
 | `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire`, `concept-profile`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/work/skills` | `backfire`, `concept-profile`, `google-workspace`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
@@ -492,10 +517,10 @@ flow rule.
   `develop` by merge, not rebase. Release and hotfix types are left out, so
   `git flow release` and `git flow hotfix` refuse to run; the constitution has
   releases and hotfixes finished by hand.
-- Before the finish, a fresh reviewer from the other provider (Claude Code or
-  Codex), given only the scope and requirements, reviews the feature tip,
-  favoring speed. After its findings are resolved, a content-free commit
-  records the review:
+- Before the finish, a fresh reviewer from a provider other than the
+  implementer's (Claude Code, Codex or Copilot), given only the scope and
+  requirements, reviews the feature tip, favoring speed. After its findings
+  are resolved, a content-free commit records the review:
 
   ```sh
   git commit --allow-empty -m 'chore(review): record develop merge review' \
@@ -628,7 +653,7 @@ or an agent region, written by agents. No part is human-written.
   quoted marker as a region.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
-- `scripts/doc_regions.toml` lists the targets, including the generated
+- `scripts/doc-regions.toml` lists the targets, including the generated
   `docs/reference/` pages, and `AGENTS.md` and the constitution as
   report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
   target when the project writes one.

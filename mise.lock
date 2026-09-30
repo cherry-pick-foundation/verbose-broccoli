@@ -49,6 +49,46 @@ url = "https://github.com/astral-sh/uv/releases/download/0.11.32/uv-x86_64-pc-wi
 url_api = "https://api.github.com/repos/astral-sh/uv/releases/assets/487747656"
 provenance = "github-attestations"
 
+[[tools."aqua:loeffel-io/ls-lint"]]
+version = "2.3.1"
+backend = "aqua:loeffel-io/ls-lint"
+specifiers = ["2.3.1"]
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.linux-arm64"]
+checksum = "sha256:2abdb71243c619f0bb29587be5c228bec84c107985f2c066139ef0ec35fd3a99"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-linux-arm64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857550"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.linux-arm64-musl"]
+checksum = "sha256:2abdb71243c619f0bb29587be5c228bec84c107985f2c066139ef0ec35fd3a99"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-linux-arm64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857550"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.linux-x64"]
+checksum = "sha256:b5a0d2e4427ad039fbc574551f17679f38f142b25d15e0e538769f8cf15af397"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-linux-amd64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857547"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.linux-x64-musl"]
+checksum = "sha256:b5a0d2e4427ad039fbc574551f17679f38f142b25d15e0e538769f8cf15af397"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-linux-amd64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857547"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.macos-arm64"]
+checksum = "sha256:e4ed2ce2b7b61d6685769e34c6375ccecb14a3f00ee59438cf82d01d6236a3c4"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-arm64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857541"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.macos-x64"]
+checksum = "sha256:fc17fc642e95fd8bf7030ed661e86758bee654f6e11f1e31a5f21887f47f73ae"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-darwin-amd64"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857543"
+
+[tools."aqua:loeffel-io/ls-lint"."platforms.windows-x64"]
+checksum = "sha256:94e5cfb9468e597cb513fb7a8bf26499c9315ebd505d960c74e2d4849167bd31"
+url = "https://github.com/loeffel-io/ls-lint/releases/download/v2.3.1/ls-lint-windows-amd64.exe"
+url_api = "https://api.github.com/repos/loeffel-io/ls-lint/releases/assets/260857557"
+
 [[tools."aqua:lycheeverse/lychee"]]
 version = "0.24.2"
 backend = "aqua:lycheeverse/lychee"
@@ -215,6 +255,53 @@ url_api = "https://api.github.com/repos/gittower/git-flow-next/releases/assets/5
 checksum = "sha256:9bfbc2746ea647fe664e0a5be375f7d7e144412d5031064f60efb1f8fbe1b656"
 url = "https://github.com/gittower/git-flow-next/releases/download/v2.1.0/git-flow-next-v2.1.0-windows-amd64.zip"
 url_api = "https://api.github.com/repos/gittower/git-flow-next/releases/assets/549957111"
+
+[[tools."github:googleworkspace/cli"]]
+version = "0.22.5"
+backend = "github:googleworkspace/cli"
+specifiers = ["0.22.5"]
+
+[tools."github:googleworkspace/cli"."platforms.linux-arm64"]
+checksum = "sha256:94490295d9580e1e88574e715a0a162991747d12d62f8c7b8dcc8268b6c1cea0"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-aarch64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726970"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.linux-arm64-musl"]
+checksum = "sha256:e700fe63524932b10ec2130b47ece90aa850e66005fe52ccfc4cf8767bf9919a"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-aarch64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726968"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.linux-x64"]
+checksum = "sha256:de78ecdbd2f1a84cca0063a7ecbc440240fc14b6ebccbb17f4646b792a8c5c1f"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726985"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.linux-x64-musl"]
+checksum = "sha256:4db473dde4b1ab872e4ff35d769b0d4af1f1a6441a605e79d5cf8ada9c87e920"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726987"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.macos-arm64"]
+checksum = "sha256:1d2a9ffd5bc9b2c2c4b48630daf082fad13d9e57d741988a2c248eed562f7dac"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-aarch64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726972"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.macos-x64"]
+checksum = "sha256:51f9bd731404d4bba26c36e2e30dd68c56dccd1f834c01252cb0b14d6a6544b2"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-x86_64-apple-darwin.tar.gz"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726978"
+provenance = "github-attestations"
+
+[tools."github:googleworkspace/cli"."platforms.windows-x64"]
+checksum = "sha256:407705d695dc83d48b1c5f50d71b5aa64095bf6f17d5b439b2e9a373bbe67ec2"
+url = "https://github.com/googleworkspace/cli/releases/download/v0.22.5/google-workspace-cli-x86_64-pc-windows-msvc.zip"
+url_api = "https://api.github.com/repos/googleworkspace/cli/releases/assets/385726984"
+provenance = "github-attestations"
 
 [[tools."github:specstoryai/getspecstory"]]
 version = "2.15.1"

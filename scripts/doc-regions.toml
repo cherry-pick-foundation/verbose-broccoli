@@ -1,0 +1,16 @@
+# Documents kept consistent by packages/doc-regions (specs/008-doc-consistency).
+# targets: updated documents, with mechanical regions and agent regions.
+# report_only: judged and audited before a develop merge review, never changed
+# by the tooling. Entries are paths or globs relative to the repository root.
+targets = [
+  "README.md",
+  "docs/architecture.md",
+  "docs/backfire.md",
+  "docs/reference/commands.md",
+  "docs/reference/plugins.md",
+]
+report_only = ["AGENTS.md", ".specify/memory/constitution.md"]
+generators = "doc_sources"
+generator_path = "scripts"
+# These files cannot make a document statement wrong on their own.
+evidence_exclude = ["**/*.lock", "specs/**", "**/tests/**", "scripts/*_test.*", "scripts/*-test.*", "docs/reference/**"]

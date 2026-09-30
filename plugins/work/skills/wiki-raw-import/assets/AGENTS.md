@@ -46,6 +46,11 @@ Rules:
 
 - A source is one original file. Its latest revision is the revision folder
   whose name sorts last.
+- Raw holds original sources only, such as catalogs, reference grammars,
+  textbooks and answer keys, original exam papers, published word books,
+  provider materials, official documents and the user's own records.
+  Worksheets, dated or selected word lists, and trimmed or marked-up copies
+  made from them are derivatives: not raw evidence, and pages do not cite them.
 - The bags are the only record of sources and revisions. Do not keep another
   list, index or database of them.
 - Raw is create-only. Never edit, move or delete an admitted revision. A
@@ -86,6 +91,9 @@ Rules:
   with `## [YYYY-MM-DD] raw-import | <location>` and lists the counts
   admitted, already admitted, refused and failed.
 - Git versions this file and `wiki/`.
+- Name every file and folder under `wiki/` in kebab-case: lowercase letters,
+  digits and hyphens, such as `quadratic-formula.md`. Raw copies keep their
+  original file names.
 
 ## Pages
 

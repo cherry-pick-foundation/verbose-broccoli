@@ -6,22 +6,22 @@ import {
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
 import {lstat, readFile} from 'node:fs/promises';
 import type {ICruiseResult} from 'dependency-cruiser';
-import {dependencyCruiser, publicEntries} from './workflow_depcruise.ts';
-import {analyzePlan, planSchema, type PlanResult} from './workflow_plan.ts';
+import {dependencyCruiser, publicEntries} from './workflow-depcruise.ts';
+import {analyzePlan, planSchema, type PlanResult} from './workflow-plan.ts';
 import {
   repositoryPathspec,
   runGit,
   snapshotWorkingTree,
-} from './workflow_git.ts';
-import {evaluateVerification} from './workflow_verify.ts';
-import {graphCommands} from './workflow_graph.ts';
-import {inspectSymbol} from './workflow_symbol.ts';
-import {announceSkillTriggers} from './workflow_skills.ts';
+} from './workflow-git.ts';
+import {evaluateVerification} from './workflow-verify.ts';
+import {graphCommands} from './workflow-graph.ts';
+import {inspectSymbol} from './workflow-symbol.ts';
+import {announceSkillTriggers} from './workflow-skills.ts';
 import {
   getFileAccessError,
   listCodeFiles,
   repositoryFileSchema,
-} from './workflow_files.ts';
+} from './workflow-files.ts';
 
 interface Signals {
   paths: string[];
@@ -51,7 +51,7 @@ const actions = {
     'Use Orca orchestration to launch one supervised worker per listed task concurrently, within available agent slots.',
   ],
   REVIEW: [
-    'Main coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from the other provider (Claude Code or Codex) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.',
+    "Main coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.",
     'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`. Send each printed request to the `jev_` tool it names. Fix target document units marked contradicted or flagged for review, or record why they stand. Report AGENTS.md and constitution findings to the user without changing those files.',
   ],
 };

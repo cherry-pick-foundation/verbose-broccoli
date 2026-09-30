@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/googleworkspace/cli",
+  "tag": "v0.22.5",
+  "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
+  "path": "skills/gws-shared",
+  "skill_sha256": "87abfb41cdcc300b7f2f733d1558a8af8d3c2a7cca1512f9eba244965fad98b2",
+  "local_modifications": [
+    "Added a note after the title that tells the reader, in this repository, to read ../google-workspace/SKILL.md first because its rules take precedence.",
+    "Deleted the section \"Community & Feedback Etiquette\" with its bullets."
+  ]
+}
