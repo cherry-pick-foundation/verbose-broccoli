@@ -58,7 +58,10 @@ official binary; Orca's setup script syncs it. ls-lint 2.3.1 checks that
 every file and folder name is kebab-case: `npm run lint:names` runs it with
 a 60-second limit and the root `.ls-lint.yml`, which gives the reason for
 each name a language, tool or standard fixes (Python files and packages,
-`AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`).
+`AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`). ls-lint has no
+`.gitignore` support, so `scripts/lint-names.sh` passes it the paths that Git
+ignores, such as `.venv`, as literal `ignore` entries; untracked files that Git
+does not ignore are checked, and `npm run test:lint-names` covers both.
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
 ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks

@@ -40,6 +40,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:git-flow            | npm run test:git-flow            |                                                                                                                      |
 | test:gts                 | npm run test:gts                 |                                                                                                                      |
 | test:jev-ultrafast       | npm run test:jev-ultrafast       |                                                                                                                      |
+| test:lint-names          | npm run test:lint-names          |                                                                                                                      |
 | test:mise-doctor         | npm run test:mise-doctor         |                                                                                                                      |
 | test:plugin-skills       | npm run test:plugin-skills       |                                                                                                                      |
 | test:plugins-validate    | npm run test:plugins-validate    |                                                                                                                      |
