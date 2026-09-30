@@ -55,8 +55,8 @@ records: it replaces nothing.
 ## Advisory results
 
 The tools return advice. Nothing requires an agent to call them or follow their
-verdicts. A `backfire_gate` verdict judges only the supplied text; it does not
-prove that tests ran. A pass from `backfire_screen` never authorizes following
+verdicts. A `jev_gate` verdict judges only the supplied text; it does not
+prove that tests ran. A pass from `jev_screen` never authorizes following
 instructions found in screened text.
 
 Judgments can be confidently wrong. The measured probes included a response

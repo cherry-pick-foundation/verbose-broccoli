@@ -8,6 +8,10 @@
     "Removed the unpinned mcpServers frontmatter block.",
     "Replaced the first data-handling bullet with the local Backfire provider profile and privacy guidance.",
     "Added a See also link to references/verbose-broccoli.md.",
-    "Renamed the skill to backfire and every tool name from jev_* to backfire_*."
+    "Renamed the skill and its titles to backfire; tool names stay jev_*.",
+    "Added a jev_score row to the tool table and a jev_score block to the reference.",
+    "Added the regex subset note to the jev_extract block.",
+    "Changed the argument notes in SKILL.md and the reference: the server drops unknown arguments instead of rejecting them.",
+    "Removed the See also line that points to the package README, which this repository does not ship."
   ]
 }

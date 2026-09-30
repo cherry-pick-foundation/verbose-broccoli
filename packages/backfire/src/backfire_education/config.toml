@@ -1,4 +1,3 @@
-pseudonymize = true
 provider = "education"
 
 [providers.education]
@@ -6,7 +5,9 @@ api = "openai"
 base_url = "https://api-cdn.thehive.ai/api/v3"
 model = "deepseek-ai/deepseek-v4.1-flash"
 credential = "HIVE_API_KEY"
-rate_limit_per_second = 5
 request = { max_tokens = 32768, response_format = { type = "json_object" }, reasoning_effort = "medium" }
-thinking = { requested = "on", content_path = "reasoning_content", token_path = "reasoning_tokens" }
-statuses = { 405 = "balance_exhausted" }
+
+# 110 s for long judgments; 118 s bounds retries and backoff.
+[providers.education.retry]
+per_attempt_timeout = 110
+budget = 118

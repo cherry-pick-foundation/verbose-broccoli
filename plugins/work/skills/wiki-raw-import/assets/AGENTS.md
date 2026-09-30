@@ -150,7 +150,7 @@ steps; its commands are `check`, `update`, `convert`, `index` and `prepare`.
    and fix every failure. `check` needs no network and changes no file.
 2. Run `convert`, `index` and `prepare --scope changed`, and send each printed
    request to the work plugin's backfire server. Confirm a `contradicted`
-   result between two pages with `backfire_compare`. Fix units that backfire
+   result between two pages with `jev_compare`. Fix units that backfire
    finds contradicted or flags for review, or tell the user why they stand.
    Report contradictions between pages and every unit that `prepare` lists
    as unverifiable, with its cause (for example, sources that could not be
