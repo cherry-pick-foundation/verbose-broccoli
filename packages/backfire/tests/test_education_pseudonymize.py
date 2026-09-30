@@ -23,7 +23,7 @@ from backfire.config import SHIPPED_CONFIG
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.noul import NOUL
-from backfire.providers import _ProfileProvider
+from backfire.providers import _OrderProvider
 from backfire_education.pseudonymize import compile_roster_pattern
 from backfire_education.pseudonymize import find_spans
 from backfire_education.pseudonymize import pseudonymize
@@ -192,7 +192,9 @@ def test_pymodel_choice_labels_that_collide_fail(roster):
     assert caught.value.error_type == "pseudonym_conflict"
 
 
-def test_toolset_education_wrapper_masks_pymodel_questions_and_state(roster):
+def test_toolset_education_wrapper_masks_pymodel_questions_and_state(
+    roster, monkeypatch
+):
     del roster  # Unused.
 
     class RecordingProvider(JevProvider):
@@ -214,7 +216,16 @@ def test_toolset_education_wrapper_masks_pymodel_questions_and_state(roster):
             return None
 
     backend = RecordingProvider()
-    wrapped = _ProfileProvider(backend, None, education=True)
+    monkeypatch.setattr(
+        "backfire.providers.load_credential", lambda _: "synthetic-key"
+    )
+    monkeypatch.setattr(
+        "backfire.providers._build_provider", lambda *_: backend
+    )
+    wrapped = _OrderProvider(
+        [{"name": "education", "credential": "SYNTHETIC_KEY"}],
+        education=True,
+    )
     tools = Toolset(
         Runtime(Settings.model_construct(), lambda _: wrapped), (NOUL,)
     )

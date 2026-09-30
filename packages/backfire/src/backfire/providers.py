@@ -2,6 +2,8 @@
 
 import asyncio
 from dataclasses import replace
+import logging
+import re
 from typing import Callable
 
 from jev_judge_mcp.domain import Usage
@@ -18,10 +20,12 @@ import system_one_adapter.providers.openai as adapter_openai
 import typesafe_sdk as typesafe
 
 from backfire.config import load_credential
-from backfire.config import load_profile
+from backfire.config import load_profiles
+from backfire.credit import check_credit
 from backfire.failures import JudgmentError
-from backfire.vercel import VercelProvider
 from backfire_education.pseudonymize import pseudonymize
+
+logger = logging.getLogger(__name__)
 
 
 class _AnswerlessError(Exception):
@@ -109,9 +113,7 @@ class _OpenAIProvider(pymodel.JevProvider):
                 "backfire profile connection failed"
             ) from None
         except typesafe.TypeSafeAPIError as error:
-            failure = pymodel.ProviderError("backfire profile request failed")
-            failure.status = error.status
-            raise failure from None
+            raise self._status_error(error.status, str(error)) from None
         if questions.keys() - response.answers.keys():
             raise _AnswerlessError
         return pymodel.Evaluation(
@@ -129,19 +131,86 @@ class _OpenAIProvider(pymodel.JevProvider):
         await self._provider.aclose()
 
 
-class _ProfileProvider(pymodel.JevProvider):
+def _build_provider(
+    profile: dict, key: str, retry: RetryPolicy | None
+) -> pymodel.JevProvider:
+    return (
+        _OpenAIProvider(profile, key, retry=retry)
+        if profile["api"] == "openai"
+        else _jev_provider(profile, key, retry=retry)
+    )
+
+
+class _OrderProvider(pymodel.JevProvider):
     name, label = "compatible", "backfire profile"
 
-    def __init__(
-        self, provider: pymodel.JevProvider, model: str | None, education: bool
-    ) -> None:
+    def __init__(self, profiles: list[dict], education: bool) -> None:
         super().__init__(Redactor(()))
-        self._provider, self._model, self._education = (
-            provider,
-            model,
-            education,
-        )
-        self.name, self.label = provider.name, provider.label
+        self.name = profiles[0]["name"] if profiles else "compatible"
+        self._profiles = profiles
+        self._education = education
+        self._profile_index = 0
+        self._current: tuple[dict, pymodel.JevProvider] | None = None
+        self._providers: list[pymodel.JevProvider] = []
+        self._lock = asyncio.Lock()
+
+    async def _next_profile(
+        self,
+    ) -> tuple[dict, pymodel.JevProvider] | None:
+        while self._profile_index < len(self._profiles):
+            profile = self._profiles[self._profile_index]
+            try:
+                retry = _retry_policy(profile)
+                key = load_credential(profile)
+                provider = _build_provider(profile, key, retry)
+                if "codexbar" in profile:
+                    credit = await asyncio.to_thread(
+                        check_credit,
+                        profile["codexbar"],
+                        profile["credential"],
+                        key,
+                    )
+                    if credit is False:
+                        logger.warning(
+                            "skipping profile %s: no credit", profile["name"]
+                        )
+                        await provider.aclose()
+                        self._profile_index += 1
+                        continue
+                    if credit is None:
+                        logger.warning(
+                            "credit unknown for profile %s; using it",
+                            profile["name"],
+                        )
+            except JudgmentError as error:
+                raise pymodel.ProviderConfigError(str(error)) from None
+            self._profile_index += 1
+            self._providers.append(provider)
+            self._current = (profile, provider)
+            self.name = profile["name"]
+            return self._current
+        return None
+
+    async def _active_profile(
+        self,
+    ) -> tuple[dict, pymodel.JevProvider] | None:
+        async with self._lock:
+            return self._current or await self._next_profile()
+
+    async def _after_insufficient_balance(
+        self, failed: tuple[dict, pymodel.JevProvider]
+    ) -> None:
+        async with self._lock:
+            if self._current is failed:
+                self._current = None
+                current = await self._next_profile()
+                if current is not None:
+                    logger.warning(
+                        "switching profile from %s to %s after insufficient "
+                        "balance",
+                        failed[0]["name"],
+                        current[0]["name"],
+                    )
 
     async def evaluate(self, state, questions, model, timeout):
         restore = None
@@ -157,28 +226,43 @@ class _ProfileProvider(pymodel.JevProvider):
                     else pymodel.ProviderError(str(error))
                 )
                 raise failure from None
-        result = await self._provider.evaluate(
-            state, questions, self._model or model, timeout
-        )
-        return (
-            replace(result, answers=restore(result.answers))
-            if restore
-            else result
-        )
+        while True:
+            current = await self._active_profile()
+            if current is None:
+                raise pymodel.ProviderError(str(JudgmentError("no_credit")))
+            profile, provider = current
+            try:
+                result = await provider.evaluate(
+                    state, questions, profile.get("model") or model, timeout
+                )
+            except pymodel.ProviderError as error:
+                match = re.match(
+                    rf"^{re.escape(provider.label)} (\d+):", str(error)
+                )
+                if match is None or int(match.group(1)) not in profile.get(
+                    "insufficient_balance", [402]
+                ):
+                    raise
+                await self._after_insufficient_balance(current)
+                continue
+            return replace(
+                result,
+                answers=restore(result.answers) if restore else result.answers,
+                provider=profile["name"],
+            )
 
     async def _send(self, state, questions, model, timeout):
         raise NotImplementedError
 
     async def aclose(self) -> None:
-        await self._provider.aclose()
+        for provider in self._providers:
+            await provider.aclose()
 
 
 def _jev_provider(
     profile: dict, key: str, *, retry: RetryPolicy | None = None
 ) -> pymodel.JevProvider:
     name = profile["jev_provider"]
-    if name == "vercel":
-        return VercelProvider(profile, key, retry=retry)
     secret, values = SecretStr(key), {"jev_provider": name}
     field = {
         "typesafe": "typesafe_api_key",
@@ -210,26 +294,9 @@ def provider_factory(
     def create(_settings: Settings) -> pymodel.JevProvider:
         del _settings
         try:
-            profile = load_profile(education=education)
-            retry = _retry_policy(profile)
-            required = {
-                "cloudflare": "account_id",
-                "compatible": "base_url",
-            }.get(profile.get("jev_provider"))
-            if (
-                profile.get("api") == "jev"
-                and required is not None
-                and not profile.get(required)
-            ):
-                raise JudgmentError("backend_not_configured", profile["name"])
-            key = load_credential(profile)
-            provider = (
-                _OpenAIProvider(profile, key, retry=retry)
-                if profile["api"] == "openai"
-                else _jev_provider(profile, key, retry=retry)
-            )
+            profiles = load_profiles()
         except JudgmentError as error:
             raise pymodel.ProviderConfigError(str(error)) from None
-        return _ProfileProvider(provider, profile.get("model"), education)
+        return _OrderProvider(profiles, education)
 
     return create
