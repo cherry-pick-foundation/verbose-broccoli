@@ -518,15 +518,55 @@ def test_stand_ins_and_their_keywords_are_not_refused(
 
 
 @pytest.mark.parametrize(
+    ("text", "hidden"),
+    [
+        ("| Name | Grade |\n| --- | --- |\n| Ga Raon | 11 |", ["11", "Raon"]),
+        (
+            "| Name | DOB |\n| --- | --- |\n| Ga Raon | 23.IV.2011 |",
+            ["IV", "2011"],
+        ),
+        (
+            "| Address | Grade |\n|---|---|\n| 487 Imaginary St | 10 |",
+            ["487", "| 10"],
+        ),
+        ("| StudentNo | Score |\n|---|---|\n| 7799999 | 85 |", ["7799999"]),
+        ("Name,Grade,DOB\nGa Raon,11,2011-04-23", ["11", "2011"]),
+        (
+            "Name\tAddress\tStudent ID\nGa Raon\t487 Imaginary St\t7799999",
+            ["487", "7799999"],
+        ),
+    ],
+)
+def test_named_table_and_csv_columns_are_replaced(
+    synthetic_roster, monkeypatch, text, hidden
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert not [word for word in hidden if word in sent]
+
+
+def test_letter_grades_and_scores_in_a_grade_column_stay(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    text = "| Name | Grade | Score |\n|---|---|---|\n| Ga Raon | B+ | 85 |"
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert "B+" in sent and "85" in sent
+
+
+@pytest.mark.parametrize(
     "state",
     [
         {"note": "DOB: around Easter"},
         {"note": "**Date of birth** = sometime in spring"},
-        {"note": "| Name | DOB |\n| --- | --- |\n| Ga Raon | 23.IV.2011 |"},
-        {"note": "| Address | Grade |\n|---|---|\n| 487 Imaginary St | 10 |"},
         {"note": "Student ID: 7799999"},
         {"note": "EduOK number = 7799999"},
-        {"note": "| StudentNo | Score |\n|---|---|\n| 7799999 | 85 |"},
         {"student_id": 7799999},
         {"StudentNo": "N/A"},
     ],

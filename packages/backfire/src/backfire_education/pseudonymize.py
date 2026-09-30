@@ -247,6 +247,94 @@ def _field_spans(
     return [(*match.span(1), (kind, _norm(value)))] if value else []
 
 
+def _row_cells(line: str, separator: str) -> list[tuple[int, int]]:
+    """Return the (start, stop) of each cell in a table or CSV row."""
+    cells, start = [], 0
+    for index, char in enumerate(line):
+        if char == separator:
+            cells.append((start, index))
+            start = index + 1
+    cells.append((start, len(line)))
+    if separator == "|":
+        # The edge cells of "| a | b |" are empty; drop them.
+        cells = [
+            cell
+            for position, cell in enumerate(cells)
+            if line[slice(*cell)].strip() or 0 < position < len(cells) - 1
+        ]
+    return cells
+
+
+def _column_spans(text: str) -> list[tuple[int, int, tuple[str, str]]]:
+    """Return the cells of named columns in Markdown tables, CSV or TSV.
+
+    A header cell that names a school year, birth date, address or student
+    number makes the cells below it that kind, row by row until a line
+    without the separator: school-year cells when they read as one, the
+    others whatever they hold.
+    """
+    lines, spans, offset = text.split("\n"), [], 0
+    starts = []
+    for line in lines:
+        starts.append(offset)
+        offset += len(line) + 1
+    for index, header in enumerate(lines):
+        for separator in ("|", "\t", ","):
+            if separator not in header:
+                continue
+            # A header is a Markdown row above its delimiter row, or the
+            # first line of a CSV or TSV block.
+            if separator == "|":
+                below = lines[index + 1] if index + 1 < len(lines) else ""
+                if not _DELIMITER.fullmatch(below):
+                    continue
+            elif index and separator in lines[index - 1]:
+                continue
+            names = [
+                _field_kind(header[slice(*cell)].strip(_MARKUP + " \t"))
+                for cell in _row_cells(header, separator)
+            ]
+            if not any(names):
+                continue
+            for row, line in enumerate(lines[index + 1 :], index + 1):
+                if separator not in line:
+                    break
+                if separator == "|" and _DELIMITER.fullmatch(line):
+                    continue
+                for kind, (start, stop) in zip(
+                    names, _row_cells(line, separator)
+                ):
+                    cell = line[start:stop]
+                    value = cell.strip(_MARKUP + " \t\r")
+                    # A blanked stand-in is a value already replaced.
+                    if not kind or not value or _BLANK in value:
+                        continue
+                    first = starts[row] + start + cell.index(value)
+                    if kind == "cohort":
+                        year = _YEAR.fullmatch(value)
+                        if year:
+                            spans.append(
+                                (
+                                    first,
+                                    first + len(value),
+                                    ("cohort", year[1] or _count(year[2])),
+                                )
+                            )
+                    else:
+                        spans.append(
+                            (
+                                first,
+                                first + len(value),
+                                (
+                                    "student" if kind == "number" else kind,
+                                    _norm(value),
+                                ),
+                            )
+                        )
+            break
+    return spans
+
+
 def _count(word: str) -> str:
     """Return the number that a numeral, ordinal or cardinal word names."""
     word = word.lower()
@@ -544,7 +632,8 @@ def find_spans(
     if kind is not None and (span := _field_spans(text, kind)):
         return span
     text = text.translate(_AS_HYPHEN)
-    candidates = []
+    # Roster matches (rank 0) win over column cells at the same place.
+    candidates = [(*span, 2) for span in _column_spans(text)]
     if roster_pattern is not None:
         candidates.extend(
             (match.start(), match.end(), identifiers[match.group()], 0)

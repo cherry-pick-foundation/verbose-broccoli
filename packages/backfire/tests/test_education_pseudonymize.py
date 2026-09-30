@@ -699,7 +699,6 @@ def test_a_romanized_address_leaves_no_fragment(synthetic_roster, text):
     [
         "생년월일: 이천십일년",
         "학번 = 7799999",
-        "| 이름 | 주소 |\n|---|---|\n| 가라온 | 어딘가 |",
     ],
 )
 def test_korean_field_names_that_keep_their_value_are_refused(

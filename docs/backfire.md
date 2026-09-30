@@ -193,6 +193,14 @@ Between a keyword and its value there may be spaces, punctuation (`:`, `=`,
 start on the next line after `born on` or a colon. When matching, dash-like and
 zero-width characters count as hyphens, so `Na‑bit` (U+2011) matches `Na-bit`.
 
+A column header can say the same for the cells below it: in a Markdown table
+(the header row above its delimiter row) or a CSV or tab-separated block (its
+first line), a header that names a school year, birth date, address or student
+number makes each cell below it a stand-in of that kind, row by row until a
+line without the separator; in a school-year column only cells that read as a
+school year, so `| Grade |` over `| 11 |` becomes a `Cohort` while `B+`
+stays.
+
 A field name can say what its value is. Everything inside a named field
 becomes a stand-in: a string or a number, each item of a list, and each key and
 value of an object inside it, at any depth:
@@ -285,9 +293,8 @@ plugin does not detect:
 - addresses without an `address` keyword or field name or romanized address
   parts, such as a street name in English, romanized parts without their
   hyphen (`Solbitro`), and building names in English words (`Solbit Apartment`);
-- a keyword after its value (`2011-04-23 (DOB)`), HTML markup between a
-  keyword and its value, and column data such as CSV whose header alone names
-  the field;
+- a keyword after its value (`2011-04-23 (DOB)`), and HTML markup between a
+  keyword and its value;
 - a difference between roster students who share a full name: they share one
   stand-in, and their EduOK numbers and romanized names map to it too.
 - the part of a birth date after a clause end, as in `born on June 17; 2012`,
