@@ -128,7 +128,7 @@ files and can run in parallel.
   `gpt-6-luna` at medium approved each later change up to `5e06ee6`, after
   asking for a score kept after a birth date (`75da5f0`) and quote-aware CSV
   columns (`5a14cac`).
-- [ ] T014 Record, In Review, merge `develop`, `npm run verify`, review
+- [X] T014 Record, In Review, merge `develop`, `npm run verify`, review
   record, `git flow feature finish` when the develop session allows; Done
   with one completion comment. Coordinator.
   2026-09-30: the develop session granted the finish slot with `develop` at
@@ -137,6 +137,9 @@ files and can run in parallel.
   low-confidence flag (0.21) on the architecture's Wiki check paragraph,
   which stands; 11 added units are mechanical-region candidates and stay
   prose. `npm run verify` VERIFIED (36 of 36).
+  2026-09-30: finished into `develop` as `f37a8b5` (review record
+  `7df0421`); `npm run verify` VERIFIED on `develop` (36 of 36). Nothing
+  blocked; next: none.
 
 ## Workers
 
