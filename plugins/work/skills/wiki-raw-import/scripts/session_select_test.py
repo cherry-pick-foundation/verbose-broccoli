@@ -101,6 +101,11 @@ def empty_scan(stage):
     (stage / "scan.json").write_text("[]\n", encoding="utf-8")
 
 
+def test_stage_dir_rejects_vault_raw_path(tmp_path):
+    with pytest.raises(ValueError, match="outside repositories"):
+        selector.stage_dir(tmp_path / "vaults" / "work" / "raw" / "stage")
+
+
 def synthetic_catalog(tmp_path):
     catalog = {
         "purpose": "Synthetic classification purpose",
@@ -585,12 +590,11 @@ def test_classify_samples_and_batches_at_most_sixty_four(tmp_path):
         stage,
         synthetic_catalog(tmp_path),
         limit=70,
-        seed=9,
         call=fake_mcp(calls, input_tokens=3, output_tokens=2),
     )
     batches = calls[0][0]
     labels = selector.read_jsonl(stage / "labels.jsonl")
-    expected = [item["id"] for item in random.Random(9).sample(digests, 70)]
+    expected = [item["id"] for item in random.Random(0).sample(digests, 70)]
     assert [item["id"] for item in labels] == expected
     assert [len(batch["items"]) for batch in batches] == [64, 6]
     assert counts == {

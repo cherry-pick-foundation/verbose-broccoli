@@ -46,7 +46,7 @@ AUTO_REVIEW_PROMPT = (
 BATCH_SIZE = 64
 DIGEST_LIMIT = 2000
 MESSAGE_HEADER = re.compile(
-    r"^_\*\*(User|Agent)(?: - sidechain)?(?: \([^)]*\))?\*\*_$"
+    r"(?m)^_\*\*(User|Agent)(?: - sidechain)?(?: \([^)]*\))?\*\*_\r?$"
 )
 ROOT = Path(__file__).resolve().parents[5]
 
@@ -54,10 +54,10 @@ ROOT = Path(__file__).resolve().parents[5]
 def stage_dir(value):
     """Create a private stage outside repositories and vault raw folders."""
     stage = Path(value).expanduser().resolve()
-    parents = (stage, *stage.parents)
-    if any((parent / ".git").exists() for parent in parents) or any(
-        parent.name == "raw" and parent.parent.parent.name == "vaults"
-        for parent in parents
+    if any(
+        (parent / ".git").exists()
+        or (parent.name == "raw" and parent.parent.parent.name == "vaults")
+        for parent in (stage, *stage.parents)
     ):
         raise ValueError(
             "stage must be outside repositories and vault raw folders"
@@ -185,7 +185,7 @@ def remove_specstory_database(home):
         path.unlink(missing_ok=True)
 
 
-def render(stage, specstory="specstory", quiet_minutes=60, now=None):
+def render(stage, specstory="specstory", now=None):
     """Render quiet sessions and write their status manifest."""
     real_home = Path(os.environ.get("HOME", str(Path.home()))).resolve()
     output_root = stage / "rendered"
@@ -222,26 +222,24 @@ def render(stage, specstory="specstory", quiet_minutes=60, now=None):
                 continue
         latest = max(timed, key=lambda item: item[0], default=None)
         selected = max(timed, key=lambda item: (item[3], item[0]), default=None)
-        if selected:
-            _, source, project, _, thread_source = selected
-        else:
-            source, project, thread_source = *sources[0][:2], None
-        valid = any(item[3] for item in timed)
+        source, project, valid, thread_source = (
+            selected[1:] if selected else (*sources[0][:2], False, None)
+        )
         mtime = latest[0] if latest else None
+        output = output_root / provider / f"{session_id}.md"
         record = {
             "id": session_id,
             "provider": provider,
             "project": project,
             "source_path": str(source.resolve()),
-            "output_path": str(output_root / provider / f"{session_id}.md"),
+            "output_path": str(output),
             "mtime": mtime,
             "status": "failed",
             "thread_source": thread_source,
         }
-        output = output_root / provider / f"{session_id}.md"
         if not valid or mtime is None:
             pass
-        elif now - mtime < quiet_minutes * 60:
+        elif now - mtime < 60 * 60:
             record["status"] = "running"
         elif output.is_file() and output.stat().st_mtime > mtime:
             record["status"] = "rendered"
@@ -310,42 +308,33 @@ def render(stage, specstory="specstory", quiet_minutes=60, now=None):
 
 def messages(markdown):
     """Parse SpecStory's role headers into visible message bodies."""
-    found, role, body = [], None, []
-
-    def save():
-        while body and not body[-1].strip():
-            body.pop()
-        if body and body[-1].strip() == "---":
-            body.pop()
-        content = "\n".join(body).strip()
-        if role and content:
-            found.append((role, content))
-
-    for line in markdown.splitlines():
-        match = MESSAGE_HEADER.fullmatch(line)
-        if match:
-            save()
-            role, body = match.group(1), []
-        elif role:
-            body.append(line)
-    save()
+    headers = list(MESSAGE_HEADER.finditer(markdown))
+    found = []
+    for index, header in enumerate(headers):
+        end = (
+            headers[index + 1].start()
+            if index + 1 < len(headers)
+            else len(markdown)
+        )
+        body = re.sub(
+            r"(?:^|\n)\s*---\s*$", "", markdown[header.end() : end]
+        ).strip()
+        if body:
+            found.append((header.group(1), body))
     return found
 
 
 def roster_match(text, pattern):
     """Match roster terms without Hangul or ASCII word prefixes."""
     for match in pattern.finditer(text):
-        before = text[match.start() - 1] if match.start() else ""
+        before = text[match.start() - 1 : match.start()]
         after = text[match.end() : match.end() + 1]
-        if before and (
+        ending = match.group()[-1:]
+        if (
             before.isascii()
             and before.isalnum()
             or "\uac00" <= before <= "\ud7a3"
-        ):
-            continue
-        ending = match.group()[-1:]
-        if (
-            ending.isascii()
+            or ending.isascii()
             and ending.isalnum()
             and after.isascii()
             and after.isalnum()
@@ -471,12 +460,12 @@ async def mcp_classify(batches, purpose, server_command=None):
     return responses
 
 
-def classify(stage, catalog_path, limit=None, seed=0, call=None):
+def classify(stage, catalog_path, limit=None, call=None):
     """Sample digests, classify batches and write their labels."""
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     digests = read_jsonl(stage / "digests.jsonl")
     if limit is not None:
-        digests = random.Random(seed).sample(digests, min(limit, len(digests)))
+        digests = random.Random(0).sample(digests, min(limit, len(digests)))
     groups = (
         [item for item in digests if "student_data" not in item["tags"]],
         [item for item in digests if "student_data" in item["tags"]],
@@ -541,20 +530,18 @@ def main():
     for command in (render_parser, digest_parser, classify_parser):
         command.add_argument("--stage", required=True, type=Path)
     render_parser.add_argument("--specstory", default="specstory")
-    render_parser.add_argument("--quiet-minutes", type=float, default=60)
     digest_parser.add_argument("--scan", type=Path)
     classify_parser.add_argument("--catalog", required=True, type=Path)
     classify_parser.add_argument("--limit", type=int)
-    classify_parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     try:
         stage = stage_dir(args.stage)
         if args.command == "render":
-            counts = render(stage, args.specstory, args.quiet_minutes)
+            counts = render(stage, args.specstory)
         elif args.command == "digest":
             counts = digest(stage, args.scan)
         else:
-            counts = classify(stage, args.catalog, args.limit, args.seed)
+            counts = classify(stage, args.catalog, args.limit)
     except Exception as error:  # noqa: BLE001 - never include session data in errors.
         parser.exit(1, f"session selection failed: {type(error).__name__}\n")
     print(json.dumps(counts))
