@@ -39,6 +39,18 @@ def test_shipped_selection_and_unselected_vercel_profile_are_present(operator):
         selected["model"] == shipped["providers"][shipped["provider"]]["model"]
     )
     assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
+    assert shipped["providers"]["hive"]["credential_file"] == (
+        "../providers/hive.env"
+    )
+    assert shipped["providers"]["vercel"]["credential_file"] == (
+        "../providers/vercel.env"
+    )
+    education = tomllib.loads(
+        config.EDUCATION_CONFIG.read_text(encoding="utf-8")
+    )
+    assert education["providers"]["education"]["credential_file"] == (
+        "../providers/hive.env"
+    )
     assert shipped["provider"] != "openrouter"
     assert shipped["providers"]["openrouter"] == {
         "api": "jev",
