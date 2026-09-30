@@ -9,6 +9,7 @@ MESSAGES = {
         "Two keys or labels become the same after pseudonymization; "
         "make them differ by more than a name."
     ),
+    "no_credit": "No profile in the order has credit.",
 }
 
 

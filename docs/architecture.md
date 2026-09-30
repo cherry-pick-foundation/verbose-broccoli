@@ -310,15 +310,18 @@ backfire serve-mcp`, the work plugin adding `--education`; backfire is used
 from the repository and never installed. The server is PyModel's
 jev-judge-mcp 0.6.0, a pinned PyPI dependency: backfire's entry point builds
 PyModel's server from PyModel's tools plus `jev_noul` and passes PyModel's
-runtime a provider factory. The factory reads backfire's profiles from
-`packages/backfire/src/backfire/config.toml` (code),
-`packages/backfire/src/backfire_education/config.toml` (work) and the
-optional `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`, and
-builds either a general-model provider through system-one-adapter (Hive by
-default) or a Jev provider: PyModel's own, or the Vercel AI Gateway
-provider ported from jev-agent-tools. With `--education` it wraps that
-provider with the pseudonymization module in
-`packages/backfire/src/backfire_education/`. What backfire needs from
+runtime a provider factory. The factory reads one ordered list of
+profiles, shared by both plugins, from
+`packages/backfire/src/backfire/config.toml` and the optional
+`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` (OpenRouter, then
+Hive, by default). It uses the first profile not known to be out of
+credit: before first use it reads the provider's credit through CodexBar's
+command-line tool when the profile names a CodexBar provider, and it moves
+to the next profile when a provider answers insufficient balance. Each profile is either a
+general-model provider through system-one-adapter (Hive) or one of
+PyModel's Jev providers (OpenRouter). With `--education` it pseudonymizes
+every judgment with the module in `packages/backfire/src/backfire_education/`
+before any profile receives it. What backfire needs from
 PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 `specs/021-backfire-rebuild/upstream/`. See the
 [Backfire operator guide](backfire.md) for setup, profiles and
