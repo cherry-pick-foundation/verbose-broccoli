@@ -7,9 +7,10 @@ Applies to `packages/jev-ultrafast/src/jev_ultrafast/model.py` and
 ## Configuration
 
 `providers.toml` holds one table per provider. It is the only place that
-names a provider's address, headers or credential variable, and Vercel's
-model. TypeSafe's model stays upstream's `TYPESAFE_MODEL` environment
-variable (default `jev-latest`), so the TypeSafe request is unchanged.
+names a provider's address, headers or credential variable, and the model
+of every provider except TypeSafe. TypeSafe's model stays upstream's
+`TYPESAFE_MODEL` environment variable (default `jev-latest`), so the TypeSafe
+request is unchanged.
 
 ```toml
 [typesafe]
@@ -28,6 +29,12 @@ ai-gateway-protocol-version = "0.0.1"
 ai-gateway-auth-method = "api-key"
 ai-evaluation-model-specification-version = "4"
 
+[openrouter]
+protocol = "systemone"
+url = "https://openrouter.ai/api/alpha/decisions"
+key_env = "OPENROUTER_API_KEY"
+model = "typesafe/jev-1.13"
+
 [cloudflare]
 protocol = "ai-run"
 url = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run"
@@ -37,7 +44,11 @@ model = "typesafe/jev"
 ```
 
 The `cloudflare` table was added on 2026-09-30 at the user's request, after
-Vercel's free tier refused Jev (research R10).
+Vercel's free tier refused Jev (research R10), and the `openrouter` table
+the same day, also at the user's request, before the user picks the offer
+search's provider. OpenRouter's decisions API takes TypeSafe's request and
+answers in its form, so it uses the `systemone` protocol with its own
+model.
 
 ## Selection
 
@@ -52,7 +63,7 @@ Vercel's free tier refused Jev (research R10).
 
 | | `systemone` | `evaluation-model` | `ai-run` |
 | --- | --- | --- | --- |
-| Request body | Upstream's `{model, state, questions}`, unchanged (model from `TYPESAFE_MODEL`, default `jev-latest`) | `{state, questions}`; questions are sent as they are | `{model, input: {state, questions}}` with the configured model |
+| Request body | Upstream's `{model, state, questions}`; the model is the table's `model` when it has one (OpenRouter), else upstream's `TYPESAFE_MODEL` (default `jev-latest`) | `{state, questions}`; questions are sent as they are | `{model, input: {state, questions}}` with the configured model |
 | Address | `url` | `url` | `url` with `{account}` replaced by the account variable's value |
 | Headers | `Authorization: Bearer <key>` | `Authorization: Bearer <key>`, the configured headers, and `ai-model-id: <model>` | `Authorization: Bearer <key>` |
 | Answer given to the caller | The response as upstream reads it | `{"answers": …, "usage": {"input_tokens", "output_tokens"}, "model": <model>}`, where a `choice` answer becomes `{type, choice, probabilities, confidence}` with confidence from `providerMetadata.typesafe.confidence[<id>]` or null, and other answers pass through unchanged | The model output, taken from Cloudflare's v4 envelope (`result.result`, else `result`, else the body), already in TypeSafe's answer form |

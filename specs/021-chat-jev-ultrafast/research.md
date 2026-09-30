@@ -287,3 +287,15 @@ was returned, so the answer path is covered only by the stub tests. Across
 the feature, no Jev call was answered: Vercel refused three requests and
 Cloudflare one, and none was charged. Paying for Jev calls, on Vercel or
 Cloudflare, is the user's decision.
+
+**OpenRouter (2026-09-30)**: the user then asked for OpenRouter as a fourth
+provider before choosing. Its decisions API, as jev-mcp 0.9.0
+(`src/provider.ts`, the `openrouter` branch) and PyModel's
+`jev_judge_mcp/providers/openrouter.py` call it, takes `{model, state,
+questions}` at `https://openrouter.ai/api/alpha/decisions` with a bearer key
+and answers in TypeSafe's form; both map `jev-latest` to
+`typesafe/jev-1.13`. OpenRouter's public model list
+(`https://openrouter.ai/api/v1/models`, read 2026-09-30) shows only
+`typesafe/jev-router`, priced `-1` (variable), so no free Jev variant is
+listed. The table uses `typesafe/jev-1.13`, as the references do, and a
+live call decides.
