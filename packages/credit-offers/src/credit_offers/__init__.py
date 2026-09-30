@@ -77,10 +77,10 @@ def main(argv=None):
         parser.error(str(error))
 
     jev_calls = 0
+    token = os.environ.get(TRACKER["token_env"], "").strip()
     try:
         api = f"{TRACKER['api_root']}/repos/{TRACKER['repository']}/commits"
         query = {"path": TRACKER["index_path"], "per_page": 1}
-        token = os.environ.get(TRACKER["token_env"])
         headers = {"Authorization": f"Bearer {token}"} if token else {}
         with httpx.Client(timeout=25) as client:
             commits = [
@@ -150,6 +150,7 @@ def main(argv=None):
         print(f"jev_calls={jev_calls}")
         return 0 if strong else 1
     except ERRORS as error:
-        print(f"credit-offers: {error}", file=sys.stderr)
+        message = str(error).replace(token, "[redacted]") if token else error
+        print(f"credit-offers: {message}", file=sys.stderr)
         print(f"jev_calls={jev_calls}")
         return 3

@@ -111,7 +111,7 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     monkeypatch, capsys
 ):
     token = "synthetic-github-token"
-    monkeypatch.setenv("GITHUB_TOKEN", token)
+    monkeypatch.setenv("GITHUB_TOKEN", f"{token}\n")
     requests = install_tracker(
         monkeypatch, old=[offer("old")], new=[offer("new")]
     )
@@ -134,6 +134,22 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     )
     assert len(raw_requests) == 2
     assert all("Authorization" not in r.headers for r in raw_requests)
+    assert token not in captured.out + captured.err
+
+
+def test_github_token_is_redacted_from_error(monkeypatch, capsys):
+    token = "synthetic-github-token"
+    monkeypatch.setenv("GITHUB_TOKEN", token)
+    monkeypatch.setattr(
+        credit_offers,
+        "_get_json",
+        Mock(side_effect=httpx.LocalProtocolError(f"bad header {token}")),
+    )
+
+    assert credit_offers.main(["--end", END]) == 3
+
+    captured = capsys.readouterr()
+    assert "[redacted]" in captured.err
     assert token not in captured.out + captured.err
 
 
