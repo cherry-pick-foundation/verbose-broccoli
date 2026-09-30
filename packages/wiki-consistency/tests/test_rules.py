@@ -746,3 +746,15 @@ def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
     (instance / "wiki" / "linked-dir").symlink_to(outside_dir)
 
     assert not has_rule(checked_rules(instance, tmp_path), "phone")
+
+
+def test_a_link_leaving_the_wiki_does_not_skip_the_other_pages(tmp_path):
+    instance = ready_vault(tmp_path)
+    outside = tmp_path / "outside.md"
+    outside.write_text("Nothing here.", encoding="utf-8")
+    (instance / "wiki" / "linked.md").symlink_to(outside)
+    write_overview(instance, "Call 010-0000-0000.")
+
+    assert has_rule(
+        checked_rules(instance, tmp_path), "phone", "wiki/overview.md"
+    )

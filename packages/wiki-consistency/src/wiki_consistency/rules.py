@@ -11,7 +11,6 @@ import unicodedata
 
 from backfire.failures import JudgmentError
 from backfire_education.roster import load_roster
-from doc_regions.config import files
 from doc_regions.regions import scan
 
 _STYLE = Path(__file__).parents[2] / "vale" / "styles"
@@ -32,16 +31,16 @@ _QUOTES = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "
 
 
 def _pages(root):
-    try:
-        paths = files(root, "wiki/**/*.md")
-    except ValueError:
-        # ponytail: one escaping link skips the Wiki; add per-file filtering
-        # if needed.
-        return {}
     pages = {}
-    for path in paths:
+    for path in sorted(root.glob("wiki/**/*.md")):
         document = path.relative_to(root).as_posix()
-        if document == "wiki/log.md" or path.resolve() != path:
+        # A symbolic link, or a file under a linked folder, is skipped alone,
+        # so the other pages are still checked.
+        if (
+            document == "wiki/log.md"
+            or not path.is_file()
+            or path.resolve() != path
+        ):
             continue
         try:
             pages[document] = path.read_text(encoding="utf-8", errors="replace")
