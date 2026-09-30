@@ -8,9 +8,7 @@
 
 **Linear issue**: CHE-41
 
-**Own-code limit**: 560, approved by the user on 2026-09-30
-
-**Own-code limit**: 567, approved by the user on 2026-09-30, to cover the offer search's optional GitHub token after the user abolished the limit
+**Own-code limit**: 568, approved by the user on 2026-09-30, as a temporary allowance for the old own-code check until CHE-44 removes it; it replaces the 560 approved earlier that day, and the user has abolished the line limit itself
 
 **Input**: Linear issue CHE-41, "Chat plugin: adopt Jev Ultrafast with Vercel
 AI Gateway for a scheduled API credit promotion search", with the user's

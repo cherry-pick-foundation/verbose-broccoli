@@ -26,7 +26,8 @@ the merge review of the code; a fresh Codex reviewer reviews main's prose.
 **Line budget**: The user's first rule of 2026-09-30, a 300-line limit on
 own code, was replaced the same day by a splitting review for changes of
 1,000 lines or more (CHE-44). The old `own-code` check still runs until
-CHE-44 lands; the spec records the user's approval of 560.
+CHE-44 lands; the spec records the user's temporary allowance of 568 for
+it.
 
 **Keys**: No task reads, prints or commits a key. Keys live in the shared
 provider folder; the live provider checks are recorded in research R10.
@@ -246,6 +247,14 @@ time limit.
     0.78) implemented it in `1b48337` (18 tests). The own-code check reads
     +567, and the user raised the recorded allowance to 567. A short fourth
     review covers `1b48337` and the token documents.
+  - 2026-09-30: round 4 at `72493d3`. The code reviewer (Claude Code,
+    `claude-sonnet-5-5`, low) found that a quoted token with an escaped
+    newline leaks: httpx's header error repeats the token and the search
+    printed it. Codex (`gpt-6-luna`, high) fixed it in the next commit
+    (trim, redact; 19 tests). The records reviewer (Codex, `gpt-6-luna`,
+    high) found the spec listing both 560 and 567; the spec now keeps one
+    temporary allowance, 568, which covers that fix. No fifth round: both
+    fixes are small and were checked by main.
 
 - [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
   folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the
