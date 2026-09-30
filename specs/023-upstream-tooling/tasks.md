@@ -183,3 +183,15 @@ user chose B (spec.md clarification).
     (backfire `jev_decide`): code, Claude Code `sonnet` at medium effort
     (0.70; the implementer was Codex); records, Codex `gpt-6-luna` at max
     effort (0.60; the author was Claude Code).
+  - 2026-09-30, handoff before a machine restart: the merge reviews are
+    done (code: 0 high, 2 medium, 5 low; records: 0 high, 2 medium, 3 low),
+    their fixes are in `698b515`, `da30423` and `ad27c97`, and both
+    re-reviews found nothing blocking. `develop` then moved to `845255f`
+    (CHE-46) and was merged cleanly as `ec1e4f0`; that merge and this line
+    are not reviewed yet. Next: a short review of the merge, then the
+    lefthook switch (unset `core.hooksPath`, run
+    `./node_modules/.bin/lefthook install`), a full `npm run verify` with
+    the `MISE_*` and rustup variables set, the review-record commit, a
+    check that `develop` has not moved, and `git flow feature finish
+    upstream-tooling` from the `develop` worktree. Session files are in the
+    ignored `.local/che44-restart/`.
