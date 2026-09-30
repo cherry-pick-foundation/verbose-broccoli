@@ -16,14 +16,14 @@ files and can run in parallel.
 
 ## Phase 2: User Stories 1-2, the judgment through backfire (P1)
 
-- [ ] T002 [US1] [US2] In `packages/credit-offers/pyproject.toml`, replace
+- [X] T002 [US1] [US2] In `packages/credit-offers/pyproject.toml`, replace
   the `jev-ultrafast` dependency and its workspace source with `backfire`;
   refresh `uv.lock` offline. In
   `packages/credit-offers/src/credit_offers/__init__.py`, send the judgment
   as plan.md "Judgment" shows, validate with PyModel's `validate_choice`,
   add PyModel's `ProviderError` to the error tuple, and drop the
   `TYPESAFE_MODEL` lookup.
-- [ ] T003 [US1] [US2] Update `packages/credit-offers/tests/test_credit_offers.py`:
+- [X] T003 [US1] [US2] Update `packages/credit-offers/tests/test_credit_offers.py`:
   patch backfire's `provider_factory` with a fake provider that records
   each `evaluate` call and is closed once; keep the existing cases on the
   new path; add cases for a `ProviderError` from configuration, no credit
@@ -32,14 +32,14 @@ files and can run in parallel.
 
 ## Phase 3: User Story 3, operator documents (P2)
 
-- [ ] T004 [P] [US3] Update `plugins/chat/skills/credit-offers/SKILL.md`
+- [X] T004 [P] [US3] Update `plugins/chat/skills/credit-offers/SKILL.md`
   (Run command without `JEV_PROVIDER` and provider key files; backfire
   reads its keys and follows its order; Limits) and
   `docs/architecture.md` "Chat web agent and credit offers" to match.
 
 ## Phase 4: Finish
 
-- [ ] T005 Live run on a past block with a candidate; record the call
+- [X] T005 Live run on a past block with a candidate; record the call
   count in `report.md`. Coordinator.
 - [ ] T006 Review by a fresh reviewer from the other provider; resolve
   findings. Coordinator.
@@ -53,3 +53,9 @@ files and can run in parallel.
   `jev_decide` (probability 0.80, confidence 0.78) over Codex `gpt-6-luna`
   xhigh and `gpt-6-sol` high, Claude Code Sonnet high and Opus medium, and
   OMP GLM 5.3 Flash.
+- 2026-09-30: a computer restart ended that worker before it committed.
+  A second worker, again Codex `gpt-6-luna` at high (`jev_decide`
+  probability 0.54, confidence 0.46), fixed five lint findings and found no
+  gap. After `develop` brought CHE-44's lefthook hooks (merge `a50cc59`)
+  and setup ran, the work was committed in `b89c72f`; next come the
+  review and the finish.
