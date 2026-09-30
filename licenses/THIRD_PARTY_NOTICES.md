@@ -119,15 +119,6 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 TypeSafe AI.
   [MIT license](../plugins/code/skills/model-choice/LICENSE).
 
-## jkudish/jev-agent-tools — Backfire's Vercel provider
-
-- Source: `@jkudish/jev-agent-tools` 0.1.2 on npm
-  (`dist/transports/vercel.js`), the version jev-mcp 0.9.0 locks.
-- Reused: the Vercel AI Gateway driver, ported to Python in
-  `packages/backfire/src/backfire/vercel.py`, whose docstring carries the
-  license.
-- Copyright (c) 2026 Joey Kudish. MIT license.
-
 ## daviddrysdale/python-phonenumbers — work plugin pseudonymization
 
 - Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
