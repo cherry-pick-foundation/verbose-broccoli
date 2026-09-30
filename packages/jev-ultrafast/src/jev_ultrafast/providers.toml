@@ -14,6 +14,12 @@ ai-gateway-protocol-version = "0.0.1"
 ai-gateway-auth-method = "api-key"
 ai-evaluation-model-specification-version = "4"
 
+[openrouter]
+protocol = "systemone"
+url = "https://openrouter.ai/api/alpha/decisions"
+key_env = "OPENROUTER_API_KEY"
+model = "typesafe/jev-1.13"
+
 [cloudflare]
 protocol = "ai-run"
 url = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run"

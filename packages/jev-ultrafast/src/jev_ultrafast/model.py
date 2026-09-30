@@ -39,7 +39,7 @@ def request_jev(body):
     if not key:
         raise ValueError(f"{provider['key_env']} is required for {name}; no request sent")
     if provider["protocol"] == "systemone":
-        return post_json(provider["url"], key, body)
+        return post_json(provider["url"], key, {**body, "model": provider.get("model", body["model"])})
     if provider["protocol"] == "ai-run":
         if not (account := os.environ.get(provider["account_env"])):
             raise ValueError(f"{provider['account_env']} is required for {name}; no request sent")

@@ -20,3 +20,9 @@ base_url = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
 model = "typesafe-ai/jev"
 credential_file = "../providers/vercel.env"
 credential = "AI_GATEWAY_API_KEY"
+
+[providers.openrouter]
+api = "jev"
+jev_provider = "openrouter"
+credential = "OPENROUTER_API_KEY"
+credential_file = "../providers/openrouter.env"

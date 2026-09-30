@@ -39,6 +39,13 @@ def test_shipped_selection_and_unselected_vercel_profile_are_present(operator):
         selected["model"] == shipped["providers"][shipped["provider"]]["model"]
     )
     assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
+    assert shipped["provider"] != "openrouter"
+    assert shipped["providers"]["openrouter"] == {
+        "api": "jev",
+        "jev_provider": "openrouter",
+        "credential": "OPENROUTER_API_KEY",
+        "credential_file": "../providers/openrouter.env",
+    }
     assert not operator.exists()
 
 

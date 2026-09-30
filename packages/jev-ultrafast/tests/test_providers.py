@@ -141,6 +141,62 @@ def test_typesafe_request_matches_upstream(monkeypatch, mock_provider):
     assert result == {"model": "jev-latest", "answers": {}}
 
 
+def test_choose_uses_openrouter_stub_end_to_end(monkeypatch, mock_provider):
+    requests, install = mock_provider
+    install(
+        {
+            "model": "typesafe/jev-1.13",
+            "answers": {
+                "operation": {
+                    "type": "choice",
+                    "choice": "CLICK",
+                    "probabilities": {
+                        "CLICK": 1.0,
+                        "DONE": 0.0,
+                        "BLOCKED": 0.0,
+                    },
+                    "confidence": 0.9,
+                },
+                "click_target": {
+                    "type": "choice",
+                    "choice": "1",
+                    "probabilities": {"1": 1.0},
+                    "confidence": 0.95,
+                },
+            },
+        }
+    )
+    monkeypatch.setenv("JEV_PROVIDER", "openrouter")
+    monkeypatch.setenv("OPENROUTER_API_KEY", TEST_KEY)
+    state = {
+        "url": "https://example.test/",
+        "title": "Example",
+        "text": "Go",
+        "actions": [
+            {
+                "id": "go",
+                "kind": "click",
+                "label": "Go",
+                "node": 1,
+                "role": "button",
+                "value": "",
+            }
+        ],
+    }
+
+    decision = model.choose(state, "Click Go", [])
+
+    request = requests[0]
+    assert str(request.url) == "https://openrouter.ai/api/alpha/decisions"
+    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
+    assert json.loads(request.read()) == {
+        "model": "typesafe/jev-1.13",
+        "state": decision["request"]["state"],
+        "questions": decision["request"]["questions"],
+    }
+    assert decision["choice"] == "go"
+
+
 def test_choose_uses_vercel_stub_end_to_end(monkeypatch, mock_provider):
     requests, _ = mock_provider
 
