@@ -112,7 +112,9 @@ def test_unknown_credit_uses_the_profile(monkeypatch, caplog):
     assert "credit unknown for profile unknown" in caplog.text
 
 
-def test_mid_run_switch_reuses_the_target_for_later_judgments(monkeypatch):
+def test_mid_run_switch_reuses_the_target_for_later_judgments(
+    monkeypatch, caplog
+):
     with FakeProvider([Reply({"error": "synthetic"}, status=402)]) as first:
         with FakeProvider(
             [completion({"q": 0.75}), completion({"q": 0.8})]
@@ -138,6 +140,7 @@ def test_mid_run_switch_reuses_the_target_for_later_judgments(monkeypatch):
     assert len(first.requests) == 1
     assert len(second.requests) == 2
     assert initial.provider == later.provider == "second"
+    assert "switching profile from first to second" in caplog.text
 
 
 def test_switch_target_without_credit_is_skipped(monkeypatch):
@@ -149,7 +152,7 @@ def test_switch_target_without_credit_is_skipped(monkeypatch):
                 def credit(provider, _credential, _key):
                     del _credential, _key
                     checks.append(provider)
-                    return False if provider == "vercel" else True
+                    return False if provider == "empty-credit" else True
 
                 client = wrapper(
                     monkeypatch,
@@ -157,7 +160,7 @@ def test_switch_target_without_credit_is_skipped(monkeypatch):
                         openai_profile(
                             "first", first, insufficient_balance=[402]
                         ),
-                        openai_profile("empty", empty, codexbar="vercel"),
+                        openai_profile("empty", empty, codexbar="empty-credit"),
                         openai_profile("last", last),
                     ],
                     credit=credit,
@@ -171,7 +174,7 @@ def test_switch_target_without_credit_is_skipped(monkeypatch):
 
                 result = asyncio.run(run())
 
-    assert checks == ["vercel"]
+    assert checks == ["empty-credit"]
     assert len(first.requests) == 1
     assert empty.requests == []
     assert len(last.requests) == 1

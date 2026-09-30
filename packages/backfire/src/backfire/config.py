@@ -107,10 +107,6 @@ def load_profiles() -> list[dict]:
             for key in ("base_url", "model")
         ):
             _invalid(source)
-        if profile.get("jev_provider") == "vercel" and not profile.get(
-            "base_url"
-        ):
-            _invalid(source)
         if "base_url" in profile:
             try:
                 endpoint = urlsplit(profile["base_url"])

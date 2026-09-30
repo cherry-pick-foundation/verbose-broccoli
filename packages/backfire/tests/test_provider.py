@@ -235,21 +235,6 @@ def test_jev_profiles_require_provider_fields_before_key_load(
     assert "synthetic-profile" in str(caught.value)
 
 
-def test_vercel_profile_receives_pymodel_retry():
-    policy = RetryPolicy(max_attempts=1)
-    marker = _jev_provider(
-        {
-            "name": "synthetic",
-            "jev_provider": "vercel",
-            "base_url": "https://provider.invalid/v1",
-        },
-        "synthetic-key",
-        retry=policy,
-    )
-
-    assert marker._retry is policy
-
-
 def test_profile_configuration_failure_is_a_pymodel_provider_error():
     client = provider_factory()(Settings.model_construct())
 

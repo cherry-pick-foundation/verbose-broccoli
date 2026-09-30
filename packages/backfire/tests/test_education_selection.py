@@ -19,9 +19,8 @@ def test_education_mode_uses_the_shared_profile_order(operator_config):
     provider = provider_factory(education=True)(Settings.model_construct())
     assert provider._education is True
     assert [profile["name"] for profile in provider._profiles] == [
-        "hive",
         "openrouter",
-        "vercel",
+        "hive",
     ]
     assert provider._profiles == config.load_profiles()
     assert not operator_config.exists()
@@ -55,4 +54,5 @@ credential = "SYNTHETIC_KEY"
         encoding="utf-8",
     )
     selected = config.load_profiles()
-    assert selected[0]["model"] == "synthetic-model"
+    hive = next(profile for profile in selected if profile["name"] == "hive")
+    assert hive["model"] == "synthetic-model"

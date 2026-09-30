@@ -35,9 +35,9 @@ REPORTS = {
             },
         }
     ],
-    "vercel_zero": [
+    "available_balance_zero": [
         {
-            "provider": "vercel",
+            "provider": "openrouter",
             "usage": {
                 "details": [
                     {
@@ -50,9 +50,9 @@ REPORTS = {
             },
         }
     ],
-    "vercel_positive": [
+    "available_balance_positive": [
         {
-            "provider": "vercel",
+            "provider": "openrouter",
             "usage": {
                 "details": [
                     {
@@ -85,6 +85,13 @@ REPORTS = {
         {
             "provider": "openrouter",
             "error": "synthetic provider error",
+            "usage": {"providerCost": {"balance": 7.25}},
+        }
+    ],
+    "null_error": [
+        {
+            "provider": "openrouter",
+            "error": None,
             "usage": {"providerCost": {"balance": 7.25}},
         }
     ],
@@ -124,9 +131,10 @@ def install_codexbar(tmp_path, monkeypatch, output, *, exit_code=0):
         ("openrouter", REPORTS["openrouter_positive"], True),
         ("openrouter", REPORTS["openrouter_used_up"], False),
         ("openrouter", REPORTS["openrouter_details_zero"], False),
-        ("vercel", REPORTS["vercel_zero"], False),
-        ("vercel", REPORTS["vercel_positive"], True),
+        ("openrouter", REPORTS["available_balance_zero"], False),
+        ("openrouter", REPORTS["available_balance_positive"], True),
         ("openrouter", REPORTS["error"], None),
+        ("openrouter", REPORTS["null_error"], True),
     ],
 )
 def test_reads_credit_balance_and_rate_windows(

@@ -53,7 +53,7 @@ def _has_credit(reports: object, provider: str) -> bool | None:
         ),
         None,
     )
-    if not isinstance(report, dict) or "error" in report:
+    if not isinstance(report, dict) or report.get("error") is not None:
         return None
     usage = report.get("usage")
     if not isinstance(usage, dict):

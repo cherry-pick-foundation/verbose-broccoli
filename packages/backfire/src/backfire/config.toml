@@ -1,4 +1,4 @@
-order = ["hive", "openrouter", "vercel"]
+order = ["openrouter", "hive"]
 
 [providers.hive]
 api = "openai"
@@ -13,15 +13,6 @@ insufficient_balance = [405]
 [providers.hive.retry]
 per_attempt_timeout = 110
 budget = 118
-
-[providers.vercel]
-api = "jev"
-jev_provider = "vercel"
-base_url = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
-model = "typesafe-ai/jev"
-credential_file = "../providers/vercel.env"
-credential = "AI_GATEWAY_API_KEY"
-codexbar = "vercel"
 
 [providers.openrouter]
 api = "jev"

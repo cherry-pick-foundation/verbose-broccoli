@@ -23,7 +23,6 @@ from backfire.config import load_credential
 from backfire.config import load_profiles
 from backfire.credit import check_credit
 from backfire.failures import JudgmentError
-from backfire.vercel import VercelProvider
 from backfire_education.pseudonymize import pseudonymize
 
 logger = logging.getLogger(__name__)
@@ -151,6 +150,7 @@ class _OrderProvider(pymodel.JevProvider):
         self._education = education
         self._profile_index = 0
         self._current: tuple[dict, pymodel.JevProvider] | None = None
+        self._switch_from: str | None = None
         self._providers: list[pymodel.JevProvider] = []
         self._lock = asyncio.Lock()
 
@@ -207,28 +207,24 @@ class _OrderProvider(pymodel.JevProvider):
         self,
     ) -> tuple[dict, pymodel.JevProvider] | None:
         async with self._lock:
-            return self._current or await self._next_profile()
-
-    async def _after_insufficient_balance(
-        self, failed: tuple[dict, pymodel.JevProvider]
-    ) -> tuple[dict, pymodel.JevProvider]:
-        async with self._lock:
-            if self._current is failed:
-                self._current = None
-                current = await self._next_profile()
-                if current is None:
-                    raise pymodel.ProviderError(str(JudgmentError("no_credit")))
+            current = self._current or await self._next_profile()
+            if self._switch_from is not None and current is not None:
                 logger.warning(
                     "switching profile from %s to %s after insufficient "
                     "balance",
-                    failed[0]["name"],
+                    self._switch_from,
                     current[0]["name"],
                 )
-                return current
-            current = self._current or await self._next_profile()
-            if current is None:
-                raise pymodel.ProviderError(str(JudgmentError("no_credit")))
+                self._switch_from = None
             return current
+
+    async def _after_insufficient_balance(
+        self, failed: tuple[dict, pymodel.JevProvider]
+    ) -> None:
+        async with self._lock:
+            if self._current is failed:
+                self._current = None
+                self._switch_from = failed[0]["name"]
 
     async def evaluate(self, state, questions, model, timeout):
         restore = None
@@ -281,8 +277,6 @@ def _jev_provider(
     profile: dict, key: str, *, retry: RetryPolicy | None = None
 ) -> pymodel.JevProvider:
     name = profile["jev_provider"]
-    if name == "vercel":
-        return VercelProvider(profile, key, retry=retry)
     secret, values = SecretStr(key), {"jev_provider": name}
     field = {
         "typesafe": "typesafe_api_key",

@@ -36,18 +36,12 @@ def test_shipped_order_and_provider_profiles_are_present(operator):
     selected = config.load_profiles()
     assert [profile["name"] for profile in selected] == shipped["order"]
     assert [profile["name"] for profile in selected] == [
-        "hive",
         "openrouter",
-        "vercel",
+        "hive",
     ]
-    assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
     assert shipped["providers"]["hive"]["insufficient_balance"] == [405]
-    assert shipped["providers"]["vercel"]["codexbar"] == "vercel"
     assert shipped["providers"]["hive"]["credential_file"] == (
         "../providers/hive.env"
-    )
-    assert shipped["providers"]["vercel"]["credential_file"] == (
-        "../providers/vercel.env"
     )
     assert shipped["providers"]["openrouter"] == {
         "api": "jev",
@@ -79,7 +73,9 @@ def test_shipped_key_file_in_the_shared_provider_folder_is_read(operator):
     shared.write_text("HIVE_API_KEY=synthetic-value\n", encoding="utf-8")
     shared.chmod(0o600)
     selected = next(
-        profile for profile in config.load_profiles() if profile["name"] == "hive"
+        profile
+        for profile in config.load_profiles()
+        if profile["name"] == "hive"
     )
     assert selected["credential_file"] == "../providers/hive.env"
     assert config.load_credential(selected) == "synthetic-value"
