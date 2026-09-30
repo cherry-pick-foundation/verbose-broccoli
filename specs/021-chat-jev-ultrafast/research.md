@@ -189,9 +189,13 @@ and keep up to 4,000 characters of output
 (`out/shared/automation-precheck.js`). The precheck therefore runs the search
 with notification, so a strong offer is reported without a second Jev call.
 On 2026-09-30 the user approved the automation and chose that no agent
-session starts at all: the precheck command ends with `; exit 1`, so Orca
-records every run as skipped and keeps the search's output in the run's
-details. The user also had the empty `0600` credential file created. The
+session starts at all, so every run ends with a non-zero precheck and Orca
+records it as skipped with "Precheck exited with code N" and the search's
+output. Orca has no failed state for a precheck, so the precheck maps the
+normal outcomes (0, notified; 1, nothing strong) to 1 and passes errors
+through (2, invalid arguments; 3, a failed request, provider or
+notification; others from uv), which keeps errors visible as a code other
+than 1. The user also had the empty `0600` credential file created. The
 key files later moved to the shared provider folder, and the provider the
 automation names is the user's choice after the live checks in R10.
 

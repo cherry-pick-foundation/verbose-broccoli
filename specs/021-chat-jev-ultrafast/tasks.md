@@ -204,7 +204,9 @@ time limit.
   the user through `orca orchestration ask`; after approval and the finish,
   create it with `orca automations create` and confirm it with `orca
   automations show` (FR-012). Approved 2026-09-30: no agent session (the
-  precheck ends with `; exit 1`), credential file created empty.
+  precheck always exits non-zero: normal outcomes map to 1, errors keep
+  their code), credential file created empty. The automation names
+  `openrouter` (user, 2026-09-30).
 - [ ] T017 Merge review by fresh reviewers, review-record commit, merge
   `develop` in and verify, `git flow feature finish`, `npm run verify` on the
   merged `develop`, and CHE-41 through In Review to Done with one completion

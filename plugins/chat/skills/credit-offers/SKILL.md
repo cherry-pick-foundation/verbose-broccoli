@@ -54,10 +54,19 @@ block has no new candidate, otherwise 1.
 | 2 | Invalid arguments |
 | 3 | The tracker, GitHub, the provider or the notification failed; the message names it and never shows a key |
 
-An Orca automation precheck treats anything but 0 as "skip this run". The
-approved automation appends `; exit 1` to the command, so Orca never starts
-an agent and records every run as skipped, with the command's output in the
-run's details.
+An Orca automation precheck treats anything but 0 as "skip this run", and
+Orca has no failed state for a precheck: it records the run as skipped with
+"Precheck exited with code N" and keeps the command's output in the run's
+details. The approved automation starts no agent, so its precheck maps the
+normal outcomes, 0 (notified) and 1 (nothing strong), to 1 and passes every
+other status through:
+
+```sh
+<the command above>; s=$?; [ "$s" -le 1 ] && exit 1; exit "$s"
+```
+
+In Orca's run list, code 1 is a normal run and any other code, such as 3,
+is an error to look at.
 
 ## Limits
 
