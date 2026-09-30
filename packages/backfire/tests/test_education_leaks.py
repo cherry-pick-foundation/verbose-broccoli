@@ -287,6 +287,55 @@ def test_provider_receives_no_number_or_field_value_identifier(
     assert not re.search(r"7700101|2011|487|Imaginary|\b10\b", sent)
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        "born on June 17 (2012)",
+        "DOB: June 17, (2012)",
+        "born on 17. 06. 2012",
+        "born on June 17th of 2012",
+        "DOB: June 17, year 2012",
+        "born on June 17 in 2012",
+    ],
+)
+def test_provider_receives_no_part_of_a_birth_date(
+    synthetic_roster, monkeypatch, text
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"])
+    assert not re.search(r"2012|June|\b17\b|\b06\b", sent)
+
+
+def test_a_year_left_beside_a_replaced_birth_date_is_refused(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    real, seen = education.find_spans, set()
+
+    def stop_before_the_year(text, identifiers, *patterns):
+        """Leave the year out of the first match, as a detector gap would."""
+        spans = real(text, identifiers, *patterns)
+        if text in seen:
+            return spans
+        seen.add(text)
+        return [
+            (start, text.index(" (", start), identifier)
+            if identifier[0] == "birth" and " (" in text[start:stop]
+            else (start, stop, identifier)
+            for start, stop, identifier in spans
+        ]
+
+    monkeypatch.setattr(education, "find_spans", stop_before_the_year)
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        error = send(monkeypatch, fake, {"note": "born on June 17 (2012)"})
+    assert str(error).startswith("identifier_remaining:")
+    assert "2012" not in str(error)
+    assert fake.requests == []
+
+
 def test_education_provider_error_keeps_only_profile_and_status(
     synthetic_roster, monkeypatch
 ):
@@ -367,7 +416,6 @@ def test_stand_ins_and_their_keywords_are_not_refused(
     [
         {"note": "DOB: 23.IV.2011"},
         {"note": "**Date of birth** = sometime in spring"},
-        {"note": "birthday: April 23 (2011)"},
         {"note": "| Name | DOB |\n| --- | --- |\n| Ga Raon | 23.IV.2011 |"},
         {"note": "| Address | Grade |\n|---|---|\n| 487 Imaginary St | 10 |"},
         {"note": "Student ID: 7799999"},

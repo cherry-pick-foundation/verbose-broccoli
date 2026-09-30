@@ -274,10 +274,24 @@ def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
         ),
         ("DOB 2011 April 23", "2011 April 23"),
         ("DOB: 2011. 4. 23.", "2011. 4. 23"),
+        ("born on June 17 (2012)", "June 17 (2012)"),
+        ("DOB: June 17, (2012)", "June 17, (2012)"),
+        ("born on 17. 06. 2012", "17. 06. 2012"),
+        ("born on June 17th of 2012", "June 17th of 2012"),
+        ("DOB: June 17, year 2012", "June 17, year 2012"),
+        ("born on June 17 in 2012", "June 17 in 2012"),
+        ("born on 17 June [2012]", "17 June [2012]"),
     ],
 )
 def test_birth_dates_in_english_prose_and_words(found, text, matched):
     assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+
+
+@pytest.mark.parametrize(
+    "text", ["born on \x00 (2012)", "DOB: \x00, (2012)", "born on \x00 in 2012"]
+)
+def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text):
+    assert [(m, kind) for m, kind, _ in found(text)] == [("2012", "birth")]
 
 
 @pytest.mark.parametrize(

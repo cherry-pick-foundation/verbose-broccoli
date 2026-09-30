@@ -183,7 +183,7 @@ Stand-ins are English, so a provider never receives Hangul.
 | An email address | `Email 01` |
 | A province, city, county or district name, current or abolished, in Korean (`평택시`) or romanized (`Jongno-gu`, `Pyeongtaek`, `North Chungcheong`, `Chungbuk`), with a unit word after it such as `City` or `Province` | `Region 01` |
 | A school year: `Grade 10`, `Grade: 10`, `Grade ten`, `10th grade`, `tenth grade` (up to `twelfth`), `Year 11`, `year eleven` (spelled from `one` to `twelve`), `first-year high school student`, `fourth-year elementary school student` (first to sixth year), `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
-| A date or year after `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: `2011-04-23`, `2011. 4. 23.`, `23/04/2011`, `04/23/2011`, `20110423`, `April 23, 2011`, `April 23rd`, `April the 23rd`, `23 April`, `23rd of April 2011`, `the twenty-third of April`, `2011 April 23`, and years in words such as `two thousand and eleven` or `twenty eleven`; and forms such as `2009년생` | `Birth date 01` |
+| A date or year after `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: `2011-04-23`, `2011. 4. 23.`, `23/04/2011`, `04/23/2011`, `20110423`, `April 23, 2011`, `April 23rd`, `April the 23rd`, `23 April`, `23rd of April 2011`, `the twenty-third of April`, `2011 April 23`, `17. 06. 2012`, a year after a day and month in brackets or after `of`, `in` or `year` (`June 17 (2012)`, `June 17 in 2012`), and years in words such as `two thousand and eleven` or `twenty eleven`; and forms such as `2009년생` | `Birth date 01` |
 | The rest of a line or table cell after `address` or `주소`, and a run of romanized address parts, such as `Bijeon-ro 12`, `Ha-neul-ro 487`, `Solbit-ro 12-gil 487`, `Jungang-daero 45beon-gil 7`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jongno 1-ga`, with the building, lot or unit numbers (`487 Solbit-ro`, `Solbit-ro, 487`, `101-1203`, `Apt 1203`), postal codes and region names before or after it; the whole run becomes one stand-in | `Address 01` |
 
 Between a keyword and its value there may be spaces, punctuation (`:`, `=`,
@@ -237,6 +237,8 @@ the spelling without it (`Anyang`) too.
 After the replacement, backfire scans the request again with every detector,
 numbers and field names included and ignoring the stand-ins it inserted. If
 anything is found, it sends nothing and fails with `identifier_remaining`.
+A year left beside a replaced birth date, as in `born on Birth date 01
+(2012)`, counts as found.
 
 The same error refuses a birth-date, address or student-number field whose
 value was not replaced. Such a field is a key named for a birth date or an

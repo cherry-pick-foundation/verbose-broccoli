@@ -69,14 +69,18 @@ _YEAR_NUMBER = (
     rf"(?:\d{{4}}|two[\s-]+thousand(?:[\s-]+and)?(?:[\s-]+{_TAIL})?"
     rf"|twenty(?:[\s-]+oh)?[\s-]+{_TAIL})"
 )
-# Year first (2011-04-23), day or month first (23/04/2011, 04/23), or spelled.
+# The year after a day and month: ", 2011", " (2011)", " of 2011", " in 2011"
+# or ", year 2011".
+_YEAR_AFTER = rf",?[\s-]*(?:[(\[]|(?:of|in|year)\s+)?{_YEAR_NUMBER}[)\]]?"
+# Year first (2011-04-23), day or month first (23/04/2011, 17. 06. 2012,
+# 04/23), or spelled.
 _DATE = (
     r"\d{4}[-./]\s?\d{1,2}(?:[-./]\s?\d{1,2})?"
-    r"|\d{1,2}[-./]\d{1,2}(?:[-./]\d{1,4})?"
+    r"|\d{1,2}[-./]\s?\d{1,2}(?:[-./]\s?\d{1,4})?"
     r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년"
-    rf"|{_MONTH}[\s-]+(?:(?:the\s+)?{_DAY}(?:,?[\s-]+{_YEAR_NUMBER})?"
+    rf"|{_MONTH}[\s-]+(?:(?:the\s+)?{_DAY}(?:{_YEAR_AFTER})?"
     rf"|(?:of\s+)?{_YEAR_NUMBER})"
-    rf"|{_DAY}[\s-]+(?:of\s+)?{_MONTH}(?:,?[\s-]+(?:of\s+)?{_YEAR_NUMBER})?"
+    rf"|{_DAY}[\s-]+(?:of\s+)?{_MONTH}(?:{_YEAR_AFTER})?"
     rf"|\d{{8}}|\d{{6}}|{_YEAR_NUMBER}(?:,?\s+{_MONTH}(?:\s+{_DAY})?)?"
 )
 # Words that may sit between a birth keyword and its date.
@@ -317,7 +321,10 @@ _DETECTORS = [
         re.compile(
             r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
             r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
-            rf"(?:[\s{_PUNCT},()]|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
+            # A blanked stand-in in the gap lets the scan after the swap find
+            # a year left beside a replaced date.
+            rf"(?:[\s{_PUNCT},(){_BLANK}]"
+            rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
             rf"(?P<date>{_DATE})(?![0-9A-Za-z])",
             re.IGNORECASE,
         ),
