@@ -1,11 +1,11 @@
 # Model choice in Verbose Broccoli
 
 Every worker, reviewer and orchestrator started through Orca gets its agent
-(Codex, Claude Code or OMP), model and reasoning effort from a backfire
-judgment made for that task. There is no default model and no table from task
-difficulty or risk to a model, agent or effort; backfire weighs the facts each
-time. One rule stays fixed: a change's final review comes from a provider
-other than the implementer's (`AGENTS.md`, "Review").
+(Codex, Claude Code, Copilot or OMP), model and reasoning effort from a
+backfire judgment made for that task. There is no default model and no table
+from task difficulty or risk to a model, agent or effort; backfire weighs the
+facts each time. One rule stays fixed: a change's final review comes from a
+provider other than the implementer's (`AGENTS.md`, "Review").
 
 ## Candidates
 
@@ -19,12 +19,21 @@ from a written model list:
   `opus` or `sonnet`, or a full model name) and `--effort`.
 - OMP: `omp models` lists each provider's models; `~/.omp/agent/models.yml`
   defines the providers.
+- Copilot: the `/model` picker in a Copilot session lists the models the
+  plan allows. `copilot help config` lists every model the CLI knows, and
+  `--model` with one the plan lacks falls back to Auto with only a warning.
+  The Free plan allows only `auto`, which picks the model for each task;
+  `--auto-tier` sets its routing profile (`efficiency`, `balance`,
+  `intelligence` or `fast`). The Free plan's allowance is small (200 AI
+  credits a month, about 50 requests), so Copilot suits small tasks and
+  reviews; give backfire that fact.
 
 Orca's `worker-start` accepts only the efforts in its own model catalog and
 fails with `invalid_argument` otherwise. The user's current list of those gaps
 and the terminal-path steps are in `~/.claude/rules/worker-dispatch.md`. An
 effort outside Orca's catalog is still a candidate; it launches through the
-terminal path.
+terminal path. Orca's catalog does not cover Copilot, so Copilot always
+launches through the terminal path.
 
 ## Evidence
 
@@ -48,14 +57,15 @@ minimal.
 ### Usage limits
 
 Read the remaining limits and credit with CodexBar's `usage` command, one
-call per provider, from a directory outside any repository. OpenRouter and
-Vercel each get only their own key file, through uv's `--env-file`:
+call per provider, from a directory outside any repository. OpenRouter,
+Vercel and Copilot each get only their own key file, through uv's
+`--env-file`:
 
 ```sh
 clean=(env -u OPENROUTER_API_URL -u OPENROUTER_MANAGEMENT_API_KEY
   -u CODEXBAR_CONFIG -u CLAUDE_CLI_PATH -u CODEX_CLI_PATH -u ANTHROPIC_ADMIN_KEY
   -u ANTHROPIC_ADMIN_API_KEY -u CODEXBAR_CLAUDE_OAUTH_TOKEN
-  -u OPENROUTER_API_KEY -u AI_GATEWAY_API_KEY)
+  -u OPENROUTER_API_KEY -u AI_GATEWAY_API_KEY -u COPILOT_API_TOKEN)
 keys="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
 "${clean[@]}" CI=1 codexbar usage --provider codex --source oauth --format json
 "${clean[@]}" CI=1 codexbar usage --provider claude --source oauth --format json
@@ -63,6 +73,8 @@ keys="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
   codexbar usage --provider openrouter --format json
 "${clean[@]}" uv run --no-project --env-file "$keys/vercel.env" -- \
   codexbar usage --provider vercel --format json
+"${clean[@]}" uv run --no-project --env-file "$keys/copilot.env" -- \
+  codexbar usage --provider copilot --format json
 ```
 
 CodexBar's security review allows it only within these limits:
@@ -75,6 +87,10 @@ CodexBar's security review allows it only within these limits:
 - Give each call only its own key, with the variables that reroute keys or
   switch sources unset, as `clean` does. Keys stay in the env files: never
   copy them into CodexBar's config, never print them.
+- Copilot's `COPILOT_API_TOKEN` comes from GitHub's device login for the
+  OAuth app and `read:user` scope that CodexBar's own Copilot login uses.
+  CodexBar sends any token it gets, so never give it a personal access token
+  or the GitHub CLI's login.
 - Create no CodexBar config file (`~/.config/codexbar/config.json`,
   `~/.codexbar/config.json` or `$CODEXBAR_CONFIG`), and keep
   `~/.config/codexbar/providers/` empty, because CodexBar loads any plugin
@@ -89,9 +105,9 @@ Each call prints a one-item array. Rate windows are `usage.primary` and
 `usage.secondary` (`usedPercent`, `resetsAt`, `windowMinutes`), named in
 `rateWindowLabels`: Codex reports only a `Weekly` secondary window, Claude a
 `Session` and a `Weekly` window, plus model-scoped windows such as "Fable
-only" in `usage.extraRateWindows`. Balances are `usage.details` rows:
-OpenRouter's "Credits" → "Remaining" and Vercel's "Team credits" → "Available
-balance".
+only" in `usage.extraRateWindows`, and Copilot a monthly `Chat` window.
+Balances are `usage.details` rows: OpenRouter's "Credits" → "Remaining" and
+Vercel's "Team credits" → "Available balance".
 
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
@@ -116,8 +132,10 @@ first call.
 
 - Pass the chosen agent, model and effort explicitly, never a default:
   `orca orchestration worker-start --agent <agent> --model <model> --effort <effort>`.
-  Use the terminal path when the effort is outside Orca's catalog, and
-  `omp --model <provider>/<model-id>` for OMP.
+  Use the terminal path when the effort is outside Orca's catalog,
+  `omp --model <provider>/<model-id>` for OMP, and `copilot --model auto
+  --auto-tier <tier>` for Copilot (`--reasoning-effort <effort>` with a
+  named model).
 - Compare `launch.requested` with `launch.effective` in the launch result, and
   check the worker's status line.
 - Create extra worktrees as children of your own

@@ -379,8 +379,9 @@ package two skills backed by two uv workspace packages.
 - Keys live in the shared provider folder
   `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
-  `openrouter.env`, `hive.env`, and `github.env` for the offer search's
-  optional GitHub token), which every plugin uses. The web agent gets its
+  `openrouter.env`, `hive.env`, `github.env` for the offer search's
+  optional GitHub token, and `copilot.env` for CodexBar's Copilot usage
+  call), which every plugin uses. The web agent gets its
   provider key through `uv run --env-file`; credit offers passes only the
   optional `github.env`. Backfire reads provider keys through its own shipped
   profiles' `credential_file` fields and follows its shared provider order.
@@ -513,10 +514,10 @@ flow rule.
   `develop` by merge, not rebase. Release and hotfix types are left out, so
   `git flow release` and `git flow hotfix` refuse to run; the constitution has
   releases and hotfixes finished by hand.
-- Before the finish, a fresh reviewer from the other provider (Claude Code or
-  Codex), given only the scope and requirements, reviews the feature tip,
-  favoring speed. After its findings are resolved, a content-free commit
-  records the review:
+- Before the finish, a fresh reviewer from a provider other than the
+  implementer's (Claude Code, Codex or Copilot), given only the scope and
+  requirements, reviews the feature tip, favoring speed. After its findings
+  are resolved, a content-free commit records the review:
 
   ```sh
   git commit --allow-empty -m 'chore(review): record develop merge review' \
