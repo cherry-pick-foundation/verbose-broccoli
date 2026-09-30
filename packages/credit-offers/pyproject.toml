@@ -1,0 +1,32 @@
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "credit-offers"
+version = "0.1.0"
+description = "Find new API credit offers in the freetokens tracker."
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28,<1", "jev-ultrafast"]
+
+[project.scripts]
+credit-offers = "credit_offers:main"
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.uv]
+required-version = ">=0.11.32"
+
+[tool.uv.sources]
+jev-ultrafast = { workspace = true }
+
+[tool.uv.build-backend]
+module-name = "credit_offers"
+module-root = "src"
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider"]
+
+[tool.ruff]
+extend = "../../ruff.toml"

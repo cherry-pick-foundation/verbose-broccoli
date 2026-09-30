@@ -1,0 +1,5 @@
+repository = "luongnv89/freetokens"
+index_path = "index.json"
+api_root = "https://api.github.com"
+raw_root = "https://raw.githubusercontent.com"
+token_env = "GITHUB_TOKEN"

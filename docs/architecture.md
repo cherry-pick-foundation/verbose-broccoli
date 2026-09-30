@@ -7,8 +7,7 @@ are not requirement, evidence or implementation sources.
 
 ## Current skeleton
 
-Each package has a `plugin.json`; the code and work packages also have
-`skills/`. The `code` package has a small `package.json` that only declares
+Each package has a `plugin.json` and `skills/`. The `code` package has a small `package.json` that only declares
 its exports for the import-boundary check, and its clean-code skill has its
 own npm package manifest with the skill's dependencies. Current versions and
 MCP declarations come from
@@ -21,8 +20,9 @@ The `work` package contains the `quarto-authoring`, `session-migrate`,
 `backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
-The `chat` package contains only its manifest and license; it
-has no skills, package manifest, MCP declaration or scripts, and its
+The `chat` package contains the `web-agent` and `credit-offers` skills
+(see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
+it has no package manifest, MCP declaration or scripts, and its
 persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
@@ -182,9 +182,10 @@ Three plugins do not require three servers, databases, or continuously running
 processes.
 
 The `code` package reuses selected upstream skills and tools.
-The `chat` package targets the ChatGPT and Claude chat projects and has no
-skills yet; actual distribution and invocation remain separate from local
-validation. Business capabilities belong to the `work` package once
+The `chat` package targets the ChatGPT and Claude chat projects; its two
+skills run in local Codex CLI or Claude Code sessions from the repository's
+uv workspace, and actual distribution and invocation remain separate from
+local validation. Business capabilities belong to the `work` package once
 features specify them. Create TypeScript entry points, source directories and
 internal layers only when a specified capability has an actual consumer. Selected
 Wiki storage follows constitution principle VI; restructuring code does not move
@@ -320,6 +321,45 @@ PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 [Backfire operator guide](backfire.md) for setup, profiles and
 troubleshooting.
 
+### Chat web agent and credit offers — 2026-09-30
+
+Feature 021 ([spec](../specs/021-chat-jev-ultrafast/spec.md)) gives the chat
+package two skills backed by two uv workspace packages.
+
+- `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
+  fixed revision and patched in two modules; its
+  [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
+  the original file hashes and every difference. Its Jev calls go to the
+  provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
+  `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
+  of jev-mcp 0.9.0's Vercel carrier; `cloudflare`, Cloudflare Workers AI; or
+  `openrouter`, OpenRouter's decisions API.
+  By default the agent opens its own
+  tab in Orca's built-in browser and attaches to it through that tab's own
+  browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
+  connection. The `web-agent` skill runs it.
+- `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
+  offers that entered its published list during the latest 6-hour block,
+  asks Jev once per run whether each costs nothing and states no time limit
+  or end date, and sends a desktop notification for those that do. It saves
+  nothing. The `credit-offers` skill runs it, and the user approved an Orca
+  automation on the laptop that runs it every 6 hours as a precheck; the
+  interval comes from the tracker's history
+  ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
+- Keys live in the shared provider folder
+  `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
+  `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
+  `openrouter.env`, `hive.env`, and `github.env` for the offer search's
+  optional GitHub token), which every plugin uses. The chat packages
+  get them through `uv run --env-file` and never read the files; backfire's
+  shipped profiles name them in `credential_file`.
+- `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
+  offline tests; both are part of `npm run check`.
+- Not automated: the live provider check, which waits for a provider that
+  accepts Jev calls, because Vercel AI Gateway's free tier does not include
+  Jev; catching up blocks the laptop slept through; screenshots and scrolling
+  in an Orca tab that is not drawn on screen.
+
 ## Sharing and distribution
 
 Reuse existing dependencies directly first. Constitution IX puts reusable
@@ -364,6 +404,7 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
+| `plugins/chat/skills` | `credit-offers`, `web-agent` |
 | `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->

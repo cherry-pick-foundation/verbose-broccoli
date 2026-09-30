@@ -90,6 +90,47 @@
       ],
       "cache": false
     },
+    "jev-ultrafast#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPATH=packages/jev-ultrafast",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "jev-ultrafast",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/jev-ultrafast/tests"
+      ],
+      "cache": false
+    },
+    "credit-offers#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "credit-offers",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/credit-offers/tests"
+      ],
+      "cache": false
+    },
     "wiki-consistency#test": {
       "command": [
         "env",
@@ -127,6 +168,8 @@
         "//#test:docs",
         "backfire#test",
         "doc-regions#test",
+        "jev-ultrafast#test",
+        "credit-offers#test",
         "wiki-consistency#test",
         "//#test:wiki-raw-import"
       ],

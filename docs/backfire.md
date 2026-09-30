@@ -72,8 +72,8 @@ A profile is one of two kinds:
 A Jev profile uses PyModel's own provider of that name; `vercel` uses
 backfire's Vercel AI Gateway provider, ported from jkudish's
 jev-agent-tools 0.1.2 because PyModel does not support Vercel. The code
-plugin ships an unselected `vercel` profile; select it with
-`provider = "vercel"` in the operator file. PyModel's own provider
+plugin ships unselected `vercel` and `openrouter` profiles; select one with
+`provider = "vercel"` or `provider = "openrouter"` in the operator file. PyModel's own provider
 environment variables, such as `JEV_PROVIDER` or `TYPESAFE_API_KEY`, do not
 choose backfire's provider.
 
@@ -81,14 +81,18 @@ choose backfire's provider.
 
 The key file has one `<variable>=<key>` line, must be a regular file owned
 by the operator with mode `0600`, and is read when the server's provider is
-created. For Hive it is
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env` with
-`HIVE_API_KEY=<your key>`; the work plugin's `education` profile reads
-`education.env`, and a symbolic link from `education.env` to `hive.env`
-keeps one copy of the key. The shipped `vercel` profile reads
-`AI_GATEWAY_API_KEY` from `~/.config/verbose-broccoli/chat/jev.env`, the
-key file the chat plugin also uses. Keep keys out of `config.toml`, plugin
-files and client environment entries.
+created. Provider keys live in one shared folder,
+`$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default
+`~/.config/verbose-broccoli/providers/`, mode `0700`), with one file per
+provider that every plugin uses. The shipped `hive` and `education` profiles
+read `HIVE_API_KEY` from `providers/hive.env`, the shipped `vercel` profile
+reads `AI_GATEWAY_API_KEY` from `providers/vercel.env`, and the shipped
+`openrouter` profile reads `OPENROUTER_API_KEY` from
+`providers/openrouter.env`. They name the
+files relative to the operator file's folder (`../providers/<provider>.env`),
+so the path follows `XDG_CONFIG_HOME`. An operator profile without
+`credential_file` still reads `<profile>.env` beside the operator file. Keep keys out of `config.toml`, plugin files and client
+environment entries.
 
 ## Work plugin
 

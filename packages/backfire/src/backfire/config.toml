@@ -4,6 +4,7 @@ provider = "hive"
 api = "openai"
 base_url = "https://api-cdn.thehive.ai/api/v3"
 model = "deepseek-ai/deepseek-v4.1-flash"
+credential_file = "../providers/hive.env"
 credential = "HIVE_API_KEY"
 request = { max_tokens = 32768, response_format = { type = "json_object" }, reasoning_effort = "medium" }
 
@@ -17,5 +18,11 @@ api = "jev"
 jev_provider = "vercel"
 base_url = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
 model = "typesafe-ai/jev"
-credential_file = "~/.config/verbose-broccoli/chat/jev.env"
+credential_file = "../providers/vercel.env"
 credential = "AI_GATEWAY_API_KEY"
+
+[providers.openrouter]
+api = "jev"
+jev_provider = "openrouter"
+credential = "OPENROUTER_API_KEY"
+credential_file = "../providers/openrouter.env"
