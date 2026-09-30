@@ -327,7 +327,8 @@ package two skills backed by two uv workspace packages.
   the original file hashes and every difference. Its Jev calls go to the
   provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
   `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
-  of jev-mcp 0.9.0's Vercel carrier; or `cloudflare`, Cloudflare Workers AI.
+  of jev-mcp 0.9.0's Vercel carrier; `cloudflare`, Cloudflare Workers AI; or
+  `openrouter`, OpenRouter's decisions API.
   By default the agent opens its own
   tab in Orca's built-in browser and attaches to it through that tab's own
   browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
@@ -342,7 +343,8 @@ package two skills backed by two uv workspace packages.
   ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
 - Keys live in the shared provider folder
   `~/.config/verbose-broccoli/providers/`, one `0600` file per provider
-  (`vercel.env`, `cloudflare.env`, `hive.env`), which every plugin uses. The
+  (`vercel.env`, `cloudflare.env`, `openrouter.env`, `hive.env`), which
+  every plugin uses. The
   chat packages get them through `uv run --env-file` and never read the
   files; backfire's shipped profiles name them in `credential_file`.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
