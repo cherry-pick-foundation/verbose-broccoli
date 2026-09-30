@@ -34,8 +34,8 @@ files and can run in parallel.
   the environment variable named by `credential`, a 30-second limit, and
   read the report as plan.md "CodexBar reading" says; return no credit,
   credit or unknown. Tests in `tests/test_credit.py` with a stand-in
-  `codexbar` on a temporary `PATH` and synthetic fixtures under
-  `tests/fixtures/codexbar/` for a zero and a positive OpenRouter
+  `codexbar` on a temporary `PATH` and synthetic JSON fixtures kept in
+  that test file for a zero and a positive OpenRouter
   `providerCost.balance`, a capped OpenRouter key at 100% used, a zero and a
   positive Vercel "Available balance" row, a report with `error`, and bad
   output, a non-zero exit, a timeout and a missing executable. A test
