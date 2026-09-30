@@ -42,8 +42,20 @@ def test_shipped_order_and_provider_profiles_are_present(operator):
     ]
     assert shipped["providers"]["vercel"]["credential"] == "AI_GATEWAY_API_KEY"
     assert shipped["providers"]["hive"]["insufficient_balance"] == [405]
-    assert shipped["providers"]["openrouter"]["codexbar"] == "openrouter"
     assert shipped["providers"]["vercel"]["codexbar"] == "vercel"
+    assert shipped["providers"]["hive"]["credential_file"] == (
+        "../providers/hive.env"
+    )
+    assert shipped["providers"]["vercel"]["credential_file"] == (
+        "../providers/vercel.env"
+    )
+    assert shipped["providers"]["openrouter"] == {
+        "api": "jev",
+        "jev_provider": "openrouter",
+        "credential": "OPENROUTER_API_KEY",
+        "credential_file": "../providers/openrouter.env",
+        "codexbar": "openrouter",
+    }
     assert not operator.exists()
 
 
@@ -57,6 +69,19 @@ def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
     credential.chmod(0o600)
     selected["credential_file"] = "local.env"
     assert selected["model"] == "synthetic-model"
+    assert config.load_credential(selected) == "synthetic-value"
+
+
+def test_shipped_key_file_in_the_shared_provider_folder_is_read(operator):
+    operator.parent.rmdir()
+    shared = operator.parent.parent / "providers/hive.env"
+    shared.parent.mkdir()
+    shared.write_text("HIVE_API_KEY=synthetic-value\n", encoding="utf-8")
+    shared.chmod(0o600)
+    selected = next(
+        profile for profile in config.load_profiles() if profile["name"] == "hive"
+    )
+    assert selected["credential_file"] == "../providers/hive.env"
     assert config.load_credential(selected) == "synthetic-value"
 
 

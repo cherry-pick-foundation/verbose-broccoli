@@ -22,7 +22,7 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, CodexBar 0.69.0, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
       "cache": false
     },
     "//#own-code": {"cache": false},
@@ -90,6 +90,47 @@
       ],
       "cache": false
     },
+    "jev-ultrafast#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPATH=packages/jev-ultrafast",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "jev-ultrafast",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/jev-ultrafast/tests"
+      ],
+      "cache": false
+    },
+    "credit-offers#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "credit-offers",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/credit-offers/tests"
+      ],
+      "cache": false
+    },
     "wiki-consistency#test": {
       "command": [
         "env",
@@ -127,6 +168,8 @@
         "//#test:docs",
         "backfire#test",
         "doc-regions#test",
+        "jev-ultrafast#test",
+        "credit-offers#test",
         "wiki-consistency#test",
         "//#test:wiki-raw-import"
       ],

@@ -108,6 +108,17 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Joey Kudish.
   [MIT license](../plugins/code/skills/backfire/LICENSE).
 
+## typesafe-ai/skills — model-choice
+
+- Source:
+  <https://github.com/typesafe-ai/skills/tree/65a39f393687675ce170e6094757de20370365b9/skills/typesafe-ai>
+- Revision: `65a39f393687675ce170e6094757de20370365b9` (tag v0.5.7).
+- Reused: `SKILL.md` and `LICENSE` in `plugins/code/skills/model-choice/`.
+- Adaptations: listed in the skill's `upstream.json`; the local
+  `references/model-choice.md` is this repository's own text.
+- Copyright (c) 2026 TypeSafe AI.
+  [MIT license](../plugins/code/skills/model-choice/LICENSE).
+
 ## jkudish/jev-agent-tools — Backfire's Vercel provider
 
 - Source: `@jkudish/jev-agent-tools` 0.1.2 on npm
@@ -126,3 +137,16 @@ with the already approved Ajv dependency. Sources:
   `npm run backfire:install` for the work plugin's `serve-mcp --education`.
   No source is copied into the repository.
 - Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
+
+## browser-use/jev-ultrafast — chat web agent
+
+- Source:
+  <https://github.com/browser-use/jev-ultrafast/tree/1231850a0bf1a0c0341fe408ef1668dbbfdfac46>
+- Revision: `1231850a0bf1a0c0341fe408ef1668dbbfdfac46`.
+- Reused: the `jev_ultrafast` package, its offline tests, `examples/run.py`,
+  `examples/flights.py` and `scripts/check_guards.py`, copied into
+  `packages/jev-ultrafast/` with its license.
+  `packages/jev-ultrafast/UPSTREAM.md` records the original files' SHA-256
+  and every difference (provider selection and Orca browser mode).
+- Copyright (c) 2026 Browser Use.
+  [MIT license](../packages/jev-ultrafast/LICENSE).

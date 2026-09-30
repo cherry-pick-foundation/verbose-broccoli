@@ -138,7 +138,8 @@ def load_credential(profile: dict) -> str:
         else profile["_config_dir"] / f"{profile['name']}.env"
     )
     if not path.is_absolute():
-        path = profile["_config_dir"] / path
+        # Normalize "..", so a shared key file resolves without this folder.
+        path = Path(os.path.normpath(profile["_config_dir"] / path))
     try:
         with path.open(encoding="utf-8") as file:
             info = os.fstat(file.fileno())

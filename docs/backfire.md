@@ -41,27 +41,23 @@ start it.
 
 ## Select a provider
 
-The shipped configuration is `packages/backfire/src/backfire/config.toml`
-for the code plugin and
-`packages/backfire/src/backfire_education/config.toml` for the work plugin.
-Each lists provider profiles in an `order`, and backfire uses the first
-profile in it that has credit ([Credit and switching](#credit-and-switching)):
+Both plugins read one shipped configuration,
+`packages/backfire/src/backfire/config.toml`. It lists provider profiles in
+an `order`, `openrouter` then `hive`, and backfire uses the first profile in
+it that has credit ([Credit and switching](#credit-and-switching)). The work
+plugin differs only in pseudonymization and the response cache
+([Work plugin](#work-plugin)).
 
-| Plugin | `order` |
-| --- | --- |
-| Code | `hive`, `openrouter`, `vercel` |
-| Work | `education`, `openrouter` |
-
-The `hive` and `education` profiles send judgments to the
+The `openrouter` profile sends judgments to TypeSafe's Jev model through
+PyModel's OpenRouter provider. The `hive` profile sends them to the
 OpenAI-compatible API at Hive and the `deepseek-ai/deepseek-v4.1-flash`
 model through system-one-adapter, with JSON-object output, up to 32,768
-completion tokens and medium reasoning effort. The `openrouter` and
-`vercel` profiles send them to TypeSafe's Jev model. Answers therefore
-differ by profile; each result's `provider` field names the profile that
-answered. The optional operator file is
+completion tokens and medium reasoning effort. Answers therefore differ by
+profile; each result's `provider` field names the profile that answered.
+The optional operator file is
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` (`~/.config` when
 `XDG_CONFIG_HOME` is unset); both plugins read it. Its `order = [...]`
-replaces the shipped order of both plugins, and a `[providers.<name>]`
+replaces the shipped order for both plugins, and a `[providers.<name>]`
 table adds a profile or replaces the shipped one of that name. The order is
 read at the server's first judgment; restart the client session after
 changing it.
@@ -71,8 +67,8 @@ A profile is one of two kinds:
 | Field | Meaning |
 | --- | --- |
 | `api` | `openai` for a general model through system-one-adapter, as `hive` is; `jev` for a Jev provider |
-| `jev_provider` | For `jev`: `typesafe`, `openrouter`, `cloudflare`, `compatible` or `vercel` |
-| `base_url` | The endpoint; required for `openai`, `compatible` and `vercel`, optional for `typesafe` |
+| `jev_provider` | For `jev`: `typesafe`, `openrouter`, `cloudflare` or `compatible` |
+| `base_url` | The endpoint; required for `openai` and `compatible`, optional for `typesafe` |
 | `model` | The model; required for `openai` |
 | `account_id` | For `cloudflare`: the Cloudflare account |
 | `request` | For `openai`: extra request fields sent with every request |
@@ -80,28 +76,28 @@ A profile is one of two kinds:
 | `credential_file` | Optional path of the key file; the default is `<profile>.env` beside the operator file |
 | `retry` | Optional table of PyModel retry policy fields for this profile's provider |
 | `codexbar` | Optional CodexBar provider ID; backfire reads the provider's credit through it before using the profile |
-| `insufficient_balance` | Optional HTTP statuses that mean the provider's balance is used up; the default is `[402]`, and the Hive profiles set `[405]` |
+| `insufficient_balance` | Optional HTTP statuses that mean the provider's balance is used up; the default is `[402]`, and the `hive` profile sets `[405]`, the status Hive documents for an exhausted balance |
 
-A Jev profile uses PyModel's own provider of that name; `vercel` uses
-backfire's Vercel AI Gateway provider, ported from jkudish's
-jev-agent-tools 0.1.2 because PyModel does not support Vercel. PyModel's
-own provider environment variables, such as `JEV_PROVIDER` or
+A Jev profile uses PyModel's own provider of that name. PyModel's own
+provider environment variables, such as `JEV_PROVIDER` or
 `TYPESAFE_API_KEY`, do not choose backfire's provider.
 
 ## Credit and switching
 
 Before backfire first uses a profile that names a `codexbar` provider, it
 runs the command-line tool of [CodexBar](https://github.com/steipete/CodexBar)
-(MIT, used unchanged): `codexbar usage --provider <id> --format json`, with
-the profile's key in the environment variable named by `credential`. The key
-never goes into CodexBar's own configuration file. Backfire skips the profile
-when CodexBar reports a balance of zero or less or a limit at 100% used, and
-logs the skip. The shipped `openrouter` and `vercel` profiles name CodexBar
-providers; CodexBar reads no balance for Hive or Cloudflare. If `codexbar` is
-not on the server's `PATH`, fails, or takes longer than 30 seconds, backfire
-uses the profile and logs that its credit is unknown. Credit is read once
-per profile in a server session: before the profile's first judgment, which
-may follow a switch.
+(MIT, used unchanged): `codexbar usage --provider <id> --format json`, for
+that one provider. The call's environment holds only `PATH`, `HOME` and the
+profile's key in the variable named by `credential`, so no other key or
+setting reaches CodexBar, and backfire uses no CodexBar configuration file.
+Backfire skips the profile when CodexBar reports a balance of zero or less
+or a limit at 100% used, and logs the skip; it never logs CodexBar's output,
+which can name the account. The shipped `openrouter` profile names a CodexBar
+provider; CodexBar reads no balance for Hive. If `codexbar` is not on the
+server's `PATH`, fails, or takes longer than 30 seconds, backfire uses the
+profile and logs that its credit is unknown. Credit is read once per profile
+in a server session: before the profile's first judgment, which may follow a
+switch.
 
 When the provider in use answers an HTTP status in its profile's
 `insufficient_balance`, backfire sends the same judgment to the next usable
@@ -109,27 +105,27 @@ profile in the order and keeps that profile for the rest of the session. The
 log records each switch. Other errors never switch, and backfire returns to
 the top of the order only when the client session restarts. In the work
 plugin every profile receives only pseudonymized text; the user accepted on
-2026-09-30 that it may then reach OpenRouter and TypeSafe.
+2026-09-30 that it may reach OpenRouter and TypeSafe.
 
 ## Set the credential
 
 The key file has one `<variable>=<key>` line, must be a regular file owned
 by the operator with mode `0600`, and is read when backfire first uses its
-profile. For Hive it is
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/hive.env` with
-`HIVE_API_KEY=<your key>`; the work plugin's `education` profile reads
-`education.env`, and a symbolic link from `education.env` to `hive.env`
-keeps one copy of the key. The shipped `vercel` profile reads
-`AI_GATEWAY_API_KEY` from `~/.config/verbose-broccoli/chat/jev.env`, the
-key file the chat plugin also uses. The shipped `openrouter` profiles read
-`OPENROUTER_API_KEY` from `../providers/openrouter.env`, relative to the
-operator file's folder. Keep keys out of `config.toml`, plugin files and
-client environment entries.
+profile. Provider keys live in one shared folder,
+`$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default
+`~/.config/verbose-broccoli/providers/`, mode `0700`), with one file per
+provider that every plugin uses. The shipped `openrouter` profile reads
+`OPENROUTER_API_KEY` from `providers/openrouter.env`, and the shipped `hive`
+profile reads `HIVE_API_KEY` from `providers/hive.env`. They name the files
+relative to the operator file's folder (`../providers/<provider>.env`), so
+the path follows `XDG_CONFIG_HOME`. An operator profile without
+`credential_file` still reads `<profile>.env` beside the operator file. Keep
+keys out of `config.toml`, plugin files and client environment entries.
 
 ## Work plugin
 
-`serve-mcp --education` uses the work plugin's order and pseudonymizes
-every judgment once, whichever profile answers: the tool's
+`serve-mcp --education` uses the shared order and pseudonymizes every
+judgment once, whichever profile answers: the tool's
 input, the question keys, and every text in the questions (wording, choice
 labels and their descriptions, Noul criteria and rubric levels). It also
 turns off PyModel's optional response cache (`JEV_MCP_CACHE`), so real names
@@ -218,8 +214,8 @@ PyModel retries a failed attempt on HTTP 408, 429 and 5xx, and on a timed
 out or dropped connection. Its default policy allows 3 attempts of 30
 seconds each within 90 seconds; a profile's optional `retry` table sets
 PyModel's policy fields instead (`max_attempts`, `per_attempt_timeout`,
-`budget`, the backoff fields and `statuses`). The shipped Hive and
-education profiles set `per_attempt_timeout = 110` and `budget = 118`,
+`budget`, the backoff fields and `statuses`). The shipped `hive` profile
+sets `per_attempt_timeout = 110` and `budget = 118`,
 because the reasoning model needs more than 30 seconds for large requests.
 For a general-model profile, backfire also retries a success reply that
 carries no answer (CHE-33). Backfire keeps no records of calls or

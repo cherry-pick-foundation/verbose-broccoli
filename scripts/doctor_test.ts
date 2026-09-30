@@ -170,6 +170,7 @@ void test('doctor: installed identities, versions and root lock work outside the
     assertEquals(report.uv.version, '0.11.32');
     assertEquals(report.gitFlow.version, '2.1.0');
     assertEquals(report.lychee.version, '0.24.2');
+    assertEquals(report.codexbar.version, '0.69.0');
     const [nodeMajor, nodeMinor] = report.node.version.split('.').map(Number);
     assert(
       nodeMajor > 24 || (nodeMajor === 24 && nodeMinor >= 12),
@@ -347,6 +348,16 @@ void test('doctor: version probes require exact versions, successful exit and bo
       () => probeVersion(wrongLychee, 'lychee'),
       Error,
       'lychee must report version 0.24.2',
+    );
+    const wrongCodexBar = await fixture(
+      root,
+      'wrong-codexbar',
+      "console.log('CodexBar 0.68.0');",
+    );
+    await assertRejects(
+      () => probeVersion(wrongCodexBar, 'codexbar'),
+      Error,
+      'codexbar must report version 0.69.0',
     );
     const wrongQuarto = await fixture(
       root,
