@@ -29,11 +29,11 @@ remains open.
 
 check-jsonschema 0.38.2 validates the plugin manifests offline against the
 unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
-project whose `uv.lock` pins it. `npm run check` (`turbo run check`) runs the runtime doctor, formatting, lint, the
-shell check, type checks, plugin schema validation, Clean Code, architecture checks, the test
-suites, the own-code limit (see
-[Own-code limit](#own-code-limit--2026-09-30)) and the document region check,
-which also covers the generated references (see
+project whose `uv.lock` pins it. `npm run check` (`turbo run check
+--summarize`) runs the environment check, formatting, lint, the shell check,
+type checks, plugin schema validation, Clean Code, the TypeScript and Python
+import checks, the test suites and the document region check, which also
+covers the generated references (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -44,20 +44,41 @@ Ruff 0.16.9 lints and formats Python; `tools/ruff/uv.lock` pins its environment.
 The Clean Code skill keeps its own ESLint-based checker. ShellCheck 0.11.0,
 which the Google shell style guide recommends, checks the repository's own
 shell scripts: `npm run lint:shell` runs it on every `*.sh` file and on the
-hooks in `scripts/git-hooks/` and `scripts/git-flow-hooks/`, but not on Spec
+hooks in `scripts/git-flow-hooks/`, but not on Spec
 Kit's vendored scripts under `.specify/`. The root `.shellcheckrc` turns on
 four optional checks for guide rules: `${var}` braces, quoted variables,
 explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts stay
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
-official binary; Orca's setup script syncs it. `doctor` checks the
-selected standalone Quarto executable, uv, git-flow and lychee from
-`PATH`, the Spec Kit, ShellCheck, Ruff, scc, doc-regions and
-wiki-consistency environments, the git-flow configuration
-and locked dependencies without writing by default. `workflow` supplies execution mode, graph queries,
-verification evidence and three additive skill triggers; `verify` uses that same
-loop. In REVIEW mode it asks the implementer or the orchestrator to review the
+official binary; Orca's setup script syncs it.
+
+mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
+lychee 0.24.2, Vale 3.23.0 and git-flow-next 2.1.0, and `mise.lock` records
+each download's URL, checksum and provenance. Node.js stays on the user's
+mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
+1.10.18 stays a separately installed converter. `npm run doctor` runs `mise
+doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
+version, the locked uv environments, the npm trees, the git-flow configuration
+and lefthook's hooks, and name the repair command for each failure. The user's
+machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
+content; Orca's setup script trusts it and installs the four tools with
+`mise install --locked`. The user's shell pins mise's and rustup's folders
+(`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
+so tests that use a temporary `HOME` still find mise's configuration and do
+not download toolchains.
+
+`workflow` supplies execution mode, graph queries and three additive skill
+triggers. `verify` runs `npm run check` through Turborepo with a run summary
+and passes only when the checks exit 0 and the same run's summary under
+`.turbo/runs/` (ignored by Git) reports no failure; it prints VERIFIED. The
+Turborepo runs turn telemetry and update notices off and ignore remote-cache
+credentials. dependency-cruiser 18.2.0 answers the graph queries and checks
+TypeScript and JavaScript imports with the rules in `.dependency-cruiser.json`
+(`npm run clean-architecture`); a new package's public entries need a line
+there. import-linter 2.15 checks the Python packages' layers and cycles with
+the contracts in the root `pyproject.toml` (`npm run python:imports`). In
+REVIEW mode it asks the implementer or the orchestrator to review the
 diff before each commit and leaves the independent review to the merge into `develop` or
 `main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later
 feature work.
@@ -68,8 +89,8 @@ help text of the repository's own commands, and the
 Both are Cog regions (see
 [Document consistency](#document-consistency--2026-09-28)): `npm run
 doc-regions:update` refreshes them, and `npm run doc-regions:check` rejects
-stale output without writing. `check`, the `verify` loop and the PR
-documentation job run that check. The job definition alone does not establish
+stale output without writing. `check`, `verify` and the PR documentation job
+run that check. The job definition alone does not establish
 a successful hosted run or required branch protection.
 
 Workflow difficulty is independent of execution mode, verification and model
@@ -98,39 +119,11 @@ includes the policy version, scope, level, Korean description and measured facts
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
 or selects a model. Model selection remains a separate client decision.
 
-### Own-code limit — 2026-09-30
-
-A feature branch may add at most 300 net lines of the repository's own code
-against its merge base with `develop`, unless the user approves more
-([feature 022](../specs/022-own-code-limit/spec.md), CHE-42). `npm run
-own-code` (`scripts/own_code.ts`), part of `npm run check`, measures the
-worktree and the merge base, prints both sizes and the net change, and fails
-over the limit. The feature finish hook runs `npm run verify`, so the limit
-also guards the merge into `develop`; `develop` itself measures net 0.
-
-- scc 4.1.0 counts code lines, neither blank nor comment. `tools/scc/` is a uv
-  project whose `uv.lock` pins `scc-bin` 4.1.0, the PyPI wheels of scc's
-  release binaries; Orca's setup script syncs it.
-- Code is a file whose scc language GitHub Linguist's data
-  (`linguist-languages` 9.5.0) classes as programming, so Markdown, JSON,
-  YAML and TOML do not count.
-- Tests do not count: paths under a `tests/` folder or named `*_test.*` or
-  `*.test.*`.
-- Upstream copies do not count: files whose SHA-256 appears in an
-  `UPSTREAM.md`, an `upstream.json` or a Spec Kit install manifest
-  (`.specify/integrations/*.manifest.json`) of the same tree. A patched copy
-  no longer matches, so it counts in full. Copies without recorded hashes,
-  such as Ponytail's hook modules and Spec Kit's extension scripts, count as
-  own code.
-- The user's approval of a larger limit is a line
-  `**Own-code limit**: <number>, approved by the user on <date>` that the
-  branch adds to its records under `specs/`, `.specify/bugs/` or
-  `.specify/assessments/`. A line already on `develop` does not count.
 
 ## CLI contract
 
-The repository-owned entrypoints `doctor`, `workflow` (and its `verify` alias),
-`clean-architecture` and `clean-code` (including `--scope`)
+The repository-owned entrypoints `workflow` (and its `verify` alias) and
+`clean-code` (including `--scope`)
 use pinned Cliffy for help and parsing. A small shared serializer owns JSON
 output, error serialization and exit classification; it is exported only as
 the `code` package's `./cli` entry and bundled in the portable clean-code
@@ -147,8 +140,7 @@ skill.
 Errors use `{ "error": { "code": "INVALID_ARGUMENT", "message": "..." } }`.
 Codes are `INVALID_ARGUMENT`, `EXECUTION_FAILED` and `CHECK_FAILED`. The
 `details` field sits beside `error` and keeps the checker or workflow report,
-including loop evidence, graph diagnostics and skill guidance when a workflow
-gate fails. A selected REVIEW mode is not a failed check and still exits 0.
+including graph diagnostics and skill guidance when a workflow gate fails. A selected REVIEW mode is not a failed check and still exits 0.
 Use `npm run --silent <command>` for machine consumption; npm's own banners
 and launch failures are outside this contract, and gts, Prettier and Node
 test output keep their native form.
@@ -162,8 +154,8 @@ the `code` package's [Clean Code skill](../plugins/code/skills/clean-code/SKILL.
 workspace member does not make it an independently published JSR package.
 
 The root README is a short project summary; use specs and docs for detailed
-documentation. The dependency pins remain in `package.json` and `package-lock.json`, and
-the Ajv subpath mapping uses the same approved package version.
+documentation. The dependency pins remain in `package.json` and
+`package-lock.json`.
 
 ## Package and runtime ownership
 
@@ -212,8 +204,10 @@ read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
 are the only record of sources and revisions. The user's exclusions live in
-`$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging and the
-one-run lock live under the cache and state roots.
+`$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging lives under
+the cache root. The import makes each bag with bagit 1.9.0's own `make_bag`;
+it no longer locks out a second run into the same vault, cleans up staging
+left by a crash, or hashes the original again after copying.
 
 ### Wiki consistency
 
@@ -290,7 +284,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run
-  doctor` checks them and Node.js 24.12.0 or later. `npm run test:wiki-consistency` runs
+  doctor` checks them. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.md` entries, applying a
@@ -435,11 +429,11 @@ Features are finished into `develop` with git-flow-next 2.1.0
 unchanged; only its settings and one hook adapt it to the constitution's git
 flow rule.
 
-- git-flow-next is a host tool at `~/.local/bin/git-flow`, installed from the
-  release's linux-amd64 archive after checking it against the release's
-  checksum file. Orca's setup script requires it, trusts the committed hook
-  path and runs `git flow config sync`. `npm run doctor` checks its version
-  and that the local Git config matches `.gitflow`.
+- git-flow-next is pinned through mise (see the mise paragraph under
+  [Current skeleton](#current-skeleton)); the mise copy is byte-identical to
+  the earlier host copy in `~/.local/bin`. Orca's setup script trusts the
+  committed hook path and runs `git flow config sync`, and `npm run doctor`
+  checks that the local Git config matches `.gitflow`.
 - `.gitflow` configures only `main`, `develop` and `feature/`. Features merge
   with `--no-ff`, keep their branch, never fetch or push, and are updated from
   `develop` by merge, not rebase. Release and hotfix types are left out, so
@@ -462,9 +456,7 @@ flow rule.
   `scripts/git-flow-hooks/pre-flow-feature-finish` refuses the finish unless
   that worktree is on `develop` with no uncommitted changes, `develop` is an
   ancestor of the feature, the feature is checked out in a clean worktree, its
-  tip is a review record, every non-merge feature commit that changes the
-  constitution passes the version rule against its parent, and `npm run
-  verify` passes there. A review record has one parent and the same tree as
+  tip is a review record, and `npm run verify` passes there. A review record has one parent and the same tree as
   that parent, exactly one non-empty `Reviewed-by` trailer, and exactly one
   `Reviewed-commit` trailer that resolves to the parent. The merge then has
   Git's default message, its parents are `develop` and then the review record,
@@ -487,12 +479,13 @@ flow rule.
 
 ### Commit messages — 2026-09-27
 
-Every commit in a set-up worktree passes the `commit-msg` hook
-`scripts/git-hooks/commit-msg`. It runs commitlint 21.2.3
+Every commit in a set-up worktree passes the `commit-msg` hook that lefthook
+2.1.15 (<https://github.com/evilmartians/lefthook>, MIT) installs from the
+root `lefthook.yml`. It runs commitlint 21.2.3
 (<https://github.com/conventional-changelog/commitlint>, MIT) with
 `@commitlint/config-conventional` and the Conventional Commits parser preset
-from `conventional-changelog-conventionalcommits` 10.4.0, pinned in `package.json`
-and `package-lock.json` and run by `npm run commitlint`.
+from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
+`package.json` and `package-lock.json`.
 
 - Headers must follow Conventional Commits 1.0.0 as `config-conventional`
   defines it. Any trailer is accepted, including `Spec-Kit-Task`,
@@ -501,44 +494,27 @@ and `package-lock.json` and run by `npm run commitlint`.
   hand-finished merges pass. At commit time, commitlint's default ignores also
   skip other messages, such as those starting with `fixup!`, `squash!`,
   `amend!`, `Revert ` or `Reapply `.
-- One local rule, in `scripts/constitution_version.ts`, compares
-  `.specify/memory/constitution.md` in `HEAD` with the index being committed.
-  A commit that changes the file must raise its version exactly one step: a
-  breaking commit (`!` or a `BREAKING CHANGE` footer) the first digit, `feat`
-  the middle digit, `docs` or `fix` the last digit. Other types and an
-  unchanged version are refused. A breaking change also needs the user's
-  approval before it is committed, which the hook cannot check.
-- An amend is compared with `HEAD^`, the parent of the commit it replaces, so
-  it keeps the version that commit set. Git does not tell a `commit-msg` hook
-  about `--amend`, so the hook reads the arguments of the `git` process that
-  runs it from `/proc/$PPID/cmdline`. When one is `--amend` or an abbreviation
-  git accepts (`--am`, `--ame`, `--amen`) and no later `--no-amend` form
-  cancels it, the hook sets `CONSTITUTION_VERSION_AMEND` for the rule;
-  otherwise it clears any inherited value. Where those arguments cannot be
-  read, an amend is compared with the commit it replaces, as before this rule
-  handled amends, so it can be refused or accepted wrongly. The hook does not
-  know which options take a value, so a value such as the message in
-  `-m --amend` counts as the flag: a new commit is then compared with `HEAD^`,
-  and a value `--no-amend` hides a real amend.
-- `git rebase -i` does not run `commit-msg` for `fixup` or `squash`. Before a
-  feature finish, the hook checks each non-merge feature commit that changes
-  the constitution against its parent and its own tree. This check disables
-  commitlint's default ignores and applies only the version rule, so combined
-  commits and `fixup!` messages are checked. A refusal names the commit and
-  branch; rewrite it, then review and record again.
+- The constitution's version rule (see its Governance section) is not
+  checked by a hook. The author writes the new version with commitizen 4.19.0
+  (<https://github.com/commitizen-tools/commitizen>, MIT): `npm run
+  constitution:bump -- PATCH`, `MINOR` or `MAJOR` rewrites the `**Version**:`
+  line and the version in `.cz.toml`, with no commit, tag, changelog or hooks.
+  Reviewers check that the step matches the commit type. `tools/commitizen/`
+  is a uv project whose `uv.lock` pins it.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
   TypeScript configuration through jiti, which cannot resolve `npm:`
   specifiers, and resolves the preset's package name with `require.resolve`,
   which needs `node_modules`; so the configuration is plain JavaScript and
   passes the preset's parser options directly.
-- Git finds the hook through the repository setting `core.hooksPath =
-  scripts/git-hooks`. The path is relative, so each worktree runs its own
-  checkout's hook, and a worktree whose checkout has no `scripts/git-hooks/`
-  runs none. Orca's setup script sets it, and `npm run doctor` fails when it
-  differs. The hook finds Node.js on `PATH` and refuses
-  the commit when it is missing.
-- `npm run test:commit-msg` checks the rule and real commits in temporary
-  repositories.
+- lefthook installs its hooks into the Git hooks folder that all worktrees
+  share, and each hook reads the running worktree's `lefthook.yml` and runs
+  its `node_modules/lefthook`. When a worktree lacks that binary, the hook
+  refuses the commit (`assert_lefthook_installed`) instead of skipping the
+  check, and lefthook never installs itself (`no_auto_install`). Orca's setup
+  script runs `./node_modules/.bin/lefthook install`, and `npm run doctor`
+  checks the installation.
+- `npm run test:commit-msg` checks commit messages through lefthook in
+  temporary repositories.
 
 ### Linear — 2026-09-27
 
@@ -628,7 +604,7 @@ or an agent region, written by agents. No part is human-written.
   Findings for these two files, from the audit or from backfire, are only
   reported to the user; the tooling never changes them.
 - The engine is the uv project `packages/doc-regions/`. Orca's setup script
-  syncs it, and `npm run doctor` checks its environment and lychee's version.
+  syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
 - lychee is a host tool at `~/.local/bin/lychee`, installed from the release's
