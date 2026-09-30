@@ -354,9 +354,10 @@ package two skills backed by two uv workspace packages.
   `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
   `openrouter.env`, `hive.env`, and `github.env` for the offer search's
-  optional GitHub token), which every plugin uses. The chat packages
-  get them through `uv run --env-file` and never read the files; backfire's
-  shipped profiles name them in `credential_file`.
+  optional GitHub token), which every plugin uses. The web agent gets its
+  provider key through `uv run --env-file`; credit offers passes only the
+  optional `github.env`. Backfire reads provider keys through its own shipped
+  profiles' `credential_file` fields and follows its shared provider order.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
 - Not automated: the live provider check, which waits for a provider that

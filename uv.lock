@@ -331,8 +331,8 @@ name = "credit-offers"
 version = "0.1.0"
 source = { editable = "packages/credit-offers" }
 dependencies = [
+    { name = "backfire" },
     { name = "httpx" },
-    { name = "jev-ultrafast" },
 ]
 
 [package.dev-dependencies]
@@ -342,8 +342,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "backfire", editable = "packages/backfire" },
     { name = "httpx", specifier = ">=0.28,<1" },
-    { name = "jev-ultrafast", editable = "packages/jev-ultrafast" },
 ]
 
 [package.metadata.requires-dev]
