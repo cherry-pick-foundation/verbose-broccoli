@@ -44,7 +44,10 @@ files and can run in parallel.
   field names, birth-date forms, house numbers beside road names, grade
   wordings, provider errors echoing request text); all 165 refusal checks
   passed. A fresh privacy review follows T008.
-- [ ] T008 Resolve findings; rerun `npm run verify`; commit. Coordinator.
+- [X] T008 Resolve findings; rerun `npm run verify`; commit. Coordinator.
+  Commit `acd3a0a` fixes all six groups with tests that fail on the old
+  source; the reviewer's script then reported 0 leaks in 801 cases, 55/55
+  documented limits and 165/165 refusals, and `npm run verify` VERIFIED.
 
 ## Phase 4: User Stories 3-4, student pages (P2, after CHE-59)
 

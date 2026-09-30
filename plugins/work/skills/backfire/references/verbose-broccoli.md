@@ -39,7 +39,9 @@ restores them in the results, so tool results use the text you supplied:
 - birth dates after a keyword such as `born` or `DOB`, and `2009년생`;
 - addresses after `address` or `주소`, and romanized address parts such as
   `Bijeon-ro 12`;
-- phone numbers and email addresses, whether or not the roster lists them.
+- phone numbers and email addresses, whether or not the roster lists them;
+- the value of a field named for one of these kinds, such as `DOB`,
+  `address` or `grade`, and a roster EduOK number given as a JSON number.
 
 After the replacement, the backend scans the request again and refuses it with
 `identifier_remaining` if an identifier is left.
