@@ -48,8 +48,8 @@ If the requirement cannot be met without substantial new local implementation, s
 
 - Before editing, after scope changes, and before completion, run
   `npm run workflow` and follow the execution instructions it prints.
-- Before completion, `npm run verify` must pass; it runs all checks and
-  records evidence.
+- Before completion, `npm run verify` must pass; it runs all checks through
+  Turborepo and passes on their exit status and the same run's summary.
 - The main agent chooses each worker's and reviewer's model, reasoning effort
   and time budget from the code plugin's backfire judgments.
 
@@ -62,6 +62,9 @@ If the requirement cannot be met without substantial new local implementation, s
 - Resolve actionable findings, rerun the affected verification, and repeat the
   review when fixes change the implementation materially.
 - Before each commit, the implementer or the orchestrator reviews the diff.
+- If a feature's change against its merge base with `develop` reaches 1,000
+  lines or more (`git diff --stat`; deleting a whole file counts as about one
+  line), review whether to split it before the `develop` merge review.
 - A review before merging into `develop` favors speed; one before merging into
   `main` favors accuracy.
 
