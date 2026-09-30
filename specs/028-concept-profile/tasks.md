@@ -183,7 +183,7 @@ below.
 
 ## Phase 4: Review and finish
 
-- [ ] T011 Measure the change size against `develop`; move CHE-57 to In
+- [x] T011 Measure the change size against `develop`; move CHE-57 to In
   Review and the worktree's board status to `in-review`; merge `develop`;
   run `npm run verify`.
   - 2026-09-30: 1,982 lines against develop d677430 merged (e9002f7): 1,040
@@ -208,8 +208,11 @@ below.
   review-record commit, check develop has not moved, `git flow feature
   finish` from the develop worktree, a CHE-57 comment (issue stays open),
   and the board status `completed`.
-- [ ] T012 Develop merge review by a fresh reviewer from the other provider,
+- [x] T012 Develop merge review by a fresh reviewer from the other provider,
   given only the scope and requirements; resolve findings; add the
   review-record commit; check `develop` has not moved; `git flow feature
   finish`; comment on CHE-57 with the merge commit and the record location,
   leaving it open for stage 2; set the board status to `completed`.
+  - 2026-09-30: finished into `develop` as `4065748` (review record
+    `4d04be7`); `npm run verify` VERIFIED on `develop` (37 of 37). Stage 2
+    moves to its own issue. Nothing blocked.
