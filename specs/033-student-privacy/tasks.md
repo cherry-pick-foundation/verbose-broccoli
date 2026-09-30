@@ -48,6 +48,15 @@ files and can run in parallel.
   Commit `acd3a0a` fixes all six groups with tests that fail on the old
   source; the reviewer's script then reported 0 leaks in 801 cases, 55/55
   documented limits and 165/165 refusals, and `npm run verify` VERIFIED.
+  A second, fresh Codex privacy review (`gpt-6-astra` xhigh, `jev_decide`
+  0.97) of `5ac6e3d` then found four more leak classes (fields in Markdown
+  markup, nested objects under a named field, English prose forms, compound
+  road names): 102 exposures in 539 cases. Round two, Claude Code Opus at
+  xhigh (`jev_decide` 0.58), closed them as classes and added a fail-closed
+  refusal for labeled birth-date, address and student-number fields whose
+  value stays; commit `e48e215`, both reviewers' scripts at 0 unexpected
+  exposures, 63 new tests failing on the old source, `npm run verify`
+  VERIFIED.
 
 ## Phase 4: User Stories 3-4, student pages (P2, after CHE-59)
 
@@ -93,7 +102,10 @@ files and can run in parallel.
   change, and go to the user unchanged.
 
 - [ ] T013 Final review by a reviewer from the other provider; resolve
-  findings. Coordinator.
+  findings. Coordinator. The develop merge review (Codex `gpt-6-luna`
+  medium, `jev_decide` 0.88) of `5ac6e3d` asked for one change: a link
+  leaving the Wiki made the page rules skip every page, an older shortcut;
+  fixed in `74f8977` and approved on follow-up.
 - [ ] T014 Record, In Review, merge `develop`, `npm run verify`, review
   record, `git flow feature finish` when the develop session allows; Done
   with one completion comment. Coordinator.
