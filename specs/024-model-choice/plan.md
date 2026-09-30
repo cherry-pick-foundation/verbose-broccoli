@@ -143,6 +143,27 @@ efforts.
   through `uv run --no-project --env-file <file> ... -- codexbar usage`,
   the `--env-file` pattern the chat plugin uses; nothing is written to
   CodexBar's config file.
+- Review result (T010): both reviews said "install with limits". No
+  telemetry, auto-update or listener in `usage`; each credential goes only to
+  its provider's host; the tarball matches the tag (all 77 plugin files, 785
+  of 785 compiled source paths) but is not signed. The limits: one explicit
+  `--provider` per call, never `all`, `both` or `--status` (`all` reads other
+  tools' secrets); `--source oauth` for Claude and Codex (Claude's default
+  path types `/usage` into a real interactive Claude session that could start
+  a billed turn); only the call's own key, with the variables that reroute
+  keys or switch sources unset; no CodexBar config file and an empty
+  `~/.config/codexbar/providers/`; only the `usage` command; account identity
+  stripped from the JSON before it is shared. Where review A preferred
+  `--source cli` for Claude (OAuth may keep a hash of the token after a rate
+  limit, low) and review B `--source oauth` (medium risk above), the lower
+  risk wins.
+- Checked on 2026-09-30 with those limits: all four calls succeed. Codex's
+  extra-usage credit balance was 0 while its weekly window had room, so a zero
+  credit balance alone does not mean Codex is exhausted. Review A's
+  one-time check of the Codex login found no `chatgpt_base_url` in
+  `~/.codex/config.toml` and no `OPENAI_API_KEY` in `~/.codex/auth.json`.
+  Besides the files the reviews list, a Claude call left an empty
+  `~/.codexbar/claude-oauth-cache.lock` (mode 600).
 
 ## Technical Context
 

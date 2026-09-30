@@ -52,16 +52,16 @@ choice holds no credentials and no personal records.
 **Independent Test**: `diff` against the pinned upstream file shows only the
 changes `upstream.json` lists.
 
-- [ ] T002 [US4] Copy upstream `skills/typesafe-ai/SKILL.md` and `LICENSE` at
+- [x] T002 [US4] Copy upstream `skills/typesafe-ai/SKILL.md` and `LICENSE` at
   `65a39f393687675ce170e6094757de20370365b9` into
   `plugins/code/skills/model-choice/`; change the frontmatter `name` to
   `model-choice` and the `description` to what discovery needs; add one link
   to `references/model-choice.md`; apply the changes T001's result requires
   (FR-001; plan.md R1, R2).
-- [ ] T003 [US4] Write `plugins/code/skills/model-choice/upstream.json` in the
+- [x] T003 [US4] Write `plugins/code/skills/model-choice/upstream.json` in the
   form of `plugins/code/skills/backfire/upstream.json`, with the upstream
   `SKILL.md`'s SHA-256 and every local change (FR-002).
-- [ ] T004 [P] [US4] Add the `typesafe-ai/skills` entry to
+- [x] T004 [P] [US4] Add the `typesafe-ai/skills` entry to
   `licenses/THIRD_PARTY_NOTICES.md` in the form of the existing entries
   (FR-003).
 
@@ -76,7 +76,7 @@ backfire, with or without its MCP tools loaded.
 from the named catalogs, `jev_decide` gets 2 to 6 of them, and the resulting
 `worker-start` command names the agent, model and effort.
 
-- [ ] T005 [US1] [US2] [US3] Write
+- [x] T005 [US1] [US2] [US3] Write
   `plugins/code/skills/model-choice/references/model-choice.md`: live
   catalogs, evidence, the call, acting on the answer, and calling backfire
   without its MCP tools, the Orca board status and child worktrees; no
@@ -94,20 +94,22 @@ stays.
 
 **Independent Test**: Read `AGENTS.md` and `.claude/rules/claude-code.md`.
 
-- [ ] T006 [P] [US3] Point `AGENTS.md`'s model-choice line in "Workflow and
+- [x] T006 [P] [US3] Point `AGENTS.md`'s model-choice line in "Workflow and
   verification" to the `model-choice` skill (FR-010).
-- [ ] T007 [P] [US3] Drop the fixed Claude-coordinates and Codex-implements
+- [x] T007 [P] [US3] Drop the fixed Claude-coordinates and Codex-implements
   roles from `.claude/rules/claude-code.md` and keep the other-provider final
   review (FR-011).
-- [ ] T008 [US3] Refresh `docs/architecture.md`: regenerate its skill table
+- [x] T008 [US3] Refresh `docs/architecture.md`: regenerate its skill table
   with `npm run doc-regions:update` and make its sentence on model selection
   name the skill.
-- [ ] T009 [P] [US3] Drop the fixed-role sentence from `.codex/config.toml`'s
+- [x] T009 [P] [US3] Drop the fixed-role sentence from `.codex/config.toml`'s
   `developer_instructions` and keep "Do not approve your own change as
   final." (FR-017).
 - T002 to T009 (T005 without its usage-limit part): 2026-09-30, one Claude
   Code worker on `claude-opus-5-5` at high (backfire: agent 0.58, confidence
-  0.50; model 0.70, confidence 0.65; effort 0.45, confidence 0.37).
+  0.50; model 0.70, confidence 0.65; effort 0.45, confidence 0.37). The
+  snippet's test call returned a clear pick (probability 0.95). Committed as
+  26856e3.
 
 ---
 
@@ -118,27 +120,47 @@ stays.
 **Independent Test**: The reference's CodexBar call returns the limits of the
 providers it can read, with no key in its output or files.
 
-- [ ] T010 [US1] Review CodexBar v0.69.0's source read-only in two parts: A,
+- [x] T010 [US1] Review CodexBar v0.69.0's source read-only in two parts: A,
   credential sources and destinations for Codex, Claude, OpenRouter and
   Vercel and the plugin host; B, telemetry, auto-update, subprocesses,
   listeners, files written and release provenance (FR-014; plan.md R7).
   - 2026-09-30: two Claude Code workers on `claude-opus-5-5` at max
     (backfire: model 0.45, confidence 0.38; effort 0.42, confidence 0.34).
-- [ ] T011 [US1] Install the checksum-checked release into
+    Both said "install with limits"; plan.md R7 lists the limits. Reports:
+    `.local/model-choice/codexbar-review-a.md` and `-b.md` (git-ignored).
+- [x] T011 [US1] Install the checksum-checked release into
   `~/.local/opt/codexbar-0.69.0/` with `~/.local/bin/codexbar` linking to it,
   after T010 passes (FR-015).
-- [ ] T012 [US1] Pin CodexBar 0.69.0 in `scripts/doctor.ts` and
+  - 2026-09-30: installed by the coordinator; `codexbar --version` prints
+    "CodexBar 0.69.0"; the four limited calls succeed.
+- [x] T012 [US1] Pin CodexBar 0.69.0 in `scripts/doctor.ts` and
   `scripts/doctor_test.ts` like lychee, and name it in `docs/architecture.md`
   (FR-015).
-- [ ] T013 [US1] Add the CodexBar call to
+- [x] T013 [US1] Add the CodexBar call to
   `plugins/code/skills/model-choice/references/model-choice.md`: keys as
   environment variables from the provider env files, one call, drop
   candidates with a zero balance or a used-up limit, remaining limits and
   reset times as evidence (FR-005, FR-016).
+- T012 and T013: 2026-09-30, one Claude Code worker on `claude-opus-5-5` at
+  high (backfire: agent 0.80, confidence 0.76; model 0.78, confidence 0.74;
+  effort 0.65, confidence 0.60). npm run doctor reports CodexBar 0.69.0;
+  test:doctor passes 21 of 21. Committed as 1dc2e28 and 48704bd.
 
 ---
 
 ## Phase 6: Polish and finish
+
+- [x] T016 Pass the `MISE_*` variables through Turborepo (`turbo.json`
+  `globalPassThroughEnv`, after `UV_*`), as the develop session asked every
+  feature on 2026-09-30, so tests keep mise's settings in paranoid mode.
+  Committed as d6293c5. Side effect found: tests with a temporary `HOME` then
+  load the global mise config and rustup installs about 1.5 GB into each
+  temporary home, filling `/tmp`; reported to the develop session, which
+  holds this feature's finish until CHE-44 fixes it. The user's fix: shells
+  also export `RUSTUP_HOME` and `CARGO_HOME`, and `turbo.json` passes both
+  right after `MISE_*` (acc7f47, a follow-up on the same Claude Code worker;
+  backfire: reuse 0.92, confidence 0.90). `scripts/doctor_test.ts` needed no
+  change: its helper already merges the parent environment (line 45).
 
 - [ ] T014 Run `npm run verify` on the feature and on the result merged with
   `develop` (FR-013, SC-004).

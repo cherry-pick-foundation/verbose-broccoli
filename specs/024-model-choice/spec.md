@@ -62,6 +62,9 @@ backfire's own provider choice use CodexBar and depends on this install.
 - Q: Does `.codex/config.toml`'s fixed-role sentence go too? → A: Yes. Drop
   "You usually work here as an implementation worker, and the coordinator
   reviews your change." and keep "Do not approve your own change as final."
+- Q: CodexBar's security review allows one provider per call; does that
+  replace "one CodexBar call"? → A: Yes. "One call" was the develop session's
+  wording, not the user's; the review's six limits stand (plan.md R7).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -205,9 +208,9 @@ feature's records.
   limits that `~/.claude/rules/worker-dispatch.md` records (Orca's catalog caps
   some efforts; those go through the terminal path).
 - **FR-005**: The reference MUST name the evidence to give backfire: the task
-  spec, the remaining usage limits and credit with their reset times from one
-  `codexbar usage --format json` call (FR-015), track records in this
-  repository, and the user's standing priorities.
+  spec, the remaining usage limits and credit with their reset times from
+  `codexbar usage --format json` (FR-016), track records in this repository,
+  and the user's standing priorities.
 - **FR-006**: The reference MUST describe the call: `jev_decide` takes 2 to 6
   candidates, so narrow first (for example with `jev_rerank`) or decide in two
   steps, and it MUST point to the `jev_decide` and `jev_rerank` blocks of
@@ -237,13 +240,14 @@ feature's records.
   finding.
 - **FR-015**: CodexBar's command-line tool MUST be installed unchanged from
   its pinned Linux release after a checksum check, and pinned the way the
-  repository pins its other host tools, so that `npm run doctor` reports a
-  different version.
-- **FR-016**: The reference MUST read the limits with one CodexBar call,
-  passing `OPENROUTER_API_KEY` and `AI_GATEWAY_API_KEY` as environment
-  variables from `~/.config/verbose-broccoli/providers/*.env` and never
-  printing them; drop candidates whose provider balance is zero or whose
-  limit is used up; and give the remaining limits and reset times to
+  repository pins its other host tools, so that `npm run doctor` fails when
+  another version is installed.
+- **FR-016**: The reference MUST read the limits with CodexBar, one call per
+  provider under the security review's limits, passing `OPENROUTER_API_KEY`
+  and `AI_GATEWAY_API_KEY` as environment variables from
+  `~/.config/verbose-broccoli/providers/*.env`, each only to its own call,
+  and never printing them; drop candidates whose provider balance is zero or
+  whose limit is used up; and give the remaining limits and reset times to
   `jev_decide` as evidence.
 - **FR-017**: `.codex/config.toml` MUST drop its fixed-role sentence and keep
   "Do not approve your own change as final."
