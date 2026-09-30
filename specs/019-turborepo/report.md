@@ -78,7 +78,7 @@ Check time is about the same as `develop`'s; CPU time is about 13 % higher.
   sites `can_stay` at 0.93 although the method does not exist on Node. Its
   patch reviews escalated most patches with low confidence on test
   coverage; the coordinator checked those points by hand
-  ([evidence/review-T010.json](evidence/review-T010.json) records one such
+  ([evidence/review-T010.json](evidence/review-t010.json) records one such
   check).
 
 ## Design decisions (backfire_decide)

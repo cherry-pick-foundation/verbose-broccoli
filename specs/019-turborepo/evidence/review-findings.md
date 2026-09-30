@@ -1,8 +1,8 @@
 # Review findings and what backfire selected
 
 Batch 24 of `backfire_classify` ([classify-review.json](classify-review.json))
-classified the findings of the final reviews ([CR1](review-CR1.md),
-[CR2](review-CR2.md), [CR3](review-CR3.md), [R3](review-R3.md)). Only
+classified the findings of the final reviews ([CR1](review-cr1.md),
+[CR2](review-cr2.md), [CR3](review-cr3.md), [R3](review-r3.md)). Only
 `must_change` rows with an `auto` decision are fixed (FIX); `manual_review`
 rows went to a decision, D19 to D21 (DECIDE); the other rows stay as they
 are and are listed in the report (leave). F1, F2 and F3 are the fix tasks.
@@ -34,7 +34,7 @@ are and are listed in the report (leave). F1, F2 and F3 are the fix tasks.
 - leave `V25` can_stay (auto, 0.90): biome.json:49 (deleted Deno entry); scripts/clean_architecture_test.ts:163-170
 - FIX `V26` must_change (auto, 0.85) → F1: scripts/doctor.ts (no Turborepo probe)
 
-Batch 25 classified the code findings of the last review ([CR4](review-CR4.md)); [R4](review-R4.md) found only gaps in the report and the task ledger, which the coordinator fixed.
+Batch 25 classified the code findings of the last review ([CR4](review-cr4.md)); [R4](review-r4.md) found only gaps in the report and the task ledger, which the coordinator fixed.
 
 - FIX `V27` must_change (auto, 0.85) → F4: scripts/clean_architecture.ts:248; scripts/clean_architecture_test.ts:124-153
 - FIX `V28` must_change (auto, 0.90) → F4: docs/architecture.md:253

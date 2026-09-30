@@ -20,7 +20,7 @@ const commands = [
   {name: 'workflow', script: 'scripts/workflow.ts'},
   {
     name: 'clean-code',
-    script: 'plugins/code/skills/clean-code/scripts/clean_code.ts',
+    script: 'plugins/code/skills/clean-code/scripts/clean-code.ts',
   },
 ];
 const decoder = new TextDecoder();
@@ -239,7 +239,7 @@ void test('CLI clean-code: copied skill stays independently runnable', async () 
     assertEquals(install.code, 0, decoder.decode(install.stderr));
     const result = execute(
       process.execPath,
-      [join(installed, 'scripts/clean_code.ts'), '--scope'],
+      [join(installed, 'scripts/clean-code.ts'), '--scope'],
       repo,
     );
     assertEquals(result.code, 0, decoder.decode(result.stderr));

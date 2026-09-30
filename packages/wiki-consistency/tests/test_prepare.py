@@ -25,7 +25,9 @@ from wiki_consistency.instance import revisions
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
     name: json.loads(
-        (FIXTURES / f"{name}_input_schema.json").read_text(encoding="utf-8")
+        (FIXTURES / f"{name.replace('_', '-')}-input-schema.json").read_text(
+            encoding="utf-8"
+        )
     )
     for name in ("jev_verify", "jev_find", "jev_classify")
 }

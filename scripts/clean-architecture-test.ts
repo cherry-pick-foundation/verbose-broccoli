@@ -4,7 +4,7 @@ import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assert} from '@std/assert';
 import {join} from '@std/path';
-import {dependencyCruiser} from './workflow_depcruise.ts';
+import {dependencyCruiser} from './workflow-depcruise.ts';
 
 const repository = process.cwd();
 const depcruise = join(repository, 'node_modules/.bin/depcruise');

@@ -137,7 +137,7 @@ with the already approved Ajv dependency. Sources:
 - Reused: the `jev_ultrafast` package, its offline tests, `examples/run.py`,
   `examples/flights.py` and `scripts/check_guards.py`, copied into
   `packages/jev-ultrafast/` with its license.
-  `packages/jev-ultrafast/UPSTREAM.md` records the original files' SHA-256
+  `packages/jev-ultrafast/upstream.md` records the original files' SHA-256
   and every difference (provider selection and Orca browser mode).
 - Copyright (c) 2026 Browser Use.
   [MIT license](../packages/jev-ultrafast/LICENSE).

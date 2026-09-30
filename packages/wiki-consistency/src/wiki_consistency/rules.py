@@ -16,7 +16,7 @@ from doc_regions.regions import scan
 
 _STYLE = Path(__file__).parents[2] / "vale" / "styles"
 _CONFIG = Path(__file__).parents[2] / "vale" / ".vale.ini"
-_OUTPUT = re.compile(r"^(.+):([0-9]+):[0-9]+:Wiki\.[A-Za-z]+:(.+)$")
+_OUTPUT = re.compile(r"^(.+):([0-9]+):[0-9]+:wiki\.[a-z]+:(.+)$")
 _CJK = r"\p{Hangul}\p{Han}\p{Hiragana}\p{Katakana}"
 _CJK_NAMES = (
     "HANGUL",
@@ -180,7 +180,7 @@ def _school_rule(identifiers, styles):
             + "|".join(_outside_quotes(re.escape(name)) for name in schools)
             + ")"
         )
-        (styles / "Wiki" / "School.yml").write_text(
+        (styles / "wiki" / "school.yml").write_text(
             "extends: existence\n"
             'message: "page rule school: write the school as its domain ID"\n'
             "level: error\nscope: text & ~frontmatter\nvocab: false\n"
