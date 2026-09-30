@@ -14,7 +14,9 @@ Python 3.14.4 and uv 0.11.32 or later.
 The code plugin uses it for development work. The work plugin uses it for
 education work: before a judgment leaves for the provider, it replaces
 student, guardian and school names and contact details with pseudonyms
-([Work plugin](#work-plugin)).
+([Work plugin](#work-plugin)). The chat plugin's credit-offer search calls
+backfire's provider order as a library, without the server
+(`packages/credit-offers`).
 
 ## Run it
 
@@ -41,7 +43,7 @@ start it.
 
 ## Select a provider
 
-Both plugins read one shipped configuration,
+Both plugins and the credit-offer search read one shipped configuration,
 `packages/backfire/src/backfire/config.toml`. It lists provider profiles in
 an `order`, `openrouter` then `hive`, and backfire uses the first profile in
 it that is not known to be out of credit
