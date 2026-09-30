@@ -5,6 +5,16 @@
 - Review date: 2026-09-30
 - Runtime-only verdict: **install with limits**
 - Findings: **high 0, medium 4, low 3, info 3**
+- Disposition for feature 027: on 2026-09-30 the user approved a narrower
+  set of controls, recorded in the spec's Clarifications. Controls 2 and 3
+  are replaced: credentials stay in gws's default folder `~/.config/gws/`
+  (0700, files 0600) instead of a folder named by variable, and gws runs
+  from any folder with no `.env` in it or a parent, including a worktree
+  root, instead of a private staging folder. Control 1's variable is set
+  only for the coordinator's own calls; agents never run `auth status`, so
+  its honest status output is not needed. Control 8's egress allowlist is
+  not applied, an accepted limit. Controls 4 to 7 and 9 are carried out by
+  the local `google-workspace` skill and the one-time sign-in.
 
 ## Scope and method
 

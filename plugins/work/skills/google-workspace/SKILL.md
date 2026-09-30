@@ -17,13 +17,14 @@ The sign-in carries exactly these scopes:
 
 | Scope                                          | Allows                                                                                                   |
 | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `drive.file`                                   | Create Docs, Sheets, Slides, Forms, folders and uploads; read, edit or delete only the files gws created |
+| `drive.file`                                   | Create Docs, Sheets, Slides, Forms, folders and uploads; reach only files authorized to this app         |
 | `calendar.app.created`                         | Create calendars, and read and write events only in the calendars gws created                            |
 | `openid`, `userinfo.email`, `userinfo.profile` | Identify the account; gws adds them itself                                                               |
 
-- Files, forms and calendars the user made by hand are invisible: Google
-  refuses the call or returns nothing. Report that; do not look for a way
-  around it.
+- `drive.file` reaches only files authorized to this app. This setup has no
+  file picker, so that means the files gws created. Files, forms and
+  calendars the user made by hand stay invisible: Google refuses the call or
+  returns nothing. Report that; do not look for a way around it.
 - Gmail and every other service are out of scope.
 - A scope change needs the user's approval and a new sign-in by the user.
   Never start one.

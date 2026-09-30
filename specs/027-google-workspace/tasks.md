@@ -160,6 +160,22 @@ messages.
     all suggesting that constitution passages move to `AGENTS.md`. They
     exist on `develop` already, and this feature changes neither file; they
     are reported to the user only.
+  - Develop merge review of `39ba4f0` by a fresh Codex reviewer on
+    `gpt-6-luna` at medium (backfire: 0.93, confidence 0.92), given only the
+    scope and the requirements: request changes, 0 blocker, 2 major,
+    1 minor. Major: the release report's "do not install" verdict read as
+    final beside the user's option A; the runtime report's controls 2 and 3
+    differed from the approved controls without an explicit record. Minor:
+    `drive.file` was described as reaching only files gws created, while
+    Google's documentation also includes files opened through a file
+    picker. Resolved: both reports got a disposition line, the release
+    report's Decision section lists the accepted advisories and how each
+    other control is carried out, the spec records the deviations, and the
+    spec, plan and local skill (a Claude Code `fable` worker at medium)
+    describe `drive.file` as files authorized to the app, which without a
+    picker means the files gws created. The fixes change records and
+    wording, not the implementation, so the coordinator reviewed them
+    instead of a second review round.
 
 ## Dependencies
 

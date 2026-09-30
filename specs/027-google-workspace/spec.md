@@ -56,8 +56,9 @@ The user's decisions of 2026-09-30:
 
 - Q: Which scopes may gws request? → A: Exactly three groups, approved by the
   user: `https://www.googleapis.com/auth/drive.file` (create Docs, Sheets,
-  Slides, Forms and folders, and read, edit or delete only the files gws
-  created); `https://www.googleapis.com/auth/calendar.app.created` (a separate
+  Slides, Forms and folders, and read, edit or delete only files authorized
+  to this app: those it created, or those the user opens with it through a
+  Google file picker, which this setup does not have); `https://www.googleapis.com/auth/calendar.app.created` (a separate
   "Exam dates" calendar and only its events); and the `openid`,
   `userinfo.email` and `userinfo.profile` scopes gws adds to identify the
   account. Nothing else. Google's Discovery documents list `drive.file` for
@@ -88,7 +89,10 @@ The user's decisions of 2026-09-30:
   Model Armor options; logging stays off; gws runs only from folders with no
   `.env` in them or above them, with the gws credential variables cleared.
   Accepted limits: the sign-in's missing `state` and PKCE, the encryption
-  key file beside the tokens, and no network allowlist.
+  key file beside the tokens, and no network allowlist. These approved
+  controls replace the runtime report's controls 2 (a config folder named
+  by variable) and 3 (a private staging folder outside repository trees);
+  the runtime report's disposition line records each deviation.
 
 ## User Scenarios & Testing *(mandatory)*
 

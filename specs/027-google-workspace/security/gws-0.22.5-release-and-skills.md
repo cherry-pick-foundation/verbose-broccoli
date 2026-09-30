@@ -5,6 +5,11 @@
 - Review date: 2026-09-30
 - Verdict: **do not install v0.22.5**
 - Findings: **high 1, medium 4, low 2, info 2**
+- Disposition for feature 027: the verdict above is the reviewer's
+  recommendation. On 2026-09-30 the user chose option A instead, the signed
+  release unchanged; see [Decision](#decision). Required control 1 is
+  replaced by that decision; controls 2 to 10 are carried out as the
+  Decision section says.
 
 ## Scope and method
 
@@ -272,5 +277,31 @@ RUSTSEC-2026-0285 and RUSTSEC-2026-0099 need a malicious or intercepted
 Google endpoint, or a misissued certificate, and are low for this use.
 Option C would clear all six but lose the upstream build record, could not
 be pinned through mise like the other tools, and would add a local build to
-maintain. The copied skills and the local rules that carry controls 3 to 9
-are decided in [plan.md](../plan.md), R4 and R5.
+maintain.
+
+Accepted residual advisories until upstream releases a fixed version:
+RUSTSEC-2026-0258 (`h2`), RUSTSEC-2026-0285 (`rustls`) and
+RUSTSEC-2026-0099 (`rustls-webpki`), each low for this use;
+RUSTSEC-2026-0098 and RUSTSEC-2026-0104 (`rustls-webpki`), not reachable in
+the reviewed configuration; RUSTSEC-2026-0185 (`quinn-proto`), not in the
+binary. The mitigations they rely on: gws talks only to Google endpoints
+over verified TLS; agents clear the proxy variables before each call; no
+CRL checking is configured.
+
+How the other required controls are carried out:
+
+- Control 2: `mise.lock` records each platform's checksum with
+  `github-attestations` provenance, and the user's mise settings verify
+  recorded provenance on a locked install (`locked_verify_provenance`).
+  The coordinator also compared all seven locked checksums with the
+  release's `.sha256` assets. `gh attestation verify` itself was not run:
+  the installed GitHub CLI 2.46.0 lacks that command.
+- Control 3: the sign-in requested and received exactly `drive.file`,
+  `calendar.app.created` and the identity scopes (tasks.md, T006).
+- Controls 4, 8 and 9: the copied subset and the recorded `gws-shared`
+  edits in [plan.md](../plan.md), R4. Two unchanged copies keep a "See
+  also" link to an omitted skill, and the generated skills' prerequisite
+  lines still mention `gws generate-skills`; the local skill tells agents
+  never to run it.
+- Controls 5, 6 and 7: the local `google-workspace` skill (plan.md, R5).
+- Control 10: the notice entry in `licenses/THIRD_PARTY_NOTICES.md`.

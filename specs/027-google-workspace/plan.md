@@ -111,7 +111,8 @@ installed.
 cannot know:
 
 - The approved scopes and what they allow; the `drive.file` limit to files
-  gws created; the "verbose-broccoli" Drive folder; keeping the calendar ID.
+  authorized to the app, which without a file picker means the files gws
+  created; the "verbose-broccoli" Drive folder; keeping the calendar ID.
 - Where credentials live and that agents never read, print or copy them.
 - How to invoke gws: from a folder with no `.env` in it or a parent, with
   the gws credential, logging, Model Armor and proxy variables unset.
