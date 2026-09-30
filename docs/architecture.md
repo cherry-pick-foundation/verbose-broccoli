@@ -16,7 +16,10 @@ The `code` package contains the adapted Wondel Clean Code skill
 and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
-`wiki-raw-import`, `wiki-consistency` and `backfire` skills and an MCP declaration for its own
+`wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
+skill with ten copied `gws-*` skills
+(see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
+and an MCP declaration for its own
 `backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
@@ -321,6 +324,19 @@ PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 [Backfire operator guide](backfire.md) for setup, profiles and
 troubleshooting.
 
+### Google Workspace through gws — 2026-09-30
+
+Feature 027 ([spec](../specs/027-google-workspace/spec.md)) lets agents work
+in the user's Google Workspace through gws, the Google Workspace CLI. gws is
+a host tool pinned through mise, not a dependency of any package, and keeps
+its OAuth client file and tokens in its own folder `~/.config/gws/`, outside
+the repository. The work package carries ten of gws's agent skills, copied
+from the pinned tag with an `upstream.json` each, and the local
+[`google-workspace` skill](../plugins/work/skills/google-workspace/SKILL.md)
+with this repository's rules: the approved scopes, how to invoke gws, and
+when to ask the user first. The security check of the pinned release is in
+`specs/027-google-workspace/security/`.
+
 ### Chat web agent and credit offers — 2026-09-30
 
 Feature 021 ([spec](../specs/021-chat-jev-ultrafast/spec.md)) gives the chat
@@ -406,7 +422,7 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
 | `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/work/skills` | `backfire`, `google-workspace`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current

@@ -30,11 +30,11 @@ Server names below are declarations, not runtime availability or tool catalogs.
 
 ## work
 
-| Field            | Declared value                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| Description      | Work skills for Quarto authoring and session continuity, with Backfire for education judgments. |
-| Version          | 0.1.0                                                                                           |
-| Package          | [plugins/work](../../plugins/work/)                                                             |
-| Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                   |
-| MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                         |
-| MCP server names | backfire                                                                                        |
+| Field            | Declared value                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Description      | Work skills for Quarto authoring, session continuity and Google Workspace through gws, with Backfire for education judgments. |
+| Version          | 0.1.0                                                                                                                         |
+| Package          | [plugins/work](../../plugins/work/)                                                                                           |
+| Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                                                 |
+| MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                                                       |
+| MCP server names | backfire                                                                                                                      |

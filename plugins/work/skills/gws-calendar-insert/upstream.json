@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/googleworkspace/cli",
+  "tag": "v0.22.5",
+  "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
+  "path": "skills/gws-calendar-insert",
+  "skill_sha256": "5c54f18a615b9706a364815f9e3c0ef8c83bba8a67adf217e25dd7c829e2119e",
+  "local_modifications": []
+}

@@ -150,3 +150,19 @@ with the already approved Ajv dependency. Sources:
   and every difference (provider selection and Orca browser mode).
 - Copyright (c) 2026 Browser Use.
   [MIT license](../packages/jev-ultrafast/LICENSE).
+
+## googleworkspace/cli — gws agent skills
+
+- Source:
+  <https://github.com/googleworkspace/cli/tree/v0.22.5/skills>
+- Revision: `705fb0ecac6f4249679958f6325b809b63fdde17` (tag v0.22.5).
+- Reused: the skill folders `gws-shared`, `gws-docs`, `gws-docs-write`,
+  `gws-sheets`, `gws-sheets-read`, `gws-sheets-append`, `gws-slides`,
+  `gws-forms`, `gws-drive-upload` and `gws-calendar-insert`, copied into
+  `plugins/work/skills/`. Each copy's `upstream.json` records the original
+  `SKILL.md`'s SHA-256.
+- Adaptations: `gws-shared` only. Its "Community & Feedback Etiquette"
+  section is removed, and a note after the title sends the reader to the
+  local `google-workspace` skill first. The other nine are unchanged.
+- Copyright 2026 Google LLC. Used under the Apache License 2.0, the same
+  license as this repository ([LICENSE](../LICENSE)).
