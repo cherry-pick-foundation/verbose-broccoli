@@ -1,0 +1,30 @@
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "jev-ultrafast"
+version = "0.1.0"
+description = "A browser agent that chooses instead of generating."
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = ["browser-harness==0.1.13", "httpx[http2]>=0.28,<1"]
+
+[project.scripts]
+jev = "jev_ultrafast.demo:main"
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.uv]
+required-version = ">=0.11.32"
+
+[tool.uv.build-backend]
+module-name = "jev_ultrafast"
+module-root = "src"
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider"]
+
+[tool.ruff]
+extend = "../../ruff.toml"

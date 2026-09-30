@@ -7,14 +7,14 @@ Server names below are declarations, not runtime availability or tool catalogs.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.plugin_table("plugins/chat/plugin.json", "plugins/code/plugin.json", "plugins/code/mcp.json", "plugins/work/plugin.json", "plugins/work/mcp.json")) ]]] -->
 ## chat
 
-| Field            | Declared value                                                              |
-| ---------------- | --------------------------------------------------------------------------- |
-| Description      | Chat plugin for the ChatGPT and Claude chat projects; it has no skills yet. |
-| Version          | 0.1.0                                                                       |
-| Package          | [plugins/chat](../../plugins/chat/)                                         |
-| Manifest         | [plugin.json](../../plugins/chat/plugin.json)                               |
-| MCP declaration  | Not declared                                                                |
-| MCP server names | None declared                                                               |
+| Field            | Declared value                                                                            |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| Description      | Chat plugin: a Jev Ultrafast web agent and a scheduled search for free API credit offers. |
+| Version          | 0.1.0                                                                                     |
+| Package          | [plugins/chat](../../plugins/chat/)                                                       |
+| Manifest         | [plugin.json](../../plugins/chat/plugin.json)                                             |
+| MCP declaration  | Not declared                                                                              |
+| MCP server names | None declared                                                                             |
 
 ## code
 

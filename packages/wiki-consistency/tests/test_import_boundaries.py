@@ -7,9 +7,10 @@ def test_workspace_layers_reject_higher_layer_import(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[3]
     for name in (
         "backfire",
-        "backfire_tools",
         "backfire_education",
+        "credit_offers",
         "doc_regions",
+        "jev_ultrafast",
         "wiki_consistency",
     ):
         package = tmp_path / name
@@ -24,7 +25,7 @@ def test_workspace_layers_reject_higher_layer_import(tmp_path: Path) -> None:
     (tmp_path / "backfire_education" / "pseudonymize.py").write_text(
         "def pseudonymize():\n    pass\n", encoding="utf-8"
     )
-    (tmp_path / "backfire" / "judge.py").write_text(
+    (tmp_path / "backfire" / "providers.py").write_text(
         "from backfire_education.pseudonymize import pseudonymize\n",
         encoding="utf-8",
     )

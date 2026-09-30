@@ -626,7 +626,7 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
                 request_list.append(
                     {
                         "kind": "crossref",
-                        "tool": "backfire_find",
+                        "tool": "jev_find",
                         "units": [
                             unit["id"]
                             for unit in by_page.get(path, [])
@@ -667,7 +667,7 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
     )
     calls = {
         tool: sum(request["tool"] == tool for request in request_list)
-        for tool in ("backfire_verify", "backfire_find", "backfire_classify")
+        for tool in ("jev_verify", "jev_find", "jev_classify")
     }
     return {
         "wiki": wiki_id,

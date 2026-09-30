@@ -109,10 +109,22 @@
       "to": {"path": "^packages/backfire/"}
     },
     {
+      "name": "public-api:packages/credit-offers",
+      "severity": "error",
+      "from": {"pathNot": "^packages/credit-offers/"},
+      "to": {"path": "^packages/credit-offers/"}
+    },
+    {
       "name": "public-api:packages/doc-regions",
       "severity": "error",
       "from": {"pathNot": "^packages/doc-regions/"},
       "to": {"path": "^packages/doc-regions/"}
+    },
+    {
+      "name": "public-api:packages/jev-ultrafast",
+      "severity": "error",
+      "from": {"pathNot": "^packages/jev-ultrafast/"},
+      "to": {"path": "^packages/jev-ultrafast/"}
     },
     {
       "name": "public-api:packages/wiki-consistency",

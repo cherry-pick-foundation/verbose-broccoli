@@ -1,0 +1,615 @@
+diff --git a/src/jev_judge_mcp/ids.py b/src/jev_judge_mcp/ids.py
+index c4486c9..65aa83d 100644
+--- a/src/jev_judge_mcp/ids.py
++++ b/src/jev_judge_mcp/ids.py
+@@ -34,6 +34,7 @@ def ensure_unique_ids(items: Sequence[Mapping[str, object]], fallback_prefix: st
+     beyond the shared collision loop, exactly as in the reference.
+     """
+     used: set[str] = set()
++    next_suffix: dict[str, int] = {}
+     renamed: dict[str, str] = {}
+     out: list[dict[str, object]] = []
+     for index, item in enumerate(items):
+@@ -41,10 +42,12 @@ def ensure_unique_ids(items: Sequence[Mapping[str, object]], fallback_prefix: st
+         raw_id = raw if isinstance(raw, str) else ""
+         base = sanitize_id(raw_id) or f"{fallback_prefix}{index}"
+         new_id = base
+-        suffix = 1
+-        while new_id in used:
+-            new_id = f"{base}_{suffix}"
+-            suffix += 1
++        if new_id in used:
++            suffix = next_suffix.get(base, 1)
++            while (candidate := f"{base}_{suffix}") in used:
++                suffix += 1
++            new_id = candidate
++            next_suffix[base] = suffix + 1
+         used.add(new_id)
+         if raw_id and raw_id != new_id:
+             renamed[raw_id] = new_id
+diff --git a/src/jev_judge_mcp/server.py b/src/jev_judge_mcp/server.py
+index 63ab250..1c22d33 100644
+--- a/src/jev_judge_mcp/server.py
++++ b/src/jev_judge_mcp/server.py
+@@ -35,7 +35,7 @@ from jev_judge_mcp.providers.typesafe import sdk_importable
+ from jev_judge_mcp.serialize import stringify
+ from jev_judge_mcp.settings import LogLevel, Settings, load_settings
+ from jev_judge_mcp.skills import attach as attach_skills
+-from jev_judge_mcp.stdio import stdio_streams
++from jev_judge_mcp.stdio import DEFAULT_MAX_STDIN_LINE_BYTES, stdio_streams
+ from jev_judge_mcp.tools import TOOLS, Runtime, Toolset
+ 
+ SERVER_NAME = "jev-mcp"
+@@ -68,7 +68,13 @@ class JevMCPServer(MCPServer):
+     dispatches, and it returns the reference's result shapes itself.
+     """
+ 
+-    def __init__(self, *, toolset: Toolset, log_level: LogLevel) -> None:
++    def __init__(
++        self,
++        *,
++        toolset: Toolset,
++        log_level: LogLevel,
++        max_stdin_line_bytes: int = DEFAULT_MAX_STDIN_LINE_BYTES,
++    ) -> None:
+         super().__init__(
+             name=SERVER_NAME,
+             version=reported_version(),
+@@ -76,6 +82,7 @@ class JevMCPServer(MCPServer):
+             log_level=log_level,
+         )
+         self.toolset = toolset
++        self.max_stdin_line_bytes = max_stdin_line_bytes
+         attach_skills(self)
+         # The SDK acts on both before any handler runs (the dispatcher cancels the request, the
+         # runner marks the session initialized); without a handler it logs each as unhandled.
+@@ -105,7 +112,7 @@ class JevMCPServer(MCPServer):
+ 
+     async def run_stdio_async(self) -> None:
+         """The SDK's stdio loop over this server's own transport (`jev_judge_mcp.stdio`)."""
+-        async with stdio_streams() as (read_stream, write_stream):
++        async with stdio_streams(self.max_stdin_line_bytes) as (read_stream, write_stream):
+             lowlevel = self._lowlevel_server
+             await lowlevel.run(read_stream, write_stream, lowlevel.create_initialization_options())
+ 
+diff --git a/src/jev_judge_mcp/stdio.py b/src/jev_judge_mcp/stdio.py
+index 851c7c4..b7da36d 100644
+--- a/src/jev_judge_mcp/stdio.py
++++ b/src/jev_judge_mcp/stdio.py
+@@ -10,6 +10,8 @@ It replaces the SDK's `stdio_server` for what that one cannot do:
+   SDK's writer would fail on the first reply that echoes it; such a frame goes through `stringify_compact`.
+ - The stdin read runs in a thread that shutdown can abandon: a blocked `readline()` would otherwise
+   hold the server open after a signal.
++- Input lines are limited to 10 MiB by default; an overlong line is drained and passed to the
++  dispatcher as a parse error, so the next line can still be read.
+ 
+ Undecodable input bytes still become U+FFFD, as Node's `Buffer.toString('utf8')` makes them in the
+ reference. While serving, fd 1 points at stderr so stray writes by handlers or children miss the wire.
+@@ -22,7 +24,7 @@ import os
+ import sys
+ from collections.abc import AsyncGenerator, Generator
+ from io import TextIOWrapper
+-from typing import BinaryIO
++from typing import BinaryIO, Final
+ 
+ import anyio
+ import anyio.to_thread
+@@ -35,6 +37,7 @@ from jev_judge_mcp.domain import decode_json
+ from jev_judge_mcp.serialize import stringify_compact
+ 
+ type Streams = tuple[MemoryObjectReceiveStream[SessionMessage | Exception], MemoryObjectSendStream[SessionMessage]]
++DEFAULT_MAX_STDIN_LINE_BYTES: Final = 10 * 1024 * 1024
+ 
+ 
+ def parse_line(line: str) -> SessionMessage | Exception:
+@@ -54,15 +57,35 @@ def encode_frame(message: JSONRPCMessage) -> str:
+         return stringify_compact(message.model_dump(mode="json", by_alias=True, exclude_unset=True))
+ 
+ 
+-class _AbandonableLines(anyio.AsyncFile[str]):
+-    async def readline(self) -> str:
+-        return await anyio.to_thread.run_sync(self.wrapped.readline, abandon_on_cancel=True)
++def _encode_line(message: JSONRPCMessage) -> str:
++    return encode_frame(message) + "\n"
++
++
++def _read_message(stream: BinaryIO, max_line_bytes: int) -> SessionMessage | Exception | None:
++    """Read one bounded JSON-RPC line; overlong lines are discarded through their newline."""
++    line = stream.readline(max_line_bytes + 2)
++    if not line:
++        return None
++    terminated = line.endswith(b"\n")
++    if terminated:
++        line = line[:-1]
++        if line.endswith(b"\r"):
++            line = line[:-1]
++    if len(line) > max_line_bytes:
++        while not terminated:
++            chunk = stream.readline(8192)
++            if not chunk:
++                break
++            terminated = chunk.endswith(b"\n")
++        return ValueError(f"Input line exceeds {max_line_bytes} bytes")
++    return parse_line(line.decode("utf-8", errors="replace"))
+ 
+ 
+ @contextlib.asynccontextmanager
+-async def stdio_streams() -> AsyncGenerator[Streams]:
++async def stdio_streams(max_line_bytes: int = DEFAULT_MAX_STDIN_LINE_BYTES) -> AsyncGenerator[Streams]:
+     """Read and write streams for `Server.run` over the process's stdin and stdout."""
+-    stdin = _AbandonableLines(TextIOWrapper(sys.stdin.buffer, encoding="utf-8", errors="replace"))
++    if type(max_line_bytes) is not int or max_line_bytes < 1:
++        raise ValueError("max_line_bytes must be a positive integer")
+     with _claim_stdout() as wire:
+         stdout = anyio.wrap_file(TextIOWrapper(wire, encoding="utf-8"))
+         read_writer, read_stream = anyio.create_memory_object_stream[SessionMessage | Exception](0)
+@@ -70,13 +93,16 @@ async def stdio_streams() -> AsyncGenerator[Streams]:
+ 
+         async def read() -> None:
+             async with read_writer:
+-                async for line in stdin:
+-                    await read_writer.send(parse_line(line))
++                while message := await anyio.to_thread.run_sync(
++                    _read_message, sys.stdin.buffer, max_line_bytes, abandon_on_cancel=True
++                ):
++                    await read_writer.send(message)
+ 
+         async def write() -> None:
+             async with write_reader:
+                 async for session_message in write_reader:
+-                    await stdout.write(encode_frame(session_message.message) + "\n")
++                    line = await anyio.to_thread.run_sync(_encode_line, session_message.message)
++                    await stdout.write(line)
+                     await stdout.flush()
+ 
+         async with anyio.create_task_group() as tg:
+diff --git a/src/jev_judge_mcp/tools/arguments.py b/src/jev_judge_mcp/tools/arguments.py
+index 4b87ef4..16d4553 100644
+--- a/src/jev_judge_mcp/tools/arguments.py
++++ b/src/jev_judge_mcp/tools/arguments.py
+@@ -12,8 +12,8 @@ zod semantics that the JSON Schema does not state are reproduced here:
+ - A failed check either aborts its value (wrong type, missing, failed union) or only dirties it
+   (length, bounds, pattern, integer); an object or array with an aborted member is aborted. A union
+   returns its first valid option, else the issues of its first dirty option, else `Invalid input`.
+-- Checks run in zod's order: integer, minimum, maximum; minLength, pattern, maxLength; array
+-  lengths before items. Lengths are UTF-16 units (ADR-0005).
++- Checks run in zod's order: integer, minimum, exclusiveMinimum, maximum, exclusiveMaximum; minLength,
++  pattern, maxLength; array lengths before items. Lengths are UTF-16 units (ADR-0005).
+ - A non-finite number (`NaN` or an infinity) is rejected before those checks. `JSON.parse` never
+   yields one; HTTP `from_json` does, and `nan < bound` is false, so a minimum or maximum would not.
+ - The SDK parses asynchronously. Union issues, and the refinements that run after a union, reach the
+@@ -149,7 +149,9 @@ class _String:
+ class _Number:
+     integer: bool
+     minimum: int | float | None
++    exclusive_minimum: int | float | None
+     maximum: int | float | None
++    exclusive_maximum: int | float | None
+ 
+     def parse(self, value: object, path: Path, sink: _Sink) -> tuple[Status, object]:
+         if isinstance(value, bool) or not isinstance(value, int | float):
+@@ -165,10 +167,18 @@ class _Number:
+             bound = number_to_string(self.minimum)
+             sink.issues.append(Issue(f"Number must be greater than or equal to {bound}", path))
+             status = "dirty"
++        if self.exclusive_minimum is not None and value <= self.exclusive_minimum:
++            bound = number_to_string(self.exclusive_minimum)
++            sink.issues.append(Issue(f"Number must be greater than {bound}", path))
++            status = "dirty"
+         if self.maximum is not None and value > self.maximum:
+             bound = number_to_string(self.maximum)
+             sink.issues.append(Issue(f"Number must be less than or equal to {bound}", path))
+             status = "dirty"
++        if self.exclusive_maximum is not None and value >= self.exclusive_maximum:
++            bound = number_to_string(self.exclusive_maximum)
++            sink.issues.append(Issue(f"Number must be less than {bound}", path))
++            status = "dirty"
+         return status, value
+ 
+ 
+@@ -367,8 +377,13 @@ class _Compiler:
+                     self._count(rest, "maxLength", path, 0),
+                 )
+             case ("number" | "integer") as kind:
+-                minimum, maximum = self._bound(rest, "minimum", path), self._bound(rest, "maximum", path)
+-                return _Number(kind == "integer", minimum, maximum)
++                return _Number(
++                    kind == "integer",
++                    self._bound(rest, "minimum", path),
++                    self._bound(rest, "exclusiveMinimum", path),
++                    self._bound(rest, "maximum", path),
++                    self._bound(rest, "exclusiveMaximum", path),
++                )
+             case "boolean":
+                 return _Boolean()
+             case "array":
+diff --git a/src/jev_judge_mcp/tools/find.py b/src/jev_judge_mcp/tools/find.py
+index 0d50457..263d0bb 100644
+--- a/src/jev_judge_mcp/tools/find.py
++++ b/src/jev_judge_mcp/tools/find.py
+@@ -2,7 +2,9 @@
+ 
+ from typing import Any
+ 
+-from jev_judge_mcp.domain import ChoiceQuestion, NoulCriteria, NoulQuestion
++import anyio
++
++from jev_judge_mcp.domain import ChoiceQuestion, NoulCriteria, NoulQuestion, Question
+ from jev_judge_mcp.ids import ensure_unique_ids
+ from jev_judge_mcp.limits import CANDIDATES, FIND
+ from jev_judge_mcp.responses import caller_renames, renamed_ids_field
+@@ -51,26 +53,10 @@ DEFINITION = define(
+ 
+ 
+ async def handle(args: dict[str, Any], runtime: Runtime) -> ToolResult:
+-    query: str = args["query"]
+-    top_k = int(args.get("top_k", FIND.top_k_default))
+-    ledger = CapLedger()
+-    candidates = ensure_unique_ids(
+-        [
+-            {"id": c.get("id", ""), "text": ledger.text(c["text"], CANDIDATES.text_units, "item")}
+-            for c in args["candidates"]
+-        ],
+-        "candidate",
+-    ).items
+-    ids = [str(c["id"]) for c in candidates]
+-    renamed = caller_renames(args["candidates"], candidates)
+-
+-    questions = {
+-        "best": ChoiceQuestion(f'Which candidate contains the best answer to: "{query}"?', dict.fromkeys(ids)),
+-        "exists": NoulQuestion(f'Does any candidate address or answer: "{query}"?', EXISTS_CRITERIA),
+-    }
+-    evaluation = await runtime.ask({"query": query, "candidates": candidates}, questions)
++    query, top_k, ledger, candidates, renamed, questions, state = await anyio.to_thread.run_sync(_prepare, args)
++    evaluation = await runtime.ask(state, questions)
+     exists = validate_noul(evaluation.answers.get("exists"))
+-    best = validate_choice(evaluation.answers.get("best"), ids)
++    best = validate_choice(evaluation.answers.get("best"), [str(c["id"]) for c in candidates])
+ 
+     if exists is None or best is None:
+         # A missing answer is neither "no match" nor "no ranking": report the protocol failure.
+@@ -116,4 +102,36 @@ async def handle(args: dict[str, Any], runtime: Runtime) -> ToolResult:
+     )
+ 
+ 
++def _prepare(
++    args: dict[str, Any],
++) -> tuple[
++    str,
++    int,
++    CapLedger,
++    list[dict[str, object]],
++    dict[str, str],
++    dict[str, Question],
++    dict[str, object],
++]:
++    query: str = args["query"]
++    top_k = int(args.get("top_k", FIND.top_k_default))
++    ledger = CapLedger()
++    candidates = ensure_unique_ids(
++        [
++            {"id": c.get("id", ""), "text": ledger.text(c["text"], CANDIDATES.text_units, "item")}
++            for c in args["candidates"]
++        ],
++        "candidate",
++    ).items
++    ids = [str(c["id"]) for c in candidates]
++    renamed = caller_renames(args["candidates"], candidates)
++
++    questions: dict[str, Question] = {
++        "best": ChoiceQuestion(f'Which candidate contains the best answer to: "{query}"?', dict.fromkeys(ids)),
++        "exists": NoulQuestion(f'Does any candidate address or answer: "{query}"?', EXISTS_CRITERIA),
++    }
++    state: dict[str, object] = {"query": query, "candidates": candidates}
++    return query, top_k, ledger, candidates, renamed, questions, state
++
++
+ TOOL = JevTool(DEFINITION, handle)
+diff --git a/src/jev_judge_mcp/tools/toolset.py b/src/jev_judge_mcp/tools/toolset.py
+index 68b013a..2022abc 100644
+--- a/src/jev_judge_mcp/tools/toolset.py
++++ b/src/jev_judge_mcp/tools/toolset.py
+@@ -12,6 +12,7 @@ Owned failures and any other `Exception` are logged with a traceback before that
+ import logging
+ from collections.abc import Mapping, Sequence
+ 
++import anyio
+ from mcp.types import CallToolResult, TextContent, Tool
+ 
+ from jev_judge_mcp.providers import ProviderConfigError, ProviderError
+@@ -48,9 +49,11 @@ class Toolset:
+         tool = self._tools.get(name)
+         telemetry = self.runtime.telemetry
+         with telemetry.span("mcp.tool", tool="unknown" if tool is None else name) as span:
+-            telemetry.payload(
+-                span, "arguments", lambda: "undefined" if arguments is None else stringify(dict(arguments))
+-            )
++            if telemetry.payloads:
++                arguments_text = await anyio.to_thread.run_sync(
++                    lambda: "undefined" if arguments is None else stringify(dict(arguments))
++                )
++                telemetry.payload(span, "arguments", lambda: arguments_text)
+             result = await self._call(name, tool, arguments, span)
+             telemetry.payload(span, "result", lambda: _text(result))
+         return result
+@@ -62,7 +65,7 @@ class Toolset:
+             span.attributes["outcome"] = "unknown_tool"
+             return _error(f"MCP error {INVALID_PARAMS}: Tool {name} not found")
+         try:
+-            parsed = self._parsers[name](arguments)
++            parsed = await anyio.to_thread.run_sync(self._parsers[name], arguments)
+             result = await tool.handler(parsed, self.runtime)
+         except Exception as error:
+             span.attributes["outcome"] = _outcome(error)
+@@ -81,7 +84,7 @@ class Toolset:
+             span.attributes["action"] = result.action
+         for action in ACTIONS:
+             span.attributes[f"item_actions.{action}"] = result.item_actions.count(action)
+-        text = stringify(result.payload)
++        text = await anyio.to_thread.run_sync(stringify, result.payload)
+         if result.is_error:
+             return _error(text)
+         return CallToolResult(
+diff --git a/src/jev_judge_mcp/tools/verify.py b/src/jev_judge_mcp/tools/verify.py
+index bfce8e5..ea5e314 100644
+--- a/src/jev_judge_mcp/tools/verify.py
++++ b/src/jev_judge_mcp/tools/verify.py
+@@ -2,11 +2,14 @@
+ 
+ from typing import Any
+ 
++import anyio
++
+ from jev_judge_mcp.domain import ChoiceQuestion, Question
+ from jev_judge_mcp.ids import ensure_unique_ids
+ from jev_judge_mcp.limits import VERIFY
+ from jev_judge_mcp.policy import DEFAULT_AUTO_ACCEPT
+ from jev_judge_mcp.policy.claims import note_blocks_auto
++from jev_judge_mcp.providers import Evaluation
+ from jev_judge_mcp.responses import caller_renames, claim_extras, renamed_ids_field, summary_extras
+ from jev_judge_mcp.tools.base import JevTool, Runtime, ToolResult, caller_actions, define, frame, headline
+ from jev_judge_mcp.tools.common import EVIDENCE_SCHEMA, evidence_items
+@@ -63,6 +66,21 @@ DEFINITION = define(
+ 
+ 
+ async def handle(args: dict[str, Any], runtime: Runtime) -> ToolResult:
++    auto_accept, evidence, claims, renamed, questions, state = await anyio.to_thread.run_sync(_prepare, args)
++    evaluation = await runtime.ask(state, questions)
++    return await anyio.to_thread.run_sync(_finish, evaluation, auto_accept, evidence, claims, renamed)
++
++
++def _prepare(
++    args: dict[str, Any],
++) -> tuple[
++    float,
++    list[dict[str, object]],
++    list[dict[str, object]],
++    dict[str, str],
++    dict[str, Question],
++    dict[str, object],
++]:
+     auto_accept: float = args.get("auto_accept", DEFAULT_AUTO_ACCEPT)
+     raw_evidence = evidence_items(args["evidence"])
+     evidence = ensure_unique_ids(raw_evidence, "evidence").items
+@@ -83,12 +101,21 @@ async def handle(args: dict[str, Any], runtime: Runtime) -> ToolResult:
+                 f"Which evidence item does claim `{claim_id}` ({text}) rest on?" + VERIFY_SUFFIX, criteria
+             )
+ 
+-    state = {
++    state: dict[str, object] = {
+         "purpose": "Verify each claim in claims against the evidence in evidence.",
+         "claims": claims,
+         "evidence": evidence,
+     }
+-    evaluation = await runtime.ask(state, questions)
++    return auto_accept, evidence, claims, renamed, questions, state
++
++
++def _finish(
++    evaluation: Evaluation,
++    auto_accept: float,
++    evidence: list[dict[str, object]],
++    claims: list[dict[str, object]],
++    renamed: dict[str, str],
++) -> ToolResult:
+     answers = evaluation.answers
+     source_keys = [*(str(item["id"]) for item in evidence), "none"]
+ 
+diff --git a/tests/unit/test_arguments.py b/tests/unit/test_arguments.py
+index bb76137..62c554c 100644
+--- a/tests/unit/test_arguments.py
++++ b/tests/unit/test_arguments.py
+@@ -18,6 +18,8 @@ SCHEMA: dict[str, Any] = {
+         "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$", "maxLength": 4},
+         "top_k": {"type": "integer", "minimum": 1, "maximum": 50},
+         "ratio": {"type": "number", "minimum": 0, "maximum": 1},
++        "strict_min": {"type": "number", "exclusiveMinimum": 0},
++        "strict_max": {"type": "number", "exclusiveMaximum": 1},
+         "flag": {"type": "boolean"},
+         "tags": {"type": "array", "items": {"type": "string", "minLength": 1}, "minItems": 1, "maxItems": 2},
+         "evidence": EVIDENCE_SCHEMA,
+@@ -68,6 +70,8 @@ def test_messages() -> None:
+     assert issues({"name": "a", "top_k": 0}) == "Number must be greater than or equal to 1 at top_k"
+     assert issues({"name": "a", "top_k": True}) == "Expected number, received boolean at top_k"
+     assert issues({"name": "a", "ratio": 1.5}) == "Number must be less than or equal to 1 at ratio"
++    assert issues({"name": "a", "strict_min": 0}) == "Number must be greater than 0 at strict_min"
++    assert issues({"name": "a", "strict_max": 1}) == "Number must be less than 1 at strict_max"
+     assert issues({"name": "a", "tags": []}) == "Array must contain at least 1 element(s) at tags"
+     assert issues({"name": "a", "tags": ["a", "b", ""]}) == (
+         "Array must contain at most 2 element(s) at tags\nString must contain at least 1 character(s) at tags[2]"
+@@ -81,6 +85,10 @@ def test_integer_valued_float_is_an_integer() -> None:
+     assert PARSE({"name": "a", "top_k": 5.0})["top_k"] == 5.0
+ 
+ 
++def test_exclusive_bounds_accept_values_inside_the_bound() -> None:
++    assert PARSE({"name": "a", "strict_min": 0.5, "strict_max": 0.5})["strict_min"] == 0.5
++
++
+ def test_lengths_count_utf16_units() -> None:
+     assert issues({"name": "ab😀"}) == "String must contain at most 3 character(s) at name"
+     assert PARSE({"name": "a😀"})["name"] == "a😀"
+diff --git a/tests/unit/test_ids.py b/tests/unit/test_ids.py
+index 51c8c19..9860e1c 100644
+--- a/tests/unit/test_ids.py
++++ b/tests/unit/test_ids.py
+@@ -1,5 +1,7 @@
+ """`sanitize_id` and `ensure_unique_ids` (`lib.ts:13-45`)."""
+ 
++from time import perf_counter
++
+ from jev_judge_mcp.ids import ensure_unique_ids, sanitize_id
+ 
+ 
+@@ -66,3 +68,16 @@ def test_inputs_are_not_mutated() -> None:
+     original = {"id": "a/b", "text": "t"}
+     ensure_unique_ids([original], "c")
+     assert original == {"id": "a/b", "text": "t"}
++
++
++def test_100_000_duplicate_ids_keep_order_in_linear_time() -> None:
++    count = 100_000
++    items = [{"id": "same"} for _ in range(count)]
++
++    started = perf_counter()
++    result = ensure_unique_ids(items, "evidence")
++    elapsed = perf_counter() - started
++
++    assert [item["id"] for item in result.items] == ["same", *(f"same_{index}" for index in range(1, count))]
++    assert result.renamed == {"same": f"same_{count - 1}"}
++    assert elapsed < 5, f"100,000 duplicate IDs took {elapsed:.3f}s"
+diff --git a/tests/unit/test_stdio.py b/tests/unit/test_stdio.py
+index 76bb09e..201e5ca 100644
+--- a/tests/unit/test_stdio.py
++++ b/tests/unit/test_stdio.py
+@@ -1,12 +1,19 @@
+ """The stdio transport's line parser and frame encoder read and write JSON as `JSON.parse`/`JSON.stringify` do."""
+ 
+ import json
++from io import BytesIO
+ 
+ import pytest
+ from mcp.types import JSONRPCRequest, JSONRPCResponse
+ from pydantic.aliases import AliasChoices
+ 
+-from jev_judge_mcp.stdio import encode_frame, parse_line
++from jev_judge_mcp.stdio import (  # pyright: ignore[reportPrivateUsage]
++    DEFAULT_MAX_STDIN_LINE_BYTES,
++    _encode_line,  # pyright: ignore[reportPrivateUsage]
++    _read_message,  # pyright: ignore[reportPrivateUsage]
++    encode_frame,
++    parse_line,
++)
+ 
+ 
+ def test_lone_surrogate_escape_is_kept() -> None:
+@@ -30,11 +37,43 @@ def test_what_json_parse_rejects_stays_an_error(line: str) -> None:
+     assert isinstance(parse_line(line), Exception)
+ 
+ 
++def test_stdin_line_limit_discards_overlong_line_and_reads_the_next() -> None:
++    stream = BytesIO(b'{"x":1}XX\n{"jsonrpc":"2.0","id":1,"method":"ping"}\n')
++
++    rejected = _read_message(stream, len(b'{"x":1}'))
++    accepted = _read_message(stream, 1024)
++
++    assert isinstance(rejected, ValueError)
++    assert not isinstance(accepted, Exception)
++    assert accepted is not None
++    assert isinstance(accepted.message, JSONRPCRequest)
++
++
++def test_stdin_line_limit_counts_bytes_and_allows_exact_limit() -> None:
++    line = b'{"jsonrpc":"2.0","id":1,"method":"ping"}'
++
++    message = _read_message(BytesIO(line + b"\r\n"), len(line))
++
++    assert not isinstance(message, Exception)
++    assert message is not None
++    assert isinstance(message.message, JSONRPCRequest)
++
++
++def test_stdin_default_limit_is_ten_mib() -> None:
++    assert DEFAULT_MAX_STDIN_LINE_BYTES == 10 * 1024 * 1024
++
++
+ def test_frames_without_surrogates_are_pydantic_s() -> None:
+     message = JSONRPCResponse(jsonrpc="2.0", id=1, result={"text": "é😀"})
+     assert encode_frame(message) == message.model_dump_json(by_alias=True, exclude_unset=True)
+ 
+ 
++def test_line_encoder_appends_one_newline() -> None:
++    message = JSONRPCResponse(jsonrpc="2.0", id=1, result={"ok": True})
++
++    assert _encode_line(message) == encode_frame(message) + "\n"
++
++
+ def test_lone_surrogates_are_escaped_and_split_pairs_rejoined() -> None:
+     message = JSONRPCResponse(jsonrpc="2.0", id="a\udc00", result={"text": "x\ud83dy é \ud83d\ude00"})
+     frame = encode_frame(message)
+diff --git a/tests/unit/test_toolset.py b/tests/unit/test_toolset.py
+index 0f530f2..87ed53e 100644
+--- a/tests/unit/test_toolset.py
++++ b/tests/unit/test_toolset.py
+@@ -3,8 +3,9 @@
+ import asyncio
+ import json
+ import logging
+-from collections.abc import Generator
++from collections.abc import Generator, Mapping
+ from contextlib import contextmanager
++from threading import get_ident
+ from typing import Any, cast
+ 
+ import pytest
+@@ -14,6 +15,8 @@ from jev_judge_mcp.extract.executor import InProcessRegexExecutor
+ from jev_judge_mcp.providers import ProviderConfigError, ProviderError
+ from jev_judge_mcp.server import configure_logging
+ from jev_judge_mcp.settings import Settings
++from jev_judge_mcp.tools import toolset as toolset_module
++from jev_judge_mcp.tools.arguments import ArgumentParser
+ from jev_judge_mcp.tools.base import Handler, JevTool, Runtime, ToolError, ToolResult, define
+ from jev_judge_mcp.tools.toolset import Toolset
+ 
+@@ -61,6 +64,42 @@ def _code_block(result: CallToolResult) -> str:
+     return block.text
+ 
+ 
++async def test_large_arguments_and_results_use_worker_threads(monkeypatch: pytest.MonkeyPatch) -> None:
++    loop_thread = get_ident()
++    parse_threads: list[int] = []
++    serialize_threads: list[int] = []
++    payload = "x" * (10 * 1024 * 1024)
++
++    async def handler(parsed: dict[str, Any], _runtime: Runtime) -> ToolResult:
++        return ToolResult({"note": parsed["note"]})
++
++    toolset = _toolset(handler)
++    parse_arguments = ArgumentParser.__call__
++
++    def parse(parser: ArgumentParser, arguments: Mapping[str, object] | None) -> dict[str, object]:
++        parse_threads.append(get_ident())
++        return parse_arguments(parser, arguments)
++
++    stringify = toolset_module.stringify
++
++    def serialize(value: object) -> str:
++        serialize_threads.append(get_ident())
++        return stringify(value)
++
++    monkeypatch.setattr(ArgumentParser, "__call__", parse)
++    monkeypatch.setattr(toolset_module, "stringify", serialize)
++    try:
++        result = await toolset.call("boom", {"note": payload})
++    finally:
++        await toolset.aclose()
++
++    text = _text(result)
++    assert not result.is_error
++    assert text.startswith('{\n  "note": "') and text.endswith('"\n}')
++    assert parse_threads and all(thread != loop_thread for thread in parse_threads)
++    assert serialize_threads and all(thread != loop_thread for thread in serialize_threads)
++
++
+ async def test_handler_keyerror_reaches_stderr_and_is_an_error(capsys: pytest.CaptureFixture[str]) -> None:
+     async def handler(_parsed: dict[str, Any], _runtime: Runtime) -> ToolResult:
+         raise KeyError(f"missing {_CONFIGURED}")

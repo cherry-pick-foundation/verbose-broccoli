@@ -62,29 +62,7 @@
         "--package",
         "backfire",
         "pytest",
-        "packages/backfire/tests",
-        "-m",
-        "not slow"
-      ],
-      "cache": false
-    },
-    "backfire#test:slow": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "backfire",
-        "pytest",
-        "packages/backfire/tests",
-        "-m",
-        "slow"
+        "packages/backfire/tests"
       ],
       "cache": false
     },
@@ -106,6 +84,47 @@
         "no:cacheprovider",
         "packages/doc-regions/tests",
         "scripts/doc_sources_test.py"
+      ],
+      "cache": false
+    },
+    "jev-ultrafast#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "PYTHONPATH=packages/jev-ultrafast",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "jev-ultrafast",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/jev-ultrafast/tests"
+      ],
+      "cache": false
+    },
+    "credit-offers#test": {
+      "command": [
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "uv",
+        "--directory",
+        "../..",
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "--package",
+        "credit-offers",
+        "pytest",
+        "-p",
+        "no:cacheprovider",
+        "packages/credit-offers/tests"
       ],
       "cache": false
     },
@@ -145,6 +164,8 @@
         "//#test:plugins-validate",
         "backfire#test",
         "doc-regions#test",
+        "jev-ultrafast#test",
+        "credit-offers#test",
         "wiki-consistency#test",
         "//#test:wiki-raw-import"
       ],

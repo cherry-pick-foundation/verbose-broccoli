@@ -50,8 +50,9 @@ If the requirement cannot be met without substantial new local implementation, s
   `npm run workflow` and follow the execution instructions it prints.
 - Before completion, `npm run verify` must pass; it runs all checks through
   Turborepo and passes on their exit status and the same run's summary.
-- The main agent chooses each worker's and reviewer's model, reasoning effort
-  and time budget from the code plugin's backfire judgments.
+- The agent, model and reasoning effort of each worker, reviewer and
+  orchestrator come from the code plugin's `model-choice` skill; each time
+  budget comes from the code plugin's backfire judgments.
 
 ## Review
 

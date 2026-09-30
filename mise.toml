@@ -10,6 +10,12 @@ run = 'test "$(quarto --version)" = "1.10.18"'
 hint = "Install Quarto 1.10.18 and ensure `quarto` is on PATH."
 timeout = "5s"
 
+[doctor.checks.codexbar]
+description = "CodexBar 0.69.0 is available"
+run = 'codexbar --version | head -n 1 | grep -qiE "^codexbar 0[.]69[.]0( |$)"'
+hint = "Install CodexBar 0.69.0 and ensure `codexbar` is on PATH."
+timeout = "5s"
+
 [doctor.checks.uv-workspace]
 description = "The uv workspace and education extra match uv.lock"
 run = "uv sync --locked --check --all-packages --extra education"

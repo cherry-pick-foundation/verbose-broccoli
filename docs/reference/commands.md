@@ -5,10 +5,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.task_table("package.json", "turbo.json")) ]]] -->
 | Task                     | Invocation                       | Declared description                                                                                                 |
 | ------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| backfire:build           | npm run backfire:build           |                                                                                                                      |
-| backfire:eval            | npm run backfire:eval            |                                                                                                                      |
 | backfire:install         | npm run backfire:install         |                                                                                                                      |
-| backfire:ready           | npm run backfire:ready           |                                                                                                                      |
 | check                    | npm run check                    |                                                                                                                      |
 | clean-architecture       | npm run clean-architecture       |                                                                                                                      |
 | clean-code               | npm run clean-code               |                                                                                                                      |
@@ -29,15 +26,16 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | python:imports           | npm run python:imports           |                                                                                                                      |
 | test                     | npm run test                     |                                                                                                                      |
 | test:backfire            | npm run test:backfire            |                                                                                                                      |
-| test:backfire-slow       | npm run test:backfire-slow       |                                                                                                                      |
 | test:clean-architecture  | npm run test:clean-architecture  |                                                                                                                      |
 | test:clean-code          | npm run test:clean-code          |                                                                                                                      |
 | test:cli-contract        | npm run test:cli-contract        |                                                                                                                      |
 | test:commit-msg          | npm run test:commit-msg          |                                                                                                                      |
 | test:constitution-bump   | npm run test:constitution-bump   |                                                                                                                      |
+| test:credit-offers       | npm run test:credit-offers       |                                                                                                                      |
 | test:doc-regions         | npm run test:doc-regions         |                                                                                                                      |
 | test:git-flow            | npm run test:git-flow            |                                                                                                                      |
 | test:gts                 | npm run test:gts                 |                                                                                                                      |
+| test:jev-ultrafast       | npm run test:jev-ultrafast       |                                                                                                                      |
 | test:plugin-skills       | npm run test:plugin-skills       |                                                                                                                      |
 | test:plugins-validate    | npm run test:plugins-validate    |                                                                                                                      |
 | test:ruff                | npm run test:ruff                |                                                                                                                      |

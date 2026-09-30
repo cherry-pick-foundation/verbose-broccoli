@@ -1,17 +1,28 @@
 line-length = 80
 indent-width = 4
 preview = false
-# FR-005 keeps vendored upstream Spec Kit extensions in their upstream form.
-extend-exclude = [".specify/extensions/"]
+# The Spec Kit extensions keep their upstream form, and so do the files
+# copied from Jev Ultrafast.
+extend-exclude = [
+  ".specify/extensions/",
+  "packages/jev-ultrafast/src/jev_ultrafast/*.py",
+  "packages/jev-ultrafast/tests/test_agent.py",
+  "packages/jev-ultrafast/examples/*.py",
+  "packages/jev-ultrafast/scripts/check_guards.py",
+]
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
+  "packages/credit-offers/src",
+  "packages/jev-ultrafast/src",
   "packages/wiki-consistency/src",
 ]
 
 [format]
-# Markdown is not Python source; several copies are vendored.
-exclude = ["*.md"]
+# Markdown is not Python source.
+exclude = [
+  "*.md",
+]
 
 [per-file-target-version]
 # scripts/doc_sources.py runs in the doc-regions Python 3.13 environment.
@@ -237,7 +248,6 @@ known-third-party = ["absl", "enchant"]
 known-first-party = [
   "backfire",
   "backfire_education",
-  "backfire_tools",
   "doc_regions",
   "wiki_consistency",
 ]

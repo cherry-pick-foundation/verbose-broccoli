@@ -1,105 +1,108 @@
 # Backfire operator guide
 
-Backfire is a local Model Context Protocol (MCP) server that the code and work
-plugins each ship in their own build. Each client session starts its own
-server process. The server uses Python 3.14.4 and uv 0.11.32 or later; Node.js is
-not needed at runtime.
+Backfire runs PyModel's [jev-judge-mcp](https://github.com/PyModel/jev-judge-mcp)
+0.6.0 Model Context Protocol (MCP) server with verbose-broccoli's own model
+providers. jev-judge-mcp is a Python implementation of jkudish's jev-mcp,
+installed from PyPI as a pinned dependency; backfire adds only the glue in
+`packages/backfire/src/backfire/`. The server reports itself as `jev-mcp`
+and offers PyModel's tools (`jev_verify`, `jev_screen`, `jev_find`,
+`jev_classify`, `jev_decide`, `jev_rerank`, `jev_compare`, `jev_extract`,
+`jev_review`, `jev_gate` and `jev_score`) plus `jev_noul`, jev-mcp 0.9.0's
+Noul tool. Each client session starts its own server process. It needs
+Python 3.14.4 and uv 0.11.32 or later.
 
-The two builds share one judgment core. The code build is for development
-work. The work build is for education work: before a judgment leaves for the
-provider, it replaces student, guardian and school names and contact details
-with pseudonyms ([Work build](#work-build)).
+The code plugin uses it for development work. The work plugin uses it for
+education work: before a judgment leaves for the provider, it replaces
+student, guardian and school names and contact details with pseudonyms
+([Work plugin](#work-plugin)).
 
-## Build and install
+## Run it
 
-From the repository root, prepare the build environment and create a complete
-plugin in a new directory outside the repository's `plugins/` and `packages/`
-trees. The first argument is the plugin, `code` or `work`:
+Backfire runs straight from the repository and is never installed. Prepare
+the environment once from the repository root:
 
 ```sh
 npm run backfire:install
-npm run backfire:build -- code /path/to/code-plugin
-npm run backfire:build -- work /path/to/work-plugin
 ```
 
-The output path must not already exist. Install the copied server's locked
-runtime dependencies and its own Python environment. The work build needs the
-`education` extra:
+Both plugins declare the `backfire` stdio server in their `mcp.json` and
+start it from the repository's package, the work plugin with `--education`:
 
 ```sh
-cd /path/outside/repository/code-plugin/backfire
-uv sync --frozen --no-dev
-
-cd /path/outside/repository/work-plugin/backfire
-uv sync --frozen --no-dev --extra education
+uv --directory "${PLUGIN_ROOT}/../../packages/backfire" run --frozen --offline --no-sync backfire serve-mcp
+uv --directory "${PLUGIN_ROOT}/../../packages/backfire" run --frozen --offline --no-sync backfire serve-mcp --education
 ```
 
-Both plugins declare the `backfire` stdio server in their `mcp.json`. After a
-copy is installed, the client starts it with:
-
-```sh
-uv --directory "${PLUGIN_ROOT}/backfire" run --frozen --offline --no-sync backfire serve-mcp
-```
-
-Serving uses the installed environment and does not sync packages or access
-the network to install them.
+Serving uses the prepared environment and does not sync packages. The path
+reaches `packages/backfire` only while a client loads the plugin from the
+repository checkout, as Claude Code does with `--plugin-dir`; a client that
+copies the plugin elsewhere, such as a local marketplace install, cannot
+start it.
 
 ## Select a provider
 
-The shipped profile file is `backfire/src/backfire/config.toml` in a built
-plugin. The code build's file selects `hive`, the development profile. The
-work build's file selects `education`, a separate profile with the same
-provider, model and request settings. The optional operator file is
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`; when
-`XDG_CONFIG_HOME` is unset, that path starts at `~/.config`. Both builds read
-it.
+The shipped configuration is `packages/backfire/src/backfire/config.toml`
+for the code plugin, which selects `hive`, and
+`packages/backfire/src/backfire_education/config.toml` for the work plugin,
+which selects `education`. Both profiles send judgments to the
+OpenAI-compatible API at Hive and the `deepseek-ai/deepseek-v4.1-flash`
+model through system-one-adapter, with JSON-object output, up to 32,768
+completion tokens and medium reasoning effort. The optional operator file
+is `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` (`~/.config`
+when `XDG_CONFIG_HOME` is unset); both plugins read it. It uses
+`provider = "<name>"` to select a profile, and a `[providers.<name>]` table
+adds a profile or replaces the shipped one of that name. The selection is
+read at the server's first judgment; restart the client session after
+changing it.
 
-The operator file uses `provider = "<name>"` to select a profile. A
-`[providers.<name>]` table adds a profile or replaces the shipped table with
-that name as a whole. Without this file, the shipped selection applies. To
-change only one plugin's provider, replace that plugin's table:
-`[providers.hive]` for code, `[providers.education]` for work. A
-`provider = "<name>"` line selects for both builds. The shipped `hive` and
-`education` profiles use the OpenAI-compatible API at Hive and the
-`deepseek-ai/deepseek-v4.1-flash` model. The operator file may not contain
-`pseudonymize`; only a build's shipped file sets it. `api = "openai"` is the supported
-adapter type; Anthropic is reserved and fails as unsupported.
+A profile is one of two kinds:
+
+| Field | Meaning |
+| --- | --- |
+| `api` | `openai` for a general model through system-one-adapter, as `hive` is; `jev` for a Jev provider |
+| `jev_provider` | For `jev`: `typesafe`, `openrouter`, `cloudflare`, `compatible` or `vercel` |
+| `base_url` | The endpoint; required for `openai`, `compatible` and `vercel`, optional for `typesafe` |
+| `model` | The model; required for `openai` |
+| `account_id` | For `cloudflare`: the Cloudflare account |
+| `request` | For `openai`: extra request fields sent with every request |
+| `credential` | The variable that holds the key in the key file |
+| `credential_file` | Optional path of the key file; the default is `<profile>.env` beside the operator file |
+| `retry` | Optional table of PyModel retry policy fields for this profile's provider |
+
+A Jev profile uses PyModel's own provider of that name; `vercel` uses
+backfire's Vercel AI Gateway provider, ported from jkudish's
+jev-agent-tools 0.1.2 because PyModel does not support Vercel. The code
+plugin ships unselected `vercel` and `openrouter` profiles; select one with
+`provider = "vercel"` or `provider = "openrouter"` in the operator file. PyModel's own provider
+environment variables, such as `JEV_PROVIDER` or `TYPESAFE_API_KEY`, do not
+choose backfire's provider.
 
 ## Set the credential
 
-Put the selected profile's credential variable in
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/<profile>.env`. For Hive, the file
-is `hive.env` and contains `HIVE_API_KEY=<your key>`. The work build's
-`education` profile reads `education.env`, which holds the same variable; a
-symbolic link from `education.env` to `hive.env` keeps one copy of the key. The file must be owned by
-the operator, non-empty, and have mode `0600` exactly. Keep the key out of
-`config.toml`, plugin files, and client environment entries. The judge reads
-the file for each judgment; it does not put the credential in the prompt,
-logs, records, reports, or errors.
+The key file has one `<variable>=<key>` line, must be a regular file owned
+by the operator with mode `0600`, and is read when the server's provider is
+created. Provider keys live in one shared folder,
+`$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default
+`~/.config/verbose-broccoli/providers/`, mode `0700`), with one file per
+provider that every plugin uses. The shipped `hive` and `education` profiles
+read `HIVE_API_KEY` from `providers/hive.env`, the shipped `vercel` profile
+reads `AI_GATEWAY_API_KEY` from `providers/vercel.env`, and the shipped
+`openrouter` profile reads `OPENROUTER_API_KEY` from
+`providers/openrouter.env`. They name the
+files relative to the operator file's folder (`../providers/<provider>.env`),
+so the path follows `XDG_CONFIG_HOME`. An operator profile without
+`credential_file` still reads `<profile>.env` beside the operator file. Keep keys out of `config.toml`, plugin files and client
+environment entries.
 
-## Check readiness
+## Work plugin
 
-After installation, check a built copy with:
-
-```sh
-uv --directory /path/to/backfire-plugin/backfire run --frozen --offline --no-sync backfire ready
-```
-
-For the repository package, use `npm run backfire:ready`. Readiness checks
-the selected profile, credential, installed package, record directory and
-server tool path. It makes one direct Noul judgment, then calls
-`backfire_noul` and `backfire_extract` through MCP. These are real provider
-requests and can incur charges; the check needs network access and provider
-credit. It exits zero only when its requested facts and tool checks pass. In a
-work build, readiness also needs the roster configuration below, because its
-judgments are pseudonymized too.
-
-## Work build
-
-The work build pseudonymizes every judgment of its server and its readiness
-check. The build's shipped `config.toml` turns this on, and the operator's
-configuration cannot turn it off. Only a program that calls the judge directly
-can choose otherwise, as the education measurement does to compare both arms.
+`serve-mcp --education` selects the education profile and pseudonymizes
+every judgment, whichever profile kind the operator selects: the tool's
+input, the question keys, and every text in the questions (wording, choice
+labels and their descriptions, Noul criteria and rubric levels). It also
+turns off PyModel's optional response cache (`JEV_MCP_CACHE`), so real names
+are never written to disk. The operator's configuration cannot turn either
+off.
 
 ### Before sending real student records
 
@@ -142,7 +145,7 @@ all-Hangul names of at least three syllables, and only when they have at least
 two syllables. Scores, dates,
 grades, observations and other learning content are sent as is.
 
-The work build cannot detect names, schools or guardians missing from the
+The work plugin cannot detect names, schools or guardians missing from the
 roster, nicknames, one-syllable given names, given names of roster names that
 are not all Hangul or shorter than three syllables, shortened school names such as
 `별빛고` for `가상별빛고`, addresses, or Hangul written in decomposed form
@@ -162,81 +165,67 @@ names or contact details themselves. It has mode `0600`, a lock file beside
 it, and a 1 MiB limit. Deleting it restarts the numbering: calls stay
 correct, but new pseudonyms no longer match earlier ones.
 
-A work build's judgment fails before anything is sent when `education.toml`,
+A work plugin judgment fails before anything is sent when `education.toml`,
 the roster or the mapping table cannot be used (`backend_not_configured` with
 the path), or when two keys or labels of one request would become the same
 after replacement (`pseudonym_conflict`).
 
-## Requests, data, and records
+## Requests and data
 
-For each judgment, a tool turns its input into `state` and `questions`. The
-pinned System One adapter builds the provider request for the selected model.
-The request includes the question text and any supplied claims, evidence,
-patches, test output, source excerpts, or other text used by that tool. Hive's
-profile also requests JSON-object output, up to 32,768 completion tokens, and
-medium reasoning effort. The provider receives the selected credential in the
+For each judgment, a PyModel tool turns its input into `state` and
+`questions`, and the selected provider sends them: for a general-model
+profile, system-one-adapter builds the model request; for a Jev profile,
+the provider sends them to the Jev endpoint. The request includes the
+question text and any supplied claims, evidence, patches, test output,
+source excerpts or other text used by that tool, and the key goes in the
 HTTP `Authorization` header. Never send secrets or credentials. Never send
-private personal records such as student data to the code build, which
-replaces nothing; use the work build for them.
+private personal records such as student data to the code plugin, which
+replaces nothing; use the work plugin for them.
 
-The server writes records under
-`$XDG_STATE_HOME/verbose-broccoli/backfire/records/`; when `XDG_STATE_HOME` is
-unset, this starts at `~/.local/state`. Each session has a JSON Lines record
-file. Records contain digests and fixed metadata, not request or result text,
-caller-supplied identifiers, credentials, or authentication headers. The
-directory has a 50 MiB total budget, checked before every append. The server
-removes the oldest unlocked files when needed; if a record still does not fit,
-that call fails. A session file rotates at 10 MiB.
+PyModel retries a failed attempt on HTTP 408, 429 and 5xx, and on a timed
+out or dropped connection. Its default policy allows 3 attempts of 30
+seconds each within 90 seconds; a profile's optional `retry` table sets
+PyModel's policy fields instead (`max_attempts`, `per_attempt_timeout`,
+`budget`, the backoff fields and `statuses`). The shipped Hive and
+education profiles set `per_attempt_timeout = 110` and `budget = 118`,
+because the reasoning model needs more than 30 seconds for large requests.
+For a general-model profile, backfire also retries a success reply that
+carries no answer (CHE-33). Backfire keeps no records of calls or
+judgments.
 
-## Request limits
+## Limits
 
-A Choice may have at most 250 options. Each request may have at most 672 answer
-cells: one per Noul, one per Choice option, and one per Score level. An
-oversized request fails before the provider is called. Backfire does not split
-requests; split large batches yourself.
+PyModel's tool schemas set every input limit, such as 64 items and 250
+classes for `jev_classify`, or 50,000 characters for a `jev_extract`
+document. `jev_extract` runs each caller-supplied pattern in PyModel's
+warmed pool of worker processes with a one-second limit. With 80 busy
+processes on the development laptop, simple patterns never timed out in
+the checks of 2026-09-30 (CHE-37).
+
+One known issue remains in PyModel 0.6.0, the release backfire uses:
+`jev_verify` with very many evidence items that share one ID blocks the
+server for seconds, because PyModel gives duplicate IDs their suffixes in
+quadratic time (CHE-38). A patch for PyModel that removes the stall, with
+its measurements, is prepared in
+[`specs/021-backfire-rebuild/upstream/`](../specs/021-backfire-rebuild/upstream/pull-request.md);
+it is not published, so the issue stays until a PyModel release includes a
+fix.
 
 ## Advisory results
 
 The tools return advice. Nothing requires an agent to call them or follow
-their verdicts. A `backfire_gate` verdict judges only the supplied text; it
-does not prove that tests ran. A pass from `backfire_screen` never authorizes
-following instructions found in screened text. Check claims and test claims
-independently.
+their verdicts. A `jev_gate` verdict judges only the supplied text; it does
+not prove that tests ran. A pass from `jev_screen` never authorizes
+following instructions found in screened text. Check claims and test
+claims independently.
 
-## Upstream port
+## Troubleshoot errors
 
-The eleven tools are a Python port of `jev-mcp` 0.9.0 at revision
-`a1fcc1e47fc696614f081e23a66ff48a890f22fd`. Their descriptions, input
-schemas, question design, decision logic, result formats, and error text are
-preserved, with the differences recorded in
-[UPSTREAM.md](../packages/backfire/src/backfire/UPSTREAM.md):
-`backfire_extract` uses Python regular expressions; judgment failures use the
-backend's fixed error types and messages; tools call an in-process judge
-instead of the upstream provider layer; invalid-argument details come from
-JSON Schema validation instead of zod; and caller-supplied IDs and labels are
-ordinary strings, including names that have special meaning in JavaScript
-objects.
+Tool errors are PyModel's: argument errors name the tool and the argument,
+and provider failures name the provider, and the attempt count when
+retries ran out, with keys redacted. Backfire adds two of its own:
 
-## Troubleshoot judgment errors
-
-Judgment failures return a fixed `<type>: <message>` and no answer or fallback.
-The messages omit the provider's raw response and credentials.
-
-| Error type | Cause and action |
+| Error | Cause and action |
 | --- | --- |
-| `invalid_request` | The generated questions do not match the adapter schema. Correct the tool input; `backfire_find` needs at least two candidates. |
-| `request_limit_exceeded` | A Choice has over 250 options or a request has over 672 cells. Split the request. |
-| `backend_not_configured` | The configuration, selected profile, or credential is missing or invalid. Check the path or profile named in the message; check the credential file's owner and `0600` mode. |
-| `credential_rejected` | The provider rejected the selected profile's key. Replace that profile's credential. |
-| `balance_exhausted` | The provider account has no available balance. Restore its balance. |
-| `request_rejected` | The provider rejected the model or request settings. Check the profile's model and request fields. |
-| `rate_limited` | The provider rate limit blocked completion within the retry budget. Wait before trying again. |
-| `provider_unavailable` | The provider could not be reached, or its response could not be read. Check network access and provider status. |
-| `provider_error` | The provider returned another failure status, or a success reply without an answer: a body that is not a JSON object, or no `choices` (no `output` list for the Responses API). A 5xx status and a reply without an answer are retried first, up to four attempts within the call's time. Check provider status and the selected profile. |
-| `truncated_output` | Output did not complete or reached the profile's `max_tokens`. Reduce the request or review the profile's output limit. |
-| `malformed_output` | The response lacks required data or has invalid answers. Check the profile and model compatibility. |
-| `refused` | The provider refused the judgment. Review the request against the provider's usage rules. |
-| `invalid_distribution` | Choice or Score probabilities are all zero or do not sum to one within `0.01`. Check the model's probability-output support. |
-| `thinking_not_confirmed` | The profile requests thinking, but the response lacks its configured evidence. Check the request setting and evidence paths. |
-| `model_not_confirmed` | The response did not name the answering model. Check that the provider returns a model name. |
-| `pseudonym_conflict` | Two keys or labels of one request become the same after pseudonymization in a work build. Make them differ by more than a name. |
+| `backend_not_configured` | The configuration, the selected profile, its key file or a Jev provider name is missing or invalid. Check the file or profile named in the message, and the key file's owner and `0600` mode. |
+| `pseudonym_conflict` | Two keys or labels of one request become the same after pseudonymization in the work plugin. Make them differ by more than a name. |

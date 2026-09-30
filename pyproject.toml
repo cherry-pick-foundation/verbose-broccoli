@@ -13,9 +13,10 @@ members = ["packages/*"]
 [tool.importlinter]
 root_packages = [
   "backfire",
-  "backfire_tools",
   "backfire_education",
+  "credit_offers",
   "doc_regions",
+  "jev_ultrafast",
   "wiki_consistency",
 ]
 
@@ -24,12 +25,12 @@ name = "Workspace package layers"
 type = "layers"
 layers = [
   "wiki_consistency",
-  "backfire_education | backfire_tools",
+  "backfire_education",
   "backfire | doc_regions",
 ]
 ignore_imports = [
   # Backfire imports this optional adapter only when education is configured.
-  "backfire.judge -> backfire_education.pseudonymize",
+  "backfire.providers -> backfire_education.pseudonymize",
 ]
 
 [[tool.importlinter.contracts]]
@@ -37,9 +38,10 @@ name = "Python package sibling cycles"
 type = "acyclic_siblings"
 ancestors = [
   "backfire",
-  "backfire_tools",
   "backfire_education",
+  "credit_offers",
   "doc_regions",
+  "jev_ultrafast",
   "wiki_consistency",
 ]
 

@@ -20,20 +20,20 @@ user selects another with `--wiki <name>`.
 
 ## Commands
 
-Run them from this skill's folder. The tool is the `wiki-consistency` project
-at the work plugin's root:
+Run them from this skill's folder. The tool is the repository's
+`packages/wiki-consistency` project:
 
 ```sh
-uv run --project ../../wiki-consistency --frozen --offline --no-sync wiki-consistency <command> [--wiki <name>]
+uv run --project ../../../../packages/wiki-consistency --frozen --offline --no-sync wiki-consistency <command> [--wiki <name>]
 ```
 
 Install it once after the plugin is installed or updated:
 
 ```sh
-uv sync --project ../../doc-regions --frozen --no-dev
-uv sync --project ../../backfire --frozen --no-dev --extra education
-uv sync --project ../../wiki-consistency --frozen --no-dev
-npm ci --ignore-scripts --no-audit --no-fund --prefix ../../wiki-consistency
+uv sync --project ../../../../packages/doc-regions --frozen --no-dev
+uv sync --project ../../../../packages/backfire --frozen --no-dev --extra education
+uv sync --project ../../../../packages/wiki-consistency --frozen --no-dev
+npm ci --ignore-scripts --no-audit --no-fund --prefix ../../../../packages/wiki-consistency
 ```
 
 The first two lines give `doc-regions` and `backfire`, which the tool uses
@@ -93,11 +93,11 @@ with the judgment step.
    **work plugin's** backfire server. Before the provider sees them, its judge
    replaces the student, guardian and school names in the operator's roster,
    phone numbers and email addresses; every other identifier and all other
-   text are sent as they are. In Claude Code its tools are
-   named `mcp__plugin_work_backfire__<tool>`. Never use the code plugin's
+   text are sent as they are. In Claude Code its tools include
+   `mcp__plugin_work_backfire__jev_verify`. Never use the code plugin's
    server for Wiki text.
 4. For a `pages` request whose result is `contradicted`, call
-   `backfire_compare` with the two units' texts. Report every confirmed
+   `jev_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.
 5. Fix `evidence` units that come back `contradicted` or `review`, or tell the
    user why they stand. Report every unit listed as `unverifiable`, with its

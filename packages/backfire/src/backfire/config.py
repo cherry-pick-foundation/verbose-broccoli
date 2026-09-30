@@ -1,227 +1,135 @@
-"""Read provider profiles and private credentials afresh for each judgment."""
+"""Read the selected provider profile and private key file."""
 
-import json
 import os
 from pathlib import Path
+import re
 import stat
 import tomllib
 from typing import Literal
 from urllib.parse import urlsplit
 
-from jsonschema import Draft202012Validator
-
 from backfire.failures import JudgmentError
 
 SHIPPED_CONFIG = Path(__file__).with_name("config.toml")
-_NAME = {"type": "string", "pattern": r"^[a-z0-9-]+\Z"}
-_TEXT = {"type": "string", "pattern": r"\S"}
-_PATH = {"type": "string", "pattern": r"^[^.]+(?:\.[^.]+)*\Z"}
-_CONFIG = Draft202012Validator(
-    {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "pseudonymize": {"type": "boolean"},
-            "provider": _NAME,
-            "providers": {
-                "type": "object",
-                "propertyNames": _NAME,
-                "additionalProperties": {"type": "object"},
-            },
-        },
-    }
+EDUCATION_CONFIG = (
+    Path(__file__).parents[1] / "backfire_education" / "config.toml"
 )
-_PROFILE = Draft202012Validator(
-    {
-        "type": "object",
-        "additionalProperties": False,
-        "required": ["api", "base_url", "model", "credential", "thinking"],
-        "properties": {
-            "api": {"enum": ["openai", "anthropic"]},
-            "base_url": {"type": "string", "pattern": r"^https?://\S+\Z"},
-            "model": _TEXT,
-            "credential": {
-                "type": "string",
-                "pattern": r"^[A-Za-z_][A-Za-z0-9_]*\Z",
-            },
-            "rate_limit_per_second": {"type": "number", "minimum": 0},
-            "request": {
-                "type": "object",
-                "properties": {
-                    "model": False,
-                    "messages": False,
-                    "stream": False,
-                    "n": False,
-                    "max_tokens": {"type": "integer", "minimum": 1},
-                },
-            },
-            "thinking": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["requested"],
-                "properties": {
-                    "requested": {"enum": ["on", "off"]},
-                    "content_path": _PATH,
-                    "token_path": _PATH,
-                },
-                "if": {"properties": {"requested": {"const": "on"}}},
-                "then": {
-                    "anyOf": [
-                        {"required": ["content_path"]},
-                        {"required": ["token_path"]},
-                    ]
-                },
-                "else": {
-                    "not": {
-                        "anyOf": [
-                            {"required": ["content_path"]},
-                            {"required": ["token_path"]},
-                        ]
-                    }
-                },
-            },
-            "statuses": {
-                "type": "object",
-                "propertyNames": {"pattern": r"^[45][0-9]{2}\Z"},
-                "additionalProperties": {
-                    "enum": [
-                        "credential_rejected",
-                        "balance_exhausted",
-                        "request_rejected",
-                        "rate_limited",
-                    ]
-                },
-            },
-        },
-    }
-)
+_CREDENTIAL = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
-def xdg_path(kind: Literal["config", "state", "cache", "data"]) -> Path:
-    """Return the namespace root without creating or reading any directory."""
-    defaults = {
-        "config": ".config",
-        "state": ".local/state",
-        "cache": ".cache",
-        "data": ".local/share",
-    }
-    variable = f"XDG_{kind.upper()}_HOME"
-    value = os.environ.get(variable)
-    root = Path(value) if value else Path.home() / defaults[kind]
+def _invalid(path: Path) -> None:
+    raise JudgmentError("backend_not_configured", str(path))
+
+
+def xdg_path(kind: Literal["config", "data"]) -> Path:
+    """Return Backfire's XDG configuration or data directory."""
+    default = ".config" if kind == "config" else ".local/share"
+    root = Path(
+        os.environ.get(f"XDG_{kind.upper()}_HOME", Path.home() / default)
+    )
     if not root.is_absolute():
-        raise JudgmentError("backend_not_configured", variable)
+        raise JudgmentError(
+            "backend_not_configured", f"XDG_{kind.upper()}_HOME"
+        )
     return root / "verbose-broccoli"
 
 
-def _read_config(
-    path: Path, *, optional: bool = False, shipped: bool = False
-) -> dict:
+def _read(path: Path, *, optional: bool = False) -> dict:
     try:
-        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
-        with os.fdopen(descriptor, "rb") as file:
-            if not stat.S_ISREG(os.fstat(file.fileno()).st_mode):
-                raise JudgmentError("backend_not_configured", str(path))
+        with os.fdopen(
+            os.open(path, os.O_RDONLY | os.O_NONBLOCK), "rb"
+        ) as file:
             value = tomllib.load(file)
     except FileNotFoundError:
         if optional and not path.is_symlink():
             return {}
-        raise JudgmentError("backend_not_configured", str(path)) from None
-    except (OSError, ValueError):
-        raise JudgmentError("backend_not_configured", str(path)) from None
-    if not _CONFIG.is_valid(value) or ("pseudonymize" in value and not shipped):
-        raise JudgmentError("backend_not_configured", str(path))
+        _invalid(path)
+    except (OSError, tomllib.TOMLDecodeError):
+        _invalid(path)
+    if not isinstance(value, dict):
+        _invalid(path)
     return value
 
 
-def load_pseudonymize() -> bool:
-    """The shipped build alone decides whether judgments use pseudonyms."""
-    return _read_config(SHIPPED_CONFIG, shipped=True).get("pseudonymize", False)
-
-
-def load_profile() -> dict:
-    """Load the selected profile from shipped and operator configuration."""
+def load_profile(*, education: bool = False) -> dict:
+    """Select and minimally validate the configured provider profile."""
+    shipped_path = EDUCATION_CONFIG if education else SHIPPED_CONFIG
+    shipped = _read(shipped_path)
     operator_path = xdg_path("config") / "backfire" / "config.toml"
-    shipped = _read_config(SHIPPED_CONFIG, shipped=True)
-    operator = _read_config(operator_path, optional=True)
-    providers = {
-        **shipped.get("providers", {}),
-        **operator.get("providers", {}),
-    }
-    # Check both explicit selections; a later override cannot hide a bad file.
-    for path, document in (
-        (SHIPPED_CONFIG, shipped),
-        (operator_path, operator),
+    operator = _read(operator_path, optional=True)
+    if set(operator) - {"provider", "providers"}:
+        _invalid(operator_path)
+    shipped_profiles = shipped.get("providers", {})
+    operator_profiles = operator.get("providers", {})
+    if not isinstance(shipped_profiles, dict) or not isinstance(
+        operator_profiles, dict
     ):
-        if "provider" in document and document["provider"] not in providers:
-            raise JudgmentError("backend_not_configured", str(path))
+        _invalid(shipped_path)
+    profiles = shipped_profiles | operator_profiles
     name = operator.get("provider", shipped.get("provider"))
-    if name is None:
-        raise JudgmentError("backend_not_configured", str(SHIPPED_CONFIG))
     source = (
         operator_path
-        if name in operator.get("providers", {})
-        else SHIPPED_CONFIG
+        if "provider" in operator
+        or (isinstance(name, str) and name in operator_profiles)
+        else shipped_path
     )
-    detail = f"{source} [providers.{name}]"
-    profile = providers[name]
-    _validate_profile(profile, detail)
-    if "BACKFIRE_TEST_PROVIDER_BASE_URL" in os.environ:
-        profile = {
-            **profile,
-            "base_url": os.environ["BACKFIRE_TEST_PROVIDER_BASE_URL"],
-        }
-        _validate_profile(profile, f"{detail} BACKFIRE_TEST_PROVIDER_BASE_URL")
-    return {"name": name, "request": {}, "statuses": {}, **profile}
-
-
-def _validate_profile(profile: dict, detail: str) -> None:
-    try:
-        # TOML dates and non-finite numbers cannot be sent as JSON
-        # request fields.
-        json.dumps(profile, allow_nan=False)
-        error = next(_PROFILE.iter_errors(profile), None)
-        if error is not None:
-            if error.path:
-                detail += " " + ".".join(str(part) for part in error.path)
-                if (
-                    list(error.path) == ["statuses"]
-                    and isinstance(error.instance, str)
-                    and error.instance.isascii()
-                    and error.instance.isdecimal()
-                ):
-                    detail += f".{error.instance}"
-            raise ValueError
-        endpoint = urlsplit(profile["base_url"])
-        if not endpoint.hostname:
-            raise ValueError
-        # Accessing port validates a supplied value before the URL goes to
-        # the client.
-        _ = endpoint.port
-    except (TypeError, ValueError):
-        raise JudgmentError("backend_not_configured", detail) from None
-    if profile["api"] == "anthropic":
-        raise JudgmentError(
-            "backend_not_configured",
-            f"{detail}: api anthropic is not supported yet",
-        )
+    profile = profiles.get(name) if isinstance(name, str) else None
+    if not isinstance(profile, dict) or profile.get("api") not in {
+        "openai",
+        "jev",
+    }:
+        _invalid(source)
+    if not isinstance(
+        profile.get("credential"), str
+    ) or not _CREDENTIAL.fullmatch(profile["credential"]):
+        _invalid(source)
+    if "credential_file" in profile and (
+        not isinstance(profile["credential_file"], str)
+        or not profile["credential_file"].strip()
+    ):
+        _invalid(source)
+    if profile["api"] == "openai" and any(
+        not isinstance(profile.get(key), str) or not profile[key].strip()
+        for key in ("base_url", "model")
+    ):
+        _invalid(source)
+    if profile.get("jev_provider") == "vercel" and not profile.get("base_url"):
+        _invalid(source)
+    if "base_url" in profile:
+        try:
+            endpoint = urlsplit(profile["base_url"])
+            if (
+                endpoint.scheme not in {"http", "https"}
+                or not endpoint.hostname
+                or endpoint.username
+                or endpoint.password
+            ):
+                _invalid(source)
+        except (TypeError, ValueError):
+            _invalid(source)
+    return {**profile, "name": name, "_config_dir": operator_path.parent}
 
 
 def load_credential(profile: dict) -> str:
-    """Read the selected credential without sourcing its file."""
-    path = xdg_path("config") / "backfire" / f"{profile['name']}.env"
+    """Read the selected API key from its private environment file."""
+    configured = profile.get("credential_file")
+    path = (
+        Path(configured).expanduser()
+        if configured
+        else profile["_config_dir"] / f"{profile['name']}.env"
+    )
+    if not path.is_absolute():
+        # Normalize "..", so a shared key file resolves without this folder.
+        path = Path(os.path.normpath(profile["_config_dir"] / path))
     try:
-        # Inspect the opened file, not a path that could be replaced before
-        # reading.
-        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
-        with os.fdopen(descriptor, encoding="utf-8") as file:
+        with path.open(encoding="utf-8") as file:
             info = os.fstat(file.fileno())
             if (
                 not stat.S_ISREG(info.st_mode)
                 or stat.S_IMODE(info.st_mode) != 0o600
                 or info.st_uid != os.getuid()
-                or not info.st_size
             ):
-                raise JudgmentError("backend_not_configured", str(path))
+                _invalid(path)
             prefix = f"{profile['credential']}="
             key = next(
                 (
@@ -232,7 +140,7 @@ def load_credential(profile: dict) -> str:
                 "",
             )
     except (OSError, UnicodeError):
-        raise JudgmentError("backend_not_configured", str(path)) from None
+        _invalid(path)
     if not key:
-        raise JudgmentError("backend_not_configured", str(path))
+        _invalid(path)
     return key

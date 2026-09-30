@@ -7,8 +7,7 @@ are not requirement, evidence or implementation sources.
 
 ## Current skeleton
 
-Each package has a `plugin.json`; the code and work packages also have
-`skills/`. The `code` package has a small `package.json` that only declares
+Each package has a `plugin.json` and `skills/`. The `code` package has a small `package.json` that only declares
 its exports for the import-boundary check, and its clean-code skill has its
 own npm package manifest with the skill's dependencies. Current versions and
 MCP declarations come from
@@ -21,8 +20,9 @@ The `work` package contains the `quarto-authoring`, `session-migrate`,
 `backfire` server, which
 pseudonymizes student identifiers; its other business capabilities have no
 implementation until new features specify them.
-The `chat` package contains only its manifest and license; it
-has no skills, package manifest, MCP declaration or scripts, and its
+The `chat` package contains the `web-agent` and `credit-offers` skills
+(see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
+it has no package manifest, MCP declaration or scripts, and its
 persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
 No release has occurred, and actual client installation
 remains open.
@@ -59,7 +59,7 @@ each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
 1.10.18 stays a separately installed converter. `npm run doctor` runs `mise
 doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
-version, the locked uv environments, the npm trees, the git-flow configuration
+and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
 and lefthook's hooks, and name the repair command for each failure. The user's
 machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
 content; Orca's setup script trusts it and installs the four tools with
@@ -117,8 +117,12 @@ not a standardized or calibrated measure of coding difficulty. They infer no
 runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
-or selects a model. Model selection remains a separate client decision.
-
+or selects a model. Agents, models and efforts are chosen with the code
+plugin's `model-choice` skill.
+CodexBar 0.69.0, a host tool at `~/.local/bin/codexbar` linking to
+`~/.local/opt/codexbar-0.69.0/`, gives that skill the usage limits. It is the
+release's x86_64 Linux (glibc) archive, extracted whole after checking it
+against the release's checksum file.
 
 ## CLI contract
 
@@ -168,9 +172,10 @@ Three plugins do not require three servers, databases, or continuously running
 processes.
 
 The `code` package reuses selected upstream skills and tools.
-The `chat` package targets the ChatGPT and Claude chat projects and has no
-skills yet; actual distribution and invocation remain separate from local
-validation. Business capabilities belong to the `work` package once
+The `chat` package targets the ChatGPT and Claude chat projects; its two
+skills run in local Codex CLI or Claude Code sessions from the repository's
+uv workspace, and actual distribution and invocation remain separate from
+local validation. Business capabilities belong to the `work` package once
 features specify them. Create TypeScript entry points, source directories and
 internal layers only when a specified capability has an actual consumer. Selected
 Wiki storage follows constitution principle VI; restructuring code does not move
@@ -277,15 +282,14 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   keyword search alone finds no other page for a whole paragraph, so
   `prepare` then checks units only against their evidence and says that it
   searched no other pages. `prepare` prints
-  `backfire_verify` requests (units against their cited evidence, and against
-  candidate units of other pages), `backfire_find` cross-reference requests
-  in a lint, and `backfire_classify` requests for new units. qmd only finds
+  `jev_verify` requests (units against their cited evidence, and against
+  candidate units of other pages), `jev_find` cross-reference requests
+  in a lint, and `jev_classify` requests for new units. qmd only finds
   candidates; backfire judges.
-- The agent sends the requests to the work plugin's backfire server, whose
-  judge replaces the roster's student, guardian and school names, phone
-  numbers and email addresses before the provider call and sends all other
-  text as it is, and confirms a contradiction between two pages with
-  `backfire_compare`.
+- The agent sends the requests to the work plugin's backfire server, which
+  replaces the roster's student, guardian and school names, phone numbers
+  and email addresses before the provider call and sends all other text as
+  it is, and confirms a contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run
@@ -298,32 +302,64 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 ### Backfire server
 
 `plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
-stdio server and start it with `uv --directory ${PLUGIN_ROOT}/backfire run
---frozen --offline --no-sync backfire serve-mcp`. Its shared Python runtime
-package lives in `packages/backfire/src/backfire/`, a member of the root uv
-workspace. The work plugin's additions, the pseudonymization module and the
-education profile, live in `packages/backfire/src/backfire_education/`.
-`npm run backfire:build -- <plugin> <output>` copies `plugins/<plugin>/` and
-the packages that plugin needs into a complete plugin at an output path outside
-`plugins/` and `packages/`; one table in `backfire_tools/build.py` lists them
-per plugin. The development and release programs in
-`packages/backfire/src/backfire_tools/` are not shipped; they include the build,
-probes, upstream capture and the education measurement.
+stdio server and start it from the repository with `uv --directory
+${PLUGIN_ROOT}/../../packages/backfire run --frozen --offline --no-sync
+backfire serve-mcp`, the work plugin adding `--education`; backfire is used
+from the repository and never installed. The server is PyModel's
+jev-judge-mcp 0.6.0, a pinned PyPI dependency: backfire's entry point builds
+PyModel's server from PyModel's tools plus `jev_noul` and passes PyModel's
+runtime a provider factory. The factory reads backfire's profiles from
+`packages/backfire/src/backfire/config.toml` (code),
+`packages/backfire/src/backfire_education/config.toml` (work) and the
+optional `$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`, and
+builds either a general-model provider through system-one-adapter (Hive by
+default) or a Jev provider: PyModel's own, or the Vercel AI Gateway
+provider ported from jev-agent-tools. With `--education` it wraps that
+provider with the pseudonymization module in
+`packages/backfire/src/backfire_education/`. What backfire needs from
+PyModel's own code (CHE-38) is prepared as a patch for PyModel in
+`specs/021-backfire-rebuild/upstream/`. See the
+[Backfire operator guide](backfire.md) for setup, profiles and
+troubleshooting.
 
-Each build's `backfire/src/backfire/config.toml` is its shipped provider
-profile: the development profile `hive` from
-`packages/backfire/src/backfire/config.toml` for code, and the education
-profile from `packages/backfire/src/backfire_education/config.toml` for work.
-The work build's file also sets `pseudonymize = true`, which makes the shared
-judge replace roster names, schools and contact details with stable
-pseudonyms before a server or readiness judgment leaves the process. An
-operator can select or replace profiles in the optional
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml`. The eleven tools are a
-Python port of `jev-mcp` 0.9.0; its source revision, original file hashes, and
-recorded differences are in
-[`UPSTREAM.md`](../packages/backfire/src/backfire/UPSTREAM.md). See the
-[Backfire operator guide](backfire.md) for setup, provider selection, records,
-and troubleshooting.
+### Chat web agent and credit offers — 2026-09-30
+
+Feature 021 ([spec](../specs/021-chat-jev-ultrafast/spec.md)) gives the chat
+package two skills backed by two uv workspace packages.
+
+- `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
+  fixed revision and patched in two modules; its
+  [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
+  the original file hashes and every difference. Its Jev calls go to the
+  provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
+  `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
+  of jev-mcp 0.9.0's Vercel carrier; `cloudflare`, Cloudflare Workers AI; or
+  `openrouter`, OpenRouter's decisions API.
+  By default the agent opens its own
+  tab in Orca's built-in browser and attaches to it through that tab's own
+  browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
+  connection. The `web-agent` skill runs it.
+- `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
+  offers that entered its published list during the latest 6-hour block,
+  asks Jev once per run whether each costs nothing and states no time limit
+  or end date, and sends a desktop notification for those that do. It saves
+  nothing. The `credit-offers` skill runs it, and the user approved an Orca
+  automation on the laptop that runs it every 6 hours as a precheck; the
+  interval comes from the tracker's history
+  ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
+- Keys live in the shared provider folder
+  `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
+  `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
+  `openrouter.env`, `hive.env`, and `github.env` for the offer search's
+  optional GitHub token), which every plugin uses. The chat packages
+  get them through `uv run --env-file` and never read the files; backfire's
+  shipped profiles name them in `credential_file`.
+- `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
+  offline tests; both are part of `npm run check`.
+- Not automated: the live provider check, which waits for a provider that
+  accepts Jev calls, because Vercel AI Gateway's free tier does not include
+  Jev; catching up blocks the laptop slept through; screenshots and scrolling
+  in an Orca tab that is not drawn on screen.
 
 ## Sharing and distribution
 
@@ -337,11 +373,14 @@ Shared packages are implementation dependencies, not a fourth plugin. Plugins do
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
-A shipped plugin must include its required package files or resolve explicitly
-pinned runtime dependencies. Do not distribute `skills/` or package components
-as symlinks into neighboring workspace directories. Development workspace
-resolution is not proof that an isolated installation works. Reuse upstream
-packaging tools if bundled shared code becomes necessary.
+The code and work plugins are used from the repository checkout and never
+installed: their `backfire` server runs from `packages/backfire` through a
+repository path in `mcp.json` (the user's decision of 2026-09-30), so a copy
+of a plugin outside the repository cannot start it. Do not distribute
+`skills/` or package components as symlinks into neighboring workspace
+directories. Development workspace resolution is not proof that an isolated
+installation works. Reuse upstream packaging tools if an installable plugin
+becomes necessary.
 
 Use root `plugin.json`, `skills/`, and `mcp.json` according to
 [Agent Plugins 1.0](https://agent-plugins.org/specification). Client-specific
@@ -366,7 +405,8 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/chat/skills` | `credit-offers`, `web-agent` |
+| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
@@ -598,8 +638,8 @@ or an agent region, written by agents. No part is human-written.
   that `npm run workflow` prints in REVIEW mode. `npm run
   doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
-  `backfire_verify` requests, with units as claims and the feature diff as
-  evidence, and `backfire_classify` requests for the units the feature added.
+  `jev_verify` requests, with units as claims and the feature diff as
+  evidence, and `jev_classify` requests for the units the feature added.
   The agent sends them through its MCP client. It corrects target units judged
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.
