@@ -284,9 +284,15 @@ RUSTSEC-2026-0258 (`h2`), RUSTSEC-2026-0285 (`rustls`) and
 RUSTSEC-2026-0099 (`rustls-webpki`), each low for this use;
 RUSTSEC-2026-0098 and RUSTSEC-2026-0104 (`rustls-webpki`), not reachable in
 the reviewed configuration; RUSTSEC-2026-0185 (`quinn-proto`), not in the
-binary. The mitigations they rely on: gws talks only to Google endpoints
-over verified TLS; agents clear the proxy variables before each call; no
-CRL checking is configured.
+binary. The mitigations they rely on: gws connects over verified TLS to the
+hosts named in Google's Discovery documents, which it fetches from Google
+and caches for 24 hours in `~/.config/gws/cache/` (0700, files 0600);
+agents clear the proxy variables before each call; no CRL checking is
+configured. This does not restrict destinations by itself: a process
+running as the user that alters the cache could send authenticated
+requests to another host (runtime report, F-04), and no egress allowlist
+is applied. Both are accepted limits; such a process could also read the
+key file beside the tokens.
 
 How the other required controls are carried out:
 

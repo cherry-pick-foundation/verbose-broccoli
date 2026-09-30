@@ -76,7 +76,8 @@ authorization URL in the repository, a message or a log.
 
 Run gws only from a folder that has no `.env` in it or in any parent, because
 gws loads the nearest one. Clear the variables that change its credentials,
-configuration folder, project, logging, Model Armor screening or proxy:
+configuration folder, key storage (where gws keeps its encryption key),
+project, logging, Model Armor screening or proxy:
 
 ```sh
 (
@@ -85,11 +86,12 @@ configuration folder, project, logging, Model Armor screening or proxy:
   [ -e "$d/.env" ] && { echo "stop: $d/.env exists" >&2; exit 1; }
   unset GOOGLE_WORKSPACE_CLI_TOKEN GOOGLE_WORKSPACE_CLI_CREDENTIALS_FILE \
     GOOGLE_WORKSPACE_CLI_CLIENT_ID GOOGLE_WORKSPACE_CLI_CLIENT_SECRET \
-    GOOGLE_WORKSPACE_CLI_CONFIG_DIR GOOGLE_APPLICATION_CREDENTIALS \
-    GOOGLE_WORKSPACE_PROJECT_ID GOOGLE_WORKSPACE_CLI_LOG \
-    GOOGLE_WORKSPACE_CLI_LOG_FILE GOOGLE_WORKSPACE_CLI_SANITIZE_TEMPLATE \
-    GOOGLE_WORKSPACE_CLI_SANITIZE_MODE HTTP_PROXY HTTPS_PROXY ALL_PROXY \
-    NO_PROXY http_proxy https_proxy all_proxy no_proxy
+    GOOGLE_WORKSPACE_CLI_CONFIG_DIR GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND \
+    GOOGLE_APPLICATION_CREDENTIALS GOOGLE_WORKSPACE_PROJECT_ID \
+    GOOGLE_WORKSPACE_CLI_LOG GOOGLE_WORKSPACE_CLI_LOG_FILE \
+    GOOGLE_WORKSPACE_CLI_SANITIZE_TEMPLATE GOOGLE_WORKSPACE_CLI_SANITIZE_MODE \
+    HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY http_proxy https_proxy \
+    all_proxy no_proxy
   gws <service> <resource> <method> [flags]
 )
 ```

@@ -192,7 +192,18 @@ messages.
     verified (0.81 and 0.89), the mise paragraph too (0.66), and
     `AGENTS.md:32` was again judged contradicted at low confidence (0.27);
     it stands for the reason given above. The develop session held other
-    finishes until this one lands. A fresh review of the new tip follows.
+    finishes until this one lands.
+  - Develop merge review of the new tip `2f91a0b` by another fresh Codex
+    reviewer on `gpt-6-luna` at medium (the same backfire choice), given
+    only the scope and the requirements: request changes, 0 blocker,
+    1 major, 1 minor. Major: the release report's Decision section said gws
+    talks only to Google endpoints, while a tampered Discovery cache could
+    redirect authenticated requests and no egress allowlist is applied.
+    Minor: the local skill's invocation example did not clear
+    `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND`. Resolved: the Decision section
+    now describes that residual risk as an accepted limit, and the skill
+    (a Claude Code `fable` worker at medium) clears the variable. Both fixes
+    change records and wording, so the coordinator reviewed them.
 
 ## Dependencies
 
