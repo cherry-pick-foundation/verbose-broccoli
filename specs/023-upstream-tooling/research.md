@@ -102,8 +102,82 @@ at `0bc0c63`, the counter and method CHE-42 chose (research R1 of
   cannot produce, and the removal of unexpected collections and collection
   update hooks; scores are qmd's, rounded to two decimals.
 
-## Pending decisions
+## R1. Environment check
 
-R1 (environment check and mise installs), R5 (constitution version), R6
-(Vale and the roster) and R8 (raw import record) wait for the user's answers
-to the questions asked on 2026-09-30.
+- **Decision**: mise 2026.9.16 (the machine's APT package, now 2026.9.17)
+  pins uv 0.11.32, lychee 0.24.2, Vale 3.23.0 and git-flow-next 2.1.0 in the
+  root `mise.toml`, with `mise.lock` holding each download's URL, checksum
+  and provenance; `npm run doctor` runs `mise doctor project`, whose
+  `[doctor.checks]` replace `scripts/doctor.ts`. Node.js stays on the user's
+  mise Node 24 (with `package.json` `engines`), Quarto and CodexBar stay
+  separately installed with a version check each.
+- **Machine changes** (the user approved each one): mise's global settings
+  `paranoid`, `locked_verify_provenance`, `use_versions_host_track = false`,
+  `node.gpg_verify` and `github.gh_cli_tokens = false` (backup
+  `~/.config/mise/config.toml.bak-che44-20260930T001148Z`); the four tools
+  installed with `mise install --locked` (the mise copies of uv, lychee and
+  git-flow are byte-identical to the earlier ones in `~/.local/bin`); and the
+  `MISE_*`, `RUSTUP_HOME` and `CARGO_HOME` exports in `~/.bash_profile` and
+  `~/.bashrc` (backups `*.bak-che44-20260930T021734Z` and
+  `*.bak-che44-20260930T023850Z`), which paranoid mode needed so tests with a
+  temporary `HOME` neither fail on untrusted configuration nor download a
+  1.5 GB Rust toolchain.
+- **Security**: R1 (2026.9.16) and R6 (the 2026.9.17 delta) reports in
+  [security/](security/): no high findings; four medium findings stand and
+  were accepted with the controls.
+
+## R5. Constitution version
+
+- **Decision**: commitizen 4.19.0 writes the version line (`npm run
+  constitution:bump -- PATCH|MINOR|MAJOR`, `.cz.toml`, hooks empty, files
+  only); the rule stays in the constitution and reviewers check it. It
+  bumped this feature's amendment from 2.3.0 to 2.3.1 after the merge of
+  `develop`.
+
+## R6. Wiki page rules
+
+- **Decision**: Vale 3.23.0 rules in `packages/wiki-consistency/vale/` with
+  a Python step for the roster rules (214 own-code lines in `rules.py`, about
+  90 of them for the roster, which the user approved at about 60). Vale's
+  raw-scope rules ignore `BlockIgnores`, so the Python step also drops
+  findings inside Cog regions and the front matter.
+
+## R8. Raw import record
+
+- **Decision**: keep bagit's `make_bag` and its source record; remove the
+  one-run lock, the stale-staging cleanup and the second hash of the
+  original after copying.
+
+## R9. Workflow, verify and import checks
+
+- **Decision**: the user chose to replace verify's own run record (option
+  B of [phase3-design.md](phase3-design.md)). `npm run verify` runs `turbo run
+  check --summarize` and passes on its exit status and the same run's
+  summary; dependency-cruiser's command and `.dependency-cruiser.json` replace
+  `scripts/clean_architecture.ts` and answer the graph queries; import-linter
+  2.15 checks the Python packages. The own-code limit check (CHE-42) goes, as
+  the user decided on 2026-09-30.
+
+## Results
+
+Own-code lines are scc 4.1.0 Code lines of programming-language files,
+tests excluded, for the replaced files at `3bd2e7f` (the first `develop`
+merged into this branch) and at the branch tip. For the whole tree, the
+branch's merge base with `develop` (`b9a0293`) counts 14,486 lines and the
+tip 11,962: **net -2,524**.
+
+| Swap | Tool, pin, license | Review | Removed | Own code | Dropped behaviours |
+| --- | --- | --- | --- | --- | --- |
+| Plugin manifests | check-jsonschema 0.38.2 (PyPI, `tools/check-jsonschema`), Apache-2.0 | R4: 0 high, 1 medium | `scripts/validate_plugins.ts` | 80 → 0 (-80) | Symlinked-manifest refusal, custom roots, JSON summary |
+| Reference docs | cogapp 3.6.0 (already pinned), MIT | R4: 0 high, 1 medium | `scripts/docs.ts`, `docs_test.ts`, `docs:*` tasks | 683 → 147 (-536) | Two-step publication and recovery folder, lock, symlink and stray-file refusal, terminal-control and local-path guards, permission-bounded help run, "Input owners" line |
+| Wiki search | qmd 2.8.3 CLI and MCP (already pinned), MIT | R3: 0 high, 5 medium | `search.mjs` | 516 → 257 (-259) | Stale-index file list, exact vector chunk cap, checks for impossible query shapes, removal of unexpected collections and update hooks |
+| Import check, workflow and verify | dependency-cruiser 18.2.0 (MIT), import-linter 2.15 (BSD-2-Clause, with grimp 3.17), Turborepo 2.11.5 (MIT) | R5: 0 high, 5 medium; R2: 0 high, 3 medium | `scripts/clean_architecture.ts`, `workflow-evidence.schema.json`, verify's evidence record | 1,937 → 1,451 (-486) | Rules built from every package.json's exports and aliases, the architecture JSON report, verify's task/base/plan binding, snapshots, log hash, interrupted-run detection, failure streak, REVIEW threshold and lock, graph labels and test-file hints |
+| Own-code limit | none (removed by the user's decision) | none | `scripts/own_code.ts`, its test, `tools/scc`, `linguist-languages` | 127 → 0 (-127) | The 300-line limit and its approval line |
+| Environment check | mise 2026.9.16/17 (APT), MIT | R1, R6: 0 high, 4 medium | `scripts/doctor.ts`, its test | 426 → 0 (-426) | JSON report and `--report`, `--quarto`, executable-path checks, lock hash |
+| Constitution version | commitizen 4.19.0 (PyPI, `tools/commitizen`), MIT | R4: 0 high, 1 medium | `scripts/constitution_version.ts`, the finish hook's version loop | 188 → 7 (-181); finish hook 65 → 58 (-7) | Automatic refusal in the commit-message and finish hooks, `--amend` detection |
+| Git hooks | lefthook 2.1.15 (npm), MIT | R2: 0 high, 1 medium | `scripts/git-hooks/commit-msg`, `core.hooksPath` | 13 → 0 (-13) | The old hook's Node.js diagnostic |
+| Wiki page rules | Vale 3.23.0 (mise), MIT | R3: 0 high, 3 medium | pattern code in `rules.py` | 604 → 214 (-390) | Date validity, registration birth-date check, backfire's phone and email detection, exact quote and time-range logic, front matter title and summary checks |
+| Raw import | bagit 1.9.0 (already pinned), CC0 1.0 | R5: 0 high, 2 medium | lock, staging cleanup, copy re-check | 336 → 323 (-13) | The three removed behaviours |
+
+The user accepted every dropped behaviour and the medium findings with the
+controls on 2026-09-30.

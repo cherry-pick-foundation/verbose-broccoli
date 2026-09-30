@@ -88,7 +88,7 @@ The user's answers are in spec.md's clarifications. On 2026-09-30 the
 coordinator backed up `~/.config/mise/config.toml` and set the approved
 mise settings.
 
-- [ ] T020 [US1] Replace `scripts/doctor.ts` with a root `mise.toml`
+- [x] T020 [US1] Replace `scripts/doctor.ts` with a root `mise.toml`
   pinning uv, lychee, git-flow-next and Vale (Node stays on the user's mise
   Node 24; Quarto stays separately installed) and `[doctor.checks]` for the
   tool versions, the locked uv and npm environments, the git-flow
@@ -96,18 +96,18 @@ mise settings.
   `npm run doctor` runs `mise doctor project`; `orca.yaml` trusts and
   installs from the lock; remove `doctor.ts` and its test (FR-003,
   FR-015).
-- [ ] T021 [US1] Let commitizen 4.19.0 (a `tools/commitizen` uv project,
+- [x] T021 [US1] Let commitizen 4.19.0 (a `tools/commitizen` uv project,
   bump hooks empty) write the constitution's version line; remove
   `scripts/constitution_version.ts`, its commitlint rule and tests, and
   the finish hook's constitution loop (FR-007).
-- [ ] T022 [US1] Declare the commit-message hook in `lefthook.yml`
+- [x] T022 [US1] Declare the commit-message hook in `lefthook.yml`
   (lefthook 2.1.15, the local binary, `no_auto_install`,
   `assert_lefthook_installed`); remove `scripts/git-hooks/commit-msg`;
   `orca.yaml` installs lefthook's hooks (FR-006).
-- [ ] T023 [P] [US2] Replace `rules.py`'s pattern rules with Vale 3.23.0
+- [x] T023 [P] [US2] Replace `rules.py`'s pattern rules with Vale 3.23.0
   rules run offline with `--no-global --output=line` and literal messages,
   and keep a small Python step for the roster rules (FR-008).
-- [ ] T024 [P] [US2] Keep `bagit.make_bag` in the raw import and cut the
+- [x] T024 [P] [US2] Keep `bagit.make_bag` in the raw import and cut the
   wrapper: drop the one-run lock, the stale-staging cleanup and the
   changed-while-copying re-check; keep the exclusions (FR-010).
 
@@ -118,7 +118,7 @@ CHE-42 merged into `develop` as `3bd2e7f` and into this branch as
 record (A, about -208 own-code lines) with replacing it (B, about -668); the
 user chose B (spec.md clarification).
 
-- [ ] T010 [US3] Replace `scripts/clean_architecture.ts` with dependency-
+- [x] T010 [US3] Replace `scripts/clean_architecture.ts` with dependency-
   cruiser 18.2.0's own command and a JSON configuration
   (`.dependency-cruiser.json`) carrying today's rules and the current
   packages' public-API rules; run `clean-architecture` as `depcruise` with
@@ -127,12 +127,12 @@ user chose B (spec.md clarification).
   (`--reaches` for dependents, `--affected` with a full commit hash for
   change impact) with little reshaping; remove the code and tests only the
   old check used (FR-011, FR-012).
-- [ ] T011 [US3] Add import-linter 2.15 with built-in contracts only
+- [x] T011 [US3] Add import-linter 2.15 with built-in contracts only
   (layers and acyclic siblings over `backfire`, `backfire_tools`,
   `backfire_education`, `doc_regions` and `wiki_consistency`), run with
   `--no-cache` in a `python:imports` task that `check` runs, with a
   synthetic violation test (FR-011).
-- [ ] T012 [US3] Make `npm run verify` run `turbo run check --summarize`
+- [x] T012 [US3] Make `npm run verify` run `turbo run check --summarize`
   with the Turborepo controls (telemetry off, no update notifier, the
   remote-cache variables unset, `.turbo/runs/` ignored) and pass or fail on
   its exit status and the same run's summary; remove the local evidence
@@ -141,21 +141,33 @@ user chose B (spec.md clarification).
   difficulty, graph and symbol commands and the skill triggers (FR-011,
   FR-012).
 
-- [ ] T013 [US3] Remove the own-code check (`npm run own-code`,
+- [x] T013 [US3] Remove the own-code check (`npm run own-code`,
   `scripts/own_code.ts`, its test, `tools/scc`, the `linguist-languages`
   pin) from verify and the checks (spec.md clarification).
 
+  - 2026-09-30: Codex workers (`gpt-6-luna`, max effort) did T010 to T013
+    (net -613 by their count) and T020 to T022 (627 removed, 0 added); the
+    coordinator reviewed them and committed both in `8054bee`, because
+    their edits shared `package.json`, `turbo.json` and `tsconfig.json`.
+    T023 (two rounds, `rules.py` 604 → 214) is `8f3aabd`; T024 is
+    `7b095b1`. The coordinator added `MISE_*`, `RUSTUP_HOME` and `CARGO_HOME`
+    to Turborepo's passthrough after the machine fix (research.md R1), a
+    CodexBar check to `mise.toml` when `develop` brought one into the
+    removed doctor, and new packages to both import configurations after
+    the merge of `develop` (`070a54e`). The per-swap and total own-code
+    counts are in research.md, Results.
+
 ## Phase 4: Records and finish (US4)
 
-- [ ] T090 [US4] Record per swap the tool, pin, license, review verdict,
+- [x] T090 [US4] Record per swap the tool, pin, license, review verdict,
   removed files, own-code change and dropped behaviours in research.md
   (FR-014).
-- [ ] T091 Update `docs/architecture.md` and `AGENTS.md` wherever a replaced
+- [x] T091 Update `docs/architecture.md` and `AGENTS.md` wherever a replaced
   command is named (FR-013).
-- [ ] T093 Remove the own-code limit's section and approval line from
+- [x] T093 Remove the own-code limit's section and approval line from
   `docs/architecture.md`, and add the 1,000-line split-review line to
   `AGENTS.md`'s Review section.
-- [ ] T094 Amend the constitution for commitizen (the author runs it,
+- [x] T094 Amend the constitution for commitizen (the author runs it,
   reviewers check it) and wherever it describes verify's evidence.
 - [ ] T092 Merge `develop`, verify, pass the develop merge review, and
   finish with `git flow feature finish`.
