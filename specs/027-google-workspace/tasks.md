@@ -136,6 +136,30 @@ messages.
 - [ ] T011 Run `npm run verify` on the merged result; the develop merge
   review by a fresh Codex reviewer; the review-record commit; git flow
   feature finish; CHE-52 to Done.
+  - Size, against `develop` `0e8e177`: 1,841 lines added and 14 deleted.
+    Of the added lines, 987 are these records and the security reports, 614
+    are the unchanged skill copies with their `upstream.json` files, 47 are
+    `mise.lock`, and 193 are authored text (the local skill, the notice, the
+    docs and the pin). Not split: the size is records and upstream copies.
+  - Document judgment step: `npm run doc-regions:prepare -- --base develop
+    --max-evidence-chars 40000` at `develop` `0e8e177` produced 240 units in
+    eleven `jev_verify` requests and one `jev_classify` request, sent through
+    backfire (OpenRouter, `typesafe/jev-1.13`, 12 calls). The two units this
+    feature added, the "Google Workspace through gws" heading and paragraph
+    in `docs/architecture.md`, were verified (0.85 and 0.93); the mise
+    paragraph with gws was verified (0.70). The 53 other units flagged for
+    review are sections this feature does not change, where the diff says
+    nothing. One unit was judged contradicted at confidence 0.21:
+    `AGENTS.md:32`, reuse step 3 ("an unstable upstream implementation with
+    the smallest necessary patch"). It stands: the only patch is the recorded
+    two-edit change to the copied `gws-shared`, and `AGENTS.md` findings are
+    reported to the user, not changed. Both added units were classified as
+    possible mechanical regions with confidence under 0.1; they stay agent
+    text, because no file they could be generated from exists.
+  - `npm run doc-regions:audit` (MemoryLint 1.5.1): 19 boundary warnings,
+    all suggesting that constitution passages move to `AGENTS.md`. They
+    exist on `develop` already, and this feature changes neither file; they
+    are reported to the user only.
 
 ## Dependencies
 
