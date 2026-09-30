@@ -6,6 +6,7 @@ import re
 import unicodedata
 
 from fake_provider import FakeProvider
+from fake_provider import Reply
 from fake_provider import completion
 from jev_judge_mcp.domain import NoulCriteria
 from jev_judge_mcp.domain import NoulQuestion
@@ -58,7 +59,7 @@ HANGUL = [
 ]
 
 
-def profile(fake):
+def profile(fake, retry=None):
     return {
         "name": "synthetic",
         "api": "openai",
@@ -66,15 +67,18 @@ def profile(fake):
         "model": "synthetic-model",
         "credential": "SYNTHETIC_API_KEY",
         "request": {},
+        **({"retry": retry} if retry else {}),
     }
 
 
-def send(monkeypatch, fake, state, questions=None, *, education=True):
+def send(
+    monkeypatch, fake, state, questions=None, *, education=True, retry=None
+):
     """Send one request to the fake provider; return its answer or error."""
     monkeypatch.setattr(providers, "load_credential", lambda _: "synthetic-key")
 
     async def run():
-        client = _OrderProvider([profile(fake)], education=education)
+        client = _OrderProvider([profile(fake, retry)], education=education)
         try:
             return await client.evaluate(
                 state, questions or QUESTIONS, "default-model", 3
@@ -222,6 +226,114 @@ def test_a_surviving_identifier_is_refused_without_its_value(
     assert "Raon" not in str(error) and "7700101" not in str(error)
     assert error.__cause__ is None and error.__suppress_context__
     assert fake.requests == []
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"student_id": 7700101},
+        {"student_id": 7700101.0},
+        {"DOB": "2011-04-23"},
+        {"born": 2011},
+        {"address": "487 Imaginary Street"},
+        {"grade": 10},
+    ],
+)
+def test_the_scan_after_the_swap_covers_numbers_and_field_names(
+    synthetic_roster, monkeypatch, state
+):
+    del synthetic_roster  # Unused.
+    real, seen = education.find_spans, set()
+
+    def miss_once(text, identifiers, *patterns):
+        """Miss every text the first time, as a detector gap would."""
+        if text not in seen:
+            seen.add(text)
+            return []
+        return real(text, identifiers, *patterns)
+
+    monkeypatch.setattr(education, "find_spans", miss_once)
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        error = send(monkeypatch, fake, state)
+    assert str(error).startswith("identifier_remaining:")
+    assert fake.requests == []
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"student_id": 7700101},
+        {"student_id": 7700101.0},
+        {"DOB": "2011-04-23"},
+        {"born": 2011},
+        {"address": "487 Imaginary Street"},
+        {"grade": 10},
+    ],
+)
+def test_provider_receives_no_number_or_field_value_identifier(
+    synthetic_roster, monkeypatch, state
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, state)
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"])
+    assert not re.search(r"7700101|2011|487|Imaginary|\b10\b", sent)
+
+
+def test_education_provider_error_keeps_only_profile_and_status(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    marker = "PRIVATE_REQUEST_MARKER"
+    body = {"error": {"message": f"invalid request {marker}"}}
+    with FakeProvider([Reply(body, status=400)]) as fake:
+        error = send(monkeypatch, fake, {"note": marker})
+        assert len(fake.requests) == 1
+    assert isinstance(error, ProviderError)
+    assert str(error) == "backfire profile 400"
+    assert error.__cause__ is None and error.__suppress_context__
+
+
+def test_education_error_after_retries_keeps_only_profile_and_last_status(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    marker = "PRIVATE_RESPONSE_MARKER"
+    retry = {"max_attempts": 2, "backoff_initial": 0.001, "backoff_max": 0.001}
+    replies = [Reply(f"<html>{marker}</html>".encode(), status=500)] * 2
+    with FakeProvider(replies) as fake:
+        error = send(monkeypatch, fake, {"note": "plain"}, retry=retry)
+        assert len(fake.requests) == 2
+    assert isinstance(error, ProviderError)
+    assert str(error) == "backfire profile 500"
+
+
+def test_education_error_without_status_names_only_the_profile(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    marker = "PRIVATE_RESPONSE_MARKER"
+
+    async def fail(*_):
+        raise RuntimeError(f"unexpected {marker}")
+
+    monkeypatch.setattr(providers._OpenAIProvider, "_send", fail)
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        error = send(monkeypatch, fake, {"note": "plain"})
+    assert isinstance(error, ProviderError)
+    assert str(error) == "backfire profile request failed"
+
+
+def test_code_mode_provider_error_is_left_as_it_is(
+    synthetic_roster, monkeypatch
+):
+    del synthetic_roster  # Unused.
+    body = {"error": {"message": "invalid request SYNTHETIC_BODY"}}
+    with FakeProvider([Reply(body, status=400)]) as fake:
+        error = send(monkeypatch, fake, {"note": "plain"}, education=False)
+    assert str(error).startswith("backfire profile 400: ")
+    assert "SYNTHETIC_BODY" in str(error)
 
 
 def test_stand_ins_and_their_keywords_are_not_refused(

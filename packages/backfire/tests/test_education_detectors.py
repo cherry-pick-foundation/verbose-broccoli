@@ -98,6 +98,28 @@ def test_school_years_share_one_identifier_per_grade(found, text, values):
 
 
 @pytest.mark.parametrize(
+    ("text", "values"),
+    [
+        ("Grade: 10", ["10"]),
+        ("grade - 10", ["10"]),
+        ('Grade = "10"', ["10"]),
+        ("tenth grade", ["10"]),
+        ("Ninth-Grader", ["9"]),
+        ("in twelfth grade", ["12"]),
+        ("fourth-year elementary school student", ["4"]),
+        ("sixth-year elementary school student", ["6"]),
+        ("third-year high school student", ["12"]),
+        ("tenth grade and 10th grade and Grade: 10", ["10", "10", "10"]),
+        ("Year: 11", ["year 11"]),
+    ],
+)
+def test_school_years_with_a_gap_or_spelled_ordinal(found, text, values):
+    assert [value for _, kind, value in found(text) if kind == "cohort"] == (
+        values
+    )
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "2026학년도",
@@ -106,6 +128,11 @@ def test_school_years_share_one_identifier_per_grade(found, text, values):
         "Year 2026",
         "Grade 100",
         "grade improved",
+        "Grade: 100",
+        "Year: 2026",
+        "grade: B",
+        "thirteenth grade",
+        "seventh-year elementary school student",
     ],
 )
 def test_academic_years_stay(found, text):
@@ -187,9 +214,38 @@ def test_birth_dates_follow_a_keyword_or_end_in_nyeonsaeng(
 
 
 @pytest.mark.parametrize(
+    ("text", "matched"),
+    [
+        ("DOB = 2011-04-23", "2011-04-23"),
+        ('DOB: "2011-04-23"', "2011-04-23"),
+        ("Date of birth - 2011-04-23", "2011-04-23"),
+        ("birthday='2011-04-23'", "2011-04-23"),
+        ("DOB: 23/04/2011", "23/04/2011"),
+        ("born on 04/23/2011", "04/23/2011"),
+        ("born on 9.3.2011", "9.3.2011"),
+        ("birthday: April 23", "April 23"),
+        ("birthday: April 23rd", "April 23rd"),
+        ("born on 23 April", "23 April"),
+        ("born on 23rd of April", "23rd of April"),
+        ("DOB 4/23", "4/23"),
+        ("born in 2011-04", "2011-04"),
+        ("DOB: 20110423", "20110423"),
+        ("DOB 110423", "110423"),
+        ("Birth date: 2011-04-23", "2011-04-23"),
+        ("birthdate=2011-04-23", "2011-04-23"),
+        ("Birth year: 2011", "2011"),
+    ],
+)
+def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
+    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "lesson on 2026-09-28",
+        "lesson on 23/04/2011",
+        "test on April 23",
         "score 2026 points",
         "newborn 2009-03-15",
         "born to run",
@@ -220,6 +276,23 @@ def test_other_dates_stay(found, text):
 def test_addresses_follow_a_keyword_or_have_romanized_parts(
     found, text, matched
 ):
+    assert [m for m, kind, _ in found(text) if kind == "address"] == [matched]
+
+
+@pytest.mark.parametrize(
+    ("text", "matched"),
+    [
+        ("Lives at 487 Solbit-ro", "487 Solbit-ro"),
+        ("Lives at 123-4 Solbit-dong", "123-4 Solbit-dong"),
+        ("Lives at Solbit-ro, 487", "Solbit-ro, 487"),
+        ("Lives at 487, Solbit-ro", "487, Solbit-ro"),
+        ("Lives at 487 Solbit-ro, Seo-dong 12", "487 Solbit-ro, Seo-dong 12"),
+        ("Lives at 12345 487 Solbit-ro", "12345 487 Solbit-ro"),
+        ("Lives at Solbit-ro, 2026-09-28", "Solbit-ro"),
+        ("Lives at Solbit-ro, 487.", "Solbit-ro, 487"),
+    ],
+)
+def test_romanized_addresses_take_their_adjacent_number(found, text, matched):
     assert [m for m, kind, _ in found(text) if kind == "address"] == [matched]
 
 

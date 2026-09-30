@@ -173,7 +173,7 @@ Stand-ins are English, so a provider never receives Hangul.
 | Found in the text | Stand-in |
 | --- | --- |
 | A roster student's Korean name, also with particles (`가라온은`) | `Student 03` |
-| That student's EduOK number from `id`, as a whole number | the same `Student 03` |
+| That student's EduOK number from `id`, as a whole number, also when it is a JSON number (`7700101`, `7700101.0`) | the same `Student 03` |
 | That student's romanized name in any case, with or without a hyphen or space inside the given name, surname first or last (`Kim Gildong`, `KIM GIL-DONG`, `gildong kim`) | the same `Student 03` |
 | That student's given name alone, Korean (`라온이가`) or romanized (`Gildong`), derived from the full name | the same `Student 03` |
 | A given name several roster students share | its own `Student NN` |
@@ -182,9 +182,25 @@ Stand-ins are English, so a provider never receives Hangul.
 | A phone number, such as `010-1234-5678` or `+82 10-1234-5678` | `Phone 01` |
 | An email address | `Email 01` |
 | A province, city, county or district name, current or abolished, in Korean (`평택시`) or romanized (`Jongno-gu`, `Pyeongtaek`, `North Chungcheong`, `Chungbuk`), with a unit word after it such as `City` or `Province` | `Region 01` |
-| A school year: `Grade 10`, `10th grade`, `Year 11`, `first-year high school student`, `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
-| A date or year after `born`, `birthday`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`, and forms such as `2009년생` | `Birth date 01` |
-| The rest of a line after `address` or `주소`, and romanized address parts such as `Bijeon-ro 12`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jungang-daero 45beon-gil 7`, with an adjacent five-digit postal code | `Address 01` |
+| A school year: `Grade 10`, `Grade: 10`, `10th grade`, `tenth grade` (up to `twelfth`), `Year 11`, `first-year high school student`, `fourth-year elementary school student` (first to sixth year), `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
+| A date or year after `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`, with a space, colon, equals sign, dash or quotation marks between them: `2011-04-23`, `23/04/2011`, `04/23/2011`, `20110423`, `April 23, 2011`, `April 23`, `23 April`; and forms such as `2009년생` | `Birth date 01` |
+| The rest of a line after `address` or `주소`, and romanized address parts such as `Bijeon-ro 12`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jungang-daero 45beon-gil 7`, with the building or lot number before or after the name (`487 Solbit-ro`, `123-4 Solbit-dong`, `Solbit-ro, 487`) and an adjacent five-digit postal code | `Address 01` |
+
+A field name can say what its value is. The whole value, a string or a number
+(and each item of a list), becomes a stand-in when the field is named:
+
+- `DOB`, `date of birth`, `birth date`, `birthday`, `born`, `생년월일`, `생일` or
+  `출생`: a birth date, whatever the value says;
+- `address`, `home address` or `주소`: an address, whatever the value says;
+- `grade`, `grade level`, `school year`, `year` or `학년`: a school year, when
+  the value is a number from 1 to 12, an ordinal (`10th`, `tenth`) or one of the
+  school-year forms above.
+
+Names match in any case, with a space, underscore or hyphen between words or
+camel case (`dateOfBirth`), and may start with `student`, `child`, `pupil`,
+`guardian`, `parent`, `home`, `current`, `mailing` or `street`. Other values of
+a `year` or `grade` field, such as `2026` or `85`, and academic years (`학년도`)
+stay; a `grade` of `5` is replaced even when it means a score.
 
 A given name is the roster name without its surname: the first syllable, or
 the first two when the name has at least four syllables and starts with 남궁,
@@ -207,8 +223,8 @@ the spelling without it (`Anyang`) too.
 ### Refusals
 
 After the replacement, backfire scans the request again with every detector,
-ignoring the stand-ins it inserted. If anything is found, it sends nothing and
-fails with `identifier_remaining`.
+numbers and field names included and ignoring the stand-ins it inserted. If
+anything is found, it sends nothing and fails with `identifier_remaining`.
 
 Both modes, with or without `--education`, then refuse a request that still
 contains Hangul, composed or decomposed, in the tool input, the question keys or
@@ -216,7 +232,11 @@ any question text. It fails with `hangul_remaining` before any provider call.
 In education mode this catches a name that the roster does not list. Translate
 Korean material into English with Claude or ChatGPT before any backfire call.
 
-Neither error, and no log, holds a matched value or any request text.
+Neither error, and no log, holds a matched value or any request text. Nor does
+a provider failure in the work plugin: it is cut to the profile and the HTTP
+status, such as `backfire profile 400`, or `backfire profile request failed`
+when there is no status, because a provider's answer can quote the request. The
+code plugin keeps PyModel's error text.
 
 ### Limits
 
@@ -234,8 +254,8 @@ plugin does not detect:
 - region spellings other than the generated ones, and romanizations that differ
   from the official one, such as `묵호` (es-hangul writes `Muko`, the official
   spelling is `Mukho`; es-hangul drops the `h` after `ㄱ`, `ㄷ` and `ㅂ`);
-- addresses without an `address` keyword or romanized address parts, such as a
-  street name in English.
+- addresses without an `address` keyword or field name or romanized address
+  parts, such as a street name in English.
 - a difference between roster students who share a full name: they share one
   stand-in, and their EduOK numbers and romanized names map to it too.
 
@@ -315,7 +335,8 @@ claims independently.
 
 Tool errors are PyModel's: argument errors name the tool and the argument,
 and provider failures name the provider, and the attempt count when
-retries ran out, with keys redacted. Backfire adds five of its own:
+retries ran out, with keys redacted. In the work plugin a provider failure
+names only the profile and the HTTP status. Backfire adds five of its own:
 
 | Error | Cause and action |
 | --- | --- |

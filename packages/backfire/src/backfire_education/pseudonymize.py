@@ -31,19 +31,34 @@ _SEPARATOR = r"[\s,-]*"
 _BLANK = "\x00"
 # Grade number of the first year of each school level.
 _LEVEL = {"초": 0, "중": 6, "고": 9, "elementary": 0, "middle": 6, "high": 9}
-_ORDINAL = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5}
+_ORDINAL = {
+    word: number
+    for number, word in enumerate(
+        "first second third fourth fifth sixth seventh eighth ninth tenth "
+        "eleventh twelfth".split(),
+        1,
+    )
+}
+_ORDINAL_WORDS = "|".join(_ORDINAL)
+# A school year counts up to sixth in "sixth-year elementary school student".
+_YEAR_WORDS = "|".join(list(_ORDINAL)[:6])
+# Punctuation that may sit between a keyword and its value.
+_PUNCT = "\\-:：=\"'“”‘’"
 _US_HIGH = {"freshman": 9, "sophomore": 10, "junior": 11, "senior": 12}
 _MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
+# Year first (2011-04-23), day or month first (23/04/2011, 04/23), or spelled.
 _DATE = (
-    r"\d{4}[-./]\d{1,2}[-./]\d{1,2}|\d{2}[-./]\d{1,2}[-./]\d{1,2}"
-    rf"|{_MONTH}\s+(?:\d{{1,2}}(?:st|nd|rd|th)?,?\s+)?\d{{4}}"
-    rf"|\d{{1,2}}(?:st|nd|rd|th)?\s+(?:of\s+)?{_MONTH},?\s+\d{{4}}"
-    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년?"
+    r"\d{4}[-./]\d{1,2}(?:[-./]\d{1,2})?"
+    r"|\d{1,2}[-./]\d{1,2}(?:[-./]\d{1,4})?"
+    rf"|{_MONTH}\s+(?:\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+\d{{4}})?|\d{{4}})"
+    rf"|\d{{1,2}}(?:st|nd|rd|th)?\s+(?:of\s+)?{_MONTH}(?:,?\s+\d{{4}})?"
+    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{8}|\d{6}|\d{4}년?"
 )
+# A lot number after a name is not part of a date (Solbit-ro, 2026-09-28).
 _ADDRESS_PART = (
     r"\d{1,4}-(?:dong|ho)"
     r"|(?:[A-Za-z]+|\d+beon)-(?:daero|ro|gil|dong|eup|myeon|ri)"
-    r"(?:\s*\d+(?:-\d+)?(?![0-9]|beon))?"
+    r"(?:[\s,]*\d+(?:-\d+)?(?![0-9]|beon|[-./]\d))?"
 )
 _REGION_UNITS = (
     "special self-governing province",
@@ -66,6 +81,57 @@ def _first_group(match: re.Match[str]) -> str:
     return match[1]
 
 
+# Field names that say what their value is: DOB, home address, grade.
+_QUALIFIER = (
+    r"(?:(?:student|child|pupil|guardian|parent|home|current|mailing|street) )?"
+)
+_FIELDS = (
+    (
+        "birth",
+        re.compile(
+            _QUALIFIER
+            + r"(?:dob|born|birth ?(?:date|day|year)?|(?:date|year) of birth"
+            r"|생년월일|생일|출생)"
+        ),
+    ),
+    ("address", re.compile(_QUALIFIER + r"(?:address|주소)")),
+    (
+        "cohort",
+        re.compile(_QUALIFIER + r"(?:grade(?: level)?|(?:school )?year|학년)"),
+    ),
+)
+# A school year alone, as a field value; other numbers there are not one.
+_YEAR = re.compile(
+    rf"(?:(1[0-2]|[1-9])(?:\.0)?(?:st|nd|rd|th)?|({_ORDINAL_WORDS}))",
+    re.IGNORECASE,
+)
+
+
+def _field_kind(name: object) -> str | None:
+    """Return the identifier kind that a field name says its value is."""
+    if not isinstance(name, str):
+        return None
+    words = re.sub(
+        r"[\s_.-]+", " ", re.sub(r"(?<=[a-z])(?=[A-Z])", " ", name)
+    ).lower()
+    return next(
+        (kind for kind, pattern in _FIELDS if pattern.fullmatch(words.strip())),
+        None,
+    )
+
+
+def _field_spans(
+    text: str, kind: str
+) -> list[tuple[int, int, tuple[str, str]]]:
+    """Return the whole value of a field whose name says it is of ``kind``."""
+    match = re.fullmatch(rf"[\s{_BLANK}]*(.*?)[\s{_BLANK}]*", text, re.DOTALL)
+    value = match[1]
+    if kind == "cohort":
+        year = _YEAR.fullmatch(value)
+        value = year and (year[1] or str(_ORDINAL[year[2].lower()]))
+    return [(*match.span(1), (kind, _norm(value)))] if value else []
+
+
 # (kind, pattern, group that is replaced, value of a match; None: the
 # replaced text, normalized)
 _DETECTORS = [
@@ -83,22 +149,29 @@ _DETECTORS = [
     ),
     (
         "cohort",
-        re.compile(_EDGE.format(r"grade\s+(1[0-2]|[1-9])"), re.IGNORECASE),
-        0,
-        _first_group,
-    ),
-    (
-        "cohort",
         re.compile(
-            _EDGE.format(r"(1[0-2]|[1-9])(?:st|nd|rd|th)[\s-]+grade(?:r)?"),
-            re.IGNORECASE,
+            _EDGE.format(rf"grade[\s{_PUNCT}]+(1[0-2]|[1-9])"), re.IGNORECASE
         ),
         0,
         _first_group,
     ),
     (
         "cohort",
-        re.compile(_EDGE.format(r"year\s+([0-9]{1,2})"), re.IGNORECASE),
+        re.compile(
+            _EDGE.format(
+                rf"(?:(1[0-2]|[1-9])(?:st|nd|rd|th)|({_ORDINAL_WORDS}))"
+                r"[\s-]+grade(?:r)?"
+            ),
+            re.IGNORECASE,
+        ),
+        0,
+        lambda match: match[1] or str(_ORDINAL[match[2].lower()]),
+    ),
+    (
+        "cohort",
+        re.compile(
+            _EDGE.format(rf"year[\s{_PUNCT}]+([0-9]{{1,2}})"), re.IGNORECASE
+        ),
         0,
         lambda match: f"year {match[1]}",
     ),
@@ -106,7 +179,7 @@ _DETECTORS = [
         "cohort",
         re.compile(
             _EDGE.format(
-                r"(first|second|third)[\s-]year\s+(elementary|middle|high)"
+                rf"({_YEAR_WORDS})[\s-]year\s+(elementary|middle|high)"
                 r"[\s-]school(?:\s+student)?"
             ),
             re.IGNORECASE,
@@ -139,9 +212,9 @@ _DETECTORS = [
     (
         "birth",
         re.compile(
-            r"(?<![A-Za-z])(?:date of birth|birthday|born|DOB|"
-            r"생년월일|생일|출생)"
-            r"[\s:：,(-]{0,6}(?:(?:is|was|on|in)\s+)?"
+            r"(?<![A-Za-z])(?:date of birth|birth ?date|birth ?year|birthday"
+            r"|born|DOB|생년월일|생일|출생)"
+            rf"[\s{_PUNCT},(]{{0,6}}(?:(?:is|was|on|in)\s+)?"
             rf"(?P<date>{_DATE})(?![0-9])",
             re.IGNORECASE,
         ),
@@ -162,7 +235,8 @@ _DETECTORS = [
     (
         "address",
         re.compile(
-            rf"(?<![A-Za-z0-9])(?:\d{{5}}[\s,]+)?(?:{_ADDRESS_PART})"
+            rf"(?<![A-Za-z0-9])(?:\d{{5}}[\s,]+)?(?:\d{{1,4}}(?:-\d{{1,4}})?[\s,]+)?"
+            rf"(?:{_ADDRESS_PART})"
             rf"(?:[\s,]+(?:{_ADDRESS_PART}))*(?:[\s,]+\d{{5}}(?![0-9]))?",
             re.IGNORECASE,
         ),
@@ -297,6 +371,7 @@ def find_spans(
     identifiers: Mapping[str, tuple[str, str]],
     roster_pattern: re.Pattern[str] | None,
     name_pattern: re.Pattern[str] | None = None,
+    kind: str | None = None,
 ) -> list[tuple[int, int, tuple[str, str]]]:
     """Find identifier spans, merging overlapping matches.
 
@@ -308,6 +383,9 @@ def find_spans(
         identifiers: Map from roster text to its identifier kind and value.
         roster_pattern: Compiled pattern for roster text, or None.
         name_pattern: Compiled pattern for flexible Latin names, or None.
+        kind: The identifier kind that the text's field name says it is
+            (birth, address or cohort), or None. The whole text is then one
+            span of that kind.
 
     Returns:
         A list of (start, stop, identifier) tuples; every value except a
@@ -319,6 +397,8 @@ def find_spans(
     # Optional dependency.
     import phonenumbers  # noqa: PLC0415
 
+    if kind is not None and (span := _field_spans(text, kind)):
+        return span
     candidates = []
     if roster_pattern is not None:
         candidates.extend(
@@ -368,40 +448,59 @@ def find_spans(
     return selected
 
 
-def strings(value):
-    """Yield every string in a state or question, dictionary keys included."""
+def _is_number(value):
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def fields(value, kind=None):
+    """Yield (text, kind) for every string and number in a state or question.
+
+    Numbers come as their text. Dictionary keys come with no kind; a value
+    under a key that names one (DOB, address, grade) carries it, also inside a
+    list.
+    """
     if hasattr(value, "model_dump"):
-        yield from strings(value.model_dump(mode="json"))
+        yield from fields(value.model_dump(mode="json"), kind)
     elif isinstance(value, str):
-        yield value
+        yield value, kind
+    elif _is_number(value):
+        yield str(value), kind
     elif isinstance(value, Mapping):
         for key, item in value.items():
             if isinstance(key, str):
-                yield key
-            yield from strings(item)
+                yield key, None
+            yield from fields(item, _field_kind(key))
     elif isinstance(value, (list, tuple)):
         for item in value:
-            yield from strings(item)
+            yield from fields(item, kind)
     elif dataclasses.is_dataclass(value) and not isinstance(value, type):
         for field in dataclasses.fields(value):
-            yield from strings(getattr(value, field.name))
+            yield from fields(getattr(value, field.name))
 
 
-def _replace_tree(value, replace):
+def strings(value):
+    """Yield every string and number, as text, dictionary keys included."""
+    return (text for text, _ in fields(value))
+
+
+def _replace_tree(value, replace, kind=None):
     if isinstance(value, str):
-        return replace(value)
+        return replace(value, kind)
+    if _is_number(value):
+        text = replace(str(value), kind)
+        return value if text == str(value) else text
     if isinstance(value, Mapping):
         result = {}
         for key, item in value.items():
             new_key = replace(key) if isinstance(key, str) else key
             if new_key in result:
                 raise JudgmentError("pseudonym_conflict")
-            result[new_key] = _replace_tree(item, replace)
+            result[new_key] = _replace_tree(item, replace, _field_kind(key))
         return result
     if isinstance(value, list):
-        return [_replace_tree(item, replace) for item in value]
+        return [_replace_tree(item, replace, kind) for item in value]
     if isinstance(value, tuple):
-        return tuple(_replace_tree(item, replace) for item in value)
+        return tuple(_replace_tree(item, replace, kind) for item in value)
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
         return dataclasses.replace(
             value,
@@ -445,29 +544,28 @@ def pseudonymize(
 
     spans_by_text = {}
 
-    def cached_spans(text):
-        if text in spans_by_text:
-            return spans_by_text[text]
-        spans_by_text[text] = find_spans(
-            text, identifiers, roster_pattern, name_pattern
-        )
-        return spans_by_text[text]
+    def cached_spans(text, kind):
+        if (text, kind) not in spans_by_text:
+            spans_by_text[text, kind] = find_spans(
+                text, identifiers, roster_pattern, name_pattern, kind
+            )
+        return spans_by_text[text, kind]
 
     values = [state]
     for key, _, _, document in question_items:
         values.extend((key, document))
     seen, to_assign = set(), []
     for value in values:
-        for text in strings(value):
-            for _, _, identifier in cached_spans(text):
+        for text, kind in fields(value):
+            for _, _, identifier in cached_spans(text, kind):
                 if identifier not in seen:
                     seen.add(identifier)
                     to_assign.append(identifier)
     pseudonyms = assign(to_assign)
 
-    def replace(text):
+    def replace(text, kind=None):
         parts, offset = [], 0
-        for start, stop, identifier in cached_spans(text):
+        for start, stop, identifier in cached_spans(text, kind):
             parts.extend((text[offset:start], pseudonyms[identifier]))
             offset = stop
         if not parts:
@@ -517,12 +615,13 @@ def pseudonymize(
         )
     )
     for value in (provider_state, provider_documents):
-        for text in strings(value):
+        for text, kind in fields(value):
             if find_spans(
                 standin.sub(_BLANK, text) if pseudonyms else text,
                 identifiers,
                 roster_pattern,
                 name_pattern,
+                kind,
             ):
                 raise JudgmentError("identifier_remaining")
 

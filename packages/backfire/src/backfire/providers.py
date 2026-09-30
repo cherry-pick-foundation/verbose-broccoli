@@ -38,6 +38,24 @@ class _AnswerlessError(Exception):
     pass
 
 
+def _without_text(
+    error: pymodel.ProviderError, label: str
+) -> pymodel.ProviderError:
+    """Copy a provider error, keeping only the profile and its HTTP status.
+
+    A provider's response can quote the request, so education mode forwards
+    none of its text.
+    """
+    status = re.match(
+        rf"{re.escape(label)} (?:request failed after \d+ attempts: last "
+        r"failure: )?(\d+):",
+        str(error),
+    )
+    return type(error)(
+        f"{label} {status[1]}" if status else f"{label} request failed"
+    )
+
+
 def _retry_policy(profile: dict) -> RetryPolicy | None:
     """Build PyModel's RetryPolicy from the profile's optional retry table."""
     table = profile.get("retry")
@@ -250,6 +268,8 @@ class _OrderProvider(pymodel.JevProvider):
                 if match is None or int(match.group(1)) not in profile.get(
                     "insufficient_balance", [402]
                 ):
+                    if self._education:
+                        raise _without_text(error, provider.label) from None
                     raise
                 await self._after_insufficient_balance(current)
                 continue

@@ -469,3 +469,177 @@ def test_missing_phone_library_names_only_shipped_profile(roster, monkeypatch):
         pseudonymize("synthetic record", {})
     assert caught.value.error_type == "backend_not_configured"
     assert caught.value.detail == str(SHIPPED_CONFIG)
+
+
+def _sent(state, questions):
+    """Return what the provider would receive, as one string."""
+    masked_state, masked, _ = pseudonymize(state, questions)
+    return json.dumps(
+        {
+            "state": masked_state,
+            "questions": {key: q.to_wire() for key, q in masked.items()},
+        },
+        ensure_ascii=False,
+    )
+
+
+# A value in each request field that can hold one.
+PLACES = {
+    "state": lambda value: ({"note": value}, {}),
+    "nested state": lambda value: ({"a": [{"b": value}]}, {}),
+    "instructions": lambda value: (
+        {},
+        {"q": NoulQuestion({"a": [value]}, NoulCriteria("yes", "no"))},
+    ),
+    "noul criterion": lambda value: (
+        {},
+        {"q": NoulQuestion("Is it true?", NoulCriteria(value, "no"))},
+    ),
+    "choice description": lambda value: (
+        {},
+        {"q": ChoiceQuestion("Choose.", {"x": {"a": [value]}, "y": "no"})},
+    ),
+    "rubric level": lambda value: (
+        {},
+        {"q": ScoreQuestion("Assess.", ["base", {"a": [value]}])},
+    ),
+}
+
+
+@pytest.mark.parametrize("place", PLACES)
+@pytest.mark.parametrize("number", [7700101, 7700101.0])
+def test_student_numbers_given_as_json_numbers_are_replaced(
+    synthetic_roster, place, number
+):
+    del synthetic_roster  # Unused.
+    sent = _sent(*PLACES[place](number))
+    assert "7700101" not in sent
+    assert "Student 01" in sent
+
+
+def test_a_json_number_gets_the_stand_in_of_its_string_form(synthetic_roster):
+    del synthetic_roster  # Unused.
+    assert _sent({"id": 7700101}, {}) == _sent({"id": "7700101"}, {})
+
+
+def test_other_numbers_keep_their_value_and_type(synthetic_roster):
+    del synthetic_roster  # Unused.
+    state = {
+        "score": 85,
+        "probability": 0.75,
+        "year": 2026,
+        "date": 20260928,
+        "count": 12,
+        "flag": True,
+        "nothing": None,
+        "list": [1, 2.5, 1234567890],
+    }
+    masked, _, _ = pseudonymize(state, {})
+    assert masked == state
+    assert [type(value) for value in masked.values()] == [
+        type(value) for value in state.values()
+    ]
+
+
+# (field name, its value, text that must not reach the provider, stand-in)
+FIELDS = [
+    ("DOB", "2011-04-23", "2011", "Birth date"),
+    ("dob", 20110423, "20110423", "Birth date"),
+    ("date of birth", "April 23, 2011", "April", "Birth date"),
+    ("Date_Of_Birth", "23/04/2011", "23/04", "Birth date"),
+    ("dateOfBirth", "2011-04-23", "2011", "Birth date"),
+    ("birthday", "April 23", "April", "Birth date"),
+    ("birth-date", "2011.04.23", "2011", "Birth date"),
+    ("born", 2011, "2011", "Birth date"),
+    ("address", "487 Imaginary Street", "487", "Address"),
+    ("Home Address", "Imaginary Street", "Imaginary", "Address"),
+    ("student_dob", "2011-04-23", "2011", "Birth date"),
+    ("guardian address", "Imaginary Street", "Imaginary", "Address"),
+    ("Student Grade", 10, "10", "Cohort"),
+    ("grade", 10, "10", "Cohort"),
+    ("grade", "10", "10", "Cohort"),
+    ("Grade Level", "10th", "10", "Cohort"),
+    ("school year", 10, "10", "Cohort"),
+    ("year", "11", "11", "Cohort"),
+    ("year", "tenth", "tenth", "Cohort"),
+    ("grade", "Grade 10", "10", "Cohort"),
+]
+
+
+@pytest.mark.parametrize(("field", "value", "hidden", "standin"), FIELDS)
+def test_a_field_named_for_its_meaning_makes_its_value_an_identifier(
+    synthetic_roster, field, value, hidden, standin
+):
+    del synthetic_roster  # Unused.
+    sent = _sent({field: value}, {})
+    assert hidden not in sent
+    assert standin in sent
+
+
+@pytest.mark.parametrize("place", PLACES)
+@pytest.mark.parametrize(
+    ("field", "value", "hidden"),
+    [
+        ("DOB", "2011-04-23", "2011"),
+        ("address", "487 Imaginary Street", "487"),
+        ("grade", 10, "10"),
+    ],
+)
+def test_field_names_apply_in_every_request_field(
+    synthetic_roster, place, field, value, hidden
+):
+    del synthetic_roster  # Unused.
+    sent = _sent(*PLACES[place]({field: value}))
+    assert hidden not in sent
+
+
+def test_a_field_name_gives_the_same_stand_in_as_the_text_form(
+    synthetic_roster,
+):
+    del synthetic_roster  # Unused.
+    assert _sent({"note": "born on 2011-04-23"}, {}).count("Birth date 01") == 1
+    assert _sent({"DOB": "2011-04-23"}, {}) == json.dumps(
+        {"state": {"DOB": "Birth date 01"}, "questions": {}}
+    )
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"year": 2026},
+        {"school year": "2026"},
+        {"academic year": 3},
+        {"grade": 85},
+        {"grade": "B+"},
+        {"score": 10},
+        {"lesson": "2026-09-28"},
+        {"born": None},
+        {"DOB": ""},
+        {"grades": [10, 11]},
+    ],
+)
+def test_fields_that_are_not_identifiers_stay(synthetic_roster, state):
+    del synthetic_roster  # Unused.
+    masked, _, _ = pseudonymize(state, {})
+    assert masked == state
+
+
+def test_korean_field_names_are_known_too(synthetic_roster):
+    del synthetic_roster  # Unused.
+    state = {
+        "생년월일": "2011-04-23",
+        "생일": 20110423,
+        "출생": 2011,
+        "주소": "487 Imaginary Street",
+        "학년": 3,
+        "학년도": 2026,
+    }
+    masked, _, _ = pseudonymize(state, {})
+    assert masked == {
+        "생년월일": "Birth date 01",
+        "생일": "Birth date 02",
+        "출생": "Birth date 03",
+        "주소": "Address 01",
+        "학년": "Cohort 01",
+        "학년도": 2026,
+    }
