@@ -75,6 +75,12 @@ does.
     section moved after "Pages", and trimming. Next: a fresh implementer
     (same choice) reviews the uncommitted files against the spec and these
     follow-ups, trims, runs `npm run verify` and commits.
+  - 2026-09-30 after the restart: the stopped dispatch stays as it was; a new
+    task takes over the draft with a hard trim (script at most 350 lines,
+    tests at most 250). Claude Code `sonnet` at high (backfire through
+    develop's provider order, OpenRouter Jev: model 0.46, confidence 0.40;
+    effort 0.51, confidence 0.43). The first call failed on Hive with an
+    empty provider answer; the user chose one retry from develop's backfire.
 - [ ] T004 [US1] Add the catalog, profile and mapping records to the vault
   schema template `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   pointing to the `concept-profile` skill for their layout (FR-012).
