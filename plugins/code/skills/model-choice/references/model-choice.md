@@ -54,7 +54,8 @@ Vercel each get only their own key file, through uv's `--env-file`:
 ```sh
 clean=(env -u OPENROUTER_API_URL -u OPENROUTER_MANAGEMENT_API_KEY
   -u CODEXBAR_CONFIG -u CLAUDE_CLI_PATH -u CODEX_CLI_PATH -u ANTHROPIC_ADMIN_KEY
-  -u ANTHROPIC_ADMIN_API_KEY -u CODEXBAR_CLAUDE_OAUTH_TOKEN)
+  -u ANTHROPIC_ADMIN_API_KEY -u CODEXBAR_CLAUDE_OAUTH_TOKEN
+  -u OPENROUTER_API_KEY -u AI_GATEWAY_API_KEY)
 keys="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
 "${clean[@]}" CI=1 codexbar usage --provider codex --source oauth --format json
 "${clean[@]}" CI=1 codexbar usage --provider claude --source oauth --format json
