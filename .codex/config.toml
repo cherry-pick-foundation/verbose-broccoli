@@ -1,8 +1,7 @@
 # Codex-only additions to the root AGENTS.md. A project value replaces any
 # profile or user-level developer_instructions in this repository.
 developer_instructions = """
-You usually work here as an implementation worker, and the coordinator reviews
-your change. Do not approve your own change as final.
+Do not approve your own change as final.
 When an ambiguity has a reasonable default, state the assumption at the top of
 your report and continue. Ask the coordinator, with the ask command from your
 task preamble when you have one, only when a required input is missing or the
