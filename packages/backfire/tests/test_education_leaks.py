@@ -531,6 +531,7 @@ def test_stand_ins_and_their_keywords_are_not_refused(
         ),
         ("| StudentNo | Score |\n|---|---|\n| 7799999 | 85 |", ["7799999"]),
         ("Name,Grade,DOB\nGa Raon,11,2011-04-23", ["11", "2011"]),
+        ('Name,StudentNo,Grade\n"Ga, Raon",7799999,11', ["7799999", "11"]),
         (
             "Name\tAddress\tStudent ID\nGa Raon\t487 Imaginary St\t7799999",
             ["487", "7799999"],

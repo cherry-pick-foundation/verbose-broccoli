@@ -248,10 +248,15 @@ def _field_spans(
 
 
 def _row_cells(line: str, separator: str) -> list[tuple[int, int]]:
-    """Return the (start, stop) of each cell in a table or CSV row."""
-    cells, start = [], 0
+    """Return the (start, stop) of each cell in a table or CSV row.
+
+    In CSV and TSV a separator inside double quotes belongs to its cell.
+    """
+    cells, start, quoted = [], 0, False
     for index, char in enumerate(line):
-        if char == separator:
+        if char == '"' and separator != "|":
+            quoted = not quoted
+        elif char == separator and not quoted:
             cells.append((start, index))
             start = index + 1
     cells.append((start, len(line)))
