@@ -1,44 +1,48 @@
-"""Run the Backfire command line entry points."""
+"""Start the PyModel server with Backfire's selected provider."""
 
 import argparse
-import asyncio
+import logging
 import os
+import sys
+
+import anyio
+from jev_judge_mcp import server as pymodel
+from jev_judge_mcp import tools as model_tools
+
+from backfire import noul
+from backfire import providers
 
 
 def main() -> None:
-    """Run the selected Backfire command."""
+    """Run PyModel's stdio server and cleanly exit its worker process."""
     parser = argparse.ArgumentParser(prog="backfire")
-    subcommands = parser.add_subparsers(dest="command", required=True)
-    subcommands.add_parser("serve-mcp", help="Serve MCP over stdio")
-    subcommands.add_parser("ready", help="Check backend readiness")
+    parser.add_argument("command", choices=("serve-mcp",))
+    parser.add_argument("--education", action="store_true")
     args = parser.parse_args()
-    if args.command == "serve-mcp":
-        # Lazy command import.
-        from backfire.judge import judge  # noqa: PLC0415
-
-        # Lazy command import.
-        from backfire.server import serve  # noqa: PLC0415
-
-        if (script := os.environ.get("BACKFIRE_TEST_JUDGE_SCRIPT")) is not None:
-            # Lazy test-only import.
-            from pathlib import Path  # noqa: PLC0415
-
-            # Lazy test-only import.
-            from runpy import run_path  # noqa: PLC0415
-
-            helper = (
-                Path(__file__).resolve().parents[2]
-                / "tests"
-                / "scripted_judge.py"
-            )
-            judge = run_path(str(helper))["ScriptedJudge"].from_file(script)
-        asyncio.run(serve(judge))
-        return
-    if args.command == "ready":
-        # Lazy command import.
-        from backfire.ready import main as ready  # noqa: PLC0415
-
-        raise SystemExit(ready())
+    pymodel.require_posix()
+    settings = pymodel.load_settings()
+    if args.education:
+        settings = settings.model_copy(update={"jev_judge_mcp_cache": False})
+    pymodel.ensure_secrets_redactable(settings)
+    pymodel.ensure_http_access_control(settings)
+    pymodel.ensure_http_port_free(settings)
+    pymodel.configure_logging(settings.log_level, settings.secret_values())
+    runtime = model_tools.Runtime(
+        settings,
+        provider_factory=providers.provider_factory(education=args.education),
+    )
+    instance = pymodel.JevMCPServer(
+        toolset=model_tools.Toolset(runtime, (*model_tools.TOOLS, noul.NOUL)),
+        log_level=settings.log_level,
+    )
+    logging.getLogger(__name__).info(
+        "identity %s %s", instance.name, instance.version
+    )
+    pymodel.freeze_startup_heap()
+    anyio.run(pymodel.serve, instance, settings)
+    logging.shutdown()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

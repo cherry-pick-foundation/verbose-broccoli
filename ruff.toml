@@ -1,8 +1,10 @@
 line-length = 80
 indent-width = 4
 preview = false
-# FR-005 keeps vendored upstream Spec Kit extensions in their upstream form.
-extend-exclude = [".specify/extensions/"]
+# The Spec Kit extensions keep their upstream form.
+extend-exclude = [
+  ".specify/extensions/",
+]
 src = [
   "packages/backfire/src",
   "packages/doc-regions/src",
@@ -10,8 +12,10 @@ src = [
 ]
 
 [format]
-# Markdown is not Python source; several copies are vendored.
-exclude = ["*.md"]
+# Markdown is not Python source.
+exclude = [
+  "*.md",
+]
 
 [per-file-target-version]
 # scripts/doc_sources.py runs in the doc-regions Python 3.13 environment.
@@ -237,7 +241,6 @@ known-third-party = ["absl", "enchant"]
 known-first-party = [
   "backfire",
   "backfire_education",
-  "backfire_tools",
   "doc_regions",
   "wiki_consistency",
 ]

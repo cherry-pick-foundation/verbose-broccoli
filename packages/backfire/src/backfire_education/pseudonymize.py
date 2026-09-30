@@ -1,6 +1,7 @@
 """Replace education identifiers before a judgment reaches its provider."""
 
 from collections.abc import Callable, Mapping
+import dataclasses
 import re
 from typing import Any
 
@@ -99,6 +100,9 @@ def _strings(value):
     elif isinstance(value, (list, tuple)):
         for item in value:
             yield from _strings(item)
+    elif dataclasses.is_dataclass(value) and not isinstance(value, type):
+        for field in dataclasses.fields(value):
+            yield from _strings(getattr(value, field.name))
 
 
 def _replace_tree(value, replace):
@@ -116,6 +120,14 @@ def _replace_tree(value, replace):
         return [_replace_tree(item, replace) for item in value]
     if isinstance(value, tuple):
         return tuple(_replace_tree(item, replace) for item in value)
+    if dataclasses.is_dataclass(value) and not isinstance(value, type):
+        return dataclasses.replace(
+            value,
+            **{
+                field.name: _replace_tree(getattr(value, field.name), replace)
+                for field in dataclasses.fields(value)
+            },
+        )
     return value
 
 
@@ -195,10 +207,14 @@ def pseudonymize(
         question_restore[provider_key] = key
         labels, levels = {}, {}
         criteria = (
-            document.get("criteria") if isinstance(document, Mapping) else None
+            document.get("criteria")
+            if isinstance(document, Mapping)
+            else getattr(document, "criteria", None)
         )
         question_type = (
-            document.get("type") if isinstance(document, Mapping) else None
+            document.get("type")
+            if isinstance(document, Mapping)
+            else getattr(document, "type", None)
         )
         if question_type == "choice" and isinstance(criteria, Mapping):
             labels = {replace(label): label for label in criteria}

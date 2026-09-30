@@ -1,4 +1,3 @@
-import ast
 import json
 from pathlib import Path
 import shutil
@@ -11,6 +10,9 @@ from conftest import commit_instance
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
+from jev_judge_mcp.tools.classify import TOOL as CLASSIFY_TOOL
+from jev_judge_mcp.tools.find import TOOL as FIND_TOOL
+from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
 
@@ -24,7 +26,7 @@ SCHEMAS = {
     name: json.loads(
         (FIXTURES / f"{name}_input_schema.json").read_text(encoding="utf-8")
     )
-    for name in ("backfire_verify", "backfire_find", "backfire_classify")
+    for name in ("jev_verify", "jev_find", "jev_classify")
 }
 
 
@@ -86,28 +88,17 @@ def _line_of(path, text):
     )
 
 
-def test_schema_fixtures_copy_backfire_verbatim():
-    root = Path(__file__).resolve().parents[2]
+def test_schema_fixtures_copy_jev_verbatim():
+    tools = {
+        "jev_verify": VERIFY_TOOL,
+        "jev_find": FIND_TOOL,
+        "jev_classify": CLASSIFY_TOOL,
+    }
     for name, schema in SCHEMAS.items():
-        path = (
-            root
-            / "backfire"
-            / "src"
-            / "backfire"
-            / "tools"
-            / f"{name.removeprefix('backfire_')}.py"
+        assert (
+            schema
+            == tools[name].definition.model_dump(by_alias=True)["inputSchema"]
         )
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        assignment = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.Assign)
-            and any(
-                isinstance(target, ast.Name) and target.id == "INPUT_SCHEMA"
-                for target in node.targets
-            )
-        )
-        assert schema == ast.literal_eval(assignment.value)
 
 
 def test_changed_scope_uses_line_diff_and_classifies_added_units(tmp_path):
@@ -1304,16 +1295,14 @@ def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
     )
     assert all(solo["id"] not in request["units"] for request in crossrefs)
     assert result["calls"] == {
-        "backfire_verify": sum(
-            request["tool"] == "backfire_verify"
-            for request in result["requests"]
+        "jev_verify": sum(
+            request["tool"] == "jev_verify" for request in result["requests"]
         ),
-        "backfire_find": sum(
-            request["tool"] == "backfire_find" for request in result["requests"]
+        "jev_find": sum(
+            request["tool"] == "jev_find" for request in result["requests"]
         ),
-        "backfire_classify": sum(
-            request["tool"] == "backfire_classify"
-            for request in result["requests"]
+        "jev_classify": sum(
+            request["tool"] == "jev_classify" for request in result["requests"]
         ),
     }
     _assert_schemas(result)
@@ -1370,16 +1359,14 @@ def test_prepare_batches_verify_and_classify_deterministically(
     assert len(classify) >= 4
     assert all(len(request["arguments"]["items"]) <= 64 for request in classify)
     assert first["calls"] == {
-        "backfire_verify": sum(
-            request["tool"] == "backfire_verify"
-            for request in first["requests"]
+        "jev_verify": sum(
+            request["tool"] == "jev_verify" for request in first["requests"]
         ),
-        "backfire_find": sum(
-            request["tool"] == "backfire_find" for request in first["requests"]
+        "jev_find": sum(
+            request["tool"] == "jev_find" for request in first["requests"]
         ),
-        "backfire_classify": sum(
-            request["tool"] == "backfire_classify"
-            for request in first["requests"]
+        "jev_classify": sum(
+            request["tool"] == "jev_classify" for request in first["requests"]
         ),
     }
     _assert_schemas(first)

@@ -1,9 +1,10 @@
-import ast
 import json
 from pathlib import Path
 import subprocess
 import sys
 
+from jev_judge_mcp.tools.classify import TOOL as CLASSIFY_TOOL
+from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
 
@@ -14,7 +15,7 @@ from doc_regions.requests import verify_requests
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
     name: json.loads((FIXTURES / f"{name}_input_schema.json").read_text())
-    for name in ("backfire_verify", "backfire_classify")
+    for name in ("jev_verify", "jev_classify")
 }
 
 
@@ -30,26 +31,13 @@ def units(count):
     ]
 
 
-def test_schema_fixtures_copy_backfire_verbatim():
-    root = Path(__file__).resolve().parents[2]
+def test_schema_fixtures_copy_jev_verbatim():
+    tools = {"jev_verify": VERIFY_TOOL, "jev_classify": CLASSIFY_TOOL}
     for name, schema in SCHEMAS.items():
-        tree = ast.parse(
-            (
-                root
-                / "backfire/src/backfire/tools"
-                / f"{name.removeprefix('backfire_')}.py"
-            ).read_text()
+        assert (
+            schema
+            == tools[name].definition.model_dump(by_alias=True)["inputSchema"]
         )
-        assignment = next(
-            node
-            for node in tree.body
-            if isinstance(node, ast.Assign)
-            and any(
-                isinstance(t, ast.Name) and t.id == "INPUT_SCHEMA"
-                for t in node.targets
-            )
-        )
-        assert schema == ast.literal_eval(assignment.value)
 
 
 @pytest.mark.parametrize("evidence_count", [1, 2, 10, 249])
@@ -173,10 +161,8 @@ def test_prepare_root_diff_schema_determinism_and_read_only(
         u["added"] for u in first["units"] if u["document"] == "doc.md"
     ] == [False, False, True, True]
     valid(first["requests"])
-    verify = [r for r in first["requests"] if r["tool"] == "backfire_verify"]
-    classify = [
-        r for r in first["requests"] if r["tool"] == "backfire_classify"
-    ]
+    verify = [r for r in first["requests"] if r["tool"] == "jev_verify"]
+    classify = [r for r in first["requests"] if r["tool"] == "jev_classify"]
     assert [i for r in verify for i in r["units"]] == [
         u["id"] for u in first["units"]
     ]
@@ -202,13 +188,11 @@ def test_prepare_classifies_only_target_units(repository, unchanged):
         )
     added = [u for u in result["units"] if u["added"]]
     assert any(u["report_only"] for u in added)
-    classify = [
-        r for r in result["requests"] if r["tool"] == "backfire_classify"
-    ]
+    classify = [r for r in result["requests"] if r["tool"] == "jev_classify"]
     assert [i for r in classify for i in r["units"]] == [
         u["id"] for u in added if not u["report_only"]
     ]
-    verify = [r for r in result["requests"] if r["tool"] == "backfire_verify"]
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
     assert [e["id"] for e in verify[0]["arguments"]["evidence"]] == [
         "source.txt"
     ]
@@ -231,7 +215,7 @@ def test_prepare_excludes_judged_documents_and_empty_evidence_has_no_verify(
             repository, "config.toml", base="HEAD", max_evidence_chars=20000
         )
     assert not any(
-        request["tool"] == "backfire_verify" for request in result["requests"]
+        request["tool"] == "jev_verify" for request in result["requests"]
     )
 
 
@@ -267,7 +251,7 @@ def test_prepare_excludes_configured_evidence_globs(repository, unchanged):
     verify = [
         request
         for request in result["requests"]
-        if request["tool"] == "backfire_verify"
+        if request["tool"] == "jev_verify"
     ]
     assert [e["id"] for e in verify[0]["arguments"]["evidence"]] == [
         "src/kept.py"

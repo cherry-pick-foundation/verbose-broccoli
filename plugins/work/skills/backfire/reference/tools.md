@@ -1,8 +1,8 @@
 # Backfire tools reference
 
-One block per tool: arguments that matter, output shape, defaults, limits, failure modes. Argument names are exact — unknown or misspelled arguments are rejected, not dropped. The live MCP tool schema in your client is the complete, current call shape; this reference is the working map.
+One block per tool: arguments that matter, output shape, defaults, limits, failure modes. Argument names are exact — unknown or misspelled arguments are dropped without an error, so a misspelled optional argument silently falls back to its default. The live MCP tool schema in your client is the complete, current call shape; this reference is the working map.
 
-## backfire_screen
+## jev_screen
 
 Screen text before it enters agent context: prompt injection, substance, and task relevance.
 
@@ -11,7 +11,7 @@ Screen text before it enters agent context: prompt injection, substance, and tas
 - `skip` = little substance (< 0.3) or off-purpose (< 0.3); `block` = injection ≥ block threshold — show the recommendation and probabilities to the human before using the content.
 - Fail-closed: a malformed model answer returns `status: invalid_response` with `recommendation.action: review`, never a clean pass.
 
-## backfire_verify
+## jev_verify
 
 Test claims against supplied evidence.
 
@@ -21,16 +21,16 @@ Test claims against supplied evidence.
 - `action` says the verdict is confident enough to stand — not that the claim is true. A confident `contradicted` is also `auto`: act on the contradiction, do not ship the claim.
 - Fail-closed: a malformed relation returns `verdict: unknown` with `status: invalid_response` — protocol failure, distinct from a real verdict.
 
-## backfire_noul
+## jev_noul
 
 Calibrated probability per stated proposition, batched.
 
 - Input: `propositions[]` (each a single testable statement); optional `context` (document or evidence items; when omitted, model knowledge applies); `auto_accept` (default 0.85, must exceed 0.5).
 - Output: `results[]` with `probability` and `label` per proposition — `likely` (p ≥ auto_accept), `unlikely` (p + auto_accept ≤ 1), or `uncertain` between them — plus `auto` (label !== uncertain) and `thresholds`.
-- Low probability means likely-not-true, not merely unevidenced; evidence-relation judgments (including silence) belong to `backfire_verify`.
+- Low probability means likely-not-true, not merely unevidenced; evidence-relation judgments (including silence) belong to `jev_verify`.
 - Limits: 64 propositions, 2,000 chars each, 150,000 chars of propositions + context in total.
 
-## backfire_find
+## jev_find
 
 Pick the best candidates by meaning and say whether any candidate answers the query.
 
@@ -39,7 +39,7 @@ Pick the best candidates by meaning and say whether any candidate answers the qu
 - Always check `exists_verdict` before trusting the ranking — a winner is chosen even when nothing matches.
 - Limits: 250 candidates, 2,000 chars each. Fail-closed: `status: invalid_response` with `top: []` when the ranking cannot be validated.
 
-## backfire_rerank
+## jev_rerank
 
 Score every candidate independently; the ordering is the result.
 
@@ -48,7 +48,7 @@ Score every candidate independently; the ordering is the result.
 - Chunk long documents into distinct ids (`report.md#c1`, `report.md#c2`) and merge per document by best chunk score.
 - Limits: 250 candidates, 2,000 chars each, 100,000 chars total. Fail-closed: `status: invalid_response` with `ranked: null` — one invalid score makes the whole ordering untrustworthy.
 
-## backfire_classify
+## jev_classify
 
 Label many items against one shared catalog, one question per item.
 
@@ -58,7 +58,7 @@ Label many items against one shared catalog, one question per item.
 - Put `manual_review` in the catalog for the genuinely ambiguous; `review` decisions need a human or a rule, not a re-run with the same wording.
 - Limits: 64 items, 250 classes, items × classes ≤ 8,000. Duplicate supplied ids are rejected; omitted ids get generated ones.
 
-## backfire_decide
+## jev_decide
 
 One bounded choice among 2–6 candidates, evidence and priorities in view.
 
@@ -67,7 +67,7 @@ One bounded choice among 2–6 candidates, evidence and priorities in view.
 - Include "do nothing" or "gather more evidence" as candidates when useful. `escaped: true` (ask_user / investigate / none) means stop and ask — do not rephrase and re-call. One call per unchanged decision.
 - Duplicate candidate ids and collisions with escape-hatch names are rejected.
 
-## backfire_compare
+## jev_compare
 
 How two passages relate, overall and per aspect.
 
@@ -75,16 +75,25 @@ How two passages relate, overall and per aspect.
 - Output: relation `same_fact` | `contradicts` | `different_facts`, probability distribution, confidence, auto-versus-review action, plus an independent judgment per aspect.
 - Per-aspect results may disagree with the overall relation; report the disagreement. `same_fact` means the passages agree with each other, not that they are true.
 
-## backfire_extract
+## jev_extract
 
 Pull field values verbatim; your regex proposes, Jev selects.
 
 - Input: `document` (≤ 50,000 chars); `fields[]` (up to 32, each `{id, pattern, flags?, description}` — `id` a slug like `price`, `pattern` a JavaScript regex source without delimiters, `description` what the field is so Jev can pick the right match); optional shared `purpose`; `auto_accept` (default 0.85), `minimum_margin` (default 0.5).
 - Output per field: `value` (a verbatim regex-match substring — never model-generated), `status` `auto` | `review` | `not_found` | `invalid_pattern` | `invalid_response`, `reason` (`none_matched`, `none_matched_ambiguous`, `candidate_limit`, or null), `confidence`, `top_probability`, `margin`, `candidates_considered`; plus `summary` and `thresholds`.
 - Fields with zero regex matches never reach the model. A model-judged "none of the matches is the true value" is gated like a positive pick: confident → `not_found` / `none_matched`; below thresholds → `review` / `none_matched_ambiguous`. A truncated candidate universe (cap: 20 candidates of ≤ 2,000 chars per field, 50,000 chars across fields) can never be `auto`.
+- Patterns use an ECMAScript subset: the flags `d`, `m`, `s`, `u`, `v` and `y`, named groups, backreferences and property escapes are refused with `invalid_pattern` and a reason.
 - Tight patterns with precise descriptions beat permissive ones: the model chooses among matches, so a pattern that matches everything gives it nothing to choose from. `g` is always added to flags; non-letters are dropped; multi-letter flags like `gi` work.
 
-## backfire_review
+## jev_score
+
+Place one subject on your own ordered rubric.
+
+- Input: `subject` (≤ 1,500 chars); `levels[]` (2–10 level descriptions, low to high); optional `context`.
+- Output: a fractional 0-based `score` (1.5 sits between `levels[1]` and `levels[2]`), the nearest level index, the full per-level `probabilities`, and `confidence`.
+- Threshold the score in code; interpolation between levels is weakly calibrated. One call per unchanged subject and rubric.
+
+## jev_review
 
 Score a proposed diff against the request before calling the task done.
 
@@ -92,15 +101,15 @@ Score a proposed diff against the request before calling the task done.
 - Output: 0..2 rubric scores — `correctness`, `spec_match`, `test_gap`, `blast_radius` (the last two lower the weighted composite) — plus `safe_to_apply` and action `auto` | `review` | `escalate`.
 - Truncated or malformed input never returns `auto`. `escalate` means show the numbers to a human; `auto` means the thresholds were met, not that the patch is correct. Does not apply the patch or run tests.
 
-## backfire_gate
+## jev_gate
 
 Patch review plus completion claims checked against evidence, in one call.
 
-- Input: `request`, `diff`, `claims[]` (up to 16, 2,000 chars each), `evidence` (required, at least one non-empty item; up to 16 items, 200,000 chars aggregate), optional `tests`; same thresholds as `backfire_review`.
-- Output: the `backfire_review` block plus per-claim verdicts (`verified` / `contradicted` / `unsupported`) and an aggregate action `auto` | `review` | `escalate`.
+- Input: `request`, `diff`, `claims[]` (up to 16, 2,000 chars each), `evidence` (required, at least one non-empty item; up to 16 items, 200,000 chars aggregate), optional `tests`; same thresholds as `jev_review`.
+- Output: the `jev_review` block plus per-claim verdicts (`verified` / `contradicted` / `unsupported`) and an aggregate action `auto` | `review` | `escalate`.
 - Claims are assessed against `evidence` only — a claim about tests needs the test log in evidence. That separation is prompt-level instruction, not hard isolation: all fields share one model state, so put each fact where it belongs. A confident contradicted claim escalates. Request and claims are assertions to check, never proof.
 
-## Classification hygiene (for backfire_classify and any catalog)
+## Classification hygiene (for jev_classify and any catalog)
 
 1. Make classes mutually exclusive where possible; separate unrelated axes (destination, entity type, lifecycle) into distinct passes.
 2. Write strong descriptions: precise definition, inclusion and exclusion boundaries, precedence over overlapping classes, a short example.

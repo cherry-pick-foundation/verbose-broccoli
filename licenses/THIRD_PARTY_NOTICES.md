@@ -95,39 +95,34 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
 
-## jkudish/jev-mcp — backfire tools
+## jkudish/jev-mcp — Backfire skills
 
 - Source:
   <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
 - Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
-- Reused: the tool definitions and decision logic of `src/index.ts` and
-  `src/lib.ts`, ported to Python as the `backfire` tools in
-  `packages/backfire/src/backfire/`. The port's five recorded differences, the
-  original files' SHA-256 and the license text are in
-  `packages/backfire/src/backfire/UPSTREAM.md`. No upstream source file is
-  copied into the repository.
-- Reused: the agent skill `skills/jev`, vendored as
+- Reused: the agent skill `skills/jev`, copied as
   `plugins/code/skills/backfire/` and again as
-  `plugins/work/skills/backfire/`, each with four recorded changes that its
-  `upstream.json` lists.
+  `plugins/work/skills/backfire/`, with the changes that each copy's
+  `upstream.json` lists, and the Noul tool's definition, questions and
+  decision logic in `packages/backfire/src/backfire/noul.py`.
 - Copyright (c) 2026 Joey Kudish.
   [MIT license](../plugins/code/skills/backfire/LICENSE).
 
-## typesafe-ai/system-one-adapter-python — backfire judgments
+## jkudish/jev-agent-tools — Backfire's Vercel provider
 
-- Source: <https://github.com/typesafe-ai/system-one-adapter-python>, published
-  on PyPI as `system-one-adapter` 0.2.1.
-- Used as a pinned Python dependency of `packages/backfire/`, locked in its
-  `uv.lock` and installed with it by `uv sync`. No source is copied into the
-  repository.
-- Copyright (c) 2026 TypeSafe AI. MIT license.
+- Source: `@jkudish/jev-agent-tools` 0.1.2 on npm
+  (`dist/transports/vercel.js`), the version jev-mcp 0.9.0 locks.
+- Reused: the Vercel AI Gateway driver, ported to Python in
+  `packages/backfire/src/backfire/vercel.py`, whose docstring carries the
+  license.
+- Copyright (c) 2026 Joey Kudish. MIT license.
 
-## daviddrysdale/python-phonenumbers — work build pseudonymization
+## daviddrysdale/python-phonenumbers — work plugin pseudonymization
 
 - Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
   PyPI as `phonenumbers` 9.0.40, a Python port of Google's libphonenumber.
 - Used as a pinned Python dependency of `packages/backfire/`, in its optional
-  `education` extra, locked in its `uv.lock` and installed only for the work
-  build and the development environment. No source is copied into the
-  repository.
+  `education` extra, locked in the workspace's `uv.lock` and installed by
+  `npm run backfire:install` for the work plugin's `serve-mcp --education`.
+  No source is copied into the repository.
 - Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.

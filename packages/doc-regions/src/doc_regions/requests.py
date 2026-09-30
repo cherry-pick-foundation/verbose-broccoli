@@ -1,4 +1,4 @@
-"""Prepare lossless Backfire requests from Markdown units and Git evidence."""
+"""Prepare lossless Jev requests from Markdown units and Git evidence."""
 
 import os
 from pathlib import Path
@@ -29,15 +29,13 @@ CLASSES = [
 
 
 def verify_requests(groups):
-    """Build bounded Backfire verification requests from units and evidence."""
+    """Build bounded jev_verify requests from units and evidence."""
     requests = []
     for units, evidence in groups:
         if not evidence:
-            raise ValueError(
-                "backfire_verify evidence limit is at least 1 item"
-            )
+            raise ValueError("jev_verify evidence limit is at least 1 item")
         if len(evidence) > 249:
-            raise ValueError("backfire_verify evidence limit is 249 items")
+            raise ValueError("jev_verify evidence request cap is 249 items")
         claims_per_request = 672 // (
             3 if len(evidence) == 1 else len(evidence) + 4
         )
@@ -45,7 +43,7 @@ def verify_requests(groups):
             batch = units[start : start + claims_per_request]
             requests.append(
                 {
-                    "tool": "backfire_verify",
+                    "tool": "jev_verify",
                     "units": [unit["id"] for unit in batch],
                     "arguments": {
                         "claims": [unit["text"] for unit in batch],
@@ -57,13 +55,13 @@ def verify_requests(groups):
 
 
 def classify_requests(units, purpose):
-    """Build batched Backfire classification requests."""
+    """Build batched jev_classify requests."""
     requests = []
     for start in range(0, len(units), 64):
         batch = units[start : start + 64]
         requests.append(
             {
-                "tool": "backfire_classify",
+                "tool": "jev_classify",
                 "units": [unit["id"] for unit in batch],
                 "arguments": {
                     "items": [

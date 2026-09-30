@@ -1,7 +1,19 @@
+import asyncio
 import csv
 import json
 import sys
 
+from jev_judge_mcp.domain import Usage
+from jev_judge_mcp.domain.questions import ChoiceQuestion
+from jev_judge_mcp.domain.questions import NoulCriteria
+from jev_judge_mcp.domain.questions import NoulQuestion
+from jev_judge_mcp.domain.questions import ScoreQuestion
+from jev_judge_mcp.errors import Redactor
+from jev_judge_mcp.providers import Evaluation
+from jev_judge_mcp.providers import JevProvider
+from jev_judge_mcp.settings import Settings
+from jev_judge_mcp.tools import Runtime
+from jev_judge_mcp.tools import Toolset
 import pytest
 from typesafe_sdk import Choice
 from typesafe_sdk import Noul
@@ -10,6 +22,8 @@ from typesafe_sdk import Score
 from backfire.config import SHIPPED_CONFIG
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
+from backfire.noul import NOUL
+from backfire.providers import _ProfileProvider
 from backfire_education.pseudonymize import compile_roster_pattern
 from backfire_education.pseudonymize import find_spans
 from backfire_education.pseudonymize import pseudonymize
@@ -74,6 +88,158 @@ def test_replaces_nested_state_and_rebuilds_each_question_type(roster):
     assert len(masked_questions) == len(questions)
     assert "학생" in masked_state["summary"]
     assert "학교" in masked_state["nested"][0]["school"]
+
+
+def test_pymodel_question_dataclasses_mask_fields_and_restore_answers(roster):
+    del roster  # Unused.
+    questions = {
+        "가라온 선택": ChoiceQuestion(
+            "가라온 instructions",
+            {"가라온": "다누리 label", "나하늘": "가상별학교 label"},
+        ),
+        "다누리 확인": NoulQuestion(
+            "다하늘 instructions",
+            NoulCriteria("다누리 true", "바람숲학교 false"),
+        ),
+        "다하늘 점수": ScoreQuestion(
+            "가라온 score instructions", ["나하늘 level", "다하늘 level"]
+        ),
+    }
+    state = {"claim": "가라온은 다누리와 가상별학교를 기록했다."}
+
+    masked_state, masked, restore = pseudonymize(state, questions)
+    serialized = json.dumps(
+        {
+            "state": masked_state,
+            "questions": {
+                key: question.to_wire() for key, question in masked.items()
+            },
+        },
+        ensure_ascii=False,
+    )
+    assert all(
+        name not in serialized
+        for name in (
+            "가라온",
+            "나하늘",
+            "다하늘",
+            "다누리",
+            "가상별학교",
+            "바람숲학교",
+        )
+    )
+    assert {type(question) for question in masked.values()} == {
+        ChoiceQuestion,
+        NoulQuestion,
+        ScoreQuestion,
+    }
+
+    choice_key = next(
+        key
+        for key, question in masked.items()
+        if isinstance(question, ChoiceQuestion)
+    )
+    noul_key = next(
+        key
+        for key, question in masked.items()
+        if isinstance(question, NoulQuestion)
+    )
+    score_key = next(
+        key
+        for key, question in masked.items()
+        if isinstance(question, ScoreQuestion)
+    )
+    choice_labels = list(masked[choice_key].criteria)
+    score_levels = masked[score_key].criteria
+    answers = {
+        choice_key: {
+            "type": "choice",
+            "choice": choice_labels[0],
+            "probabilities": {choice_labels[0]: 0.8, choice_labels[1]: 0.2},
+        },
+        noul_key: {"type": "noul", "noul": 0.8},
+        score_key: {
+            "type": "score",
+            "score": 0.75,
+            "probabilities": {"0": 0.2, "1": 0.8},
+            "legend": {"0": score_levels[0], "1": score_levels[1]},
+        },
+    }
+    restored = restore(answers)
+    assert set(restored) == set(questions)
+    assert restored["가라온 선택"]["choice"] == "가라온"
+    assert restored["가라온 선택"]["probabilities"] == {
+        "가라온": 0.8,
+        "나하늘": 0.2,
+    }
+    assert restored["다하늘 점수"]["legend"] == {
+        "0": "나하늘 level",
+        "1": "다하늘 level",
+    }
+    assert restored["다누리 확인"] == answers[noul_key]
+
+
+def test_pymodel_choice_labels_that_collide_fail(roster):
+    del roster  # Unused.
+    questions = {
+        "q": ChoiceQuestion(
+            "synthetic instructions", {"가라온": "first", "라온": "second"}
+        )
+    }
+
+    with pytest.raises(JudgmentError) as caught:
+        pseudonymize({}, questions)
+    assert caught.value.error_type == "pseudonym_conflict"
+
+
+def test_toolset_education_wrapper_masks_pymodel_questions_and_state(roster):
+    del roster  # Unused.
+
+    class RecordingProvider(JevProvider):
+        name = "compatible"
+        label = "synthetic"
+
+        def __init__(self):
+            super().__init__(Redactor(()))
+            self.state = None
+            self.questions = None
+
+        async def _send(self, state, questions, model, timeout):
+            del timeout
+            self.state, self.questions = state, questions
+            answers = {key: {"noul": 0.9} for key in questions}
+            return Evaluation(answers, Usage(1, 2), self.name, model)
+
+        async def aclose(self):
+            return None
+
+    backend = RecordingProvider()
+    wrapped = _ProfileProvider(backend, None, education=True)
+    tools = Toolset(
+        Runtime(Settings.model_construct(), lambda _: wrapped), (NOUL,)
+    )
+
+    async def run():
+        try:
+            return await tools.call(
+                "jev_noul",
+                {
+                    "propositions": ["가라온은 다누리의 기록을 확인한다."],
+                    "context": "가상별학교에서 가라온이 작성했다.",
+                },
+            )
+        finally:
+            await tools.aclose()
+
+    result = asyncio.run(run())
+    serialized = json.dumps(
+        {"state": backend.state, "questions": backend.questions},
+        ensure_ascii=False,
+    )
+    assert not result.is_error
+    assert all(
+        name not in serialized for name in ("가라온", "다누리", "가상별학교")
+    )
 
 
 def test_given_name_particles_shared_given_name_and_longest_school_match(
