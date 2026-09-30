@@ -237,22 +237,27 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   page metadata, a missing or malformed topic list in `AGENTS.md`, a page
   topic that list does not declare, a cited bag that fails BagIt's fast
   validation, or a changed earlier `log.md` entry, and it lists orphan pages
-  and citations of non-latest revisions. It also tests the page rules that a
-  pattern can tell, outside mechanical regions, the front matter's `sources`
-  field and `log.md`: phone numbers, email and postal addresses and
-  registration numbers; a student page (`wiki/students/<name>.md`) whose
-  name is not in backfire's roster; Hangul, Chinese or Japanese text other
-  than roster names and one quote of at most 100 characters in quotation
-  marks with its English translation in parentheses beside it; roster
-  school names in Hangul outside such a quote, instead of domain IDs; and
-  dates not written as YYYY-MM-DD or times without a zone. The language,
-  school and date rules skip link targets outside code, which a page
-  cannot change without breaking the link.
-  Roster names, phone numbers and email addresses are found with the work
-  build's own `backfire_education` code, so the check sees them as backfire
-  replaces them; it reads the roster only when a page needs it. A failure
-  never repeats the matched text. It writes nothing, uses no network and
-  needs no cache. `update` regenerates stale regions.
+  and citations of non-latest revisions. It also runs the page rules as
+  Vale 3.23.0 rules (`packages/wiki-consistency/vale/`), outside mechanical
+  regions, the front matter and `log.md`: phone numbers, email and postal
+  addresses and registration numbers; Hangul, Chinese or Japanese text other
+  than roster names and one quote with its English translation in
+  parentheses beside it; roster school names in Hangul outside such a quote,
+  instead of domain IDs; and dates not written as YYYY-MM-DD or times
+  without a zone. The privacy and time rules also check code and link
+  targets; the language, school and date rules skip them. A small Python
+  step reads backfire's roster only when a page needs it, checks that a
+  student page (`wiki/students/<name>.md`) is named after a roster student,
+  and gives Vale the roster's names and schools through a private temporary
+  folder in the cache that it removes afterwards. Vale runs offline with
+  `--no-global` and line output, on regular files only (symbolic links are
+  skipped), and a failure never repeats the matched text. The rules are
+  patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
+  passes, a registration-number shape is flagged even with an impossible
+  birth date, phone and email detection is Vale's, not backfire's, and the
+  front matter's title and summary go unchecked. The check writes nothing
+  outside that temporary folder and uses no network. `update` regenerates
+  stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
