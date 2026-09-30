@@ -38,6 +38,11 @@
       "description": "Check mechanical regions and local links in the target documents, offline and without writing",
       "cache": false
     },
+    "//#backfire:regions:check": {
+      "description": "Check that backfire's generated region list matches the vendored legal-district codes, offline and without writing",
+      "cache": false
+    },
+    "//#test:backfire-regions": {"cache": false},
     "//#test:ruff": {"cache": false},
     "//#test:gts": {"cache": false},
     "//#test:git-flow": {"cache": false},
@@ -160,6 +165,7 @@
         "//#test:gts",
         "//#test:git-flow",
         "//#test:worktree-branch",
+        "//#test:backfire-regions",
         "//#test:lint-names",
         "//#test:commit-msg",
         "//#test:plugin-skills",
@@ -206,7 +212,8 @@
         "//#clean-architecture",
         "//#python:imports",
         "verbose-broccoli-python#test",
-        "//#doc-regions:check"
+        "//#doc-regions:check",
+        "//#backfire:regions:check"
       ],
       "cache": false
     },

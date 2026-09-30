@@ -6,7 +6,7 @@
   "skill_sha256": "53a2478ec24e2dfce94d3c427fe0b2895f553816d2918336e694658f0e725c27",
   "local_modifications": [
     "Removed the unpinned mcpServers frontmatter block.",
-    "Replaced the first data-handling bullet with the local Backfire provider profile and privacy guidance.",
+    "Replaced the first data-handling bullet with the local Backfire provider profile and privacy guidance: never student data, English requests only.",
     "Added a See also link to references/verbose-broccoli.md.",
     "Renamed the skill and its titles to backfire; tool names stay jev_*.",
     "Added a jev_score row to the tool table and a jev_score block to the reference.",

@@ -442,7 +442,7 @@ def test_education_switch_masks_once_and_restores_answers(
         education=True,
     )
     original_questions = {
-        "가라온의 판단": NoulQuestion(
+        "가라온 judgment": NoulQuestion(
             "synthetic", NoulCriteria("true", "false")
         )
     }
@@ -451,7 +451,7 @@ def test_education_switch_masks_once_and_restores_answers(
         try:
             return await ask(
                 client,
-                {"claim": "가라온은 synthetic claim을 읽는다."},
+                {"claim": "가라온 reads the synthetic claim."},
                 original_questions,
             )
         finally:
@@ -462,7 +462,7 @@ def test_education_switch_masks_once_and_restores_answers(
     assert len(calls) == 1
     assert checks == ["openrouter"]
     assert "가라온" not in json.dumps(second.calls[0], ensure_ascii=False)
-    assert "학생" in json.dumps(second.calls[0], ensure_ascii=False)
+    assert "Student 01" in json.dumps(second.calls[0], ensure_ascii=False)
     assert set(result.answers) == set(original_questions)
     assert result.provider == "openrouter"
 

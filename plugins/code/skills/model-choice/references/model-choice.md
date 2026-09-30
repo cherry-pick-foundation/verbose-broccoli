@@ -35,6 +35,11 @@ effort outside Orca's catalog is still a candidate; it launches through the
 terminal path. Orca's catalog does not cover Copilot, so Copilot always
 launches through the terminal path.
 
+A task that reads student data (the work vault's student pages, backfire's
+roster or raw student sources) takes only Claude Code and Codex candidates,
+which run on the user's own Claude and ChatGPT accounts; never Copilot or
+OMP.
+
 ## Evidence
 
 Give backfire facts:
@@ -50,8 +55,9 @@ Give backfire facts:
 - The other-provider rule for final reviews: name the implementer's provider
   and state the rule in `priorities`.
 
-Never put credentials into the evidence. Send personal records only through a
-provider profile the user has approved for them, and keep the evidence
+Never put credentials into the evidence. Never send student data or other
+personal records through this plugin's backfire, and write the evidence in
+English: backfire refuses any request that contains Hangul. Keep the evidence
 minimal.
 
 ### Usage limits

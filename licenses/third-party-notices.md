@@ -157,3 +157,14 @@ with the already approved Ajv dependency. Sources:
   local `google-workspace` skill first. The other nine are unchanged.
 - Copyright 2026 Google LLC. Used under the Apache License 2.0, the same
   license as this repository ([LICENSE](../LICENSE)).
+
+## Ministry of the Interior and Safety — legal-district codes
+
+- Source: <https://www.code.go.kr>, "법정동코드 전체자료" (legal-district
+  code, full data), requested on 2026-09-30 as
+  [`upstream.md`](../packages/backfire/vendor/legal-district-codes/upstream.md)
+  records, with the ZIP's and the text file's SHA-256.
+- Reused: the response ZIP, unmodified, in
+  `packages/backfire/vendor/legal-district-codes/`; backfire's region list is
+  generated from its province and city/county/district names.
+- Public data of a Korean ministry; the site states no license.

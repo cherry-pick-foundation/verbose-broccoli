@@ -8,7 +8,10 @@ the judgment to an external model provider: the first profile in Backfire's
 order that is not known to be out of credit, OpenRouter and then Hive by
 default. Inputs can include claims, evidence, patches, test output,
 source excerpts, or other text supplied to a tool. Never send secrets,
-credentials, or private personal records such as student data to these tools.
+credentials, or private personal records such as student data to these tools:
+the backend replaces nothing, and student data goes only through the work
+plugin's Backfire. Requests must be English; the backend refuses any request
+that contains Hangul with `hangul_remaining` and sends nothing.
 
 ## Advisory results
 
