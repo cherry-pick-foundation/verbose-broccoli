@@ -121,9 +121,14 @@ instead, so the Hive status appears in the same form.
 
 ### CodexBar reading
 
-`codexbar usage --provider <id> --format json`, with the process
-environment plus `<credential>=<key>`, a 30-second limit and output
-captured. The output is an array of provider reports; backfire reads the
+`codexbar usage --provider <id> --format json`, with an environment of
+only `PATH`, `HOME` and `<credential>=<key>`, a 30-second limit and output
+captured. The minimal environment follows CHE-45's security review of
+CodexBar 0.69.0: one provider per call, only its own key, and none of the
+variables that reroute keys or switch sources (`OPENROUTER_API_URL`,
+`OPENROUTER_MANAGEMENT_API_KEY`, `CODEXBAR_CONFIG` and others). CodexBar's
+raw output can hold account identity, so backfire never logs or returns
+it. The output is an array of provider reports; backfire reads the
 report whose `provider` is the ID and treats it as no credit when:
 
 - `usage.primary`, `usage.secondary` or `usage.tertiary` has
@@ -190,7 +195,7 @@ and CHE-45 touch `AGENTS.md` and skills only.
 
 ### Live checks
 
-Only after CHE-45 reports CodexBar installed:
+CHE-45 installed CodexBar 0.69.0 on 2026-09-30 (`~/.local/bin/codexbar`).
 
 1. One CodexBar read for OpenRouter and one for Vercel (credit endpoints,
    not Jev calls), to confirm the real report shape and the Vercel skip.

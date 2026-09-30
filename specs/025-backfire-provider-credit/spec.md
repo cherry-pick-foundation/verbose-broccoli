@@ -45,6 +45,29 @@ The develop session relayed the user's answers.
 - Decided without a question and confirmed: each result's `provider` field
   names the profile that answered, and every skip and switch is logged.
 
+Later the same day the user replaced the first two answers, in three
+messages the develop session relayed:
+
+- Order: Cloudflare, Vercel, OpenRouter, Hive, for both modes.
+- One set of rules for every plugin: both modes read one order and one set
+  of profiles from one configuration, so the two cannot drift; only
+  pseudonymization and the response cache differ. The user approved
+  pseudonymized student text going to Cloudflare, Vercel and
+  OpenRouter/TypeSafe. The chat plugin has no backfire server, so nothing is
+  built for it here.
+- Cloudflare runs one of Cloudflare's own Workers AI models standing in for
+  Jev, within the free allowance of 10,000 neurons a day, through
+  system-one-adapter on Cloudflare's OpenAI-compatible endpoint. Jev on
+  Cloudflare answered 402 on 2026-09-30, so there is no Jev profile there.
+  Models that need paid billing are excluded.
+- Vercel uses only its free credit, which refills regularly. Its free tier
+  refused Jev on 2026-09-30, so Vercel also runs a free-tier model standing
+  in for Jev through system-one-adapter on Vercel's OpenAI-compatible
+  endpoint.
+- The user picks the Cloudflare and Vercel models from researched options.
+- The skip and switch rules stay; a used-up free allowance or free credit
+  counts as insufficient balance.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A profile without credit is skipped (Priority: P1)
@@ -113,25 +136,25 @@ second provider; a second judgment goes straight to the second.
    **When** each gets the insufficient-balance answer, **Then** backfire
    moves on by one profile only, and each judgment is re-sent to it.
 
-### User Story 3 - Education mode stays within its own profiles (Priority: P1)
+### User Story 3 - Both modes share one order (Priority: P1)
 
 The work plugin runs backfire with `--education`, which pseudonymizes
-question text before it leaves. Switching there changes which outside
-provider receives that text, so education mode chooses and switches only
-among the profiles in the education configuration's own order.
+question text before it leaves. It reads the same order and profiles as the
+code plugin, from one configuration, so the two cannot drift; only
+pseudonymization and the response cache differ.
 
-**Why this priority**: It keeps student-related text, even pseudonymized,
-away from providers the user has not listed for it.
+**Why this priority**: The user wants one set of provider rules for every
+plugin, and a switch in education mode must still send only pseudonymized
+text.
 
-**Independent Test**: With the education configuration, the order holds
-only education profiles, and a code-plugin profile is never used even when
-every education profile is out of credit.
+**Independent Test**: Education mode loads the same order and profiles as
+the code plugin; a switch from its first profile to its second sends the
+second provider only pseudonymized text.
 
 **Acceptance Scenarios**:
 
-1. **Given** education mode, **When** its profiles are loaded, **Then** only
-   the profiles in the education configuration's order are candidates:
-   Hive, then OpenRouter.
+1. **Given** education mode, **When** its profiles are loaded, **Then** they
+   are the shared order and profiles.
 2. **Given** education mode and a switch, **When** the judgment is re-sent,
    **Then** the next provider receives only pseudonymized text, the
    judgment is pseudonymized once, and the replacement text is restored in
@@ -160,8 +183,8 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 - A missing or invalid key file is a configuration error, as today, and is
   not treated as a lack of credit.
 - Both plugins read the one operator file, as they do today for
-  `provider`; an operator `order` therefore replaces the shipped order of
-  both, and the guide says so.
+  `provider`; an operator `order` replaces the shared order of both, and the
+  guide says so.
 - Credit is read at most once per profile per server process, right before
   that profile is first used; backfire never returns to a skipped or
   exhausted profile within the process. A new client session starts a new
@@ -172,8 +195,9 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 - The insufficient-balance answer is recognized by HTTP status only. Hive
   documents 405 for an exhausted balance; Cloudflare answered 402 on
   2026-09-30; 402 (Payment Required) is the default for other profiles.
-  These statuses are not in PyModel's retry set, so no retry precedes a
-  switch.
+  The statuses for a used-up Cloudflare free allowance and Vercel free
+  credit are in research.md. A status in PyModel's retry set is retried
+  before the switch unless the profile's `retry.statuses` removes it.
 - PyModel's optional response cache keys entries by provider name; the
   name becomes the profile's name, so answers from different profiles are
   kept apart.
@@ -188,8 +212,11 @@ the two new profile fields, CodexBar's role and limits, and the new error.
   as today. Every name in the order MUST resolve to a valid profile.
 - **FR-002**: A profile MAY name a CodexBar provider in a `codexbar` field.
   Right before such a profile is first used, backfire MUST run CodexBar's
-  command-line tool for that provider with JSON output, passing the
-  profile's key only as the environment variable named by `credential`.
+  `usage` command for that one provider with JSON output, in an
+  environment that holds only `PATH`, `HOME` and the profile's key under the
+  variable named by `credential`, and MUST NOT log or return CodexBar's raw
+  output, which can hold account identity. These are limits from CHE-45's
+  security review of CodexBar.
 - **FR-003**: Backfire MUST skip the profile when CodexBar's report for that
   provider shows a used-up limit (any rate window at 100% or more used) or a
   balance of zero or less. The balance is `usage.providerCost.balance` when
@@ -211,12 +238,21 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 - **FR-008**: Each result's `provider` field MUST name the profile that
   answered, and every skip and switch MUST be logged with the profile names
   and never a key.
-- **FR-009**: Education mode MUST use only the education configuration's
-  order and profiles, and MUST pseudonymize each judgment once before any
-  attempt, whichever profile answers. Its shipped order is its Hive profile,
-  then an OpenRouter profile.
-- **FR-012**: The code plugin's shipped order MUST be Hive, OpenRouter,
-  Vercel.
+- **FR-009**: Both modes MUST read one shipped configuration with one
+  order and one set of profiles. Education mode MUST pseudonymize each
+  judgment once before any attempt, whichever profile answers, and keeps
+  PyModel's response cache off.
+- **FR-012**: The shipped order MUST be Cloudflare, Vercel, OpenRouter,
+  Hive.
+- **FR-013**: The Cloudflare and Vercel profiles MUST be general-model
+  profiles (`api = "openai"`) on the providers' OpenAI-compatible endpoints,
+  each with the free model the user chose. A profile's `base_url` MAY name
+  variables of its key file in braces, such as `{CLOUDFLARE_ACCOUNT_ID}`;
+  backfire fills them from the key file when it first uses the profile, so
+  no account identifier is committed.
+- **FR-014**: A used-up free allowance or free credit MUST count as
+  insufficient balance for the profile, through the statuses its profile
+  lists.
 - **FR-010**: Tests MUST use saved CodexBar JSON built from its documented
   format and synthetic keys, never real balances or keys, and MUST NOT
   call a real provider.
@@ -225,9 +261,10 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 
 ### Key Entities
 
-- **Order**: the ordered list of profile names a configuration tries.
+- **Order**: the ordered list of profile names both modes try.
 - **Profile**: an existing provider profile with two new optional fields,
-  `codexbar` and `insufficient_balance`.
+  `codexbar` and `insufficient_balance`, and a `base_url` that may name
+  key-file variables.
 - **Credit report**: CodexBar's JSON for one provider; backfire reads only
   the rate windows' used percentages and the balance.
 
@@ -238,8 +275,8 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 - **SC-001**: Tests show a skip for a zero balance and for a used-up limit,
   no skip for a positive or unknown credit, a mid-run switch that re-sends
   the judgment, no switch for other errors, the `no_credit` failure, one
-  switch for concurrent failures, and education mode limited to its own
-  profiles.
+  switch for concurrent failures, and education mode on the shared order
+  with pseudonymized text after a switch.
 - **SC-002**: `npm run verify` reports VERIFIED on the feature merged with
   the current `develop`.
 - **SC-003**: The feature adds well under 1,000 changed lines, so the
@@ -251,12 +288,17 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 
 ## Assumptions
 
-- CodexBar is installed by CHE-45 on the development laptop as `codexbar`
-  on the `PATH` of backfire's server. Until the develop session reports the
-  installed version, tests use a stand-in executable that prints saved
-  JSON. The exact command-line arguments are confirmed against the
-  installed version before the feature finishes.
-- CodexBar 0.69.1 (commit 25bba9b of 2026-09-28) reports an OpenRouter
+- CHE-45 installed CodexBar 0.69.0 on the development laptop on
+  2026-09-30 as `~/.local/bin/codexbar`, from the release tarball with its
+  SHA-256 checked, and tested `codexbar usage --provider openrouter
+  --format json` and `--provider vercel` with the keys from
+  `providers/*.env`. Its security review allows one `--provider` per call
+  (never `all`, `both` or `--status`), only the `usage` command, only the
+  provider's own key, no CodexBar configuration file, and no account
+  identity in messages or logs. Tests use a stand-in executable that
+  prints saved JSON.
+- CodexBar's source at commit 25bba9b of 2026-09-28 (version 0.69.1,
+  one patch release after the installed 0.69.0) reports an OpenRouter
   balance in `usage.providerCost.balance` for keys without a spending cap
   and in the "Credits" section's "Remaining" row, and a key limit as
   `usage.primary.usedPercent`; it reports a Vercel AI Gateway balance only
