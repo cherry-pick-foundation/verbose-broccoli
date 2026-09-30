@@ -1,6 +1,7 @@
 """Search the tracker for newly listed API credit offers."""
 
 from argparse import ArgumentParser
+import asyncio
 import datetime as dt
 import os
 from pathlib import Path
@@ -9,8 +10,12 @@ import sys
 import tomllib
 
 import httpx
+from jev_judge_mcp.domain import ChoiceQuestion
+from jev_judge_mcp.providers import ProviderError
+from jev_judge_mcp.providers.resolver import DEFAULT_MODEL
+from jev_judge_mcp.validation import validate_choice
 
-from jev_ultrafast import model
+import backfire.providers as providers
 
 TRACKER = tomllib.loads(Path(__file__).with_name("tracker.toml").read_text())
 FIELDS = ("slug", "title", "provider", "category", "amount", "source_url")
@@ -28,6 +33,7 @@ ERRORS = (
     TypeError,
     ValueError,
     subprocess.CalledProcessError,
+    ProviderError,
 )
 
 
@@ -62,6 +68,15 @@ def notify(offers):
     subprocess.run(
         ["notify-send", "--", "New API credit offers", text], check=True
     )
+
+
+async def judge(state, questions):
+    """Run one judgment through backfire's shared provider order."""
+    provider = providers.provider_factory()(None)
+    try:
+        return await provider.evaluate(state, questions, DEFAULT_MODEL, None)
+    finally:
+        await provider.aclose()
 
 
 def main(argv=None):
@@ -114,36 +129,28 @@ def main(argv=None):
             return 1
 
         questions = {
-            o["slug"]: {
-                "type": "choice",
-                "criteria": CRITERIA,
-                "instructions": {"offer": o["slug"], "task": "Judge this."},
-            }
-            for o in offers
-        }
-        result = model.request_jev(
-            {
-                "model": os.environ.get("TYPESAFE_MODEL", "jev-latest"),
-                "state": {
-                    "offers": [{f: o.get(f) for f in FIELDS} for o in offers]
-                },
-                "questions": questions,
-            }
-        )
-        jev_calls = 1
-        answers = {
-            o["slug"]: model.validate_choice(
-                result["answers"][o["slug"]], ("qualifies", "excluded")
+            o["slug"]: ChoiceQuestion(
+                instructions={"offer": o["slug"], "task": "Judge this."},
+                criteria=CRITERIA,
             )
             for o in offers
         }
-        strong = [
-            o for o in offers if answers[o["slug"]]["choice"] == "qualifies"
-        ]
+        state = {"offers": [{f: o.get(f) for f in FIELDS} for o in offers]}
+        result = asyncio.run(judge(state, questions))
+        jev_calls = 1
+        answers = {
+            o["slug"]: validate_choice(
+                result.answers[o["slug"]], ("qualifies", "excluded")
+            )
+            for o in offers
+        }
+        if any(answer is None for answer in answers.values()):
+            raise ValueError("Invalid choice answer")
+        strong = [o for o in offers if answers[o["slug"]].choice == "qualifies"]
         for offer in offers:
             answer = answers[offer["slug"]]
             print(
-                f"{offer['slug']}\t{answer['choice']}\t{answer['probabilities'][answer['choice']]}"
+                f"{offer['slug']}\t{answer.choice}\t{answer.probabilities[answer.choice]}"
             )
         if args.notify and strong:
             notify(strong)
