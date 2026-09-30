@@ -21,6 +21,7 @@ import pytest
 from backfire.config import xdg_path
 from backfire.failures import JudgmentError
 from backfire.providers import _OrderProvider
+from backfire.providers import provider_factory
 from backfire_education.pseudonymize import (
     pseudonymize as education_pseudonymize,
 )
@@ -544,3 +545,39 @@ def test_openrouter_provider_switches_on_mocked_402(monkeypatch):
     assert [request.url.host for request in requests] == ["openrouter.ai"]
     assert len(second.requests) == 1
     assert result.provider == "second"
+
+
+def test_named_profile_runs_alone_and_fails_instead_of_switching(
+    monkeypatch,
+):
+    with FakeProvider([Reply({"error": "synthetic"}, status=402)]) as named:
+        with FakeProvider([]) as other:
+            profiles = [
+                openai_profile("other", other, insufficient_balance=[402]),
+                openai_profile("named", named, insufficient_balance=[402]),
+            ]
+            monkeypatch.setattr(
+                "backfire.providers.load_profiles", lambda: profiles
+            )
+            monkeypatch.setattr(
+                "backfire.providers.load_credential", lambda _: "synthetic-key"
+            )
+            client = provider_factory(profile="named")(None)
+
+            async def run():
+                try:
+                    await ask(client)
+                finally:
+                    await client.aclose()
+
+            with pytest.raises(ProviderError, match="^no_credit"):
+                asyncio.run(run())
+
+    assert len(named.requests) == 1
+    assert other.requests == []
+
+
+def test_unknown_named_profile_is_a_configuration_error(monkeypatch):
+    monkeypatch.setattr("backfire.providers.load_profiles", lambda: [])
+    with pytest.raises(ProviderConfigError, match="backend_not_configured"):
+        provider_factory(profile="missing")(None)

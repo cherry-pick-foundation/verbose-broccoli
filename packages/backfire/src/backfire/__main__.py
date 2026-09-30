@@ -18,6 +18,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="backfire")
     parser.add_argument("command", choices=("serve-mcp",))
     parser.add_argument("--education", action="store_true")
+    parser.add_argument("--profile", help="use only this profile of the order")
     args = parser.parse_args()
     pymodel.require_posix()
     settings = pymodel.load_settings()
@@ -29,7 +30,9 @@ def main() -> None:
     pymodel.configure_logging(settings.log_level, settings.secret_values())
     runtime = model_tools.Runtime(
         settings,
-        provider_factory=providers.provider_factory(education=args.education),
+        provider_factory=providers.provider_factory(
+            education=args.education, profile=args.profile
+        ),
     )
     instance = pymodel.JevMCPServer(
         toolset=model_tools.Toolset(runtime, (*model_tools.TOOLS, noul.NOUL)),

@@ -315,14 +315,22 @@ def _jev_provider(
 
 
 def provider_factory(
-    *, education: bool = False
+    *, education: bool = False, profile: str | None = None
 ) -> Callable[[Settings], pymodel.JevProvider]:
-    """Build the provider factory used by PyModel's Runtime."""
+    """Build the provider factory used by PyModel's Runtime.
+
+    With ``profile``, only that profile of the order is used, so running out
+    of balance fails instead of switching to another provider.
+    """
 
     def create(_settings: Settings) -> pymodel.JevProvider:
         del _settings
         try:
             profiles = load_profiles()
+            if profile is not None:
+                profiles = [p for p in profiles if p["name"] == profile]
+                if not profiles:
+                    raise JudgmentError("backend_not_configured", profile)
         except JudgmentError as error:
             raise pymodel.ProviderConfigError(str(error)) from None
         return _OrderProvider(profiles, education)
