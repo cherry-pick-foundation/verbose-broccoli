@@ -209,11 +209,16 @@ per sentence, and a torn last line is dropped on resume. After the record is
 committed in the vault, the procedure deletes the run folder; after a
 failure or interruption the folder stays for the rerun.
 
+Proposals name concepts by the short key of `catalog.tsv`, because a
+catalog's own IDs can be long opaque strings that a model may miscopy;
+`check` maps keys to the catalog's IDs, and every later file stores those
+IDs. Cell values are stripped of surrounding whitespace.
+
 | File | Written by | Content |
 | --- | --- | --- |
-| `catalog.tsv` | `catalog` | One line per concept: ID, level, label, statement (no examples), for the proposer |
+| `catalog.tsv` | `catalog` | One line per concept: a short key (its 1-based data-row number in the sheet), level, label, statement (no examples), for the proposer |
 | `text/<source ID>.txt` | `extract` | Extracted text of one raw source |
-| `proposals.jsonl` | the proposer | `{"source", "part", "text", "concepts": [ids]}` per sentence, in text order |
+| `proposals.jsonl` | the proposer | `{"source", "part", "text", "concepts": [keys]}` per sentence, in text order |
 | `checks.jsonl` | `check` | Per sentence: its proposals, each result's verdict, action, confidence and outcome, token usage and time |
 | `review.md` | `check` | Unclear proposals as `- [ ]` items grouped by sentence, each with the concept's label and statement |
 
@@ -229,9 +234,13 @@ Commands, each with `--wiki <vault>` (default `work`) and `--run <name>`:
 - `check --catalog <page>`: validate `proposals.jsonl` (FR-006), send one
   `jev_verify` per unchecked sentence to `backfire serve-mcp --education`
   started from `packages/backfire`, append `checks.jsonl`, write `review.md`,
-  and print counts, calls, tokens and time as JSON.
-- `record --catalog <page> --name <material> --title <title> --summary <line> [--reviewed]`:
-  write the profile page and data file into the vault. With `--reviewed`
+  and print counts, calls, tokens and time as JSON. One backfire session
+  serves the whole run.
+- `record --catalog <page> --name <material> --title <title> --summary <line> --proposer <agent, model and effort> [--reviewed]`:
+  write the profile page and data file into the vault. The checker's
+  provider and model come from the backfire results in `checks.jsonl`.
+  Rerunning `record` replaces the record; the vault's Git keeps the earlier
+  one. With `--reviewed`
   (the user has returned `review.md`), ticked items become concepts and
   unticked ones are dropped; without it, every unclear item stays listed as
   unclear.

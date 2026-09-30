@@ -64,6 +64,17 @@ does.
   - T002 to T004: Codex `gpt-6-luna` at max (backfire: model 0.45,
     confidence 0.38; effort 0.46, confidence 0.37), through the terminal
     launch path because Orca caps this model at xhigh.
+  - 2026-09-30 handoff (computer restart): the worker was stopped after
+    about 30 minutes, uncommitted. Done in the worktree: SKILL.md,
+    references/procedure.md, the script (713 lines after formatting) and its
+    tests (572 lines, 6 passing), the test wiring in package.json and
+    turbo.json, and the template section. Main's follow-ups not yet
+    confirmed as applied: catalog.tsv without the catalog ID column, one
+    backfire session per check run, `record` replacing an existing record,
+    `--proposer` on `record`, the template's `topics: []` kept and the
+    section moved after "Pages", and trimming. Next: a fresh implementer
+    (same choice) reviews the uncommitted files against the spec and these
+    follow-ups, trims, runs `npm run verify` and commits.
 - [ ] T004 [US1] Add the catalog, profile and mapping records to the vault
   schema template `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   pointing to the `concept-profile` skill for their layout (FR-012).
@@ -79,17 +90,24 @@ user's decision.
 report gives the numbers SC-002 names; the user's decision is recorded
 below.
 
-- [ ] T005 [US2] Copy the pilot volume's five main-text files from the legacy
+- [x] T005 [US2] Copy the pilot volume's five main-text files from the legacy
   source cache into `~/Documents/20_reference/textbooks/`, keeping their
   names; admit them, the exam paper and the catalog spreadsheet into the
   work vault with `wiki-raw-import`.
+  - 2026-09-30: main. Five files copied and matched by SHA-256; admitted 6,
+    already admitted 1 (the exam paper, admitted 2026-09-28), refused 0,
+    failed 0; `verify` passed; logged and committed in the vault.
 - [ ] T006 [US2] Bring the vault's `AGENTS.md` in line with the template
   (T004); write the catalog record; run `catalog` and `extract` for each
   material in its own run folder (depends on T003, T004, T005).
+  - Catalog record drafted, not yet written to the vault (vault schema
+    change waits for T004).
 - [ ] T007 [P] [US2] Propose concepts for every sentence of the volume into
   its `proposals.jsonl` (depends on T006).
 - [ ] T008 [P] [US2] Propose concepts for every sentence of the exam paper
   into its `proposals.jsonl` (depends on T006).
+  - T007 and T008: Claude Code `fable` at xhigh (backfire: model 0.70,
+    confidence 0.66; effort 0.48, confidence 0.39).
 - [ ] T009 [US2] Run `check` for both materials; write the hand-check sheet
   of 30 sampled sentences; ask the user to return it and the review sheets.
 - [ ] T010 [US2] Run `record --reviewed`, `wiki-consistency update` and
