@@ -6,37 +6,20 @@ scripts:
     cd "$project_root"
     sh scripts/worktree-branch.sh
 
-    if [ -x "$HOME/.local/bin/uv" ]; then
-      uv_bin="$HOME/.local/bin/uv"
-    elif command -v uv >/dev/null 2>&1; then
-      uv_bin="$(command -v uv)"
-    else
-      echo 'uv 0.11.32 was not found.' >&2
-      exit 127
-    fi
-
-    if [ -x "$HOME/.local/bin/git-flow" ]; then
-      git_flow_bin="$HOME/.local/bin/git-flow"
-    elif command -v git-flow >/dev/null 2>&1; then
-      git_flow_bin="$(command -v git-flow)"
-    else
-      echo 'git-flow 2.1.0 was not found.' >&2
-      exit 127
-    fi
-
-    export PATH="$(dirname "$uv_bin"):$(dirname "$git_flow_bin"):$PATH"
+    mise trust --yes "$project_root/mise.toml"
+    mise install --locked aqua:astral-sh/uv@0.11.32 aqua:lycheeverse/lychee@0.24.2 aqua:vale-cli/vale@3.23.0 github:gittower/git-flow-next@2.1.0
 
     npm ci --ignore-scripts --no-audit --no-fund
-    "$uv_bin" sync --locked --all-packages --extra education
-    "$uv_bin" sync --locked --project tools/spec-kit
-    "$uv_bin" sync --locked --project tools/shellcheck
-    "$uv_bin" sync --locked --project tools/ruff
-    "$uv_bin" sync --locked --project tools/check-jsonschema
-    "$uv_bin" sync --locked --project tools/scc
+    mise exec -- uv sync --locked --all-packages --extra education --no-build-package grimp
+    mise exec -- uv sync --locked --project tools/spec-kit
+    mise exec -- uv sync --locked --project tools/shellcheck
+    mise exec -- uv sync --locked --project tools/ruff
+    mise exec -- uv sync --locked --project tools/check-jsonschema
+    mise exec -- uv sync --locked --project tools/commitizen
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
-    "$uv_bin" sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
+    mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
+    ./node_modules/.bin/lefthook install
     git config gitflow.shared.trustHooks true
-    git config core.hooksPath scripts/git-hooks
-    git flow config sync
+    mise exec -- git flow config sync
     npm run doctor
 setupAgentStartupPolicy: wait-for-setup

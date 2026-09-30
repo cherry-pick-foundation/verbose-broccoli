@@ -9,7 +9,7 @@ import {
 } from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {snapshotWorkingTree} from './workflow_git.ts';
 import {
@@ -97,7 +97,7 @@ void test('workflow skills: clean-code uses the exact intersection of selected a
   assertEquals(selectSkills({...input, paths: [database]}, selected), []);
 });
 
-void test('workflow skills: actual review code diffs trigger ponytail and every verification mode triggers evidence guidance', () => {
+void test('workflow skills: actual review code diffs trigger ponytail and every verification mode triggers summary guidance', () => {
   const code = [
     'plugins/demo/removed.ts',
     'plugins/demo/old.mts',
@@ -257,7 +257,7 @@ void test('workflow skills: stale expected snapshots cannot write announcement r
   });
 });
 
-void test('workflow skills CLI: failed verification and scope errors preserve the evidence and skill guidance', async () => {
+void test('workflow skills CLI: failed verification and scope errors preserve the summary and skill guidance', async () => {
   await repository(
     {
       [first]: pure,
@@ -287,29 +287,21 @@ void test('workflow skills CLI: failed verification and scope errors preserve th
       );
       if (result.error) throw result.error;
       const text = new TextDecoder().decode(result.stderr);
-      assertEquals(result.stdout.length, 0);
       assertEquals(result.status, 1);
       assert(text.trim(), new TextDecoder().decode(result.stderr));
-      const output = JSON.parse(text).details as {
+      const report = text
+        .split(/\r?\n/)
+        .findLast(line => line.startsWith('{"error":'));
+      assert(report, text);
+      const output = JSON.parse(report).details as {
         mode: string;
         skill_scope: {status: string};
         skill_triggers: {name: string}[];
-        loop: {
-          phase: string;
-          latest: {
-            event: string;
-            exit_code: number | null;
-            log_path: string;
-          } | null;
-        };
+        verification: {phase: string};
       };
       assertEquals(output.mode, 'REVIEW');
       assertEquals(output.skill_scope.status, 'ERROR');
-      assertEquals(output.loop.phase, 'REPAIR');
-      assert(output.loop.latest);
-      assertEquals(output.loop.latest.event, 'FINISHED');
-      assertEquals(output.loop.latest.exit_code, 1);
-      assert((await readFile(output.loop.latest.log_path, 'utf8')).length > 0);
+      assertEquals(output.verification.phase, 'FAILED');
       assert(
         output.skill_triggers.some(
           trigger => trigger.name === 'verification-before-completion',

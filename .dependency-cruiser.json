@@ -1,0 +1,131 @@
+{
+  "$schema": "./node_modules/dependency-cruiser/schema/dc.schema.json",
+  "forbidden": [
+    {
+      "name": "no-cycles",
+      "severity": "error",
+      "from": {},
+      "to": {"circular": true}
+    },
+    {
+      "name": "domain-dependency-direction",
+      "severity": "error",
+      "from": {"path": "(^|/)domain/"},
+      "to": {
+        "path": "(^|/)(application|infrastructure|presentation|platform|mcp|cli)/"
+      }
+    },
+    {
+      "name": "application-dependency-direction",
+      "severity": "error",
+      "from": {"path": "(^|/)application/"},
+      "to": {"path": "(^|/)(infrastructure|presentation|platform|mcp|cli)/"}
+    },
+    {
+      "name": "no-feature-internals",
+      "severity": "error",
+      "from": {"path": "^(.*/(?:modules|features)/[^/]+/)"},
+      "to": {"path": "/(?:modules|features)/[^/]+/internal/", "pathNot": "^$1"}
+    },
+    {
+      "name": "no-package-to-plugin",
+      "severity": "error",
+      "from": {"path": "^packages/"},
+      "to": {"path": "^plugins/"}
+    },
+    {
+      "name": "no-node-in-inner-layers",
+      "severity": "error",
+      "from": {"path": "(^|/)(domain|application)/"},
+      "to": {"dependencyTypes": ["core"]}
+    },
+    {
+      "name": "no-unresolved-local-imports",
+      "severity": "error",
+      "from": {},
+      "to": {
+        "couldNotResolve": true,
+        "pathNot": [
+          "^(?:npm|jsr|node|https?):",
+          "^@cliffy/command(?:/|$)",
+          "^@commitlint/cli(?:/|$)",
+          "^@commitlint/config-conventional(?:/|$)",
+          "^@eemeli/yaml(?:/|$)",
+          "^@std/assert(?:/|$)",
+          "^@std/path(?:/|$)",
+          "^@std/testing(?:/|$)",
+          "^@types/node(?:/|$)",
+          "^@typescript-eslint/utils(?:/|$)",
+          "^@tobilu/qmd(?:/|$)",
+          "^@zod/zod(?:/|$)",
+          "^canonicalize(?:/|$)",
+          "^conventional-changelog-conventionalcommits(?:/|$)",
+          "^dependency-cruiser(?:/|$)",
+          "^eslint(?:/|$)",
+          "^gts(?:/|$)",
+          "^prettier(?:/|$)",
+          "^turbo(?:/|$)",
+          "^typescript(?:/|$)",
+          "^typescript-eslint(?:/|$)"
+        ]
+      }
+    },
+    {
+      "name": "no-io-packages-in-inner-layers",
+      "severity": "error",
+      "from": {"path": "(^|/)(domain|application)/"},
+      "to": {
+        "path": [
+          "(^|/)node_modules/(@hono/hono|hono|@electric-sql/pglite|@kysely/kysely|kysely|drizzle-orm|@modelcontextprotocol/sdk|webdav)/",
+          "^(?:(?:npm|jsr):)?(@hono/hono|hono|@electric-sql/pglite|@kysely/kysely|kysely|drizzle-orm|@modelcontextprotocol/sdk|webdav)(?:@|/|$)"
+        ]
+      }
+    },
+    {
+      "name": "public-api:plugins/chat",
+      "severity": "error",
+      "from": {"pathNot": "^plugins/chat/"},
+      "to": {"path": "^plugins/chat/"}
+    },
+    {
+      "name": "public-api:plugins/code",
+      "severity": "error",
+      "from": {"pathNot": "^plugins/code/"},
+      "to": {
+        "path": "^plugins/code/",
+        "pathNot": "^plugins/code/skills/clean-code/scripts/cli\\.ts$"
+      }
+    },
+    {
+      "name": "public-api:plugins/work",
+      "severity": "error",
+      "from": {"pathNot": "^plugins/work/"},
+      "to": {"path": "^plugins/work/"}
+    },
+    {
+      "name": "public-api:packages/backfire",
+      "severity": "error",
+      "from": {"pathNot": "^packages/backfire/"},
+      "to": {"path": "^packages/backfire/"}
+    },
+    {
+      "name": "public-api:packages/doc-regions",
+      "severity": "error",
+      "from": {"pathNot": "^packages/doc-regions/"},
+      "to": {"path": "^packages/doc-regions/"}
+    },
+    {
+      "name": "public-api:packages/wiki-consistency",
+      "severity": "error",
+      "from": {"pathNot": "^packages/wiki-consistency/"},
+      "to": {"path": "^packages/wiki-consistency/"}
+    }
+  ],
+  "options": {
+    "doNotFollow": {
+      "path": "^(?!(?:packages|plugins|scripts|tests)/)|(^|/)node_modules/"
+    },
+    "exclude": "^scripts/vendor/|\\.md$",
+    "tsPreCompilationDeps": true
+  }
+}

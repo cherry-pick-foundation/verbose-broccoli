@@ -118,7 +118,7 @@ export function selectSkills(input: Input, selected: string[]) {
           {
             name: 'verification-before-completion',
             reason:
-              'Read the actual --verify result and logs before reporting success or failure. A blocked or failed check cannot support a completion claim.',
+              'Read the same-run Turbo summary and check exit status before reporting completion. A missing or malformed summary means verification failed.',
             files: targets(input),
           },
         ]
