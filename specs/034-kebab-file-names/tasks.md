@@ -60,8 +60,12 @@ Codex, the provider other than the implementer's.
   commits `9beb59f` (default), `08a8761` (chat) and `2999422` (code). Their
   tracked Wiki files were already kebab-case. Their student-page line still
   names pages by student name until CHE-61's template change reaches them.
-- [ ] T005 [US3] Add the naming rule to the `work` vault schema after CHE-61
-  has finished (FR-006).
+- [x] T005 [US3] Add the naming rule to the `work` vault schema after CHE-61
+  has finished (FR-006). 2026-09-30: vault commit `877a181`, after the
+  `develop` session confirmed that CHE-61 had made its planned vault commits
+  (`7a62e7c`, `264548d`). The Wiki check's findings were identical before and
+  after: 106 phone and 2 date (CHE-58) and 10 student-roster, none from this
+  rule. Every tracked Wiki path in the vault is kebab-case.
 
 ## Phase 4: Renames
 
@@ -90,4 +94,10 @@ Codex, the provider other than the implementer's.
     provider selection was judged contradicted at confidence 0.34 for
     review; it stands, since this feature changes no backfire code.
   - Merge reviewer: Codex `gpt-6-luna` at high (backfire: 0.82, confidence
-    0.78).
+    0.78), time budget 30 minutes (backfire: 0.78). It reviewed eb19e00 and
+    the three vault commits and requested changes with 0 blockers, 1 major
+    and 0 minor: the `work` vault schema still lacked the rule (T005, held
+    for CHE-61). The `develop` session then released T005, and vault commit
+    `877a181` adds the same paragraph as the three reviewed vault commits.
+    The reviewer's `ls-lint` and `npm run verify` (VERIFIED, 33 of 33)
+    passed.
