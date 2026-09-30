@@ -65,17 +65,18 @@ shows a notification naming the offer, the second shows none.
 
 ### User Story 2 - Choose the provider for Jev calls (Priority: P1)
 
-An operator chooses whether Jev Ultrafast's Jev calls go to TypeSafe or to
-Vercel AI Gateway. The user chose Vercel for its monthly free credit, but on
-2026-09-30 Vercel's free tier turned out not to include Jev (research R10),
-so Jev calls there need paid credit. The providers'
+An operator chooses whether Jev Ultrafast's Jev calls go to TypeSafe,
+Vercel AI Gateway, Cloudflare Workers AI or OpenRouter. The user first chose
+Vercel for its monthly free credit, but on 2026-09-30 Vercel's free tier
+turned out not to include Jev, and Cloudflare also asked for a paid balance
+(research R10). The user then added Cloudflare and OpenRouter as providers
+and put paid credit on OpenRouter, whose calls work. The providers'
 addresses, headers, model names and credential variable names live in
 configuration, not in code, and credentials stay in a file only the user can
 read.
 
 **Why this priority**: The offer search and the web agent both depend on
-Jev calls, and the user chose Vercel AI Gateway to keep them within its free
-monthly credit.
+Jev calls, and the user wants to choose where they are paid for.
 
 **Independent Test**: With a stub server standing in for each provider,
 select each provider in turn and check that the request has that provider's
@@ -174,9 +175,10 @@ compare it with the recorded interval.
   revision, each copied file's original hash and every difference from
   upstream with its reason.
 - **FR-002**: Jev Ultrafast's Jev calls MUST go to the provider selected by
-  configuration: TypeSafe or Vercel AI Gateway. Each provider's address,
-  headers and credential variable name, and Vercel's model name, MUST come
-  from a configuration file. TypeSafe's model keeps upstream's setting, the
+  configuration: TypeSafe, Vercel AI Gateway, Cloudflare Workers AI or
+  OpenRouter. Each provider's address, headers and credential variable name,
+  and every model name except TypeSafe's, MUST come from a configuration
+  file. TypeSafe's model keeps upstream's setting, the
   `TYPESAFE_MODEL` environment variable with the default `jev-latest`, so
   the TypeSafe request stays exactly upstream's.
 - **FR-003**: The Vercel request and answer conversion MUST follow jev-mcp

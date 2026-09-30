@@ -184,8 +184,9 @@ with notification, so a strong offer is reported without a second Jev call.
 On 2026-09-30 the user approved the automation and chose that no agent
 session starts at all: the precheck command ends with `; exit 1`, so Orca
 records every run as skipped and keeps the search's output in the run's
-details. The user also had the empty `0600` credential file created, and
-will add the Vercel key to it.
+details. The user also had the empty `0600` credential file created. The
+key files later moved to the shared provider folder, and the provider the
+automation names is the user's choice after the live checks in R10.
 
 ## R9. The schedule interval
 

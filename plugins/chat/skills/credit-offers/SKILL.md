@@ -19,15 +19,16 @@ it what is new. Why it runs every 6 hours, and the data behind that, are in
 
 From the repository root. The key file is the provider's file in the shared
 provider folder that the `web-agent` skill describes; it must exist, even
-while empty. For Cloudflare Workers AI:
+while empty. For OpenRouter:
 
 ```sh
-JEV_PROVIDER=cloudflare uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/providers/cloudflare.env \
+JEV_PROVIDER=openrouter uv run --frozen --offline --no-sync \
+  --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/openrouter.env" \
   --package credit-offers credit-offers --notify
 ```
 
-For Vercel AI Gateway, use `JEV_PROVIDER=vercel` and `providers/vercel.env`.
+For another provider, change `JEV_PROVIDER` and the file name the same way
+(`vercel`, `cloudflare` or `typesafe`).
 
 - `--notify` sends one desktop notification (`notify-send`) naming each
   strong offer's title, provider, amount and link. Without it, the command
@@ -61,5 +62,6 @@ run's details.
 - GitHub allows 60 unauthenticated API requests an hour per address; a run
   uses two.
 - Without a key for a provider that accepts Jev calls, a block with
-  candidates ends with status 3. Vercel AI Gateway's free tier refuses Jev,
-  so Vercel needs paid credit.
+  candidates ends with status 3. Jev is paid on every provider tried so
+  far: Vercel AI Gateway's free tier refuses it, Cloudflare Workers AI asks
+  for a paid balance, and OpenRouter needs credit.

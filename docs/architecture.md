@@ -342,11 +342,11 @@ package two skills backed by two uv workspace packages.
   interval comes from the tracker's history
   ([research R9](../specs/021-chat-jev-ultrafast/research.md#r9-the-schedule-interval)).
 - Keys live in the shared provider folder
-  `~/.config/verbose-broccoli/providers/`, one `0600` file per provider
-  (`vercel.env`, `cloudflare.env`, `openrouter.env`, `hive.env`), which
-  every plugin uses. The
-  chat packages get them through `uv run --env-file` and never read the
-  files; backfire's shipped profiles name them in `credential_file`.
+  `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
+  `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
+  `openrouter.env`, `hive.env`), which every plugin uses. The chat packages
+  get them through `uv run --env-file` and never read the files; backfire's
+  shipped profiles name them in `credential_file`.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
 - Not automated: the live provider check, which waits for a provider that

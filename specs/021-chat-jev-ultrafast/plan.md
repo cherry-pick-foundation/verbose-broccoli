@@ -46,8 +46,8 @@ no Jev call (SC-002)
 
 **Constraints**: At most one Jev call per run; no writes; keys never printed;
 GitHub's unauthenticated limit of 60 API requests an hour (a run uses two);
-the user's limit of 300 net new lines of locally written code, counting
-neither upstream copies nor tests
+no own-code line limit (the user's 300-line limit was replaced by a splitting
+review for changes of 1,000 lines or more, CHE-44)
 
 **Scale/Scope**: 4 runs a day; about 4 new tracker offers a day
 

@@ -21,17 +21,20 @@ upstream; its `UPSTREAM.md` lists every difference:
 
 ## Credentials
 
-Keys live in the shared provider folder `~/.config/verbose-broccoli/providers/`,
-one file per provider, which every plugin uses. The folder is readable by
+Keys live in the shared provider folder
+`$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default
+`~/.config/verbose-broccoli/providers/`), one file per provider, which every
+plugin uses. The folder is readable by
 the user alone (mode `0700`) and each file has mode `0600`. Create a
 provider's file once, empty, then add its key lines. The second command
 does nothing when the file exists, so it never empties a file that already
 holds a key:
 
 ```sh
-install -d -m 700 ~/.config/verbose-broccoli/providers
-[ -e ~/.config/verbose-broccoli/providers/cloudflare.env ] ||
-  install -m 600 /dev/null ~/.config/verbose-broccoli/providers/cloudflare.env
+providers="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
+install -d -m 700 "$providers"
+[ -e "$providers/openrouter.env" ] ||
+  install -m 600 /dev/null "$providers/openrouter.env"
 ```
 
 | File in `providers/` | Lines | Provider |
@@ -53,8 +56,8 @@ Never print a key file, paste a key into a prompt, or commit it.
 From the repository root, with Orca running:
 
 ```sh
-JEV_PROVIDER=cloudflare uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/providers/cloudflare.env \
+JEV_PROVIDER=openrouter uv run --frozen --offline --no-sync \
+  --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/openrouter.env" \
   --package jev-ultrafast \
   python packages/jev-ultrafast/examples/run.py \
   --url 'https://en.wikipedia.org/wiki/Main_Page' \

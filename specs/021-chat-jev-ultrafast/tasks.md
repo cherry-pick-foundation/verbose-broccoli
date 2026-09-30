@@ -23,13 +23,13 @@ effort) implement T001-T010 in two waves: wave 1 is T001-T006
 T007-T010 (`packages/credit-offers/`). A fresh Claude Code reviewer gives
 the merge review of the code; a fresh Codex reviewer reviews main's prose.
 
-**Line budget**: The user's rule of 2026-09-30: report the net new lines of
-locally written code (patch lines inside the upstream copy count; upstream
-copies and tests do not) and stop to ask before going over 300. The plan
-expects about 200.
+**Line budget**: The user's first rule of 2026-09-30, a 300-line limit on
+own code, was replaced the same day by a splitting review for changes of
+1,000 lines or more (CHE-44). The old `own-code` check still runs until
+CHE-44 lands; the spec records the user's approval of 560.
 
-**Keys**: No task reads, prints or commits a key. The user has no key yet
-(2026-09-30), so the live provider check is not part of this feature.
+**Keys**: No task reads, prints or commits a key. Keys live in the shared
+provider folder; the live provider checks are recorded in research R10.
 
 ## Format: `[ID] [P?] [Story] Description`
 

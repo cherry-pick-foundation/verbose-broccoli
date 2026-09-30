@@ -7,7 +7,7 @@ Package `packages/credit-offers/`, console script `credit-offers`. See
 
 ```sh
 JEV_PROVIDER=<provider> uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/providers/<provider>.env \
+  --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/<provider>.env" \
   --package credit-offers credit-offers [--hours N] [--end ISO-8601] [--notify]
 ```
 
