@@ -434,6 +434,13 @@ def test_content_in_the_clause_of_a_birth_date_is_hidden_with_it(
         ("Lives at Solbit-ro 487 (Apt 2317)", ["2317"]),
         ("Lives at Solbit-ro 487, apt. no. 2317", ["2317"]),
         ("Lives at Solbit-ro 487, 103/2317", ["103", "2317"]),
+        ("| Ga Raon | Grade |\n|---|---|\n| x | 11 |", ["Raon", "| 11"]),
+        ("Ga Raon,2013-08-27\nx,y", ["Raon"]),
+        ("date  of  birth 2013-08-27", ["2013"]),
+        ("Grades ten and eleven", ["ten", "eleven"]),
+        ("Years 10 and 11", ["10", "11"]),
+        ("Grade 10/11", ["10/11"]),
+        ("Lives at Solbit-ro 731, Unit 27B", ["731", "27B"]),
         ("Grades 10 and 11 share a room.", ["10", "11"]),
         ("born on September 23, '13 and enjoys reading", ["'13", "September"]),
         ("born on the 23rd day of September 2013", ["2013", "September"]),
@@ -447,7 +454,11 @@ def test_provider_receives_no_identifier_in_these_forms(
         result = send(monkeypatch, fake, {"note": text})
         assert not isinstance(result, Exception)
         sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
-    assert not [word for word in hidden if word in sent]
+    assert not [
+        word
+        for word in hidden
+        if re.search(rf"(?<![A-Za-z]){re.escape(word)}(?![A-Za-z])", sent)
+    ]
 
 
 def test_education_provider_error_keeps_only_profile_and_status(

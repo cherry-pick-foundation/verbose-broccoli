@@ -119,7 +119,8 @@ _ADDRESS_PART = (
 # (Solbit-ro, 2026-09-28).
 _ADDRESS_NUMBER = (
     r"(?:(?:(?:apt|apartment|unit|room|rm|suite|ste|building|bldg|block|blk"
-    r"|floor|fl|no|house)\.?\s*)+#?\s*|#\s*)?\d{1,5}(?:[-/]\d{1,5})?"
+    r"|floor|fl|no|house)\.?\s*)+#?\s*|#\s*)?\d{1,5}[A-Za-z]?"
+    r"(?:[-/]\d{1,5}[A-Za-z]?)?"
     r"(?![0-9A-Za-z]|[-./][0-9A-Za-z])"
 )
 _REGION_UNITS = (
@@ -176,8 +177,8 @@ _YEAR = re.compile(
 # colon, pipe or equals sign, then the value up to the end of its line, cell
 # or sentence, or a comma or semicolon.
 _FIELD = re.compile(
-    r"(?<![A-Za-z])(?<!mail[\s_-])(?:date[\s_-]?of[\s_-]?birth"
-    r"|birth[\s_-]?(?:date|day)|dob|생년월일|생일|address|주소"
+    r"(?<![A-Za-z])(?<!mail[\s_-])(?:date[\s_-]*of[\s_-]*birth"
+    r"|birth[\s_-]*(?:date|day)|dob|생년월일|생일|address|주소"
     r"|student[\s_-]?(?:number|no\.?|id)|edu[\s_-]?ok(?:[\s_-]?(?:number|no\.?"
     rf"|id))?|학번)[\s{_MARKUP}]*[:：|=][\s{_PUNCT}]*+"
     r"(?P<value>(?:[^|\n\r\t,;.]|\.(?!\s|\Z))*)",
@@ -293,8 +294,8 @@ def _column_spans(
     A header cell that names a school year, birth date, address or student
     number makes the cells below it that kind, record by record until one
     without the separator: school-year cells when they read as one, the
-    others whatever they hold. Also return where each header row is, so
-    its column names are not read as values.
+    others whatever they hold. Also return where each header cell that
+    names a column is, so a keyword pattern does not read it as a value.
     """
     spans, headers = [], []
     lines = text.split("\n")
@@ -320,7 +321,9 @@ def _column_spans(
             ]
             if not any(names):
                 continue
-            headers.append((starts[index], starts[index] + len(header)))
+            headers.extend(
+                cell for cell, name in zip(cells, names) if name is not None
+            )
             if separator == "|":
                 position = (
                     starts[index + 2] if index + 2 < len(lines) else len(text)
@@ -387,10 +390,12 @@ _DETECTORS = [
         "cohort",
         re.compile(
             _EDGE.format(
-                # Grade 10, Grade: 11th, Grades 10 and 11.
+                # Grade 10, Grade: 11th, Grades 10 and 11, Grades ten and
+                # eleven, Grade 10/11.
                 rf"grades?[\s{_PUNCT}]+(?:(1[0-2]|[1-9])(?:st|nd|rd|th)?"
                 rf"|({_CARDINAL_WORDS}))(?![A-Za-z])"
-                r"(?:\s*(?:,|and|&|or|to|-|–)\s*(?:1[0-2]|[1-9])(?:st|nd|rd|th)?"
+                r"(?:\s*(?:,|and|&|or|to|-|–|/)\s*"
+                rf"(?:(?:1[0-2]|[1-9])(?:st|nd|rd|th)?|{_CARDINAL_WORDS})"
                 r"(?![A-Za-z0-9]))*"
             ),
             re.IGNORECASE,
@@ -413,7 +418,12 @@ _DETECTORS = [
     (
         "cohort",
         re.compile(
-            _EDGE.format(rf"year[\s{_PUNCT}]+([0-9]{{1,2}}|{_CARDINAL_WORDS})")
+            # Year 11, Years 10 and 11, Year 10/11.
+            _EDGE.format(
+                rf"years?[\s{_PUNCT}]+([0-9]{{1,2}}|{_CARDINAL_WORDS})"
+                r"(?:\s*(?:,|and|&|or|to|-|–|/)\s*"
+                rf"(?:[0-9]{{1,2}}|{_CARDINAL_WORDS})(?![A-Za-z0-9]))*"
+            )
             + r"(?![\s-]+(?:thousand|hundred))",
             re.IGNORECASE,
         ),
@@ -457,8 +467,8 @@ _DETECTORS = [
     (
         "birth",
         re.compile(
-            r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
-            r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
+            r"(?<![A-Za-z])(?:date[\s_-]*of[\s_-]*birth"
+            r"|birth[\s_-]*(?:date|day|year)|born|DOB|생년월일|생일|출생)"
             # Spaces, markup and field punctuation may sit between the keyword
             # and the rest of its clause, and a line break after a colon or
             # after "on", "in" or "the" ("born on" at the end of a line).
@@ -477,8 +487,8 @@ _DETECTORS = [
     (
         "address",
         re.compile(
-            rf"(?<![A-Za-z])(?:address|주소)[\s{_PUNCT}]*"
-            rf"(?P<rest>[^\s{_PUNCT}{_BLANK}][^\n\r\t|{_BLANK}]*?)"
+            rf"(?<![A-Za-z])(?:address|주소)[\s,{_PUNCT}]*"
+            rf"(?P<rest>[^\s,{_PUNCT}{_BLANK}][^\n\r\t|{_BLANK}]*?)"
             rf"(?=[\s{_MARKUP}]*(?:[\n\r\t|{_BLANK}]|\Z))",
             re.IGNORECASE,
         ),
@@ -701,11 +711,13 @@ def find_spans(
             )
             for match in pattern.finditer(text)
         )
-    # A header row holds column names, not values.
+    # A header cell that names a column is a name, not a value.
     candidates = [
         item
         for item in candidates
-        if not any(start <= item[0] < stop for start, stop in headers)
+        if not any(
+            start <= item[0] and item[1] <= stop for start, stop in headers
+        )
     ]
     candidates.sort(key=lambda item: (item[0], -(item[1] - item[0]), item[3]))
     selected, end = [], -1
