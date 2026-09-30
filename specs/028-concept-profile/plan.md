@@ -272,8 +272,11 @@ Exit 0 means success; 1 means at least one sentence was refused or failed;
 
 Estimated own code: about 250 lines of Python and 200 lines of tests. With
 the skill text (about 250 lines), the template section (about 40) and the
-test wiring, the change stays under 1,000 lines, so no split review is
-needed.
+test wiring, the estimate was under 1,000 lines. Measured at the develop
+merge review: 1,982 lines against develop, of which 1,040 are these Spec
+Kit records and 942 the skill, script (364 lines), tests (292), template,
+wiring and docs. The feature was not split, because it is one capability
+and most of the rest is records (tasks.md, T011).
 
 ## Pilot
 

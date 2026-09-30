@@ -86,6 +86,13 @@ The branch and worktree names stay as they are.
   verification-needed) are agent-made output, not sources, so they go into
   the Wiki layer, each citing its PDF's raw revision. The mappings stay a
   later feature. The book text stays in the private vault.
+- Q: How large is the hand-check, and whose key is it? → A: The user cut
+  it from about 30 to 15 sentences (8 from the volume, 7 from the exam). The
+  develop session (Claude Code, Opus 5.5) filled in the sheet with the
+  passages, the catalog's examples and range columns, and reference-book
+  sections for 4 disputed points; the user reviewed the flagged points and
+  accepted it. The pilot's accuracy is agreement with this user-accepted
+  key, not with an independent human key, and the report says so.
 - Q: After the pilot report, how does the method go on? → A: (1) The
   catalog stays unchanged, but each range-tier family counts as one concept
   when profiling; (2) a concept is kept when backfire says `verified` with
@@ -172,8 +179,9 @@ data file and page follow the layout in [plan.md](plan.md).
 ### User Story 2 - Pilot measures accuracy and cost before a full run (Priority: P1)
 
 The user picks one textbook volume and one original exam paper. Both are
-profiled. The user hand-checks about 30 sampled sentences on a sheet that
-shows every proposal without its outcome. Accuracy, backfire calls, tokens
+profiled. About 30 sampled sentences (15 by the user's later choice) are
+hand-checked on a sheet that shows every proposal without its outcome; the
+user accepts the answer key, whoever fills it in. Accuracy, backfire calls, tokens
 and time are reported to the user, who decides whether and how the full
 run goes ahead.
 
@@ -279,9 +287,10 @@ rules that keep unclear links from piling up.
 - **FR-013**: The procedure MUST describe the mapping record and its method,
   including the limits that keep unclear links from piling up.
 - **FR-014**: The pilot MUST profile the user's chosen volume and exam paper
-  and report accuracy against the user's hand-check of about 30 sentences,
-  backfire calls, tokens and time, and record the user's decision on the full
-  run.
+  and report accuracy against the user-accepted answer key of the
+  hand-checked sentences (15, by the user's choice), stating who filled the
+  key in, plus backfire calls, tokens and time, and record the user's
+  decision on the full run.
 - **FR-015**: Nothing outside the repository (vault changes, raw admissions,
   run folders) MUST be created before the user approves it.
 - **FR-016**: `npm run verify` MUST pass on the result merged with `develop`.
@@ -307,9 +316,10 @@ rules that keep unclear links from piling up.
 ### Measurable Outcomes
 
 - **SC-001**: The two pilot records exist in the work vault, list every
-  English sentence of their materials, and pass `wiki-consistency check`.
+  English sentence of their materials, and add no `wiki-consistency check`
+  problem.
 - **SC-002**: The pilot report gives precision, recall, drop accuracy, the
-  unclear share and the proposer's recall on about 30 hand-checked sentences,
+  unclear share and the proposer's recall on the hand-checked sentences,
   with their counts, and the calls, tokens and time of each step.
 - **SC-003**: The user decides on the full run after seeing SC-002.
 - **SC-004**: `rg -i 'egp|grammar'` finds no match in the names the feature

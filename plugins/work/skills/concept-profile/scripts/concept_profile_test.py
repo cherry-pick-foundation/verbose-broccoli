@@ -207,7 +207,13 @@ def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
 def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
-    rows = ("Not extracted.", [1]), ("First sentence.", [99]), ("첫 문장.", [1])
+    # The third sentence is Korean, escaped, so this file sent to Jev as
+    # evidence holds no Hangul.
+    rows = (
+        ("Not extracted.", [1]),
+        ("First sentence.", [99]),
+        ("\uccab \ubb38\uc7a5.", [1]),
+    )
     _proposals(run, *rows)
     assert _run(f"check --catalog {CATALOG}") == 1
     assert not (run / "checks.jsonl").exists() and not backfire.calls
