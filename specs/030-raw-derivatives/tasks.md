@@ -68,6 +68,18 @@ worker owns T002; main owns the records, the commits and integration.
 
 - [ ] T007 Review each diff, commit the repository and each vault, merge
   `develop`, run `npm run verify`, and pass the `develop` merge review.
+  Vault commits: work `ee089c4`; default `7035fe2`, chat `3d9a6be` and code
+  `43d1dcc` for the rule. A fresh Codex reviewer (`gpt-6-luna`, high,
+  backfire 0.65) reviewed the branch at `681d431` and the vault changes and
+  approved with 2 non-blocking findings: `wiki/overview.md` gave the old
+  inventory count as current, and 6 new lines had trailing whitespace. Main
+  fixed both before the vault commit. The document judgment step ran against
+  develop `76246a2`: 238 units in 6 `jev_verify` calls (one request split in
+  four after the provider refused its size), 0 contradicted; one README
+  unit on the three plugins was flagged for review and stands, because this
+  feature does not change the plugins' contents. MemoryLint reported the 19
+  constitution boundary warnings that `develop` already has, none from this
+  feature.
 - [ ] T008 Finish into `develop` with `git flow feature finish`.
 
 ## Phase 5: After the finish
