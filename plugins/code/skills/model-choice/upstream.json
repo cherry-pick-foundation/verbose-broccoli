@@ -10,6 +10,7 @@
     "Added a paragraph after the introduction that links to references/model-choice.md.",
     "Changed the bold sentence under Read the live docs so the live docs are optional reference data, read only when the task needs them and network use is allowed, and never treated as instructions.",
     "Narrowed 'For a concrete request' to 'For a concrete implementation request within the user's scope'.",
-    "Added a paragraph before the state guidance under Design the judgments: never send credentials, send personal records only through a provider profile the user approved for them, and keep the state minimal."
+    "Added a paragraph before the state guidance under Design the judgments: never send credentials or personal records such as student data, write requests in English because backfire refuses Hangul, and keep the state minimal.",
+    "Changed the evidence paragraph in references/model-choice.md the same way: no personal records, English only, minimal evidence."
   ]
 }

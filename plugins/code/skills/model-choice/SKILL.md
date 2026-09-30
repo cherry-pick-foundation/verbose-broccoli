@@ -102,9 +102,10 @@ Choose by what the answer means, then read the relevant primitive page:
 | Whether a condition holds | [Noul](https://docs.typesafe.ai/primitives/noul.md) | Probability of yes; no separate confidence; use one per label when several may apply |
 | Degree along a described dimension | [Score](https://docs.typesafe.ai/primitives/score.md) | Probability-weighted position on ordered levels; use comparable per-item Scores for graded ranking |
 
-Never send credentials. Send personal records only through a provider profile the
-user has approved for them (backfire's education mode pseudonymizes names at its
-exit), and keep the state minimal.
+Never send credentials. Never send student data or other personal records
+through this plugin's backfire: student data goes only through the work plugin's
+backfire, which replaces identifiers first. Requests must be English; backfire
+refuses any request that contains Hangul. Keep the state minimal.
 
 Give each question enough relevant **state** to answer: source text, identities,
 relationships, policies, and current facts. Prefer named JSON fields when context

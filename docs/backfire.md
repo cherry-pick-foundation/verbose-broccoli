@@ -13,10 +13,12 @@ Python 3.14.4 and uv 0.11.32 or later.
 
 The code plugin uses it for development work. The work plugin uses it for
 education work: before a judgment leaves for the provider, it replaces
-student, guardian and school names and contact details with pseudonyms
-([Work plugin](#work-plugin)). The chat plugin's credit-offer search calls
-backfire's provider order as a library, without the server
-(`packages/credit-offers`).
+student, guardian and school names, numbers, regions and other identifiers
+with English stand-ins ([Work plugin](#work-plugin)). The chat plugin's
+credit-offer search calls backfire's provider order as a library, without the
+server (`packages/credit-offers`). Everything sent to a provider is English:
+both modes refuse a request that holds Hangul
+([Refusals](#refusals)).
 
 ## Run it
 
@@ -107,8 +109,8 @@ When the provider in use answers an HTTP status in its profile's
 profile in the order and keeps that profile for the rest of the session. The
 log records each switch. Other errors never switch, and backfire returns to
 the top of the order only when the client session restarts. In the work
-plugin every profile receives only pseudonymized text; the user accepted on
-2026-09-30 that it may reach OpenRouter and TypeSafe.
+plugin every profile receives only text with its identifiers replaced; the
+user accepted on 2026-09-30 that it may reach OpenRouter and TypeSafe.
 
 ## Set the credential
 
@@ -127,8 +129,8 @@ keys out of `config.toml`, plugin files and client environment entries.
 
 ## Work plugin
 
-`serve-mcp --education` uses the shared order and pseudonymizes every
-judgment once, whichever profile answers: the tool's
+`serve-mcp --education` uses the shared order and replaces identifiers in
+every judgment once, whichever profile answers: the tool's
 input, the question keys, and every text in the questions (wording, choice
 labels and their descriptions, Noul criteria and rubric levels). It also
 turns off PyModel's optional response cache (`JEV_MCP_CACHE`), so real names
@@ -144,10 +146,17 @@ themselves read student records when asked.
 ### Roster
 
 Save the student list as a UTF-8 CSV file anywhere on this machine, for example
-the list exported from EduOK. It needs a header row with a `name` column; the
-optional `school` and `guardians` columns add schools and guardian names, with
-several guardians separated by `;`. Other columns, such as a grade, are
-ignored. Then name the file, with an absolute path, in
+the list exported from EduOK. It needs a header row with a `name` column. These
+columns are optional:
+
+| Column | Holds |
+| --- | --- |
+| `school` | The school's name, or its domain ID such as `byeolbit-h` |
+| `guardians` | Guardian names, separated by `;` |
+| `id` | The student's EduOK student number |
+| `romanized` | The romanized name, written together with the surname first: customary surname spelling and Revised Romanization of the given name, such as `Kim Gildong` |
+
+Other columns, such as a grade, are ignored. Then name the file, with an absolute path, in
 `$XDG_CONFIG_HOME/verbose-broccoli/backfire/education.toml`:
 
 ```toml
@@ -159,42 +168,92 @@ the next judgment.
 
 ### What is replaced
 
-| Found in the text | Pseudonym |
+Stand-ins are English, so a provider never receives Hangul.
+
+| Found in the text | Stand-in |
 | --- | --- |
-| A roster student's full name, also with particles (`가라온은`) | `학생03` |
-| That student's given name alone (`라온이가`), derived from the full name | the same `학생03` |
-| A given name several roster students share | its own `학생NN` |
-| A roster guardian name | `보호자01` |
-| A roster school | `학교02` |
-| A phone number, such as `010-1234-5678` or `+82 10-1234-5678` | `연락처01` |
-| An email address | `이메일01` |
+| A roster student's Korean name, also with particles (`가라온은`) | `Student 03` |
+| That student's EduOK number from `id`, as a whole number | the same `Student 03` |
+| That student's romanized name in any case, with or without a hyphen or space inside the given name, surname first or last (`Kim Gildong`, `KIM GIL-DONG`, `gildong kim`) | the same `Student 03` |
+| That student's given name alone, Korean (`라온이가`) or romanized (`Gildong`), derived from the full name | the same `Student 03` |
+| A given name several roster students share | its own `Student NN` |
+| A roster guardian name | `Guardian 01` |
+| A roster school, and any lowercase token that ends in `-h`, `-m` or `-e`, such as `byeolbit-h` | `School 02` |
+| A phone number, such as `010-1234-5678` or `+82 10-1234-5678` | `Phone 01` |
+| An email address | `Email 01` |
+| A province, city, county or district name, current or abolished, in Korean (`평택시`) or romanized (`Jongno-gu`, `Pyeongtaek`, `North Chungcheong`, `Chungbuk`), with a unit word after it such as `City` or `Province` | `Region 01` |
+| A school year: `Grade 10`, `10th grade`, `Year 11`, `first-year high school student`, `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
+| A date or year after `born`, `birthday`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`, and forms such as `2009년생` | `Birth date 01` |
+| The rest of a line after `address` or `주소`, and romanized address parts such as `Bijeon-ro 12`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jungang-daero 45beon-gil 7`, with an adjacent five-digit postal code | `Address 01` |
 
 A given name is the roster name without its surname: the first syllable, or
 the first two when the name has at least four syllables and starts with 남궁,
 황보, 제갈, 선우, 서문, 독고 or 사공. Given names are derived only from
 all-Hangul names of at least three syllables, and only when they have at least
-two syllables. Scores, dates,
-grades, observations and other learning content are sent as is.
+two syllables; the romanized given name is the `romanized` value without its
+surname, and it is used only when the Korean name yields a given name. Scores,
+lesson dates, observations and other learning content are sent as is, and so
+are academic years such as `2026학년도` and `the 2026 school year`.
 
-The work plugin cannot detect names, schools or guardians missing from the
-roster, nicknames, one-syllable given names, given names of roster names that
-are not all Hangul or shorter than three syllables, shortened school names such as
-`별빛고` for `가상별빛고`, addresses, or Hangul written in decomposed form
-(NFD), as some file names and PDF copies are. They reach the provider as
-written; add them to the roster or leave them out of tool inputs. A student removed
-from the roster is no longer detected. Ordinary words that equal a roster
-value, such as a given name inside another word, are replaced too, which can
-cost some judgment quality.
+Region names come from the Ministry of the Interior and Safety's legal-district
+code list, which is vendored unmodified in
+`packages/backfire/vendor/legal-district-codes/` with a record of its source
+and hashes. `npm run backfire:regions` turns it into
+`packages/backfire/src/backfire_education/regions.json`, with romanized forms
+from es-hangul 2.4.0, and `npm run verify` checks that the two match. es-hangul
+adds a compound-word ㄴ to names such as `안양` (`Annyang`), so the list holds
+the spelling without it (`Anyang`) too.
+
+### Refusals
+
+After the replacement, backfire scans the request again with every detector,
+ignoring the stand-ins it inserted. If anything is found, it sends nothing and
+fails with `identifier_remaining`.
+
+Both modes, with or without `--education`, then refuse a request that still
+contains Hangul, composed or decomposed, in the tool input, the question keys or
+any question text. It fails with `hangul_remaining` before any provider call.
+In education mode this catches a name that the roster does not list. Translate
+Korean material into English with Claude or ChatGPT before any backfire call.
+
+Neither error, and no log, holds a matched value or any request text.
+
+### Limits
+
+Pattern detection cannot prove that a request is free of identifiers. The work
+plugin does not detect:
+
+- names, schools or guardians that the roster does not list and that are written
+  in Latin letters, nicknames, and Latin spellings of a roster name that the
+  `romanized` column does not give (a missing name in Hangul is refused, not
+  sent);
+- one-syllable given names, given names of roster names that are not all Hangul
+  or shorter than three syllables, and a surname alone;
+- school names in other forms, such as `별빛고` or `Byeolbit High School`, for a
+  roster school `가상별빛고`;
+- region spellings other than the generated ones, and romanizations that differ
+  from the official one, such as `묵호` (es-hangul writes `Muko`, the official
+  spelling is `Mukho`; es-hangul drops the `h` after `ㄱ`, `ㄷ` and `ㅂ`);
+- addresses without an `address` keyword or romanized address parts, such as a
+  street name in English.
+
+They reach the provider as written; add roster names to the roster or leave the
+text out of tool inputs. A student removed from the roster is no longer detected.
+Ordinary words that equal a roster value, a region name or a given name are
+replaced too, which can cost some judgment quality.
 
 ### Mapping table
 
 Pseudonyms stay the same across calls, sessions and restarts because of the
 mapping table `$XDG_DATA_HOME/verbose-broccoli/backfire/pseudonyms.json`
 (`~/.local/share` when `XDG_DATA_HOME` is unset). It holds a random key, a
-counter per pseudonym kind and keyed digests of the replaced values, never the
+counter per stand-in kind and keyed digests of the replaced values, never the
 names or contact details themselves. It has mode `0600`, a lock file beside
 it, and a 1 MiB limit. Deleting it restarts the numbering: calls stay
-correct, but new pseudonyms no longer match earlier ones.
+correct, but new stand-ins no longer match earlier ones. A table written
+before the stand-ins were English holds the Korean prefixes (`학생03`); backfire
+reads them as `Student 03` with the same numbers and stores the English form the
+next time it saves.
 
 A work plugin judgment fails before anything is sent when `education.toml`,
 the roster or the mapping table cannot be used (`backend_not_configured` with
@@ -211,7 +270,7 @@ question text and any supplied claims, evidence, patches, test output,
 source excerpts or other text used by that tool, and the key goes in the
 HTTP `Authorization` header. Never send secrets or credentials. Never send
 private personal records such as student data to the code plugin, which
-replaces nothing; use the work plugin for them.
+replaces nothing and refuses Hangul; use the work plugin for them, in English.
 
 PyModel retries a failed attempt on HTTP 408, 429 and 5xx, and on a timed
 out or dropped connection. Its default policy allows 3 attempts of 30
@@ -254,10 +313,12 @@ claims independently.
 
 Tool errors are PyModel's: argument errors name the tool and the argument,
 and provider failures name the provider, and the attempt count when
-retries ran out, with keys redacted. Backfire adds three of its own:
+retries ran out, with keys redacted. Backfire adds five of its own:
 
 | Error | Cause and action |
 | --- | --- |
 | `backend_not_configured` | The configuration, a profile in the order, its key file or a Jev provider name is missing or invalid. Check the file or profile named in the message, and the key file's owner and `0600` mode. |
 | `no_credit` | Every profile in the order was skipped for lack of credit or answered insufficient balance. Add credit to a provider or change `order`, then restart the client session. |
 | `pseudonym_conflict` | Two keys or labels of one request become the same after pseudonymization in the work plugin. Make them differ by more than a name. |
+| `hangul_remaining` | The request contains Hangul, in either mode; nothing was sent. Translate the material into English first; in the work plugin, also add a missing name to the roster. |
+| `identifier_remaining` | The scan after the replacement found an identifier, so nothing was sent. Report it to the operator; the detectors do not cover that form. |

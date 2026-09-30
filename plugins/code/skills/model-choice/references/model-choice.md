@@ -41,8 +41,9 @@ Give backfire facts:
 - The other-provider rule for final reviews: name the implementer's provider
   and state the rule in `priorities`.
 
-Never put credentials into the evidence. Send personal records only through a
-provider profile the user has approved for them, and keep the evidence
+Never put credentials into the evidence. Never send student data or other
+personal records through this plugin's backfire, and write the evidence in
+English: backfire refuses any request that contains Hangul. Keep the evidence
 minimal.
 
 ### Usage limits

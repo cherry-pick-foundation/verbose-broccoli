@@ -18,7 +18,7 @@ an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
 `wiki-raw-import`, `wiki-consistency` and `backfire` skills and an MCP declaration for its own
 `backfire` server, which
-pseudonymizes student identifiers; its other business capabilities have no
+replaces student identifiers with English stand-ins and refuses Hangul; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains the `web-agent` and `credit-offers` skills
 (see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
@@ -320,9 +320,14 @@ credit: before first use it reads the provider's credit through CodexBar's
 command-line tool when the profile names a CodexBar provider, and it moves
 to the next profile when a provider answers insufficient balance. Each profile is either a
 general-model provider through system-one-adapter (Hive) or one of
-PyModel's Jev providers (OpenRouter). With `--education` it pseudonymizes
-every judgment with the module in `packages/backfire/src/backfire_education/`
-before any profile receives it. What backfire needs from
+PyModel's Jev providers (OpenRouter). With `--education` it replaces the
+identifiers of every judgment with English stand-ins, using the module in
+`packages/backfire/src/backfire_education/`, scans the result again and
+refuses it if an identifier is left, before any profile receives it. Both modes
+refuse a request that contains Hangul. The region names it replaces come from
+the Ministry of the Interior and Safety's legal-district codes, vendored in
+`packages/backfire/vendor/` and turned into `regions.json` by
+`scripts/backfire-regions.ts`, which `npm run verify` checks. What backfire needs from
 PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 `specs/021-backfire-rebuild/upstream/`. See the
 [Backfire operator guide](backfire.md) for setup, profiles and

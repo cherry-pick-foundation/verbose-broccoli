@@ -89,13 +89,17 @@ with the judgment step.
    documents qmd has not embedded yet; when `index` gave a `semantic_error`,
    pass it on as it is. Report any `partial` revisions from `convert` with
    their warning details.
-3. Send each request's `arguments` to the backfire tool it names, on the
-   **work plugin's** backfire server. Before the provider sees them, its judge
-   replaces the student, guardian and school names in the operator's roster,
-   phone numbers and email addresses; every other identifier and all other
-   text are sent as they are. In Claude Code its tools include
-   `mcp__plugin_work_backfire__jev_verify`. Never use the code plugin's
-   server for Wiki text.
+3. Translate any Korean text in each request's `arguments`, such as a quoted
+   passage of the evidence, into English yourself, in your own session, and
+   keep the structure and IDs as they are. Then send the `arguments` to the
+   backfire tool the request names, on the **work plugin's** backfire server.
+   Before the provider sees them, its judge replaces the identifiers it
+   detects (names and numbers from the operator's roster, schools, regions,
+   school years, birth dates, addresses, phone numbers and email addresses)
+   with English stand-ins and refuses a request that still contains Hangul
+   (`hangul_remaining`); all other text is sent as it is. In Claude Code its
+   tools include `mcp__plugin_work_backfire__jev_verify`. Never use the code
+   plugin's server for Wiki text.
 4. For a `pages` request whose result is `contradicted`, call
    `jev_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.
