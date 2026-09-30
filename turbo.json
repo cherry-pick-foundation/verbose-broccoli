@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "agentGuidance": false,
+  "noUpdateNotifier": true,
   "globalPassThroughEnv": [
     "HOME",
     "PATH",
@@ -12,8 +13,6 @@
     "PYTHONDONTWRITEBYTECODE",
     "TMPDIR",
     "CI",
-    "CONSTITUTION_VERSION_COMMIT",
-    "CONSTITUTION_VERSION_AMEND",
     "VERBOSE_BROCCOLI_CONFIG"
   ],
   "futureFlags": {
@@ -22,35 +21,34 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Verify Node.js 24.12.0 or later, Turborepo 2.11.5, Quarto 1.10.18, uv 0.11.32, git-flow 2.1.0 and its shared config, lychee 0.24.2, CodexBar 0.69.0, Ruff 0.16.9, the Spec Kit, ShellCheck, scc, doc-regions and wiki-consistency environments and locked dependencies",
+      "description": "Run mise's project checks",
       "cache": false
     },
-    "//#own-code": {"cache": false},
     "//#format:check": {"cache": false},
     "//#lint": {"cache": false},
     "//#lint:shell": {"cache": false},
     "//#typecheck": {"cache": false},
     "//#plugins:validate": {"cache": false},
+    "//#test:plugins-validate": {"cache": false},
     "//#clean-code": {"cache": false},
     "//#clean-architecture": {"cache": false},
-    "//#docs:check": {"cache": false},
+    "//#python:imports": {"cache": false},
     "//#doc-regions:check": {
       "description": "Check mechanical regions and local links in the target documents, offline and without writing",
       "cache": false
     },
-    "//#test:doctor": {"cache": false},
-    "//#test:own-code": {"cache": false},
     "//#test:ruff": {"cache": false},
     "//#test:gts": {"cache": false},
     "//#test:git-flow": {"cache": false},
+    "//#test:constitution-bump": {"cache": false},
     "//#test:worktree-branch": {"cache": false},
     "//#test:commit-msg": {"cache": false},
     "//#test:plugin-skills": {"cache": false},
     "//#test:clean-code": {"cache": false},
     "//#test:clean-architecture": {"cache": false},
     "//#test:workflow": {"cache": false},
+    "//#test:mise-doctor": {"cache": false},
     "//#test:cli-contract": {"cache": false},
-    "//#test:docs": {"cache": false},
     "backfire#test": {
       "command": [
         "env",
@@ -153,8 +151,7 @@
     "verbose-broccoli-python#test": {
       "command": ["true"],
       "dependsOn": [
-        "//#test:doctor",
-        "//#test:own-code",
+        "//#test:constitution-bump",
         "//#test:ruff",
         "//#test:gts",
         "//#test:git-flow",
@@ -164,8 +161,9 @@
         "//#test:clean-code",
         "//#test:clean-architecture",
         "//#test:workflow",
+        "//#test:mise-doctor",
         "//#test:cli-contract",
-        "//#test:docs",
+        "//#test:plugins-validate",
         "backfire#test",
         "doc-regions#test",
         "jev-ultrafast#test",
@@ -191,7 +189,6 @@
       "command": ["true"],
       "dependsOn": [
         "//#doctor",
-        "//#own-code",
         "//#format:check",
         "//#lint",
         "//#lint:shell",
@@ -199,8 +196,8 @@
         "//#plugins:validate",
         "//#clean-code",
         "//#clean-architecture",
+        "//#python:imports",
         "verbose-broccoli-python#test",
-        "//#docs:check",
         "//#doc-regions:check"
       ],
       "cache": false

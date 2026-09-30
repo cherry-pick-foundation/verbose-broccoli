@@ -10,5 +10,40 @@ constraint-dependencies = [
 [tool.uv.workspace]
 members = ["packages/*"]
 
+[tool.importlinter]
+root_packages = [
+  "backfire",
+  "backfire_education",
+  "credit_offers",
+  "doc_regions",
+  "jev_ultrafast",
+  "wiki_consistency",
+]
+
+[[tool.importlinter.contracts]]
+name = "Workspace package layers"
+type = "layers"
+layers = [
+  "wiki_consistency",
+  "backfire_education",
+  "backfire | doc_regions",
+]
+ignore_imports = [
+  # Backfire imports this optional adapter only when education is configured.
+  "backfire.providers -> backfire_education.pseudonymize",
+]
+
+[[tool.importlinter.contracts]]
+name = "Python package sibling cycles"
+type = "acyclic_siblings"
+ancestors = [
+  "backfire",
+  "backfire_education",
+  "credit_offers",
+  "doc_regions",
+  "jev_ultrafast",
+  "wiki_consistency",
+]
+
 [tool.turbo]
 name = "verbose-broccoli-python"

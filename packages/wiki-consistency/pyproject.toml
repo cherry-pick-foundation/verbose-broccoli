@@ -19,7 +19,7 @@ dependencies = [
 wiki-consistency = "wiki_consistency.__main__:main"
 
 [dependency-groups]
-dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
+dev = ["import-linter==2.15", "jsonschema==4.26.0", "pytest==9.1.1"]
 
 [tool.uv]
 required-version = ">=0.11.32"

@@ -1,0 +1,7 @@
+extends: existence
+message: "page rule email: pages hold no email addresses"
+level: error
+scope: raw
+vocab: false
+raw:
+  - '(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+(?![A-Za-z0-9_-])'

@@ -1,7 +1,6 @@
 import {z} from '@zod/zod';
-import {format, type ICruiseResult} from 'dependency-cruiser';
 import {realpath} from 'node:fs/promises';
-import {analyzeImportGraph} from './clean_architecture.ts';
+import {dependencyCruiser} from './workflow_depcruise.ts';
 import {
   getFileAccessError,
   listCodeFiles,
@@ -50,25 +49,26 @@ export async function analyzePlan(
     }
     if (tasks.length === 1 || reasons.length) return {tasks, reasons};
     const entries = listCodeFiles(root);
-    const graph = await analyzeImportGraph(root, entries);
+    const graph = await dependencyCruiser(root, {policy: true}, entries);
     if (graph.summary.error) {
       reasons.push(`Architecture graph has ${graph.summary.error} error(s)`);
       return {tasks, reasons};
     }
-    const sources = new Set(graph.modules.map(module => module.source));
     for (const path of owners.keys()) {
-      if (!entries.includes(path) || !sources.has(path))
+      if (!entries.includes(path))
         reasons.push(`Task file is outside the dependency graph: ${path}`);
     }
     if (reasons.length) return {tasks, reasons};
     const affected: Set<string>[] = [];
     for (const task of tasks) {
-      const result = await format(graph, {
-        outputType: 'json',
-        reaches: {path: task.files.map(path => `^${RegExp.escape(path)}$`)},
-      });
-      const filtered = JSON.parse(result.output as string) as ICruiseResult;
-      affected.push(new Set(filtered.modules.map(module => module.source)));
+      const result = await dependencyCruiser(
+        root,
+        {
+          reaches: `^(?:${task.files.map(path => RegExp.escape(path)).join('|')})$`,
+        },
+        entries,
+      );
+      affected.push(new Set(result.modules.map(module => module.source)));
     }
     for (let first = 0; first < tasks.length; first++) {
       for (let second = first + 1; second < tasks.length; second++) {
