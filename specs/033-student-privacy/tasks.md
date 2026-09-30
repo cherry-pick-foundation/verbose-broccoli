@@ -100,6 +100,12 @@ files and can run in parallel.
   mechanical-region candidates and stay prose: no generator owns them. The
   audit's 20 findings concern the constitution's existing text, not this
   change, and go to the user unchanged.
+- The step ran again after round two (`31875e1`): 265 units in 14
+  `jev_verify` calls and 25 added units in 2 `jev_classify` calls. The same
+  architecture paragraph was flagged once more at low confidence (0.18) with
+  the judgment asking for evidence it lacked; each statement in it matches
+  `packages/wiki-consistency/src/wiki_consistency/rules.py`, so it stands.
+  11 added units are mechanical-region candidates and stay prose.
 
 - [ ] T013 Final review by a reviewer from the other provider; resolve
   findings. Coordinator. The develop merge review (Codex `gpt-6-luna`

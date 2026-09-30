@@ -275,9 +275,9 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
   passes, a registration-number shape is flagged even with an impossible
   birth date, phone and email detection is Vale's, not backfire's, and only
-  the student-name rule reads the front matter's title and summary. The check writes nothing
-  outside that temporary folder and uses no network. `update` regenerates
-  stale regions.
+  the student-name rule reads the front matter's title and summary. The
+  check writes nothing outside that temporary folder and uses no network.
+  `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
