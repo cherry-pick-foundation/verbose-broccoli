@@ -219,6 +219,21 @@ time limit.
     `TYPESAFE_MODEL`; the automation is described as approved; the monthly
     cost is about 1 to 2 cents. The fixes do not change the implementation
     materially, so no second round. Lines: 284 of 300.
+  - 2026-09-30: after the first round, `develop` moved twice (CHE-40's
+    own-code check, then CHE-39's backfire rebuild) and was merged in. The
+    user then added Cloudflare and OpenRouter as providers and moved keys
+    to the shared provider folder (T018). Round 2 at `7e1ef04`: the code
+    reviewer (Claude Code, `claude-sonnet-5-5`, medium) found 4 minor
+    points; the malformed-envelope exit status is left for after CHE-44,
+    because its fix adds a line the old `own-code` check, at its recorded
+    560, would refuse. The records reviewer (Codex, `gpt-6-luna`, max)
+    found 6 minor points, fixed in `0de0aee` and `22de3a4` except the
+    300-line text in the architecture guide, which CHE-44 owns. Live
+    checks on OpenRouter passed (research R10). Round 3 covers the
+    changes since `7e1ef04`; `jev_decide` chose Claude Code
+    `claude-sonnet-5-5` at low effort for the code and Codex `gpt-6-luna`
+    at high effort for the records (0.65 against 0.25 for the round-2
+    choice).
 
 - [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
   folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the

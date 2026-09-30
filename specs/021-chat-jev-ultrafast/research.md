@@ -298,5 +298,17 @@ and answers in TypeSafe's form; both map `jev-latest` to
 `typesafe/jev-1.13`. OpenRouter's public model list
 (`https://openrouter.ai/api/v1/models`, read 2026-09-30) shows only
 `typesafe/jev-router`, priced `-1` (variable), so no free Jev variant is
-listed. The table uses `typesafe/jev-1.13`, as the references do, and a
-live call decides.
+listed. The table uses `typesafe/jev-1.13`, as the references do.
+
+The user put paid credit on OpenRouter, and the live checks passed on
+2026-09-30: a direct call answered with model `typesafe/jev-1.13-20260917`
+(427 input and 37 output tokens, reported cost $0.0000179); the web agent,
+in an Orca tab, opened the Wikipedia article on Gödel's incompleteness
+theorems in 4.6 s of agent time with 5 Jev calls and one call to
+OpenRouter's `inception/mercury-2.5` for typing (an earlier run ended when
+upstream rejected a malformed Jev answer, with no action executed); and the
+offer search on the block that ended 2026-09-23 18:00 KST made one Jev call,
+exited 0 in 2.25 s and sent the notification. Its verdicts matched this
+record's manual reading for 4 of the 5 offers; Jev excluded
+`hume-free-tier-credits` (0.77), which R9 counts as qualifying. In all,
+12 Jev calls and 2 text-model calls went to OpenRouter.
