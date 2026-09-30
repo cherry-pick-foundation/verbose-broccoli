@@ -2,8 +2,10 @@
 
 Own-code lines are scc 4.1.0 "Code" counts, the counter and method CHE-42
 chose (research R1 of `specs/022-own-code-limit/`); tests are not counted.
-The first counts below were taken on `develop` at `0bc0c63`, where this
-branch started; Results names the baselines of the final counts.
+The per-swap counts in Results compare each replaced file at `3bd2e7f`
+(the first `develop` merged into this branch) with the branch tip; the
+whole-tree count compares the branch's merge base with `develop`
+(`b9a0293`) with the tip.
 
 ## R0. Security review and licenses
 
