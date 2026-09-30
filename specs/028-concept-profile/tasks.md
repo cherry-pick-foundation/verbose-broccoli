@@ -192,6 +192,13 @@ below.
   - Develop merge reviewer: Codex `gpt-6-luna` at medium (backfire through
     OpenRouter Jev: model 0.62, confidence 0.57; effort 0.77, confidence
     0.73); the code was written by Claude Code sessions.
+- 2026-09-30 review: 0aecf21 reviewed; 1 medium and 2 low findings, all in
+  the records (the hand-check's key and size, the stale size estimate),
+  fixed in 8e9893a with the test's Korean sentence escaped. Document
+  judgment step from merge base f37a8b5: 267 units; 11 units of
+  docs/backfire.md carry Hangul that backfire refuses (reported to the
+  develop session); the other 256 were sent: 0 contradicted, none of the
+  115 flagged in this feature's files.
 - [ ] T012 Develop merge review by a fresh reviewer from the other provider,
   given only the scope and requirements; resolve findings; add the
   review-record commit; check `develop` has not moved; `git flow feature
