@@ -30,6 +30,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:clean-code          | npm run test:clean-code          |                                                                                                                      |
 | test:cli-contract        | npm run test:cli-contract        |                                                                                                                      |
 | test:commit-msg          | npm run test:commit-msg          |                                                                                                                      |
+| test:concept-profile     | npm run test:concept-profile     |                                                                                                                      |
 | test:constitution-bump   | npm run test:constitution-bump   |                                                                                                                      |
 | test:credit-offers       | npm run test:credit-offers       |                                                                                                                      |
 | test:doc-regions         | npm run test:doc-regions         |                                                                                                                      |
