@@ -30,6 +30,15 @@ _LATIN_NAME = re.compile(r"[A-Za-z]+(?:[ -][A-Za-z]+)*")
 _SEPARATOR = r"[\s,-]*"
 # The re-scan blanks each stand-in with this; keyword patterns skip it.
 _BLANK = "\x00"
+# Dash-like and zero-width characters read as a hyphen when matching, one for
+# one, so "Na‑bit" (U+2011) or "Miraebit‑ro" matches like "Na-bit".
+_AS_HYPHEN = str.maketrans(
+    dict.fromkeys(
+        "\u00ad\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe58\ufe63"
+        "\uff0d\u200b\u200c\u200d\u2060\ufeff",
+        "-",
+    )
+)
 # Grade number of the first year of each school level.
 _LEVEL = {"초": 0, "중": 6, "고": 9, "elementary": 0, "middle": 6, "high": 9}
 _ORDINAL = {
@@ -55,20 +64,12 @@ _CARDINAL_WORDS = "|".join(_CARDINAL)
 _MARKUP = "|*_`~\"'“”‘’"
 _PUNCT = "\\-–—:：=>→" + _MARKUP
 _US_HIGH = {"freshman": 9, "sophomore": 10, "junior": 11, "senior": 12}
-_BIRTH_BLANK = "\x01"
 # A month name, capitalized or in capitals, so "may" and "Marching" are not.
 _MONTH_NAMES = (
     "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?"
     "|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?"
 )
 _MONTH = rf"(?-i:(?:{_MONTH_NAMES}|{_MONTH_NAMES.upper()})\.?)(?![A-Za-z])"
-# A day of the month in words: first, twenty-third, thirtieth.
-_DAY_WORD = (
-    r"(?:(?:(?:twenty|thirty)[\s-]?)?"
-    r"(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)"
-    r"|tenth|eleventh|twelfth|(?:thir|four|fif|six|seven|eigh|nine)teenth"
-    r"|twentieth|thirtieth)(?![A-Za-z])"
-)
 _NUMBER_WORD = (
     rf"(?:zero|nought|oh|{'|'.join(_UNITS)}"
     r"|(?:twen|thir|for|fif|six|seven|eigh|nine)ty|hundred|thousand)(?![A-Za-z])"
@@ -79,66 +80,27 @@ _WORD_YEAR = rf"{_NUMBER_WORD}(?:[\s,-]+(?:and[\s-]+)?{_NUMBER_WORD})+"
 _ROMAN_YEAR = (
     r"(?-i:M{1,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3}))"
 )
-# A day of the month as a cardinal word: seventeen, twenty-one.
-_DAY_NUMBER = (
-    r"(?:(?:twenty|thirty)(?:[\s-]?(?:one|two|three|four|five|six|seven"
-    rf"|eight|nine))?|{'|'.join(_UNITS)})(?![A-Za-z])"
+# After a birth keyword, the rest of its clause, up to a sentence end, a
+# semicolon, a line break or a table cell end (|), is the birth date when it
+# holds a digit, a month, a year in words or a Roman numeral year, so no way of
+# writing a date escapes. A period inside a date does not end the clause: one
+# with no space after it (A.D., 17.VI.2012), one after a month abbreviation
+# (Jun. 17), one after a day or month number followed by a digit
+# (17. 06. 2012), and one followed by a year or by a short number with no word
+# after it (2012. 4. 23., 2012 . 06 . 17, A.D. 2012); "2012. 85 points" ends at
+# the period.
+_CLAUSE_CHAR = (
+    r"(?:[^.!?;|\n\r]|\.(?=\S)"
+    r"|(?:(?<=(?<![0-9])[0-9])|(?<=(?<![0-9])[0-9]{2}))\.(?=\s*[0-9])"
+    r"|(?:(?<=Jan)|(?<=Feb)|(?<=Mar)|(?<=Apr)|(?<=Jun)|(?<=Jul)|(?<=Aug)|(?<=Sep)|(?<=Sept)|(?<=Oct)|(?<=Nov)|(?<=Dec))\."
+    r"|\.(?=\s*(?:[0-9]{1,2}(?![0-9])(?!\s*[A-Za-z%])|[0-9]{4}(?![0-9]))))"
 )
-# Words that may sit inside a date: "in the summer of", "Sunday", "AD".
-_DATE_WORDS = (
-    r"of|in|on|the|year|anno|AD|A\.D\.|CE|circa|ca\.|and|early|late|mid"
-    r"|spring|summer|autumn|fall|winter|(?:mon|tues|wednes|thurs|fri|satur|sun)day"
+_LEADING_WORDS = re.compile(
+    r"^(?:(?:on|in|the|is|was|of|year|around|about)\s+)+", re.IGNORECASE
 )
-# What may join two parts: anything but a letter, digit or line break (an
-# underscore too), and those words.
-_DATE_JOIN = rf"(?:[^\w\n\r]|_|(?<![A-Za-z])(?:{_DATE_WORDS})(?![A-Za-z]))*+"
-# A time of day after the date: T00:00:00Z, at 09:30, 9:30 pm.
-_TIME = (
-    r"(?:T|[ ,]+(?:at\s+)?)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?"
-    r"(?:\s*(?:Z|[ap]\.?m\.?|[+-]\d{2}:?\d{2}))?"
-)
-# A day, a month and a year of a date, and the punctuation between numbers.
-_DAY = rf"(?:\d{{1,2}}(?![0-9])(?:st|nd|rd|th)?|{_DAY_WORD}|{_DAY_NUMBER})"
-_ORDINAL_DAY = (
-    rf"(?:\d{{1,2}}(?![0-9])(?:st|nd|rd|th)|{_DAY_WORD}|{_DAY_NUMBER})"
-)
-_YEAR_PART = rf"(?:\d{{4}}(?![0-9])|{_WORD_YEAR}|{_ROMAN_YEAR}(?![A-Za-z]))"
-# Date punctuation between numbers; three numbers may also be joined by
-# spaces or tabs alone (17 06 2012).
-_NUMBER_PUNCT = r"\s*[./\-_／．－·–—]\s*"
-_NUMBER_JOIN = rf"(?:{_NUMBER_PUNCT}|[ \t]+)"
-_ROMAN_MONTH = r"(?-i:XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)(?![A-Za-z])"
-# A year after a month and a day may also be two digits: '12, or 12 when no
-# word, number, slash or percent sign follows, so "June 17, 85 points" keeps
-# its score.
-_YEAR_AFTER = (
-    rf"(?:{_YEAR_PART}|['’‘]\d{{2}}(?![0-9])"
-    r"|\d{2}(?![0-9])(?!\s*[A-Za-z0-9%/]))"
-)
-# A date in one of its shapes, so a score or a lesson date after it stays:
-# numbers (2012-06-17, 17 06 2012, 17.VI.2012, 04/23, 20110423), month first
-# (June 17, 2012; June 2012, on the 17th), day first (the 23rd of April 2011),
-# year first (2012 June 17; 2012, on the 17th of June), a year alone, or the
-# Korean form. A time of day and a closing bracket or quote may follow.
-_DATE = (
-    r"(?:\d{1,4}(?![0-9])"
-    + _NUMBER_JOIN
-    + rf"(?:\d{{1,2}}(?![0-9])|{_ROMAN_MONTH}){_NUMBER_JOIN}\d{{1,4}}(?![0-9])"
-    rf"|{_MONTH}{_DATE_JOIN}{_DAY}(?:{_DATE_JOIN}{_YEAR_AFTER})?"
-    rf"|{_DAY}{_DATE_JOIN}{_MONTH}(?:{_DATE_JOIN}{_YEAR_AFTER})?"
-    rf"|{_MONTH}{_DATE_JOIN}{_YEAR_PART}(?:{_DATE_JOIN}{_ORDINAL_DAY})?"
-    rf"|{_YEAR_PART}{_DATE_JOIN}{_MONTH}(?:{_DATE_JOIN}{_DAY})?"
-    rf"|{_YEAR_PART}{_DATE_JOIN}{_ORDINAL_DAY}{_DATE_JOIN}{_MONTH}"
-    r"|\d{1,4}(?![0-9])" + _NUMBER_PUNCT + r"\d{1,2}(?![0-9])"
-    r"|\d{8}(?![0-9])|\d{6}(?![0-9])"
-    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년"
-    rf"|{_YEAR_PART}|{_MONTH})"
-    rf"(?:{_TIME})?(?:\s*[\])}}）］】」』\"'”’])?"
-)
-# Words that may sit between a birth keyword and its date.
-_BIRTH_WORDS = (
-    r"is|was|on|in|the|of|year|early|late|mid|around|about|spring|summer"
-    r"|autumn|fall|winter|(?:mon|tues|wednes|thurs|fri|satur|sun)day,?"
+_DATE_LIKE = rf"(?:\d|{_MONTH}|{_WORD_YEAR}|{_ROMAN_YEAR}(?![A-Za-z]))"
+_BIRTH_CLAUSE = (
+    rf"(?={_CLAUSE_CHAR}*?(?<![A-Za-z]){_DATE_LIKE}){_CLAUSE_CHAR}*(?<!\s)"
 )
 # A romanized road, sub-road, neighbourhood or unit: Ha-neul-ro, 12-gil,
 # 45beon-gil, Seo-dong, 101-dong, 1203-ho, Jongno 1-ga.
@@ -150,7 +112,8 @@ _ADDRESS_PART = (
 # A building, lot or unit number or a postal code; not part of a date
 # (Solbit-ro, 2026-09-28).
 _ADDRESS_NUMBER = (
-    r"(?:#|(?:apt|unit|room)\.?\s*)?\d{1,5}(?:-\d{1,4})?"
+    r"(?:(?:apt|apartment|unit|room|rm|suite|ste|building|bldg|block|blk"
+    r"|floor|fl|no|house)\.?\s*#?\s*|#\s*)?\d{1,5}(?:-\d{1,4})?"
     r"(?![0-9A-Za-z]|[-./][0-9A-Za-z])"
 )
 _REGION_UNITS = (
@@ -250,11 +213,7 @@ def _unfilled(text: str, kind: str | None) -> bool:
     values = [text] if kind == "number" else []
     values.extend(match["value"] for match in _FIELD.finditer(_cells(text)))
     return any(
-        value.strip()
-        and (
-            not ({_BLANK, _BIRTH_BLANK} & set(value))
-            or re.search("[0-9]", value)
-        )
+        value.strip() and (_BLANK not in value or re.search("[0-9]", value))
         for value in values
     )
 
@@ -277,7 +236,7 @@ def _field_spans(
 ) -> list[tuple[int, int, tuple[str, str]]]:
     """Return the whole value of a field whose name says it is of ``kind``."""
     match = re.fullmatch(
-        rf"[\s{_BLANK}{_BIRTH_BLANK}]*(.*?)[\s{_BLANK}{_BIRTH_BLANK}]*",
+        rf"[\s{_BLANK}]*(.*?)[\s{_BLANK}]*",
         text,
         re.DOTALL,
     )
@@ -313,12 +272,16 @@ _DETECTORS = [
         "cohort",
         re.compile(
             _EDGE.format(
-                rf"grade[\s{_PUNCT}]+(1[0-2]|[1-9]|{_CARDINAL_WORDS})"
+                # Grade 10, Grade: 11th, Grades 10 and 11.
+                rf"grades?[\s{_PUNCT}]+(?:(1[0-2]|[1-9])(?:st|nd|rd|th)?"
+                rf"|({_CARDINAL_WORDS}))(?![A-Za-z])"
+                r"(?:\s*(?:,|and|&|or|to|-|–)\s*(?:1[0-2]|[1-9])(?:st|nd|rd|th)?"
+                r"(?![A-Za-z0-9]))*"
             ),
             re.IGNORECASE,
         ),
         0,
-        lambda match: _count(match[1]),
+        lambda match: _count(match[1] or match[2]),
     ),
     (
         "cohort",
@@ -382,30 +345,18 @@ _DETECTORS = [
             r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
             r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
             # Spaces, markup and field punctuation may sit between the keyword
-            # and its date, and a line break after a colon, but not a
-            # sentence end or a semicolon.
+            # and the rest of its clause, and a line break after a colon or
+            # after "on", "in" or "the" ("born on" at the end of a line).
             r"(?:[ \t\u00a0\u3000:：=|*_~`>→\-–—,(\[{（［【「\"'“”‘’]"
             r"|(?<=[:：=|])\s*\n"
-            rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
-            rf"(?P<date>{_DATE})(?![0-9])",
+            r"|(?<![A-Za-z])(?:on|in|the|is|was)[ \t]*\r?\n)*"
+            rf"(?P<date>{_BIRTH_CLAUSE})",
             re.IGNORECASE,
         ),
         "date",
-        None,
-    ),
-    (
-        "birth",
-        re.compile(
-            # The scan after the swap marks a replaced birth date; a year,
-            # month or year in words left beside it is part of that date.
-            rf"{_BIRTH_BLANK}(?:[^\w;.]|_"
-            rf"|(?<![A-Za-z])(?:{_DATE_WORDS})(?![A-Za-z]))*"
-            rf"(?P<date>(?:1[89]|20)\d\d(?![0-9])|{_MONTH}|{_WORD_YEAR}"
-            rf"|{_ROMAN_YEAR}(?![A-Za-z]))",
-            re.IGNORECASE,
-        ),
-        "date",
-        None,
+        # The value leaves out leading words (on, in the year), so a date
+        # gets the stand-in of the same date in a DOB field.
+        lambda match: _norm(_LEADING_WORDS.sub("", match["date"])),
     ),
     ("birth", re.compile(r"(?<![0-9])(?:[0-9]{4}|[0-9]{2})년생"), 0, None),
     (
@@ -592,6 +543,7 @@ def find_spans(
 
     if kind is not None and (span := _field_spans(text, kind)):
         return span
+    text = text.translate(_AS_HYPHEN)
     candidates = []
     if roster_pattern is not None:
         candidates.extend(
@@ -841,18 +793,9 @@ def pseudonymize(
             for label in sorted(set(pseudonyms.values()), key=len, reverse=True)
         )
     )
-    births = {
-        label
-        for identifier, label in pseudonyms.items()
-        if identifier[0] == "birth"
-    }
-
-    def blank(match):
-        return _BIRTH_BLANK if match.group() in births else _BLANK
-
     for value in (provider_state, provider_documents):
         for text, kind in fields(value):
-            text = standin.sub(blank, text) if pseudonyms else text
+            text = standin.sub(_BLANK, text) if pseudonyms else text
             if _unfilled(text, kind) or find_spans(
                 text, identifiers, roster_pattern, name_pattern, kind
             ):

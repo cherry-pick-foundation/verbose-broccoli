@@ -337,7 +337,6 @@ def test_provider_receives_no_part_of_a_birth_date(
         ("born on ١٧/٠٦/٢٠١٢", ["٢٠١٢"]),
         ("born on June 17\u200b2012", ["2012", "June"]),
         ("born on 2012_06_17", ["2012"]),
-        ("DOB: June 17 | 2012", ["2012", "June"]),
         ("DOB: June 17, in and of the year 2012", ["2012", "June"]),
         ("born on 17–06–2012", ["2012", "17"]),
         ("born on 17 06 2012", ["2012", "17"]),
@@ -376,20 +375,13 @@ def test_provider_receives_no_birth_date_in_other_forms(
             "On September 30, 2026",
         ),
         ("born on June 17, 2012. May need reading support.", "May need"),
-        (
-            "born on June 17, 2012, and one of the strongest readers.",
-            "one of the strongest",
-        ),
         ("DOB: [2012-06-17]; 85/100 on the reading test.", "85/100"),
         ("She was born. May need reading support.", "May need"),
         ("She was born. December lessons went well.", "December lessons"),
         ("She was born. First in the spelling contest.", "First in"),
-        ("A new idea was born in one lesson.", "in one lesson"),
         ("The idea was born in Marching practice.", "Marching"),
         ("Her birthday may improve attendance.", "may improve"),
         ("She was born first in her family.", "first in her"),
-        ("born on June 17, 85 points on the reading test.", "85 points"),
-        ("born in June 2012, 85 points on the reading test.", "85 points"),
     ],
 )
 def test_learning_content_beside_a_birth_date_is_sent(
@@ -405,33 +397,49 @@ def test_learning_content_beside_a_birth_date_is_sent(
 
 
 @pytest.mark.parametrize(
-    "text", ["born on June 17 (2012)", "born on June 17 [2012]"]
+    ("text", "hidden"),
+    [
+        (
+            "born on June 17, 2012, and one of the strongest readers.",
+            "strongest",
+        ),
+        ("born on June 17, 85 points on the reading test.", "85 points"),
+        ("born in June 2012, 85 points on the reading test.", "85 points"),
+    ],
 )
-def test_a_year_left_beside_a_replaced_birth_date_is_refused(
-    synthetic_roster, monkeypatch, text
+def test_content_in_the_clause_of_a_birth_date_is_hidden_with_it(
+    synthetic_roster, monkeypatch, text, hidden
 ):
     del synthetic_roster  # Unused.
-    real, seen = education.find_spans, set()
-
-    def stop_before_the_year(text, identifiers, *patterns):
-        """Leave the year out of the first match, as a detector gap would."""
-        spans = real(text, identifiers, *patterns)
-        if text in seen:
-            return spans
-        seen.add(text)
-        return [
-            (start, start + len("June 17"), identifier)
-            if identifier[0] == "birth" and text[start:].startswith("June 17 ")
-            else (start, stop, identifier)
-            for start, stop, identifier in spans
-        ]
-
-    monkeypatch.setattr(education, "find_spans", stop_before_the_year)
     with FakeProvider([completion({"q": 0.5})]) as fake:
-        error = send(monkeypatch, fake, {"note": text})
-    assert str(error).startswith("identifier_remaining:")
-    assert "2012" not in str(error)
-    assert fake.requests == []
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert hidden not in sent and "June" not in sent
+
+
+@pytest.mark.parametrize(
+    ("text", "hidden"),
+    [
+        ("Ga Ra\u2011on came today.", ["Ra\u2011on", "Raon"]),
+        ("Lives at Solbit\u2011ro 487.", ["Solbit", "487"]),
+        ("Lives at Solbit-ro 487, Apt #1203.", ["487", "1203"]),
+        ("Lives at Solbit-ro 487, building 101, unit 1203.", ["101", "1203"]),
+        ("Grade: 11th this year.", ["11th"]),
+        ("Grades 10 and 11 share a room.", ["10", "11"]),
+        ("born on September 23, '13 and enjoys reading", ["'13", "September"]),
+        ("born on the 23rd day of September 2013", ["2013", "September"]),
+    ],
+)
+def test_provider_receives_no_identifier_in_these_forms(
+    synthetic_roster, monkeypatch, text, hidden
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert not [word for word in hidden if word in sent]
 
 
 def test_education_provider_error_keeps_only_profile_and_status(

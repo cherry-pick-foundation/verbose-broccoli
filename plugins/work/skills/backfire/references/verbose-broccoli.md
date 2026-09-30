@@ -36,7 +36,8 @@ restores them in the results, so tool results use the text you supplied:
   and romanized, such as `Jongno-gu` or `North Chungcheong`;
 - school years such as `Grade 10`, `고1` or `high school sophomore` (not
   academic years such as `2026학년도`);
-- birth dates after a keyword such as `born` or `DOB`, and `2009년생`;
+- after a birth keyword such as `born` or `DOB`, the rest of its clause
+  when it holds a date, other text in that clause included, and `2009년생`;
 - addresses after `address` or `주소`, and romanized address parts such as
   `Bijeon-ro 12`;
 - phone numbers and email addresses, whether or not the roster lists them;

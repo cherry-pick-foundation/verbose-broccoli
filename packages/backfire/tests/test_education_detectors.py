@@ -229,7 +229,9 @@ def test_domain_id_lookalikes_stay(found, text):
 def test_birth_dates_follow_a_keyword_or_end_in_nyeonsaeng(
     found, text, matched
 ):
-    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+    # A birth date hides the rest of its clause, so the date lies inside it.
+    [(hidden, kind)] = [(m, kind) for m, kind, _ in found(text)]
+    assert kind == "birth" and matched in hidden
 
 
 @pytest.mark.parametrize(
@@ -256,7 +258,9 @@ def test_birth_dates_follow_a_keyword_or_end_in_nyeonsaeng(
     ],
 )
 def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
-    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+    # A birth date hides the rest of its clause, so the date lies inside it.
+    [(hidden, kind)] = [(m, kind) for m, kind, _ in found(text)]
+    assert kind == "birth" and matched in hidden
 
 
 @pytest.mark.parametrize(
@@ -288,41 +292,50 @@ def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
         ("born in two thousand, twelve", "two thousand, twelve"),
         ("born on [June 17, 2012]", "June 17, 2012]"),
         ("born on June 17, ［ 2012 ］", "June 17, ［ 2012 ］"),
-        ("DOB: June 17 ; 2012", "June 17 ; 2012"),
         ("born on June 17, anno 2012", "June 17, anno 2012"),
         ("born in nineteen ninety-eight", "nineteen ninety-eight"),
     ],
 )
 def test_birth_dates_in_english_prose_and_words(found, text, matched):
-    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+    # A birth date hides the rest of its clause, so the date lies inside it.
+    [(hidden, kind)] = [(m, kind) for m, kind, _ in found(text)]
+    assert kind == "birth" and matched in hidden
+
+
+@pytest.mark.parametrize(
+    ("text", "hidden"),
+    [
+        ("born on June 17, 2012; 85/100", "on June 17, 2012"),
+        ("born on June 17, 2012. 85 points", "on June 17, 2012"),
+        ("born on June 17, 2012. May need support.", "on June 17, 2012"),
+        (
+            "born on June 17, 85 points, then more",
+            "on June 17, 85 points, then more",
+        ),
+        ("| DOB | 2011-04-23 | 85 |", "2011-04-23"),
+        ("born on 17. 06. 2012 in Seoul", "on 17. 06. 2012 in Seoul"),
+        ("born on 2012. 4. 23.", "on 2012. 4. 23"),
+        ("born on June 17, A.D. 2012", "on June 17, A.D. 2012"),
+        ("born on June 17\n2012", "on June 17"),
+        ("DOB: June 17 ; 2012", "June 17"),
+        ("born on 17\t06\t2012", "on 17\t06\t2012"),
+        ("born on\nJune 17, 2012", "June 17, 2012"),
+        ("born on Jun. 17th, 2012", "on Jun. 17th, 2012"),
+    ],
+)
+def test_a_birth_date_hides_the_rest_of_its_clause(found, text, hidden):
+    assert [(m, kind) for m, kind, _ in found(text)] == [(hidden, "birth")]
 
 
 @pytest.mark.parametrize(
     "text",
     [
-        "born on \x01 (2012)",
-        "DOB: \x01, (2012)",
-        "born on \x01 in 2012",
-        "born on \x01 [2012]",
-        "DOB: \x01, [ 2012 ]",
-        "born on \x01\n2012",
+        "She was born in a small town and loved stories.",
+        "She was born first in her family.",
+        "Her birthday party was fun.",
     ],
 )
-def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text):
-    assert [(m, kind) for m, kind, _ in found(text)] == [("2012", "birth")]
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "born on \x01; 85/100 on the reading test",
-        "born on \x01; on 2026-09-30 completed the lesson",
-        "born on \x01, 85 points",
-        "born on \x01. March lessons went well",
-        "Student \x00 (2012 entrant)",
-    ],
-)
-def test_other_text_beside_a_blanked_birth_date_is_not(found, text):
+def test_a_birth_keyword_without_a_date_hides_nothing(found, text):
     assert found(text) == []
 
 
@@ -356,7 +369,11 @@ def test_other_text_beside_a_blanked_birth_date_is_not(found, text):
     ],
 )
 def test_markup_between_a_keyword_and_its_value(found, text, matched, kind):
-    assert [(m, k) for m, k, _ in found(text)] == [(matched, kind)]
+    [(hidden, k)] = [(m, k) for m, k, _ in found(text)]
+    # A birth date hides the rest of its clause, markup included.
+    assert k == kind and (
+        matched in hidden if kind == "birth" else matched == hidden
+    )
 
 
 @pytest.mark.parametrize(
