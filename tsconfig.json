@@ -10,6 +10,7 @@
     "types": ["node"]
   },
   "files": [
+    "scripts/backfire-regions-test.ts",
     "scripts/clean_architecture_test.ts",
     "scripts/cli_contract_test.ts",
     "scripts/commit_msg_test.ts",
@@ -28,6 +29,7 @@
     "scripts/workflow_verify_test.ts",
     "scripts/worktree_branch_test.ts",
     "plugins/code/skills/clean-code/scripts/clean_code_test.ts",
+    "scripts/backfire-regions.ts",
     "scripts/workflow.ts"
   ]
 }

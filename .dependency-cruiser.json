@@ -58,6 +58,7 @@
           "^canonicalize(?:/|$)",
           "^conventional-changelog-conventionalcommits(?:/|$)",
           "^dependency-cruiser(?:/|$)",
+          "^es-hangul(?:/|$)",
           "^eslint(?:/|$)",
           "^gts(?:/|$)",
           "^prettier(?:/|$)",
