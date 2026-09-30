@@ -115,6 +115,8 @@ def discover(home):
                 meta = json.loads(source.readline())
             payload = meta["payload"]
             session_id, project = payload["id"], payload["cwd"]
+            if not isinstance(session_id, str) or not session_id:
+                session_id = path.stem
             thread_source = payload.get("thread_source")
             valid = (
                 meta.get("type") == "session_meta"
@@ -281,6 +283,7 @@ def render(stage, specstory="specstory", now=None):
                     capture_output=True,
                     text=True,
                     check=False,
+                    timeout=300,
                 )
             except (OSError, UnicodeError, subprocess.SubprocessError):
                 result = None
@@ -364,7 +367,7 @@ def digest(stage, scan=None):
     """Hold unsafe sessions and write roster-tagged bounded digests."""
     report_path = scan or stage / "scan.json"
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    findings = {item["File"] for item in report}
+    findings = {str(Path(item["File"]).resolve()) for item in report}
     sessions = sorted(
         (
             item
@@ -373,13 +376,21 @@ def digest(stage, scan=None):
         ),
         key=lambda item: (item["provider"], item["id"]),
     )
+    scan_mtime = report_path.stat().st_mtime
+    if any(
+        scan_mtime < Path(item["output_path"]).stat().st_mtime
+        for item in sessions
+    ):
+        raise ValueError("scan report is stale")
     identifiers = load_roster()
     roster_pattern = compile_roster_pattern(identifiers)
+    if roster_pattern is None:
+        raise ValueError("roster is empty")
     digests, held = [], []
     for info in sessions:
         path = Path(info["output_path"])
         provider, session_id = info["provider"], info["id"]
-        if str(path) in findings:
+        if str(path.resolve()) in findings:
             held.append({"id": session_id, "reason": "secret_finding"})
             continue
         text = path.read_text(encoding="utf-8")
@@ -401,7 +412,7 @@ def digest(stage, scan=None):
         if orca_worker:
             user = user.rsplit("=== TASK ===", 1)[-1].strip()
             tags.append("orca_worker")
-        if roster_pattern and roster_match(text, roster_pattern):
+        if roster_match(text, roster_pattern):
             tags.append("student_data")
         digests.append(
             {
@@ -514,7 +525,6 @@ def classify(stage, catalog_path, limit=None, call=None):
             usage[key] += int(response["usage"][key])
     write_jsonl(stage / "labels.jsonl", labels)
     return {
-        "batches": len(batches),
         "backfire_calls": len(batches),
         **usage,
     }

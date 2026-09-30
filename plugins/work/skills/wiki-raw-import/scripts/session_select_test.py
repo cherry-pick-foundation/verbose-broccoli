@@ -598,7 +598,6 @@ def test_classify_samples_and_batches_at_most_sixty_four(tmp_path):
     assert [item["id"] for item in labels] == expected
     assert [len(batch["items"]) for batch in batches] == [64, 6]
     assert counts == {
-        "batches": 2,
         "backfire_calls": 2,
         "input_tokens": 6,
         "output_tokens": 4,
@@ -740,3 +739,90 @@ def test_mcp_classify_uses_stdio_client(tmp_path):
 
     assert result[0]["results"][0]["classification"] == "work"
     assert result[0]["usage"] == {"input_tokens": 4, "output_tokens": 2}
+
+
+def test_digest_matches_finding_through_stage_symlink(tmp_path, monkeypatch):
+    roster_fixture(tmp_path, monkeypatch)
+    stage = selector.stage_dir(tmp_path / "actual")
+    alias = tmp_path / "stage-link"
+    alias.symlink_to(stage, target_is_directory=True)
+    output = add_rendered(
+        stage, "claude", "linked-session", markdown("SYNTHETIC_PROMPT")
+    )
+    empty_scan(stage)
+    (stage / "scan.json").write_text(
+        json.dumps([{"File": str(alias / output.relative_to(stage))}]),
+        encoding="utf-8",
+    )
+    assert selector.digest(stage) == {"digests": 0, "held": 1}
+
+
+def test_digest_rejects_missing_and_stale_scan(tmp_path, monkeypatch):
+    roster_fixture(tmp_path, monkeypatch)
+    stage = selector.stage_dir(tmp_path / "stage")
+    output = add_rendered(
+        stage, "claude", "new-session", markdown("SYNTHETIC_PROMPT")
+    )
+    with pytest.raises(FileNotFoundError):
+        selector.digest(stage)
+    empty_scan(stage)
+    os.utime(stage / "scan.json", (1, 1))
+    os.utime(output, (10, 10))
+    with pytest.raises(ValueError, match="stale"):
+        selector.digest(stage)
+
+
+def test_digest_rejects_empty_roster(tmp_path, monkeypatch):
+    roster_fixture(tmp_path, monkeypatch)
+    stage = selector.stage_dir(tmp_path / "stage")
+    add_rendered(stage, "claude", "empty-roster", markdown("SYNTHETIC"))
+    empty_scan(stage)
+    monkeypatch.setattr(selector, "load_roster", lambda: [])
+    with pytest.raises(ValueError, match="roster is empty"):
+        selector.digest(stage)
+
+
+def test_render_invalid_codex_id_uses_file_stem(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    path = add_codex_session(
+        home, "rollout-invalid-id.jsonl", None, "/synthetic/project", 1
+    )
+    monkeypatch.setenv("HOME", str(home))
+    stage = selector.stage_dir(tmp_path / "stage")
+    assert selector.render(stage, "unused", now=10000) == {
+        "rendered": 0,
+        "running": 0,
+        "failed": 1,
+    }
+    assert selector.read_jsonl(stage / "sessions.jsonl")[0]["id"] == path.stem
+
+
+def test_render_timeout_continues_after_failed_session(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    for session_id in ("timeout", "continues"):
+        add_codex_session(
+            home,
+            f"rollout-{session_id}.jsonl",
+            session_id,
+            "/synthetic/project",
+            1,
+        )
+    monkeypatch.setenv("HOME", str(home))
+    stage = selector.stage_dir(tmp_path / "stage")
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append(kwargs["timeout"])
+        if command[4] == "timeout":
+            raise selector.subprocess.TimeoutExpired(command, kwargs["timeout"])
+        return selector.subprocess.CompletedProcess(
+            command, 0, "_**User**_\n\nrequest", ""
+        )
+
+    monkeypatch.setattr(selector.subprocess, "run", run)
+    assert selector.render(stage, "specstory", now=10000) == {
+        "rendered": 1,
+        "running": 0,
+        "failed": 1,
+    }
+    assert calls == [300, 300]
