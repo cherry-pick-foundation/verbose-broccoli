@@ -232,9 +232,9 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 `AGENTS.md`, from the `wiki-raw-import` skill's template, states the rules.
 
 - Pages are written in English, whatever the language of the raw evidence,
-  which stays unchanged; student names keep the roster's spelling so backfire
-  still replaces them, a school is written as its domain ID, and a short
-  direct quote may stay next to its translation.
+  which stays unchanged; student names use the roster's romanized spelling,
+  the Korean spelling stays only in the roster, a school is written as its
+  domain ID, and a short direct quote may stay next to its translation.
 - Pages carry YAML front matter with a title, a one-line summary, the
   source revisions they cite and one or more topics. A vault groups its
   pages by topic instead of splitting into more vaults; the front matter of
@@ -253,14 +253,15 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   Vale 3.23.0 rules (`packages/wiki-consistency/vale/`), outside mechanical
   regions, the front matter and `log.md`: phone numbers, email and postal
   addresses and registration numbers; Hangul, Chinese or Japanese text other
-  than roster names and one quote with its English translation in
-  parentheses beside it; roster school names in Hangul outside such a quote,
+  than one quote with its English translation in parentheses beside it; roster school names in Hangul outside such a quote,
   instead of domain IDs; and dates not written as YYYY-MM-DD or times
   without a zone. The privacy and time rules also check code and link
   targets; the language, school and date rules skip them. A small Python
   step reads backfire's roster only when a page needs it, checks that a
-  student page (`wiki/students/<name>.md`) is named after a roster student,
-  and gives Vale the roster's names and schools through a private temporary
+  student page is `wiki/students/s-<EduOK student number>.md` with a number
+  from the roster's `id` column, reports the Korean spelling of a roster
+  student, given or guardian name anywhere in a page, quotes and front matter
+  included, and gives Vale the roster's schools through a private temporary
   folder in the cache that it removes afterwards. Vale runs offline with
   `--no-global` and line output, on regular files only (symbolic links are
   skipped), and a failure never repeats the matched text. The rules are
@@ -293,10 +294,13 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   candidate units of other pages), `jev_find` cross-reference requests
   in a lint, and `jev_classify` requests for new units. qmd only finds
   candidates; backfire judges.
-- The agent sends the requests to the work plugin's backfire server, which
-  replaces the roster's student, guardian and school names, phone numbers
-  and email addresses before the provider call and sends all other text as
-  it is, and confirms a contradiction between two pages with `jev_compare`.
+- The agent translates Korean evidence into English first and sends the
+  requests to the work plugin's backfire server, which replaces student,
+  guardian and school identifiers, regions, school years, birth dates,
+  addresses, phone numbers and email addresses with English stand-ins before
+  the provider call, refuses a request that still holds Hangul or a detected
+  identifier, and sends all other text as it is; the agent confirms a
+  contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run

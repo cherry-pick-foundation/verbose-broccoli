@@ -38,20 +38,26 @@ files and can run in parallel.
 
 ## Phase 3: Review of Part 1
 
-- [ ] T007 Privacy review, read-only, by a reviewer from another provider,
-  with its own leak test. Coordinator dispatches.
+- [X] T007 Privacy review, read-only, by a reviewer from another provider,
+  with its own leak test. Coordinator dispatches. Result: 181 leaks in 801
+  synthetic cases in six groups (numbers as JSON numbers, meaning carried by
+  field names, birth-date forms, house numbers beside road names, grade
+  wordings, provider errors echoing request text); all 165 refusal checks
+  passed. A fresh privacy review follows T008.
 - [ ] T008 Resolve findings; rerun `npm run verify`; commit. Coordinator.
 
 ## Phase 4: User Stories 3-4, student pages (P2, after CHE-59)
 
 - [X] T009 [US4] Fill the roster's `id` and `romanized` columns; ask the user
   before assigning numbers to students without one. Coordinator.
-- [ ] T010 [US4] Rename the vault's student pages to `s-<id>.md`, romanize
+- [X] T010 [US4] Rename the vault's student pages to `s-<id>.md`, romanize
   names in pages, fix links, change the schema's naming rule; commit in the
-  vault repository. Done and staged; the commit waits for T011's check.
-- [ ] T011 [US4] Wiki check and schema template for `s-<id>` names and no
+  vault repository. Vault commit `7a62e7c`; `264548d` adds the user's
+  allow-list of personal details (romanized name, school domain ID, school
+  year, EduOK number as the file name).
+- [X] T011 [US4] Wiki check and schema template for `s-<id>` names and no
   Hangul names; tests.
-- [ ] T012 [US3] Work plugin instructions for resolving Korean names to
+- [X] T012 [US3] Work plugin instructions for resolving Korean names to
   EduOK numbers; lookup tests in a Claude Code and a Codex session.
 
 - [X] T015 Add the develop session's rule of 2026-09-30: workers and
@@ -81,5 +87,16 @@ files and can run in parallel.
   0.57; next Codex `gpt-6-luna` high at 0.27). All 43 roster students had an
   EduOK number, so none was assigned; one name shared by two students was
   matched to their numbers by grade. 10 pages renamed, staged in the vault.
+- T011-T012: Claude Code Sonnet at high effort (`jev_decide` 0.97,
+  confidence 0.95). Commit `123ef16`; the new check finds no student-name or
+  page-name problem in the vault, and 108 older findings (CHE-58) stay. The
+  Korean lookup passed in a Claude Code session (Sonnet) and a Codex session
+  (`gpt-6-luna`, read-only) for a given name with a particle and for a name
+  two students share.
+- T007: Codex `gpt-6-astra` at xhigh effort (`jev_decide` 0.57, confidence
+  0.51, next `gpt-6-luna` xhigh at 0.34), read-only, with its own 801-case
+  synthetic leak script.
+- T008: Claude Code Sonnet at xhigh effort (`jev_decide` 0.83, confidence
+  0.80).
 - Only Claude Code and Codex candidates were offered for this feature,
   because its workers can reach student data.
