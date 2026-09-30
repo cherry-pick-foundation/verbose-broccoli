@@ -135,6 +135,13 @@ below.
     2,047 kept, 1 dropped, 11,551 unclear, 12 invalid. The unclear-item
     sheet is not sent (too many to review); the hand-check sheet (30
     sentences, 783 proposals) went to the user.
+  - 2026-09-30: the user cut the hand-check to 15 sentences (339
+    proposals). After develop's CHE-61 (English-only, stricter education
+    mode) was merged (e9002f7), both checks were rerun: no request refused;
+    2,826 kept, 1 dropped, 10,772 unclear, 4 invalid; 7.6 million tokens,
+    about 5.5 minutes. Against the first run, 93 to 94% of outcomes agree;
+    confidence moved by a median of 0.04 (0.1 at the 90th percentile),
+    mostly from unclear to kept.
 - [ ] T010 [US2] Run `record --reviewed`, `wiki-consistency update` and
   `check`, log and commit in the vault; score the hand-check; report
   accuracy, calls, tokens and time to the user and record the decision on
