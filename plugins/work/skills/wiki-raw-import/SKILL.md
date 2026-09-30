@@ -41,7 +41,9 @@ was written.
    types from `du` and file listings. Do not open files, and do not enter a
    folder that is excluded or holds operational or private data (for example
    student records). Say which files look like originals and which look like
-   the user's edits, conversions, tool output or program data.
+   the user's edits, conversions, tool output or program data. Also point out
+   files that look like derivatives made from originals (worksheets, dated or
+   selected word lists, trimmed or marked-up copies) and ask the user.
 2. **Ask for a decision.** Present the location with its size, counts and your
    first judgment. The user decides whether it is admitted, left out or
    excluded. Record the decision where the current task keeps its records,
@@ -63,7 +65,9 @@ was written.
    `chat` and `work` vaults, and exported Claude Code and Codex sessions,
    admitted into any vault, are `files`. Expand folders into files. Point
    out files whose names or locations suggest operational or private data.
-   Show the list and its total size to the user and wait for approval.
+   Point out files that look like derivatives, as in step 1, and list one only
+   if the user confirms it is an original. Show the list and its total size to
+   the user and wait for approval.
 5. **Write the selection.** Write the approved list as JSON Lines to
    `STATE/vaults/<vault>/selections/<name>.jsonl`, one
    `{"path": "/absolute/path", "kind": "files"}` per line.

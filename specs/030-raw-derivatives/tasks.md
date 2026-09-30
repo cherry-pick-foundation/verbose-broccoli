@@ -28,21 +28,28 @@ worker owns T002; main owns the records, the commits and integration.
 
 - [x] T001 [US1] List the 43 bags (bag path and source path) in
   [removals.md](removals.md) from their `Internal-Sender-Identifier`.
-- [ ] T002 [US1] Check the list against CHE-59's categories, read-only
-  (FR-002).
+- [x] T002 [US1] Check the list against CHE-59's categories, read-only
+  (FR-002). All 43 rows match their bags and categories, no keep-item is
+  listed, and each source has one revision. The checker named 15 ggcj-h
+  per-question mock-exam vocabulary PDFs as doubtful; CHE-59 does not list
+  them, so they stay.
 
 ## Phase 2: Vault (US1, US2)
 
-- [ ] T003 [US2] Repoint or drop every citation and link in
+- [x] T003 [US2] Repoint or drop every citation and link in
   `wiki/sources/local-materials.md` and the student pages that reaches a
   removed file or a trashed worksheet folder (FR-004).
-- [ ] T004 [US1] Remove the 43 bag folders and run `verify` (FR-001).
-- [ ] T005 [US1] [US2] Run `update` and `check` until only CHE-58's findings
-  remain, and append the removal's log entry (FR-003, FR-005).
+- [x] T004 [US1] Remove the 43 bag folders and run `verify` (FR-001).
+- [x] T005 [US1] [US2] Run `update` and `check` until only CHE-58's findings
+  remain, and append the removal's log entry (FR-003, FR-005). Result:
+  `verify` counts 150 bags with none invalid; `check` reports only CHE-58's
+  106 phone, 2 date and 1 English findings. Six pages changed: 50 source
+  citations dropped, 5 added for the original mock papers, and 73 catalog
+  rows removed, 62 of them links into the trashed worksheet folders.
 
 ## Phase 3: Rule (US3)
 
-- [ ] T006 [P] [US3] Add the derivative rule to the skill's steps 1 and 4,
+- [x] T006 [P] [US3] Add the derivative rule to the skill's steps 1 and 4,
   the schema template and the four vault schemas (FR-006, FR-007).
 
 ## Phase 4: Integration
