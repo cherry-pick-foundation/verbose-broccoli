@@ -40,6 +40,12 @@ def request_jev(body):
         raise ValueError(f"{provider['key_env']} is required for {name}; no request sent")
     if provider["protocol"] == "systemone":
         return post_json(provider["url"], key, body)
+    if provider["protocol"] == "ai-run":
+        if not (account := os.environ.get(provider["account_env"])):
+            raise ValueError(f"{provider['account_env']} is required for {name}; no request sent")
+        payload = {"model": provider["model"], "input": {"state": body["state"], "questions": body["questions"]}}
+        result = post_json(provider["url"].format(account=account), key, payload)
+        return (result.get("result") or {}).get("result") or result.get("result") or result
     model = provider["model"]
     headers = {"Authorization": f"Bearer {key}", **provider["headers"], "ai-model-id": model}
     result = post_json(provider["url"], key, {"state": body["state"], "questions": body["questions"]}, headers)

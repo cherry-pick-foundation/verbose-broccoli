@@ -33,9 +33,10 @@ paths show where the files were copied here.
   workspace's `pytest==9.1.1` dev dependency; omit the upstream README path
   because that file is not copied. Keep upstream runtime dependencies and the
   `jev` script.
-- `src/jev_ultrafast/model.py`: select TypeSafe or Vercel from
-  `providers.toml`, pass configured request headers, and adapt Vercel choice
-  answers to Jev's TypeSafe answer shape. TypeSafe remains the default.
+- `src/jev_ultrafast/model.py`: select TypeSafe, Vercel or Cloudflare from
+  `providers.toml`, pass configured request headers, adapt Vercel choice
+  answers to Jev's TypeSafe answer shape, and support Cloudflare's `ai-run`
+  protocol. TypeSafe remains the default.
 - `src/jev_ultrafast/browser.py`: use Orca's private runtime folder and an
   owned Orca tab by default; read that tab's CDP address, attach to its page,
   and close the tab and daemon. `JEV_BROWSER=chrome` retains upstream target

@@ -13,3 +13,10 @@ model = "typesafe-ai/jev"
 ai-gateway-protocol-version = "0.0.1"
 ai-gateway-auth-method = "api-key"
 ai-evaluation-model-specification-version = "4"
+
+[cloudflare]
+protocol = "ai-run"
+url = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run"
+key_env = "CLOUDFLARE_API_TOKEN"
+account_env = "CLOUDFLARE_ACCOUNT_ID"
+model = "typesafe/jev"

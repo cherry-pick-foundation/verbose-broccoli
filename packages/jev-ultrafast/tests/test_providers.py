@@ -210,6 +210,100 @@ def test_choose_uses_vercel_stub_end_to_end(monkeypatch, mock_provider):
     client.close()
 
 
+def test_choose_uses_cloudflare_stub_end_to_end(monkeypatch, mock_provider):
+    requests, install = mock_provider
+    answers = {
+        "operation": {
+            "type": "choice",
+            "choice": "CLICK",
+            "probabilities": {"CLICK": 1.0, "DONE": 0.0, "BLOCKED": 0.0},
+            "confidence": 0.9,
+        },
+        "click_target": {
+            "type": "choice",
+            "choice": "1",
+            "probabilities": {"1": 1.0},
+            "confidence": 0.95,
+        },
+    }
+    model_output = {"model": "typesafe/jev", "answers": answers}
+    install({"result": {"result": model_output}})
+    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
+    state = {
+        "url": "https://example.test/",
+        "title": "Example",
+        "text": "Go",
+        "actions": [
+            {
+                "id": "go",
+                "kind": "click",
+                "label": "Go",
+                "node": 1,
+                "role": "button",
+                "value": "",
+            }
+        ],
+    }
+
+    decision = model.choose(state, "Click Go", [])
+
+    request = requests[0]
+    assert (
+        str(request.url)
+        == "https://api.cloudflare.com/client/v4/accounts/test-account/ai/run"
+    )
+    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
+    assert json.loads(request.read()) == {
+        "model": "typesafe/jev",
+        "input": {
+            "state": decision["request"]["state"],
+            "questions": decision["request"]["questions"],
+        },
+    }
+    assert decision["choice"] == "go"
+    assert decision["raw_answers"] == answers
+
+
+@pytest.mark.parametrize("envelope", ["nested", "single", "body"])
+def test_cloudflare_result_fallbacks(monkeypatch, mock_provider, envelope):
+    answer = {"answers": {}}
+    result = {
+        "nested": {"result": {"result": answer}},
+        "single": {"result": answer},
+        "body": answer,
+    }[envelope]
+    _, install = mock_provider
+    install(result)
+    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
+
+    assert model.request_jev(body()) == answer
+
+
+@pytest.mark.parametrize(
+    "variable", ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"]
+)
+def test_missing_cloudflare_variable_fails_before_request(
+    monkeypatch, mock_provider, variable
+):
+    requests, install = mock_provider
+    install({})
+    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
+    monkeypatch.delenv(variable)
+
+    with pytest.raises(ValueError) as error:
+        model.request_jev(body())
+
+    assert variable in str(error.value)
+    assert TEST_KEY not in str(error.value)
+    assert requests == []
+
+
 @pytest.mark.parametrize(
     "provider,variable",
     [("vercel", "AI_GATEWAY_API_KEY"), ("typesafe", "TYPESAFE_API_KEY")],
