@@ -490,10 +490,10 @@ flow rule.
   `develop` by merge, not rebase. Release and hotfix types are left out, so
   `git flow release` and `git flow hotfix` refuse to run; the constitution has
   releases and hotfixes finished by hand.
-- Before the finish, a fresh reviewer from the other provider (Claude Code or
-  Codex), given only the scope and requirements, reviews the feature tip,
-  favoring speed. After its findings are resolved, a content-free commit
-  records the review:
+- Before the finish, a fresh reviewer from a provider other than the
+  implementer's (Claude Code, Codex or Copilot), given only the scope and
+  requirements, reviews the feature tip, favoring speed. After its findings
+  are resolved, a content-free commit records the review:
 
   ```sh
   git commit --allow-empty -m 'chore(review): record develop merge review' \
