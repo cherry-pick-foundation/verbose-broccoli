@@ -4,9 +4,9 @@ import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assert, assertRejects} from '@std/assert';
 import {join} from '@std/path';
-import {dependencyCruiser, isFullCommitHash} from './workflow_depcruise.ts';
-import {getFileAccessError} from './workflow_files.ts';
-import {inspectSymbol} from './workflow_symbol.ts';
+import {dependencyCruiser, isFullCommitHash} from './workflow-depcruise.ts';
+import {getFileAccessError} from './workflow-files.ts';
+import {inspectSymbol} from './workflow-symbol.ts';
 
 async function fixture(files: Record<string, string>) {
   const root = await mkdtemp(join(tmpdir(), 'workflow-graph-'));

@@ -3,7 +3,7 @@ import {join} from '@std/path';
 import {test} from 'node:test';
 import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {checkCleanCode, classifyFile} from './clean_code.ts';
+import {checkCleanCode, classifyFile} from './clean-code.ts';
 
 const examples = [
   [

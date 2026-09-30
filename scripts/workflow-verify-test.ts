@@ -3,7 +3,7 @@ import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assertEquals} from '@std/assert';
 import {join} from '@std/path';
-import {evaluateVerification} from './workflow_verify.ts';
+import {evaluateVerification} from './workflow-verify.ts';
 
 type Summary = {
   version: string;

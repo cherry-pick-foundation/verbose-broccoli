@@ -9,7 +9,7 @@ Jev Ultrafast, from Browser Use, reads the page's visible controls, lets Jev
 choose one operation and one element per step, and executes that choice in
 the browser. A small text model writes a value only when the step types
 text. This repository's copy, `packages/jev-ultrafast/`, adds two things to
-upstream; its `UPSTREAM.md` lists every difference:
+upstream; its `upstream.md` lists every difference:
 
 - **Provider**: Jev calls go to the provider that `JEV_PROVIDER` names in
   `packages/jev-ultrafast/src/jev_ultrafast/providers.toml`: `typesafe`

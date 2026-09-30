@@ -1,0 +1,58 @@
+# File and folder names are kebab-case: lowercase letters, digits and hyphens
+# (specs/034-kebab-file-names). ls-lint checks the part of a file name before
+# its first dot and matches the rest as the extension, one key per number of
+# dots; a file without a dot uses the "." key. Folder names are checked whole.
+#
+# Exceptions, only where a language, tool or standard fixes the name:
+# - Python files and packages (.py, the folders under each package's src):
+#   they are imported by name and a hyphen is not valid in one; the Google
+#   Python style guide that ruff.toml follows says Python file names "must not
+#   contain dashes" (section 3.16.3). Python names its bytecode caches
+#   (`__pycache__/<module>.cpython-314.pyc`, PEP 3147), and uv names a
+#   script's lock `<script>.py.lock`.
+# - AGENTS.md: the AGENTS.md convention; Codex and Claude Code read it by name.
+# - SKILL.md: the Agent Skills format's entry file.
+# - README.md: the file that code hosts render for a folder.
+# - LICENSE: the license file as upstream projects ship it.
+# - Hidden folders such as .github are kebab-case after the dot.
+#
+# Keep every path below literal: the security review
+# (specs/034-kebab-file-names/security/ls-lint-2.3.1.md, F-03) found that
+# wildcard paths follow symlinks.
+ls:
+  .dir: kebab-case | regex:\.[a-z0-9-]+ | regex:__pycache__
+  ".": kebab-case | regex:LICENSE
+  .*: kebab-case
+  .*.*: kebab-case
+  .*.*.*: kebab-case
+  .*.*.*.*: kebab-case
+  .md: kebab-case | regex:(AGENTS|README|SKILL)
+  .py: snake_case
+  .py.lock: snake_case
+  .*.pyc: snake_case
+  packages/backfire/src: &python-src
+    .dir: snake_case
+    ".": kebab-case
+    .*: kebab-case
+    .*.*: kebab-case
+    .py: snake_case
+    .*.pyc: snake_case
+  packages/credit-offers/src: *python-src
+  packages/doc-regions/src: *python-src
+  packages/jev-ultrafast/src: *python-src
+  packages/wiki-consistency/src: *python-src
+
+# Untracked dependency, build and cache folders.
+ignore:
+  - .git
+  - .local
+  - .turbo
+  - .venv
+  - node_modules
+  - packages/backfire/src/backfire.egg-info
+  - packages/wiki-consistency/node_modules
+  - tools/check-jsonschema/.venv
+  - tools/commitizen/.venv
+  - tools/ruff/.venv
+  - tools/shellcheck/.venv
+  - tools/spec-kit/.venv

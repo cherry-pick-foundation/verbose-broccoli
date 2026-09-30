@@ -4,7 +4,7 @@ import {dirname, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, rm, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {analyzePlan} from './workflow_plan.ts';
+import {analyzePlan} from './workflow-plan.ts';
 import {selectWorkMode, inspectChanges} from './workflow.ts';
 
 const first = 'plugins/demo/src/first.ts';

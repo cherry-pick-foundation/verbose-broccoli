@@ -1,11 +1,11 @@
 import {z} from '@zod/zod';
 import {realpath} from 'node:fs/promises';
-import {dependencyCruiser} from './workflow_depcruise.ts';
+import {dependencyCruiser} from './workflow-depcruise.ts';
 import {
   getFileAccessError,
   listCodeFiles,
   repositoryFileSchema,
-} from './workflow_files.ts';
+} from './workflow-files.ts';
 
 export const planSchema = z.strictObject({
   tasks: z

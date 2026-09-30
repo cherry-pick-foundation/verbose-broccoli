@@ -13,7 +13,7 @@ own npm package manifest with the skill's dependencies. Current versions and
 MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
-and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
+and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
 `wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
@@ -33,10 +33,10 @@ remains open.
 check-jsonschema 0.38.2 validates the plugin manifests offline against the
 unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
 project whose `uv.lock` pins it. `npm run check` (`turbo run check
---summarize`) runs the environment check, formatting, lint, the shell check,
-type checks, plugin schema validation, Clean Code, the TypeScript and Python
-import checks, the test suites and the document region check, which also
-covers the generated references (see
+--summarize`) runs the environment check, formatting, lint, the file-name
+check, the shell check, type checks, plugin schema validation, Clean Code,
+the TypeScript and Python import checks, the test suites and the document
+region check, which also covers the generated references (see
 [Document consistency](#document-consistency--2026-09-28)). gts 7.0.0 lints
 JavaScript and TypeScript with Google's TypeScript rules and Prettier
 formatting; its configuration bans runtime and I/O globals in `domain/`
@@ -54,10 +54,14 @@ explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
-official binary; Orca's setup script syncs it.
+official binary; Orca's setup script syncs it. ls-lint 2.3.1 checks that
+every file and folder name is kebab-case: `npm run lint:names` runs it with
+a 60-second limit and the root `.ls-lint.yml`, which gives the reason for
+each name a language, tool or standard fixes (Python files and packages,
+`AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`).
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
+ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
 1.9.0 and SpecStory's command-line tool 2.15.1, and `mise.lock` records
 each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
@@ -66,7 +70,7 @@ doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
 and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
 and lefthook's hooks, and name the repair command for each failure. The user's
 machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
-content; Orca's setup script trusts it and installs the seven tools with
+content; Orca's setup script trusts it and installs the eight tools with
 `mise install --locked`. The user's shell pins mise's and rustup's folders
 (`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
 so tests that use a temporary `HOME` still find mise's configuration and do
@@ -352,7 +356,7 @@ package two skills backed by two uv workspace packages.
 
 - `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
   fixed revision and patched in two modules; its
-  [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
+  [`upstream.md`](../packages/jev-ultrafast/upstream.md) lists the revision,
   the original file hashes and every difference. Its Jev calls go to the
   provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
   `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
@@ -426,7 +430,7 @@ Maintain each skill only in its owning package, without discovery links or
 duplicate source trees elsewhere in the repository. The one exception is the
 `backfire` skill: the code and work plugins each carry a vendored copy of the
 same upstream skill, because a plugin may not link to another plugin's files,
-and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
+and `scripts/plugin-skills-test.ts` keeps the copies' shared files identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
@@ -646,7 +650,7 @@ or an agent region, written by agents. No part is human-written.
   quoted marker as a region.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
-- `scripts/doc_regions.toml` lists the targets, including the generated
+- `scripts/doc-regions.toml` lists the targets, including the generated
   `docs/reference/` pages, and `AGENTS.md` and the constitution as
   report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
   target when the project writes one.

@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: 'Review readability, naming, function responsibilities, and error handling only for files selected by the bundled clean_code.ts command. Run its --scope mode first; apply no Clean Code review to excluded files or files with scope errors.'
+description: 'Review readability, naming, function responsibilities, and error handling only for files selected by the bundled clean-code.ts command. Run its --scope mode first; apply no Clean Code review to excluded files or files with scope errors.'
 license: MIT
 metadata:
   author: wondelai
@@ -23,7 +23,7 @@ documentation.
 
 From the target workspace root, run `npm run clean-code:scope` before using
 this skill. Its `selected` array is the complete shared scope for this skill
-and `clean_code.ts`. Scope errors stop the review. Never select files by their
+and `clean-code.ts`. Scope errors stop the review. Never select files by their
 names, imported package roles, perceived simplicity, SQL meaning, or expected
 benefit from refactoring. Do not select individual functions from excluded
 files. An empty selection means this skill does not apply.
@@ -34,7 +34,7 @@ absolute path:
 
 ```sh
 npm ci --prefix <skill-root> --prefer-offline --ignore-scripts --no-audit --no-fund
-node <skill-root>/scripts/clean_code.ts --scope
+node <skill-root>/scripts/clean-code.ts --scope
 ```
 
 In this repository, run `npm run clean-code:scope` before review and
