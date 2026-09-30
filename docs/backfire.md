@@ -82,7 +82,8 @@ choose backfire's provider.
 The key file has one `<variable>=<key>` line, must be a regular file owned
 by the operator with mode `0600`, and is read when the server's provider is
 created. Provider keys live in one shared folder,
-`~/.config/verbose-broccoli/providers/` (mode `0700`), with one file per
+`$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default
+`~/.config/verbose-broccoli/providers/`, mode `0700`), with one file per
 provider that every plugin uses. The shipped `hive` and `education` profiles
 read `HIVE_API_KEY` from `providers/hive.env`, the shipped `vercel` profile
 reads `AI_GATEWAY_API_KEY` from `providers/vercel.env`, and the shipped

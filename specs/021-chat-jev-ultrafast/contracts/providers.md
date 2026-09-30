@@ -45,10 +45,10 @@ model = "typesafe/jev"
 
 The `cloudflare` table was added on 2026-09-30 at the user's request, after
 Vercel's free tier refused Jev (research R10), and the `openrouter` table
-the same day, also at the user's request, before the user picks the offer
-search's provider. OpenRouter's decisions API takes TypeSafe's request and
-answers in its form, so it uses the `systemone` protocol with its own
-model.
+the same day, also at the user's request. OpenRouter's decisions API takes
+TypeSafe's request and answers in its form, so it uses the `systemone`
+protocol with its own model; its live checks passed (research R10), and the
+user picks which provider the scheduled search uses.
 
 ## Selection
 

@@ -233,8 +233,8 @@ compare it with the recorded interval.
 
 - **SC-001**: For a past period with a known qualifying offer, one run
   produces one notification naming it; for a period with none, no
-  notification appears. Until the user adds a key, this is checked with a
-  stub provider standing in for Jev.
+  notification appears. The offline tests check this with a stub provider;
+  a live run on OpenRouter passed on 2026-09-30 (research R10).
 - **SC-002**: A run with no new offers finishes in under 30 seconds and makes
   no Jev call; a run with candidates makes exactly one Jev call.
 - **SC-003**: At the schedule of 4 runs a day, Jev calls stay below 125 a
@@ -243,7 +243,8 @@ compare it with the recorded interval.
 - **SC-004**: The recorded average interval can be recomputed from the
   recorded data to the same value.
 - **SC-005**: Every difference from upstream Jev Ultrafast is listed in its
-  record, and the offline tests cover both providers and both browser modes.
+  record, and the offline tests cover every configured provider (TypeSafe,
+  Vercel, OpenRouter and Cloudflare) and both browser modes.
 
 ## Assumptions
 
@@ -255,15 +256,14 @@ compare it with the recorded interval.
 - The desktop notification uses the laptop's GNOME notification service
   through `notify-send`.
 - Provider keys live in the shared provider folder
-  `~/.config/verbose-broccoli/providers/`, one `0600` file per provider,
-  used by every plugin (user decision, 2026-09-30; it replaced the chat
-  plugin's own `jev.env`). The user added a Vercel key that day, but
-  Vercel's free tier refuses Jev (research R10), so the user chose to try
-  Cloudflare Workers AI and adds its token to `providers/cloudflare.env`.
-  Until a provider accepts Jev calls, a scheduled search that has candidates
-  fails closed and Orca records a skipped run; the stub tests cover the
-  request formats, and the test notification exercises the notification
-  path with a sample offer.
+  `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
+  `~/.config`), one `0600` file per provider, used by every plugin (user
+  decision, 2026-09-30; it replaced the chat plugin's own `jev.env`). That
+  day Vercel's free tier refused Jev and Cloudflare asked for a paid
+  balance; the user then funded OpenRouter, and the live checks on it passed
+  (research R10). The provider the automation names is still the user's
+  choice. Without a key for a provider that accepts Jev calls, a scheduled
+  search that has candidates fails closed and Orca records a skipped run.
 - The user's first 2026-09-30 rule, a limit of 300 net new lines of own code
   per feature, was replaced the same day: the limit is abolished, and a
   change of 1,000 lines or more is reviewed for splitting before the merge

@@ -34,7 +34,10 @@ Implementing").
 through one new function that reads `jev_ultrafast/providers.toml`, selects the
 provider named by the `JEV_PROVIDER` environment variable (default `typesafe`,
 which keeps upstream behavior), reads the key from the provider's credential
-variable, and speaks one of two protocols:
+variable, and speaks one of the protocols below. This section records the
+first decision, with TypeSafe and Vercel; Cloudflare's `ai-run` protocol and
+OpenRouter, which reuses `systemone` with its own model, were added later
+the same day (R10 and [contracts/providers.md](contracts/providers.md)):
 
 - `systemone`: upstream's request unchanged, to
   `https://api.typesafe.ai/v1/systemone`, with `TYPESAFE_API_KEY` and
