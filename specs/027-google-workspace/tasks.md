@@ -184,7 +184,11 @@ messages.
     passed, and `npm run verify` printed VERIFIED. The document judgment
     step rerun at `ff5ff91` (240 units, 12 calls) verified both added units
     (0.79 and 0.89) and the mise paragraph (0.63), and judged no unit
-    contradicted. A fresh review of the new tip follows.
+    contradicted. Develop then moved to `76246a2` (offer-search-backfire),
+    which merged without conflicts (`fc37666`) and changed no target
+    document, so the judgment above stands; `uv sync`, `npm run doctor` and
+    `npm run verify` (VERIFIED) passed again. The develop session held other
+    finishes until this one lands. A fresh review of the new tip follows.
 
 ## Dependencies
 
