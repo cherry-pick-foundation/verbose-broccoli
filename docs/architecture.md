@@ -97,7 +97,8 @@ not a standardized or calibrated measure of coding difficulty. They infer no
 runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
-or selects a model. Model selection remains a separate client decision.
+or selects a model. Agents, models and efforts are chosen with the code
+plugin's `model-choice` skill.
 
 ### Own-code limit — 2026-09-30
 
@@ -359,7 +360,7 @@ and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `backfire`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 

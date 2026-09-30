@@ -108,6 +108,17 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Joey Kudish.
   [MIT license](../plugins/code/skills/backfire/LICENSE).
 
+## typesafe-ai/skills — model-choice
+
+- Source:
+  <https://github.com/typesafe-ai/skills/tree/65a39f393687675ce170e6094757de20370365b9/skills/typesafe-ai>
+- Revision: `65a39f393687675ce170e6094757de20370365b9` (tag v0.5.7).
+- Reused: `SKILL.md` and `LICENSE` in `plugins/code/skills/model-choice/`.
+- Adaptations: listed in the skill's `upstream.json`; the local
+  `references/model-choice.md` is this repository's own text.
+- Copyright (c) 2026 TypeSafe AI.
+  [MIT license](../plugins/code/skills/model-choice/LICENSE).
+
 ## jkudish/jev-agent-tools — Backfire's Vercel provider
 
 - Source: `@jkudish/jev-agent-tools` 0.1.2 on npm
