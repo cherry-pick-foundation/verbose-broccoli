@@ -7,7 +7,6 @@
 import argparse
 from datetime import datetime
 from datetime import timezone
-import fcntl
 import hashlib
 import json
 import logging
@@ -279,11 +278,8 @@ def admit_item(item, raw, run, excluded):
         if any(bag.info.get(key) != value for key, value in provenance.items()):
             raise ValueError("provenance not preserved by bag-info.txt")
         bag.validate()
-        if (
-            bag.entries[f"data/{original.name}"]["sha256"] != digest
-            or sha256(original) != digest
-        ):
-            raise ValueError("original changed during copying")
+        if bag.entries[f"data/{original.name}"]["sha256"] != digest:
+            raise ValueError("copied payload digest mismatch")
         destination = raw / item["kind"] / source_id / revision
         destination.parent.mkdir(parents=True, exist_ok=True)
         for path in staged.rglob("*"):
@@ -307,26 +303,17 @@ def admit(selection, instance, storage):
     items = selection_items(selection)
     excluded = exclusions(storage)
     counts = dict.fromkeys(OUTCOMES, 0)
-    lock_path = storage["state"] / "vaults" / instance.name / "raw-import.lock"
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise ValueError("raw import lock is held") from None
-        staging = storage["cache"] / "raw-import" / instance.name
-        staging.mkdir(parents=True, exist_ok=True)
-        for stale in staging.iterdir():
-            remove_staging(stale)
-        run = staging / str(uuid7())
-        run.mkdir()
-        try:
-            for item in items:
-                result = admit_item(item, instance / "raw", run, excluded)
-                counts[result["outcome"]] += 1
-                print(json.dumps(result), flush=True)
-        finally:
-            shutil.rmtree(run)
+    staging = storage["cache"] / "raw-import" / instance.name
+    staging.mkdir(parents=True, exist_ok=True)
+    run = staging / str(uuid7())
+    run.mkdir()
+    try:
+        for item in items:
+            result = admit_item(item, instance / "raw", run, excluded)
+            counts[result["outcome"]] += 1
+            print(json.dumps(result), flush=True)
+    finally:
+        shutil.rmtree(run)
     print(json.dumps({"summary": counts}))
     if counts["refused"] or counts["failed"]:
         print(

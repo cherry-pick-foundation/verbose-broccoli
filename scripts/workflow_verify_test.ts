@@ -1,341 +1,108 @@
-import {test} from 'node:test';
-import {
-  assert,
-  assertEquals,
-  assertNotEquals,
-  assertRejects,
-} from '@std/assert';
-import {join} from '@std/path';
-import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {chmod, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
+import {test} from 'node:test';
+import {assertEquals} from '@std/assert';
+import {join} from '@std/path';
 import {evaluateVerification} from './workflow_verify.ts';
 
-type Options = Parameters<typeof evaluateVerification>[1];
-type Evidence = NonNullable<
-  Awaited<ReturnType<typeof evaluateVerification>>['latest']
->;
-const passing = "console.log('fixture check passed');";
+type Summary = {
+  version: string;
+  execution: {failed: number; exitCode: number} | null;
+};
 
-async function git(root: string, ...args: string[]) {
-  const result = spawnSync(
-    'git',
-    [
-      '-c',
-      'core.hooksPath=/dev/null',
-      '-c',
-      'user.name=Workflow Verification Fixture',
-      '-c',
-      'user.email=fixture@example.invalid',
-      '-c',
-      'commit.gpgsign=false',
-      ...args,
-    ],
-    {
-      cwd: root,
-      env: {
-        ...process.env,
-        GIT_CONFIG_NOSYSTEM: '1',
-        GIT_CONFIG_GLOBAL: '/dev/null',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  );
-  if (result.error) throw result.error;
-  assert(result.status === 0, new TextDecoder().decode(result.stderr));
-  return new TextDecoder().decode(result.stdout).trim();
-}
-
-async function repository(
-  check: string,
-  run: (root: string, options: Options) => Promise<void>,
+async function run(
+  childExit: number,
+  summary: Summary | string | undefined,
+  printedPath = true,
 ) {
-  const root = await mkdtemp(join(tmpdir(), 'workflow-verify-test-'));
-  try {
-    await git(root, 'init', '--quiet', '--template=', '--initial-branch=main');
-    await mkdir(join(root, 'src'));
-    await writeFile(join(root, 'src/value.ts'), 'export const value = 1;\n');
-    await writeFile(join(root, 'fixture-check.ts'), check);
+  const root = await mkdtemp(join(tmpdir(), 'workflow-verify-'));
+  const bin = join(root, 'bin');
+  const runs = join(root, '.turbo/runs');
+  const summaryPath = join(runs, 'synthetic.json');
+  await mkdir(bin, {recursive: true});
+  await mkdir(runs, {recursive: true});
+  if (summary !== undefined)
     await writeFile(
-      join(root, 'package.json'),
-      JSON.stringify({
-        scripts: {
-          check:
-            'node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON fixture-check.ts',
-        },
-      }),
+      summaryPath,
+      typeof summary === 'string' ? summary : JSON.stringify(summary),
+      {mode: 0o600},
     );
-    await git(root, 'add', '--all');
-    await git(root, 'commit', '--quiet', '-m', 'Verification fixture');
-    await run(root, {
-      taskId: 'fixture-task',
-      base: await git(root, 'rev-parse', 'HEAD'),
-      plan: null,
-    });
+  const npm = join(bin, 'npm');
+  await writeFile(
+    npm,
+    [
+      '#!/bin/sh',
+      "printf 'synthetic check output\\n'",
+      printedPath
+        ? 'printf \'Summary: %s\\n\' "$WORKFLOW_SUMMARY_PATH"'
+        : "printf 'no summary path\\n'",
+      "printf 'synthetic check error\\n' >&2",
+      'exit "$WORKFLOW_CHILD_EXIT"',
+      '',
+    ].join('\n'),
+  );
+  await chmod(npm, 0o700);
+
+  const previous = {
+    path: process.env.PATH,
+    summaryPath: process.env.WORKFLOW_SUMMARY_PATH,
+    childExit: process.env.WORKFLOW_CHILD_EXIT,
+  };
+  process.env.PATH = `${bin}${process.env.PATH ? `:${process.env.PATH}` : ''}`;
+  process.env.WORKFLOW_SUMMARY_PATH = summaryPath;
+  process.env.WORKFLOW_CHILD_EXIT = String(childExit);
+  try {
+    return await evaluateVerification(root, true);
   } finally {
+    if (previous.path === undefined) delete process.env.PATH;
+    else process.env.PATH = previous.path;
+    if (previous.summaryPath === undefined)
+      delete process.env.WORKFLOW_SUMMARY_PATH;
+    else process.env.WORKFLOW_SUMMARY_PATH = previous.summaryPath;
+    if (previous.childExit === undefined)
+      delete process.env.WORKFLOW_CHILD_EXIT;
+    else process.env.WORKFLOW_CHILD_EXIT = previous.childExit;
     await rm(root, {recursive: true});
   }
 }
 
-async function records(path: string): Promise<Evidence[]> {
-  return (await readFile(path, 'utf8'))
-    .split('\n')
-    .filter(Boolean)
-    .map(line => JSON.parse(line) as Evidence);
-}
-
-async function assertUnavailable(root: string, options: Options) {
-  let result: Awaited<ReturnType<typeof evaluateVerification>>;
-  try {
-    result = await evaluateVerification(root, options);
-  } catch (error) {
-    assert(error instanceof Error);
-    return;
-  }
-  assertNotEquals(result.phase, 'VERIFIED');
-}
-
-void test('workflow verification: actual check creates reusable evidence for the exact code', async () => {
-  await repository(passing, async (root, options) => {
-    const initial = await evaluateVerification(root, options);
-    assertEquals(initial.phase, 'IMPLEMENT');
-    assertEquals(initial.latest, null);
-    const result = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(result.phase, 'VERIFIED');
-    assertEquals(result.consecutive_failures, 0);
-    assert(result.latest);
-    assertEquals(result.latest.event, 'FINISHED');
-    assertEquals(result.latest.exit_code, 0);
-    assertEquals(result.latest.before, result.latest.after);
-    assert(result.latest.log_hash);
-    const evidence = await records(result.evidence_path);
-    assertEquals(
-      evidence.map(item => item.event),
-      ['STARTED', 'FINISHED'],
-    );
-    assertEquals(evidence[0].context.node_version, process.version);
-    assertEquals((await evaluateVerification(root, options)).phase, 'VERIFIED');
-    await writeFile(join(root, 'src/value.ts'), 'export const value = 2;\n');
-    assertNotEquals(
-      (await evaluateVerification(root, options)).phase,
-      'VERIFIED',
-    );
+void test('workflow verification: current Turbo summary and child exit both pass', async () => {
+  const result = await run(0, {
+    version: '1',
+    execution: {failed: 0, exitCode: 0},
   });
+  assertEquals(result.phase, 'VERIFIED');
+  assertEquals(result.instructions, []);
 });
 
-void test('workflow verification: failures accumulate across repairs within the same task', async () => {
-  await repository('process.exitCode = 1;', async (root, options) => {
-    const first = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(first.phase, 'REPAIR');
-    assertEquals(first.consecutive_failures, 1);
-    await writeFile(join(root, 'src/value.ts'), 'export const value = 2;\n');
-    const second = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(second.phase, 'REVIEW');
-    assertEquals(second.consecutive_failures, 2);
-    assertEquals(
-      (await evaluateVerification(root, options)).consecutive_failures,
-      2,
-    );
-    const other = await evaluateVerification(root, {
-      ...options,
-      taskId: 'other-task',
-    });
-    assertEquals(other.phase, 'IMPLEMENT');
-    assertEquals(other.consecutive_failures, 0);
-    await writeFile(join(root, 'fixture-check.ts'), passing);
-    const repaired = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(repaired.phase, 'VERIFIED');
-    assertEquals(repaired.consecutive_failures, 0);
-    await writeFile(join(root, 'fixture-check.ts'), 'process.exitCode = 1;');
-    const failedAgain = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(failedAgain.phase, 'REPAIR');
-    assertEquals(failedAgain.consecutive_failures, 1);
+void test('workflow verification: child failure cannot pass a successful summary', async () => {
+  const result = await run(1, {
+    version: '1',
+    execution: {failed: 0, exitCode: 0},
   });
+  assertEquals(result.phase, 'FAILED');
 });
 
-void test('workflow verification: task, plan and resolved baseline keep evidence separate', async () => {
-  await repository(passing, async (root, options) => {
-    await git(
-      root,
-      'commit',
-      '--quiet',
-      '--allow-empty',
-      '-m',
-      'Second baseline',
-    );
-    const newer = await git(root, 'rev-parse', 'HEAD');
-    assertEquals(
-      (await evaluateVerification(root, {...options, verify: true})).phase,
-      'VERIFIED',
-    );
-    for (const changed of [
-      {...options, taskId: 'other-task'},
-      {...options, plan: {tasks: [{id: 'part', files: ['src/value.ts']}]}},
-      {...options, base: newer},
-    ]) {
-      const result = await evaluateVerification(root, changed);
-      assertEquals(result.phase, 'IMPLEMENT');
-      assertEquals(result.latest, null);
-      assertEquals(result.consecutive_failures, 0);
-    }
-    assertEquals((await evaluateVerification(root, options)).phase, 'VERIFIED');
-  });
-});
-
-void test('workflow verification: exit zero cannot verify code changed during the check', async () => {
-  await repository(
-    "import {writeFile} from 'node:fs/promises';\nawait writeFile('src/value.ts', 'export const value = 2;\\n');",
-    async (root, options) => {
-      const result = await evaluateVerification(root, {
-        ...options,
-        verify: true,
-      });
-      assertNotEquals(result.phase, 'VERIFIED');
-      assert(result.latest);
-      assertEquals(result.latest.exit_code, 0);
-      assertNotEquals(result.latest.before, result.latest.after);
-      assertNotEquals(
-        (await evaluateVerification(root, options)).phase,
-        'VERIFIED',
-      );
-    },
-  );
-});
-
-void test('workflow verification: altered or missing logs cannot reuse a previous successful result', async () => {
-  await repository(passing, async (root, options) => {
-    const result = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(result.phase, 'VERIFIED');
-    assert(result.latest);
-    await writeFile(result.latest.log_path, 'altered output\n');
-    await assertUnavailable(root, options);
-    await rm(result.latest.log_path);
-    await assertUnavailable(root, options);
-  });
-});
-
-void test('workflow verification: malformed or invalid evidence fails closed', async () => {
-  for (const damaged of [
-    'not-json\n',
-    '{"event":"FINISHED","exit_code":0}\n',
-  ]) {
-    await repository(passing, async (root, options) => {
-      const result = await evaluateVerification(root, {
-        ...options,
-        verify: true,
-      });
-      assertEquals(result.phase, 'VERIFIED');
-      await writeFile(result.evidence_path, damaged, {flag: 'a'});
-      await assertUnavailable(root, options);
-    });
-  }
-});
-
-void test('workflow verification: Deno evidence is skipped but malformed Node evidence fails', async () => {
-  await repository(passing, async (root, options) => {
-    const result = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(result.phase, 'VERIFIED');
-    const [started] = await records(result.evidence_path);
-    const legacy = {
-      ...started,
-      run_id: crypto.randomUUID(),
-      context: {...started.context, deno_version: '2.0.0'},
-    };
-    delete (legacy.context as Record<string, unknown>).node_version;
-    await writeFile(result.evidence_path, `${JSON.stringify(legacy)}\n`, {
-      flag: 'a',
-    });
-    assertEquals((await evaluateVerification(root, options)).phase, 'VERIFIED');
-
-    const malformed = {
-      ...started,
-      run_id: crypto.randomUUID(),
-      context: {...started.context},
-    };
-    delete (malformed.context as Record<string, unknown>).node_version;
-    await writeFile(result.evidence_path, `${JSON.stringify(malformed)}\n`, {
-      flag: 'a',
-    });
-    await assertRejects(
-      () => evaluateVerification(root, options),
-      Error,
-      'Invalid workflow evidence:',
-    );
-  });
-});
-
-void test('workflow verification: an interrupted run supersedes older successful evidence', async () => {
-  await repository(passing, async (root, options) => {
-    const result = await evaluateVerification(root, {
-      ...options,
-      verify: true,
-    });
-    assertEquals(result.phase, 'VERIFIED');
-    const [started] = await records(result.evidence_path);
-    assertEquals(started.event, 'STARTED');
-    const interrupted = {
-      ...started,
-      run_id: crypto.randomUUID(),
-      started_at: new Date().toISOString(),
-    };
-    await writeFile(result.evidence_path, `${JSON.stringify(interrupted)}\n`, {
-      flag: 'a',
-    });
-    await assertUnavailable(root, options);
-  });
-});
-
-void test('workflow verification: concurrent checks serialize their execution and evidence', async () => {
-  await repository(
-    [
-      "import {open, rm} from 'node:fs/promises';",
-      "const file = await open('.git/check-running', 'wx');",
-      'try {',
-      '  await new Promise(resolve => setTimeout(resolve, 40));',
-      "  console.log('serialized check');",
-      '} finally {',
-      '  await file.close();',
-      "  await rm('.git/check-running');",
-      '}',
-    ].join('\n'),
-    async (root, options) => {
-      const results = await Promise.all([
-        evaluateVerification(root, {...options, verify: true}),
-        evaluateVerification(root, {...options, verify: true}),
-      ]);
-      assertEquals(
-        results.map(result => result.phase),
-        ['VERIFIED', 'VERIFIED'],
-      );
-      const evidence = await records(results[0].evidence_path);
-      assertEquals(
-        evidence.map(item => item.event),
-        ['STARTED', 'FINISHED', 'STARTED', 'FINISHED'],
-      );
-      assertEquals(evidence[0].run_id, evidence[1].run_id);
-      assertEquals(evidence[2].run_id, evidence[3].run_id);
-      assertNotEquals(evidence[0].run_id, evidence[2].run_id);
-    },
+void test('workflow verification: failed tasks, exit status and unsupported summaries fail closed', async () => {
+  for (const summary of [
+    {version: '1', execution: {failed: 1, exitCode: 1}},
+    {version: '2', execution: {failed: 0, exitCode: 0}},
+    {version: '1', execution: null},
+    'not-json',
+  ])
+    assertEquals((await run(0, summary)).phase, 'FAILED');
+  assertEquals((await run(0, undefined)).phase, 'FAILED');
+  assertEquals(
+    (
+      await run(
+        0,
+        {
+          version: '1',
+          execution: {failed: 0, exitCode: 0},
+        },
+        false,
+      )
+    ).phase,
+    'FAILED',
   );
 });

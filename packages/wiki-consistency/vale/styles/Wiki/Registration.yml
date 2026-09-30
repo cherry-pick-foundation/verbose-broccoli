@@ -1,0 +1,7 @@
+extends: existence
+message: "page rule id-number: pages hold no resident or foreign registration numbers"
+level: error
+scope: raw
+vocab: false
+raw:
+  - '(?<![0-9])[0-9]{6}-?[1-8][0-9]{6}(?![0-9])'

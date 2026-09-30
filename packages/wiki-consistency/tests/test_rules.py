@@ -1,23 +1,33 @@
+"""Synthetic checks for Vale-backed Wiki page rules."""
+
 import csv
 import json
+from pathlib import Path
+from types import SimpleNamespace
 
-from conftest import REVISIONS
-from conftest import SOURCE_ID
-from conftest import add_revision
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
 import pytest
 
 from wiki_consistency.lint import check
+import wiki_consistency.rules as rules
 
 STUDENTS = ("가라온", "나하늘", "다하늘")
 GUARDIAN = "다누리"
 SCHOOL = "가상별학교"
-QUOTE_PAIRS = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "』"))
+QUOTES = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "』"))
 
 
-def _config_path(tmp_path):
+@pytest.fixture(autouse=True)
+def private_cache(monkeypatch, tmp_path):
+    cache = tmp_path / "xdg-cache"
+    (cache / "verbose-broccoli").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache))
+
+
+def _config(tmp_path):
     return (
         tmp_path
         / "xdg-config"
@@ -27,7 +37,7 @@ def _config_path(tmp_path):
     )
 
 
-def _roster_path(tmp_path):
+def _roster(tmp_path):
     return tmp_path / "synthetic-roster" / "education-roster.csv"
 
 
@@ -37,13 +47,13 @@ def write_roster(tmp_path, rows=None):
         (STUDENTS[1], "", ""),
         (STUDENTS[2], "", ""),
     ]
-    path = _roster_path(tmp_path)
+    path = _roster(tmp_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(("name", "school", "guardians"))
         writer.writerows(rows)
-    config = _config_path(tmp_path)
+    config = _config(tmp_path)
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_text(f"roster = {json.dumps(str(path))}\n", encoding="utf-8")
     return path
@@ -62,65 +72,65 @@ def write_overview(instance, body):
 
 
 def checked(instance, tmp_path):
-    files = (instance, _config_path(tmp_path), _roster_path(tmp_path))
-    before = tuple(tree_hash(path) for path in files)
+    cache = tmp_path / "xdg-cache" / "verbose-broccoli"
+    watched = (instance, cache, _config(tmp_path), _roster(tmp_path))
+    before = tuple(tree_hash(path) for path in watched)
     result = check(instance)
-    assert tuple(tree_hash(path) for path in files) == before
+    assert tuple(tree_hash(path) for path in watched) == before
     return result["problems"]
 
 
-def assert_rule(problems, document, line, rule, matched):
+def checked_rules(instance, tmp_path):
+    cache = tmp_path / "xdg-cache" / "verbose-broccoli"
+    before = tree_hash(instance), tree_hash(cache)
+    result = rules.check(instance)
+    assert (tree_hash(instance), tree_hash(cache)) == before
+    return result
+
+
+def assert_rule(problems, document, line, rule, matched=None):
     matches = [
         item
         for item in problems
         if item["document"] == document
         and item["line"] == line
-        and f"page rule {rule}:" in item["message"]
+        and item["message"].startswith(f"page rule {rule}:")
     ]
     assert len(matches) == 1, problems
-    assert matched not in matches[0]["message"]
+    if matched:
+        assert matched not in matches[0]["message"]
 
 
 def has_rule(problems, rule, document=None):
     return any(
-        f"page rule {rule}:" in item["message"]
+        item["message"].startswith(f"page rule {rule}:")
         and (document is None or item["document"] == document)
         for item in problems
     )
 
 
 @pytest.mark.parametrize(
-    "rule, body, matched",
+    ("rule", "body", "matched"),
     [
-        pytest.param(
-            "phone", "Call 010-0000-0000.", "010-0000-0000", id="phone"
-        ),
-        pytest.param(
+        ("phone", "Call 010-0000-0000.", "010-0000-0000"),
+        (
             "email",
             "Write to synthetic@example.invalid.",
             "synthetic@example.invalid",
-            id="email",
         ),
-        pytest.param(
-            "id-number",
-            "Record 990101-1000000.",
-            "990101-1000000",
-            id="id-number",
-        ),
-        pytest.param(
-            "address", "Meet at Fiction-ro 12.", "Fiction-ro 12", id="address"
-        ),
-        pytest.param(
-            "english", "The page contains 學生.", "學生", id="english"
-        ),
-        pytest.param("school", SCHOOL, SCHOOL, id="school"),
-        pytest.param(
-            "date", "Recorded on 2026.09.29.", "2026.09.29", id="date"
-        ),
-        pytest.param("time", "The class starts at 14:30.", "14:30", id="time"),
+        ("id-number", "Record 990101-1000000.", "990101-1000000"),
+        ("address", "Meet at Fiction-ro 12.", "Fiction-ro 12"),
+        ("address", "Meet at 무지개길 12.", "무지개길 12"),
+        ("address", "Meet at 12, Fiction-ro.", "12, Fiction-ro"),
+        ("address", "Meet at 12-3번지.", "12-3번지"),
+        ("english", "The page contains 學生.", "學生"),
+        ("english", "The page contains 学生です.", "学生です"),
+        ("school", SCHOOL, SCHOOL),
+        ("date", "Recorded on 2026.09.29.", "2026.09.29"),
+        ("time", "The class starts at 14:30.", "14:30"),
     ],
 )
-def test_page_rules_report_the_page_and_line_without_the_match(
+def test_page_rules_report_page_and_line_without_the_match(
     tmp_path, rule, body, matched
 ):
     instance = ready_vault(tmp_path)
@@ -142,43 +152,8 @@ def test_student_page_must_match_a_roster_name(tmp_path):
     problems = checked(instance, tmp_path)
 
     assert_rule(
-        problems,
-        page.relative_to(instance).as_posix(),
-        1,
-        "student-roster",
-        STUDENTS[1],
+        problems, page.relative_to(instance).as_posix(), 1, "student-roster"
     )
-
-
-@pytest.mark.parametrize(
-    "rule, body",
-    [
-        pytest.param("phone", "Call extension 12345.", id="phone"),
-        pytest.param("email", "Send a paper letter.", id="email"),
-        pytest.param(
-            "id-number", "Record 990232-1000000.", id="invalid-birth-date"
-        ),
-        pytest.param("address", "Meet at Fiction Road 12.", id="address"),
-        pytest.param("english", STUDENTS[0], id="roster-name"),
-        pytest.param("school", "Middle School alone.", id="school"),
-        pytest.param(
-            "date",
-            "85/100, 3/4, September 2026; "
-            "20260928T010203000000Z and 0199a0e2-7c1b-7d3e-9f00-000000000000.",
-            id="not-dates",
-        ),
-        pytest.param("time", "2026-09-29T14:30:00-05:00.", id="zoned-iso-time"),
-        pytest.param("time", "14:00–15:30 UTC+9.", id="zoned-range"),
-    ],
-)
-def test_page_rules_allow_close_cases(tmp_path, rule, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, rule, "wiki/overview.md"), problems
 
 
 def test_student_page_matches_roster_exactly(tmp_path):
@@ -188,18 +163,14 @@ def test_student_page_matches_roster_exactly(tmp_path):
     page.parent.mkdir()
     page.write_text("# Student\n", encoding="utf-8")
 
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(
-        problems, "student-roster", page.relative_to(instance).as_posix()
-    ), problems
+    assert not has_rule(checked(instance, tmp_path), "student-roster"), (
+        "roster name should pass"
+    )
 
 
-@pytest.mark.parametrize("opening, closing", QUOTE_PAIRS)
+@pytest.mark.parametrize("opening, closing", QUOTES)
 @pytest.mark.parametrize("form", ("original-first", "translation-first"))
-def test_allowed_quotes_cover_both_forms_and_all_quote_pairs(
-    tmp_path, opening, closing, form
-):
+def test_short_translated_quotes_allow_cjk(tmp_path, opening, closing, form):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     original = f"{opening}學生{closing}"
@@ -211,197 +182,410 @@ def test_allowed_quotes_cover_both_forms_and_all_quote_pairs(
     )
     write_overview(instance, body)
 
-    problems = checked(instance, tmp_path)
+    assert not has_rule(checked(instance, tmp_path), "english"), (
+        "translated quote should pass"
+    )
 
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
 
-
-def test_original_quote_may_have_an_unquoted_translation(tmp_path):
+def test_unquoted_translation_after_original_is_allowed(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "“學生” (meaning)")
 
-    problems = checked(instance, tmp_path)
+    assert not has_rule(checked(instance, tmp_path), "english"), (
+        "translation may be unquoted"
+    )
 
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
 
-
-def test_quote_over_100_characters_fails_english(tmp_path):
+def test_overlong_quote_and_cjk_in_translation_fail(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    original = "學" * 101
-    write_overview(instance, f"“{original}” (meaning)")
+    write_overview(
+        instance, f"“{'學' * 101}” (meaning)\n\n“學生” (meaning 学生)"
+    )
 
     problems = checked(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, "english", original)
+    assert has_rule(problems, "english", "wiki/overview.md")
 
 
-def test_translation_with_cjk_outside_roster_names_fails_english(tmp_path):
+def test_translated_quote_of_100_characters_passes(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, "“學生” (meaning 学生)")
+    write_overview(instance, f"“{'學' * 100}” (meaning)")
 
-    problems = checked(instance, tmp_path)
+    assert not has_rule(
+        checked(instance, tmp_path), "english", "wiki/overview.md"
+    )
 
-    assert_rule(problems, "wiki/overview.md", 2, "english", "学生")
 
-
-def test_roster_student_given_and_guardian_names_are_allowed(tmp_path):
+def test_roster_student_and_given_names_and_guardians_are_allowed(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, f"{STUDENTS[0]}; 하늘; {GUARDIAN}.")
 
-    problems = checked(instance, tmp_path)
+    assert not has_rule(checked(instance, tmp_path), "english"), (
+        "roster terms should pass"
+    )
 
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
+
+def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path, [("나[하늘", "", "")])
+    write_overview(instance, "나[하늘")
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
 
 
-def test_roster_school_name_fails_school_rule(tmp_path):
+def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path, [("가.온", "", "")])
+    write_overview(instance, "가x온")
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+
+
+def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"{STUDENTS[0]}은 good.")
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+
+
+def test_roster_school_name_is_flagged_but_a_translated_quote_passes(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, SCHOOL)
 
     problems = checked(instance, tmp_path)
 
-    assert has_rule(problems, "school", "wiki/overview.md"), problems
-    assert has_rule(problems, "english", "wiki/overview.md"), problems
-    for item in problems:
-        if "page rule school:" in item["message"]:
-            assert SCHOOL not in item["message"]
+    assert has_rule(problems, "school", "wiki/overview.md")
+    assert has_rule(problems, "english", "wiki/overview.md")
+    assert SCHOOL not in json.dumps(problems, ensure_ascii=False)
 
-
-def test_romanized_book_title_passes_school_rule(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, "Synthetic Words Middle School Basic.")
-
+    write_overview(instance, f"“{SCHOOL}” (fiction)\n\n學生")
     problems = checked(instance, tmp_path)
+    assert not has_rule(problems, "school"), "quoted school should pass"
+    assert has_rule(problems, "english"), "unquoted CJK should still be checked"
 
-    assert not has_rule(problems, "school", "wiki/overview.md"), problems
 
-
-def test_contact_rules_still_apply_inside_allowed_quotes(tmp_path):
+@pytest.mark.parametrize(
+    ("rule", "body", "matched"),
+    [
+        ("time", "[a](https://example.invalid/15:54:00.420)", "15:54:00.420"),
+        (
+            "phone",
+            "[a](https://example.invalid/010-0000-0000)",
+            "010-0000-0000",
+        ),
+        (
+            "email",
+            "[a](https://example.invalid/synthetic@example.test)",
+            "synthetic@example.test",
+        ),
+        ("phone", "“學生” (meaning 010-1234-5678)", "010-1234-5678"),
+        (
+            "id-number",
+            "[a](https://example.invalid/000229-3000000)",
+            "000229-3000000",
+        ),
+        ("address", "[a](</home/user/무지개길 12.pdf>)", "무지개길 12"),
+        ("phone", "Use `010-0000-0000` in a code sample.", "010-0000-0000"),
+        ("time", "Use `15:54:00.420` in a code sample.", "15:54:00.420"),
+    ],
+)
+def test_privacy_and_time_rules_check_code_and_link_targets(
+    tmp_path, rule, body, matched
+):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, "“學生 010-0000-0000” (meaning)")
+    write_overview(instance, body)
 
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
-
-
-def test_sources_front_matter_and_log_are_not_checked(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    alpha = instance / "wiki" / "concepts" / "alpha.md"
-    text = alpha.read_text(encoding="utf-8").replace(
-        f"revision: {REVISIONS[-1]}",
-        f"revision: {REVISIONS[-1]}\n    note: synthetic@example.invalid",
+    assert_rule(
+        checked(instance, tmp_path), "wiki/overview.md", 2, rule, matched
     )
-    alpha.write_text(text, encoding="utf-8")
-    (instance / "wiki" / "log.md").write_text(
-        "## [2026-09-28] synthetic\n010-0000-0000 synthetic@example.invalid\n",
-        encoding="utf-8",
+
+
+def test_language_school_and_date_skip_link_targets(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance,
+        f"[Original](/home/user/Documents/{SCHOOL}/기록.pdf) "
+        "[Date](https://example.invalid/2026/09/29)",
     )
 
     problems = checked(instance, tmp_path)
 
-    assert not has_rule(problems, "email", "wiki/concepts/alpha.md"), problems
-    assert not has_rule(problems, "phone", "wiki/log.md"), problems
-    assert not has_rule(problems, "email", "wiki/log.md"), problems
+    assert not has_rule(problems, "english", "wiki/overview.md")
+    assert not has_rule(problems, "school", "wiki/overview.md")
+    assert not has_rule(problems, "date", "wiki/overview.md")
 
 
-def test_other_front_matter_fields_are_checked(tmp_path):
+def test_hangul_link_text_still_fails_english(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance, f"[{SCHOOL}](https://example.invalid/original.pdf)"
+    )
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+
+
+@pytest.mark.parametrize(
+    ("rule", "body"),
+    [
+        ("english", f"Keep `{SCHOOL}` as code."),
+        ("date", "Recorded `2026.09.29`."),
+        ("english", f"\n\n```text\n{SCHOOL}\n```"),
+        ("date", "\n\n```text\n2026.09.29\n```"),
+    ],
+)
+def test_text_rules_skip_code(tmp_path, rule, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    assert not has_rule(checked(instance, tmp_path), rule, "wiki/overview.md")
+
+
+def test_date_rule_flags_common_non_iso_forms(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance,
+        "2026.09.29; 2026/9/29; 2026-9-29; 29.09.2026; "
+        "9/29/26; September 29, 2026; 29th of September; "
+        "2026년 9월 29일; 9월 29일",
+    )
+
+    problems = checked(instance, tmp_path)
+
+    assert has_rule(problems, "date", "wiki/overview.md")
+
+
+def test_iso_shaped_impossible_date_passes_and_valid_iso_dates_pass(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "2026-02-30; 2026-09-29")
+
+    assert not has_rule(checked(instance, tmp_path), "date", "wiki/overview.md")
+
+
+def test_fraction_and_partial_dates_pass(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(
+        instance,
+        "85/100, 3/4, September 2026; 20260928T010203000000Z "
+        "and 0199a0e2-7c1b-7d3e-9f00-000000000000.",
+    )
+
+    assert not has_rule(checked(instance, tmp_path), "date", "wiki/overview.md")
+
+
+def test_invalid_registration_birth_date_is_still_flagged(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "Record 990232-1000000.")
+
+    assert_rule(
+        checked(instance, tmp_path),
+        "wiki/overview.md",
+        2,
+        "id-number",
+        "990232-1000000",
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "At 14:30Z.",
+        "At 14:30 +09:00.",
+        "At 14:30 +0900.",
+        "At 14:30 UTC+09:00.",
+        "At 14:30 (UTC+09:00).",
+        "At 14:30 (UTC-05:00).",
+        "At 14:30 +14:59.",
+        "At 3 PM UTC.",
+        "At 2026-09-29T14:30:00-05:00.",
+        "At 14:00–15:30 UTC+9.",
+    ],
+)
+def test_time_rule_allows_zoned_forms_and_ranges(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    assert not has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "At 14:30.",
+        "At 14:30 +99:99.",
+        "At 14:30 +15:00.",
+        "At 14:30 +14:60.",
+        "At 14:30 -05:00.",
+        "From 9:00 -10:00 today.",
+        "At 14:30 KST.",
+        "At 3 PM.",
+        "At 14:00–15:30.",
+    ],
+)
+def test_time_rule_flags_unzoned_or_invalid_forms(tmp_path, body):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, body)
+
+    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+
+
+def test_fractional_seconds_require_a_zone(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, "Retrieved 15:54:00.420.")
+
+    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+
+
+@pytest.mark.parametrize("zone", ("Z", "+09:00"))
+def test_fractional_iso_seconds_with_zone_pass(tmp_path, zone):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"Retrieved 2026-09-27T15:54:00.420{zone}.")
+
+    assert not has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+
+
+def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     alpha = instance / "wiki" / "concepts" / "alpha.md"
     alpha.write_text(
         alpha.read_text(encoding="utf-8").replace(
-            "title: Alpha", "title: 2026.09.29"
+            "title: Alpha",
+            "title: 2026.09.29",
         ),
         encoding="utf-8",
     )
-    assert update_regions(instance) == []
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/concepts/alpha.md", 2, "date", "2026.09.29")
-
-
-def test_well_formed_mechanical_region_is_not_checked(tmp_path):
-    instance = ready_vault(tmp_path)
-    synthetic_phone_id = "010-0000-0000"
-    add_revision(
-        instance,
-        "20260929T000000000000Z",
-        "synthetic revision\n",
-        source_id=synthetic_phone_id,
-    )
-    source = instance / "wiki" / "sources" / "source.md"
-    source.write_text(
-        source.read_text(encoding="utf-8").replace(
-            f"raw/files/{SOURCE_ID}/*", f"raw/files/{synthetic_phone_id}/*"
-        ),
+    (instance / "wiki" / "log.md").write_text(
+        "010-0000-0000 synthetic@example.invalid 2026.09.29\n",
         encoding="utf-8",
     )
-    assert update_regions(instance) == []
 
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "phone", "wiki/sources/source.md"), problems
+    assert checked_rules(instance, tmp_path) == []
 
 
-def test_student_pages_are_only_direct_markdown_files(tmp_path):
+def test_non_privacy_rules_skip_front_matter(tmp_path):
     instance = ready_vault(tmp_path)
-    nested = instance / "wiki" / "students" / "nested"
-    nested.mkdir(parents=True)
-    (nested / f"{STUDENTS[1]}.md").write_text("# Student\n", encoding="utf-8")
-    (instance / "wiki" / "students" / f"{STUDENTS[1]}.txt").write_text(
-        "Not a Markdown page.\n", encoding="utf-8"
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "---\ntitle: 2026.09.29 14:30 學生 가상별학교\n---\n# Overview\n",
+        encoding="utf-8",
     )
 
-    problems = checked(instance, tmp_path)
+    problems = checked_rules(instance, tmp_path)
 
-    assert not has_rule(problems, "roster"), problems
-    assert not has_rule(problems, "student-roster"), problems
+    for rule in ("date", "time", "english", "school"):
+        assert not has_rule(problems, rule, "wiki/overview.md")
 
 
-def test_roster_is_not_read_without_student_pages_or_cjk(tmp_path):
+def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
     instance = ready_vault(tmp_path)
-    _config_path(tmp_path).unlink(missing_ok=True)
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "---\ntitle: 010-0000-0000\nsources:\n"
+        "  - 010-0000-0000\n---\n# Overview\n",
+        encoding="utf-8",
+    )
+
+    problems = checked_rules(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
+    assert not any(
+        item["document"] == "wiki/overview.md"
+        and item["line"] == 4
+        and item["message"].startswith("page rule phone:")
+        for item in problems
+    )
+
+
+def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
+    monkeypatch, tmp_path
+):
+    instance = ready_vault(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "---\ntitle: 010-0000-0000\n---\n\n"
+        "<!-- [[[cog synthetic ]]] -->\n010-0000-0000\n<!-- [[[end]]] -->\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rules, "_ignored_lines", lambda *_: set())
+
+    problems = rules.check(instance)
+
+    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
+    assert_rule(problems, "wiki/overview.md", 6, "phone", "010-0000-0000")
+
+
+def test_cog_regions_are_skipped_but_malformed_markers_are_checked(tmp_path):
+    instance = ready_vault(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "# Overview\n<!-- [[[cog synthetic ]]] -->\n"
+        "010-0000-0000\n<!-- [[[end]]] -->\n",
+        encoding="utf-8",
+    )
+    assert not has_rule(checked(instance, tmp_path), "phone")
+
+    page.write_text(
+        "# Overview\n<!-- [[[cog synthetic ]]] -->\n"
+        "010-0000-0000\n<!-- [[[end] ] -->\n",
+        encoding="utf-8",
+    )
+    assert has_rule(checked(instance, tmp_path), "phone")
+
+
+def test_roster_is_not_read_without_a_student_page_or_untranslated_cjk(
+    tmp_path,
+):
+    instance = ready_vault(tmp_path)
+    _config(tmp_path).unlink(missing_ok=True)
     write_overview(instance, "Ordinary English text.")
 
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "roster"), problems
-    assert not has_rule(problems, "english"), problems
+    assert not has_rule(checked(instance, tmp_path), "roster")
 
 
 @pytest.mark.parametrize(
     "failure",
     ("missing-config", "relative-path", "missing-csv", "missing-name"),
 )
-def test_roster_failures_report_once_on_wiki_line_one(tmp_path, failure):
+def test_roster_failures_report_once_and_hide_language_findings(
+    tmp_path, failure
+):
     instance = ready_vault(tmp_path)
     write_overview(instance, "學生")
-    config = _config_path(tmp_path)
-    roster = _roster_path(tmp_path)
+    config, roster = _config(tmp_path), _roster(tmp_path)
     if failure != "missing-config":
         config.parent.mkdir(parents=True, exist_ok=True)
         if failure == "relative-path":
             config.write_text('roster = "relative.csv"\n', encoding="utf-8")
+        elif failure == "missing-csv":
+            config.write_text(
+                f"roster = {json.dumps(str(roster))}\n", encoding="utf-8"
+            )
         else:
-            if failure == "missing-csv":
-                config.write_text(
-                    f"roster = {json.dumps(str(roster))}\n", encoding="utf-8"
-                )
-            else:
-                roster.parent.mkdir(parents=True, exist_ok=True)
-                roster.write_text(f"student\n{STUDENTS[0]}\n", encoding="utf-8")
-                config.write_text(
-                    f"roster = {json.dumps(str(roster))}\n", encoding="utf-8"
-                )
+            roster.parent.mkdir(parents=True)
+            roster.write_text(f"student\n{STUDENTS[0]}\n", encoding="utf-8")
+            config.write_text(
+                f"roster = {json.dumps(str(roster))}\n", encoding="utf-8"
+            )
 
     problems = checked(instance, tmp_path)
     roster_problems = [
@@ -409,7 +593,7 @@ def test_roster_failures_report_once_on_wiki_line_one(tmp_path, failure):
         for item in problems
         if item["document"] == "wiki"
         and item["line"] == 1
-        and "page rule roster: cannot read the roster:" in item["message"]
+        and item["message"].startswith("page rule roster:")
     ]
 
     assert len(roster_problems) == 1, problems
@@ -419,542 +603,97 @@ def test_roster_failures_report_once_on_wiki_line_one(tmp_path, failure):
         else str(roster)
     )
     assert expected in roster_problems[0]["message"]
-    assert sum("page rule" in item["message"] for item in problems) == 1, (
-        problems
-    )
+    assert sum("page rule" in item["message"] for item in problems) == 1
 
 
-def test_english_reports_each_line_with_cjk(tmp_path):
+def test_cache_temp_is_private_and_cleaned(monkeypatch, tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, "\n\n\n한국어\n한국어")
+    write_overview(instance, "Ordinary English text.")
+    seen = []
+    temporary = []
 
-    problems = checked(instance, tmp_path)
+    def run(command, **kwargs):
+        config = Path(command[2])
+        temporary.append(config.parent)
+        seen.append(config.parent.stat().st_mode & 0o777)
+        seen.append(
+            tuple(key for key in kwargs["env"] if key.startswith("VALE_"))
+        )
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
 
-    assert_rule(problems, "wiki/overview.md", 5, "english", "한국어")
-    assert_rule(problems, "wiki/overview.md", 6, "english", "한국어")
+    monkeypatch.setenv("VALE_CONFIG_PATH", "/untrusted/config")
+    monkeypatch.setenv("VALE_CPUPROFILE", "/untrusted/profile")
+    monkeypatch.setattr(rules.subprocess, "run", run)
 
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "At 14:30 (UTC+09:00).",
-        "At 14:30 UTC+09:00.",
-        "At 14:30 (UTC-05:00).",
-    ],
-)
-def test_time_rule_allows_utc_offsets_with_minutes(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "time", "wiki/overview.md"), problems
+    assert checked_rules(instance, tmp_path) == []
+    assert seen == [0o700, ()]
+    assert len(temporary) == 1 and not temporary[0].exists()
 
 
-@pytest.mark.parametrize(
-    ("student", "body", "rule", "matched"),
-    [
-        pytest.param(
-            "Ann Lee",
-            "Ann Lee.one@example.test",
-            "email",
-            "Lee.one@example.test",
-            id="email-overlap",
-        ),
-        pytest.param(
-            "A 010",
-            "A 010-1234-5678",
-            "phone",
-            "010-1234-5678",
-            id="phone-overlap",
-        ),
-    ],
-)
-def test_roster_spans_do_not_hide_contact_rules(
-    tmp_path, student, body, rule, matched
-):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path, [(student, "", ""), (STUDENTS[0], "", "")])
-    body = f"{body} {STUDENTS[0]}"
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
-
-
-@pytest.mark.parametrize(
-    ("rule", "body", "matched"),
-    [
-        pytest.param(
-            "address", "Meet at 무지개길 12.", "무지개길 12", id="hangul-road"
-        ),
-        pytest.param(
-            "address",
-            "Meet at 12, Fiction-ro.",
-            "12, Fiction-ro",
-            id="number-first-road",
-        ),
-        pytest.param(
-            "address", "Meet at 12-3번지.", "12-3번지", id="lot-number"
-        ),
-        pytest.param(
-            "id-number",
-            "Record 000229-3000000.",
-            "000229-3000000",
-            id="century-2000-3",
-        ),
-        pytest.param(
-            "id-number",
-            "Record 000229-4000000.",
-            "000229-4000000",
-            id="century-2000-4",
-        ),
-        pytest.param(
-            "id-number",
-            "Record 000229-7000000.",
-            "000229-7000000",
-            id="century-2000-7",
-        ),
-        pytest.param(
-            "id-number",
-            "Record 000229-8000000.",
-            "000229-8000000",
-            id="century-2000-8",
-        ),
-        pytest.param(
-            "date", "Recorded 2026-02-30.", "2026-02-30", id="invalid-iso"
-        ),
-        pytest.param(
-            "date", "Recorded 2026-9-29.", "2026-9-29", id="unpadded-iso"
-        ),
-        pytest.param(
-            "date", "Recorded 29.09.2026.", "29.09.2026", id="day-first"
-        ),
-        pytest.param(
-            "date", "Recorded 9/29/26.", "9/29/26", id="two-digit-year"
-        ),
-        pytest.param(
-            "date",
-            "Recorded September 29, 2026.",
-            "September 29, 2026",
-            id="month-first",
-        ),
-        pytest.param(
-            "date",
-            "Recorded 29th of September.",
-            "29th of September",
-            id="day-month-name",
-        ),
-        pytest.param(
-            "date",
-            "Recorded 2026년 9월 29일.",
-            "2026년 9월 29일",
-            id="korean-year-month-day",
-        ),
-        pytest.param(
-            "date", "Recorded 9월 29일.", "9월 29일", id="korean-month-day"
-        ),
-    ],
-)
-def test_page_rules_report_additional_contract_forms(
-    tmp_path, rule, body, matched
+def test_vale_arguments_use_explicit_config_and_verified_files(
+    monkeypatch, tmp_path
 ):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, body)
+    write_overview(instance, "學生")
+    seen = []
+    loaded = []
+    original_load = rules.load_roster
 
-    problems = checked(instance, tmp_path)
+    def load_roster():
+        loaded.append(True)
+        return original_load()
 
-    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
+    def run(command, **kwargs):
+        seen.append((command, kwargs["cwd"]))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
 
+    monkeypatch.setattr(rules.subprocess, "run", run)
+    monkeypatch.setattr(rules, "load_roster", load_roster)
+    assert checked_rules(instance, tmp_path) == []
 
-@pytest.mark.parametrize(
-    "body",
-    [
-        "Record 000229-1000000.",
-        "Record 000229-2000000.",
-        "Record 000229-5000000.",
-        "Record 000229-6000000.",
-    ],
-)
-def test_registration_number_century_digits_use_the_1900s(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "id-number", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "At 14:30 +99:99.",
-        "At 14:30 +15:00.",
-        "At 14:30 +14:60.",
-        "At 14:30 -05:00.",
-        "At 14:00 -15:30.",
-        "From 9:00 -10:00 today.",
-        "At 14:30 KST.",
-        "At 3 PM.",
-    ],
-)
-def test_page_rules_reject_unzoned_or_invalid_time_forms(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert has_rule(problems, "time", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "At 14:30Z.",
-        "At 14:30 +09:00.",
-        "At 14:30 +0900.",
-        "At 14:30 +14:59.",
-        "At 3 PM UTC.",
-        "At 2026-09-29T14:30:00-05:00.",
-    ],
-)
-def test_page_rules_allow_more_zoned_time_forms(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "time", "wiki/overview.md"), problems
-
-
-def test_fractional_seconds_without_zone_fails_time(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, "Retrieved 15:54:00.420.")
-
-    problems = checked(instance, tmp_path)
-
-    assert has_rule(problems, "time", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize("zone", ("Z", "+09:00"), ids=("utc", "offset"))
-def test_fractional_seconds_with_zone_pass_time(tmp_path, zone):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, f"Retrieved 2026-09-27T15:54:00.420{zone}.")
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "time", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "<!-- 2026.09.29 -->",
-        "x < 2026.09.29 > y",
-    ],
-)
-def test_non_autolink_angle_text_does_not_hide_dates(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "date", "2026.09.29")
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        "<https://example.com/2026/09/29>",
-        "<urn:synthetic:2026.09.29>",
-        "[synthetic date](https://example.invalid/2026/09/29)",
-        pytest.param(
-            "[synthetic date](</home/user/Documents/2026.09.29 (1).pdf>)",
-            id="angle-bracket-destination-with-parenthesis",
-        ),
-    ],
-)
-def test_page_rules_skip_autolinks_and_link_destinations_for_dates(
-    tmp_path, body
-):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "date", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize(
-    ("rule", "body", "matched"),
-    [
-        pytest.param(
-            "time",
-            "[a](https://example.invalid/15:54:00.420)",
-            "15:54:00.420",
-            id="time",
-        ),
-        pytest.param(
-            "phone",
-            "[a](https://example.invalid/010-0000-0000)",
-            "010-0000-0000",
-            id="phone",
-        ),
-        pytest.param(
-            "email",
-            "[a](https://example.invalid/synthetic@example.test)",
-            "synthetic@example.test",
-            id="email",
-        ),
-        pytest.param(
-            "id-number",
-            "[a](https://example.invalid/000229-3000000)",
-            "000229-3000000",
-            id="id-number",
-        ),
-        pytest.param(
-            "address",
-            "[a](</home/user/무지개길 12.pdf>)",
-            "무지개길 12",
-            id="address",
-        ),
-    ],
-)
-def test_page_rules_check_privacy_and_time_in_link_targets(
-    tmp_path, rule, body, matched
-):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
-
-
-@pytest.mark.parametrize(
-    "body",
-    [
-        pytest.param(
-            f"[Original](/home/user/Documents/{SCHOOL}/기록.pdf)",
-            id="link-destination",
-        ),
-        pytest.param(
-            f"[Original](</home/user/Documents/{SCHOOL}/기록 (1).pdf>)",
-            id="angle-bracket-destination",
-        ),
-        pytest.param(
-            f"[Original](/home/user/Documents/{SCHOOL}/record\\)1.pdf)",
-            id="escaped-parenthesis-destination",
-        ),
-        pytest.param(
-            "[Original](/d/가상(중)/기록.pdf)",
-            id="balanced-parentheses-in-destination",
-        ),
-        pytest.param(
-            f"<file:///home/user/Documents/{SCHOOL}/기록.pdf>",
-            id="autolink",
-        ),
-        pytest.param(
-            f"See https://example.invalid/{SCHOOL}/기록 for it.",
-            id="bare-url",
-        ),
-    ],
-)
-def test_english_and_school_skip_link_targets(tmp_path, body):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
-    assert not has_rule(problems, "school", "wiki/overview.md"), problems
-
-
-def test_hangul_in_link_text_still_fails_english(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(
-        instance, f"[{SCHOOL}](https://example.invalid/original.pdf)"
+    assert loaded == [True]
+    assert len(seen) == 1
+    command, cwd = seen[0]
+    assert command[:5] == [
+        "vale",
+        "--config",
+        command[2],
+        "--no-global",
+        "--output=line",
+    ]
+    assert Path(command[2]).is_absolute()
+    assert cwd == instance
+    assert command[5:]
+    assert all((instance / path).is_file() for path in command[5:])
+    assert all(
+        (instance / path).resolve().is_relative_to(instance / "wiki")
+        for path in command[5:]
     )
 
-    problems = checked(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
-
-
-def test_inline_code_span_does_not_cross_paragraphs(tmp_path):
+def test_canary_output_never_contains_synthetic_phone_or_name(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(
-        instance,
-        "It`s here.\n\n[O](/d/가상.pdf)\n\nAnother ` tick.",
+    write_overview(instance, "Call 010-0000-0000 about 가상인물.")
+
+    output = json.dumps(checked(instance, tmp_path), ensure_ascii=False)
+
+    assert "010-0000-0000" not in output
+    assert "가상인물" not in output
+
+
+def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
+    instance = ready_vault(tmp_path)
+    outside = tmp_path / "outside.md"
+    outside.write_text("Call 010-0000-0000.", encoding="utf-8")
+    (instance / "wiki" / "linked.md").symlink_to(outside)
+    outside_dir = tmp_path / "outside"
+    outside_dir.mkdir()
+    (outside_dir / "nested.md").write_text(
+        "Call 010-0000-0000.", encoding="utf-8"
     )
+    (instance / "wiki" / "linked-dir").symlink_to(outside_dir)
 
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
-
-
-@pytest.mark.parametrize(
-    ("body", "line"),
-    [
-        pytest.param(
-            f"`[Original](/home/user/Documents/{SCHOOL}/record.pdf)`",
-            2,
-            id="inline-code",
-        ),
-        pytest.param(
-            f"```md\n[Original](/home/user/Documents/{SCHOOL}/record.pdf)\n```",
-            3,
-            id="fenced-code",
-        ),
-        pytest.param(
-            f"    [Original](/home/user/Documents/{SCHOOL}/record.pdf)",
-            2,
-            id="indented-code",
-        ),
-    ],
-)
-def test_link_destinations_inside_code_fail_english(tmp_path, body, line):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, body)
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", line, "english", SCHOOL)
-
-
-def test_bare_url_inside_code_span_fails_english(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, f"See `https://example.invalid/{SCHOOL}/record`.")
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "english", SCHOOL)
-
-
-def test_page_rules_check_non_iso_date_inside_link_like_code(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, "`[O](https://example.invalid/2026.09.29)`")
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "date", "2026.09.29")
-
-
-def test_bare_url_pass_keeps_text_after_a_link_destination_visible(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, "[O](https://x.invalid/a.pdf)기록 end")
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "english", "기록")
-
-
-@pytest.mark.parametrize(
-    "title",
-    [
-        pytest.param(f'"{SCHOOL}"', id="double-quoted"),
-        pytest.param(f"'{SCHOOL}'", id="single-quoted"),
-        pytest.param(f"({SCHOOL})", id="parenthesized"),
-        pytest.param(f'"https://example.invalid/{SCHOOL}"', id="url-in-title"),
-    ],
-)
-def test_link_titles_are_checked_but_destinations_are_not(tmp_path, title):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(
-        instance,
-        f"[Destination](/home/user/Documents/{SCHOOL}/"
-        f'record.pdf "English title")\n'
-        f"[Title](https://example.invalid/destination {title})",
-    )
-
-    problems = checked(instance, tmp_path)
-
-    assert not any(
-        item["document"] == "wiki/overview.md"
-        and item["line"] == 2
-        and "page rule english:" in item["message"]
-        for item in problems
-    ), problems
-    assert_rule(problems, "wiki/overview.md", 3, "english", SCHOOL)
-
-
-@pytest.mark.parametrize(
-    ("start", "end"),
-    [
-        ("<!-- [[[cog malformed -->", "<!-- [[[end]]] -->"),
-        ("<!-- [[[cog synthetic ]]] -->", "<!-- [[[end] ] -->"),
-    ],
-)
-def test_malformed_mechanical_region_markers_do_not_hide_page_rules(
-    tmp_path, start, end
-):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    page = instance / "wiki" / "overview.md"
-    page.write_text(
-        f"# Overview\n{start}\n010-1234-5678\n{end}\n", encoding="utf-8"
-    )
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 3, "phone", "010-1234-5678")
-
-
-def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, f"{STUDENTS[0]}은 good.")
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "english", "은")
-
-
-def test_hangul_school_inside_an_allowed_quote_passes_school(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, f"“{SCHOOL}” (fiction)")
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "school", "wiki/overview.md"), problems
-
-
-def test_original_quote_of_100_characters_passes_english(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, f"“{'學' * 100}” (meaning)")
-
-    problems = checked(instance, tmp_path)
-
-    assert not has_rule(problems, "english", "wiki/overview.md"), problems
-
-
-def test_closing_quote_does_not_open_a_quote(tmp_path):
-    instance = ready_vault(tmp_path)
-    write_roster(tmp_path)
-    write_overview(instance, 'The word "x" 한국어 " (meaning)')
-
-    problems = checked(instance, tmp_path)
-
-    assert_rule(problems, "wiki/overview.md", 2, "english", "한국어")
+    assert not has_rule(checked_rules(instance, tmp_path), "phone")

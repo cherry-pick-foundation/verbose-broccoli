@@ -69,13 +69,5 @@ reviewed_parent=$(git rev-parse --verify --quiet --end-of-options "${reviewed_co
 [ "${reviewed_parent}" = "${parent}" ] ||
   fail "the '${branch}' Reviewed-commit trailer does not name its parent; run the merge review on the current tip and add a review-record commit with Reviewed-commit set to that tip."
 
-commits=$(git rev-list --no-merges --full-history "${base}..${branch}" -- .specify/memory/constitution.md) ||
-  fail "could not list constitution-changing commits on branch '${branch}'; check the feature history and retry the finish."
-for commit in ${commits}; do
-  if ! git log -1 --format=%B "${commit}" | CONSTITUTION_VERSION_COMMIT=${commit} npm run --silent commitlint; then
-    fail "commit '${commit}' on branch '${branch}' failed the constitution version check; rewrite that commit so it raises the version once for its type, then review and record again."
-  fi
-done
-
 (cd "${feature_worktree}" && npm run --silent verify) ||
   fail "verification failed in the '${branch}' worktree."

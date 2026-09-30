@@ -12,7 +12,7 @@ import pytest
 
 from backfire import __main__ as entry
 from backfire import providers
-from backfire.providers import _ProfileProvider
+from backfire.providers import _OrderProvider
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY_POINTS = (
@@ -112,9 +112,6 @@ def test_stdio_lists_pymodel_tools_then_noul(tmp_path, entry, education):
 
 def test_serve_mcp_education_wraps_provider_and_disables_cache(monkeypatch):
     settings = Settings.model_construct(jev_judge_mcp_cache=True)
-    backend = type(
-        "StubProvider", (), {"name": "compatible", "label": "stub"}
-    )()
     profile = {
         "name": "synthetic-education",
         "api": "jev",
@@ -140,17 +137,8 @@ def test_serve_mcp_education_wraps_provider_and_disables_cache(monkeypatch):
     ):
         monkeypatch.setattr(entry.pymodel, name, no_op)
     monkeypatch.setattr(entry.os, "_exit", lambda _: None)
-    monkeypatch.setattr(providers, "load_profile", lambda **_: profile.copy())
-    monkeypatch.setattr(providers, "load_credential", lambda _: "synthetic-key")
-
-    def resolve_provider(*args, **kwargs):
-        del args, kwargs
-        return backend
-
     monkeypatch.setattr(
-        providers.pymodel,
-        "resolve_provider",
-        resolve_provider,
+        providers, "load_profiles", lambda **_: [profile.copy()]
     )
     observed = {}
 
@@ -164,6 +152,6 @@ def test_serve_mcp_education_wraps_provider_and_disables_cache(monkeypatch):
     entry.main()
 
     assert observed["cache"] is False
-    assert isinstance(observed["provider"], _ProfileProvider)
+    assert isinstance(observed["provider"], _OrderProvider)
     assert observed["provider"]._education is True
-    assert observed["provider"]._provider is backend
+    assert observed["provider"]._current is None

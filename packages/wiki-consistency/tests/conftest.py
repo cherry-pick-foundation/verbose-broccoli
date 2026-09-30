@@ -27,10 +27,12 @@ INDEX = (
 @pytest.fixture(autouse=True)
 def offline(monkeypatch, tmp_path):
     """Block network access, bytecode writes and user config in each test."""
+    real_socket = socket.socket
 
-    def blocked(*args, **kwargs):
-        del args, kwargs  # Unused.
-        raise AssertionError("network access is forbidden")
+    def blocked(family=socket.AF_INET, *args, **kwargs):
+        if family != socket.AF_UNIX:
+            raise AssertionError("network access is forbidden")
+        return real_socket(family, *args, **kwargs)
 
     monkeypatch.setattr(socket, "socket", blocked)
     monkeypatch.setenv("PYTHONDONTWRITEBYTECODE", "1")

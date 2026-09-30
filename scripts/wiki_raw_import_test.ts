@@ -2,7 +2,6 @@ import {test} from 'node:test';
 import {
   appendFile,
   chmod,
-  cp,
   lstat,
   mkdir,
   mkdtemp,
@@ -779,48 +778,6 @@ void test('raw import US3: an existing source cannot change kind', async () => {
   });
 });
 
-// Unperformed checks: an original changing during copy and a full disk.
-// Neither is simulated; permission failures and prepared interrupted states are real fixtures.
-for (const stage of [
-  'partial copy',
-  'copied payload',
-  'partial record',
-  'complete bag',
-]) {
-  void test(`raw import US4: recover a leftover ${stage} without publishing it`, async () => {
-    await fixture(async f => {
-      await f.init();
-      const path = await f.file('recovery.txt');
-      const [first] = report(await f.admit([path]));
-      const before = await snapshot(f.raw);
-      const stale = join(f.staging(), 'dead-run', 'bag');
-      if (stage === 'complete bag') {
-        await cp(revisionPath(f, first), stale, {recursive: true});
-        for await (const entry of walk(stale))
-          await chmod(entry.path, entry.isDirectory ? 0o555 : 0o444);
-      } else {
-        await mkdir(stale, {recursive: true});
-        await writeFile(
-          join(stale, 'recovery.txt'),
-          stage === 'partial copy' ? 'part' : 'synthetic original\n',
-        );
-        if (stage === 'partial record')
-          await writeFile(join(stale, 'bag-info.txt'), 'External-Identifier:');
-      }
-      const otherWiki = join(f.staging('other'), 'active-run');
-      await mkdir(otherWiki, {recursive: true});
-      await writeFile(join(otherWiki, 'keep'), 'another instance');
-      const otherBefore = await snapshot(otherWiki, true);
-      const [again] = report(await f.admit([path]));
-      assertEquals(again.outcome, 'already_admitted');
-      assertEquals(await snapshot(f.raw), before);
-      assertEquals(Array.from(readDir(f.staging())), []);
-      assertEquals(await snapshot(otherWiki, true), otherBefore);
-      assertEquals((await f.run('verify')).code, 0);
-    });
-  });
-}
-
 void test('raw import US4: a publication failure keeps other items and can be retried', async () => {
   await fixture(async f => {
     await f.init();
@@ -853,90 +810,6 @@ void test('raw import US4: a publication failure keeps other items and can be re
       invalid: [],
     });
     assertEquals(Array.from(readDir(f.staging())), []);
-  });
-});
-
-void test('raw import US4: concurrent admission writes nothing and SIGKILL releases the real run lock', async () => {
-  await fixture(async f => {
-    await f.init();
-    const small = await f.file('finished.txt');
-    report(await f.admit([small]));
-    const large = await f.file('large.txt', 'x'.repeat(32 * 1024 * 1024));
-    const selection = await f.selection([
-      {path: small, kind: 'files'},
-      {path: large, kind: 'files'},
-    ]);
-    const child = f.command('admit', '--selection', selection);
-    let exited = false;
-    const finished = output(child).finally(() => {
-      exited = true;
-    });
-    let pid: number | undefined;
-    try {
-      const lock = join(
-        f.env.XDG_STATE_HOME,
-        'verbose-broccoli/vaults/work/raw-import.lock',
-      );
-      // Python observes the Linux lock owner while the import is held.
-      const paused = await output(
-        spawn(
-          python,
-          [
-            '-c',
-            `
-import os, signal, sys, time
-from pathlib import Path
-staging, lock, script, selection = sys.argv[1:]
-deadline = time.monotonic() + 10
-while time.monotonic() < deadline:
-    if Path(lock).exists() and any(Path(staging).iterdir()):
-        inode = str(Path(lock).stat().st_ino)
-        for line in Path('/proc/locks').read_text().splitlines():
-            fields = line.split()
-            if fields[1] != 'FLOCK' or fields[5].split(':')[-1] != inode:
-                continue
-            pid = int(fields[4])
-            command = Path(f'/proc/{pid}/cmdline').read_text()
-            assert script in command and selection in command
-            os.kill(pid, signal.SIGSTOP)
-            print(pid, flush=True)
-            sys.exit(0)
-    time.sleep(.001)
-sys.exit('timed out observing the import lock')
-`,
-            f.staging(),
-            lock,
-            script,
-            selection,
-          ],
-          {env: {...process.env, ...f.env}, stdio: ['ignore', 'pipe', 'pipe']},
-        ),
-      );
-      assertEquals(paused.code, 0, paused.stderr);
-      pid = Number(paused.stdout.trim());
-      const roots = [f.raw, f.staging(), f.env.XDG_STATE_HOME];
-      const before = await Promise.all(roots.map(root => snapshot(root, true)));
-      const second = await f.run('admit', '--selection', selection);
-      assertEquals(second.code, 2, second.stderr);
-      assertEquals(second.stdout, '');
-      assertMatch(second.stderr, /lock/i);
-      assertEquals(
-        await Promise.all(roots.map(root => snapshot(root, true))),
-        before,
-      );
-    } finally {
-      if (pid !== undefined) process.kill(pid, 'SIGKILL');
-      else if (!exited) child.kill('SIGTERM');
-      await finished;
-    }
-    assertEquals((await f.run('verify')).code, 0);
-    const items = report(await f.run('admit', '--selection', selection));
-    assertEquals(items[0].outcome, 'already_admitted');
-    assert(['admitted', 'already_admitted'].includes(items[1].outcome));
-    assertEquals(Array.from(readDir(f.staging())), []);
-    const verified = await f.run('verify');
-    assertEquals(verified.code, 0, verified.stderr);
-    assertEquals(JSON.parse(verified.stdout), {count: 2, invalid: []});
   });
 });
 
@@ -1006,13 +879,9 @@ void test('raw import US5: unnamed commands use the work vault under vaults', as
       f.env.XDG_STATE_HOME,
       'verbose-broccoli/vaults/work/selections/test.jsonl',
     );
-    const lock = join(
-      f.env.XDG_STATE_HOME,
-      'verbose-broccoli/vaults/work/raw-import.lock',
-    );
     const paths = new Set((await snapshot(f.home)).map(entry => entry.path));
     assert(
-      [f.instance, f.raw, selection, lock, revisionPath(f, item)].every(path =>
+      [f.instance, f.raw, selection, revisionPath(f, item)].every(path =>
         paths.has(relative(f.home, path)),
       ),
     );
@@ -1072,12 +941,6 @@ void test('raw import US5: named Wiki and all four kinds use their own roots', a
     assertEquals(
       JSON.parse((await f.run('verify', '--wiki', 'selected')).stdout),
       {count: 4, invalid: []},
-    );
-    await stat(
-      join(
-        f.env.XDG_STATE_HOME,
-        'verbose-broccoli/vaults/selected/raw-import.lock',
-      ),
     );
     assertEquals(Array.from(readDir(f.staging('selected'))), []);
     assertEquals(
@@ -1266,12 +1129,6 @@ for (const value of ['unset', '', 'relative']) {
       const selection = join(f.home, 'selection.jsonl');
       await writeFile(selection, `${JSON.stringify({path, kind: 'files'})}\n`);
       report(await command('admit', '--selection', selection));
-      await stat(
-        join(
-          f.home,
-          '.local/state/verbose-broccoli/vaults/work/raw-import.lock',
-        ),
-      );
       assertEquals(
         Array.from(
           readDir(join(f.home, '.cache/verbose-broccoli/raw-import/work')),

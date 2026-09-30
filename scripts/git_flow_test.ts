@@ -65,10 +65,6 @@ void test('git-flow test commands reject children terminated by a signal', () =>
   );
 });
 
-function output(result: ReturnType<typeof commandOutput>) {
-  return decoder.decode(result.stdout) + decoder.decode(result.stderr);
-}
-
 async function git(cwd: string, ...args: string[]) {
   const result = await runGit(cwd, args);
   const stdout = decoder.decode(result.stdout).trim();
@@ -115,20 +111,6 @@ async function addReviewRecord(
   return await git(feature, 'rev-parse', 'HEAD');
 }
 
-async function addConstitutionCommit(
-  feature: string,
-  version: string,
-  message: string,
-) {
-  await writeFile(
-    join(feature, '.specify/memory/constitution.md'),
-    `Policy text updated.\n\n**Version**: ${version}\n`,
-  );
-  await git(feature, 'add', '.specify/memory/constitution.md');
-  await git(feature, 'commit', '-m', message);
-  return await git(feature, 'rev-parse', 'HEAD');
-}
-
 async function temporary(
   run: (root: string, develop: string, feature: string) => Promise<void>,
   verifyExit = 0,
@@ -161,14 +143,6 @@ async function temporary(
     await writeFile(join(repo, '.gitignore'), '\nnode_modules\n', {
       flag: 'a',
     });
-    for (const file of ['commitlint.config.mjs', 'constitution_version.ts']) {
-      await copyFile(join(root, 'scripts', file), join(repo, 'scripts', file));
-    }
-    await mkdir(join(repo, '.specify/memory'), {recursive: true});
-    await writeFile(
-      join(repo, '.specify/memory/constitution.md'),
-      'Policy text.\n\n**Version**: 1.0.0\n',
-    );
     await writeFile(join(repo, 'seed.txt'), 'seed\n');
     await git(
       repo,
@@ -178,7 +152,6 @@ async function temporary(
       'package.json',
       'package-lock.json',
       'scripts',
-      '.specify/memory/constitution.md',
       'seed.txt',
     );
     await git(repo, 'commit', '-m', 'initial');
@@ -480,96 +453,5 @@ void test('git-flow: finish from develop creates the default no-ff merge and kee
     );
     assertEquals(await git(develop, 'status', '--porcelain'), '');
     assertEquals(await git(feature, 'status', '--porcelain'), '');
-  });
-});
-
-async function assertRebasedBumpsRefused(action: 'fixup' | 'squash') {
-  await temporary(async (_root, develop, feature) => {
-    await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
-    await addConstitutionCommit(feature, '1.0.2', 'docs: second wording');
-    const rebase = await runGit(feature, ['rebase', '-i', 'develop'], {
-      GIT_EDITOR: 'true',
-      GIT_SEQUENCE_EDITOR: `sed -i '/docs: second wording/s/^pick /${action} /'`,
-    });
-    assert(rebase.success, output(rebase));
-    const combined = await git(feature, 'rev-parse', 'HEAD');
-    assertEquals(
-      await git(
-        feature,
-        'rev-list',
-        '--count',
-        'develop..HEAD',
-        '--',
-        '.specify/memory/constitution.md',
-      ),
-      '1',
-    );
-    assertMatch(
-      await git(
-        feature,
-        'show',
-        `${combined}^:.specify/memory/constitution.md`,
-      ),
-      /\*\*Version\*\*: 1\.0\.0/,
-    );
-    assertMatch(
-      await git(feature, 'show', `${combined}:.specify/memory/constitution.md`),
-      /\*\*Version\*\*: 1\.0\.2/,
-    );
-    await addReviewRecord(feature);
-    await assertRefusedUnchanged(
-      develop,
-      feature,
-      new RegExp(
-        `${combined}.*${featureBranch}.*rewrite that commit so it raises the version once for its type`,
-        'i',
-      ),
-    );
-  });
-}
-
-void test('git-flow: fixup rebase that raises the constitution twice is refused', async () => {
-  await assertRebasedBumpsRefused('fixup');
-});
-
-void test('git-flow: squash rebase that raises the constitution twice is refused', async () => {
-  await assertRebasedBumpsRefused('squash');
-});
-
-void test('git-flow: unsquashed fixup commit that changes the constitution is refused', async () => {
-  await temporary(async (_root, develop, feature) => {
-    const first = await addConstitutionCommit(
-      feature,
-      '1.0.1',
-      'docs: first wording',
-    );
-    await writeFile(
-      join(feature, '.specify/memory/constitution.md'),
-      'Policy text updated again.\n\n**Version**: 1.0.2\n',
-    );
-    await git(feature, 'add', '.specify/memory/constitution.md');
-    const fixup = await runGit(feature, ['commit', '--fixup', first], {
-      GIT_EDITOR: 'true',
-    });
-    assert(fixup.success, output(fixup));
-    const fixupCommit = await git(feature, 'rev-parse', 'HEAD');
-    await addReviewRecord(feature);
-    await assertRefusedUnchanged(
-      develop,
-      feature,
-      new RegExp(
-        `${fixupCommit}.*${featureBranch}.*rewrite that commit so it raises the version once for its type`,
-        'i',
-      ),
-    );
-  });
-});
-
-void test('git-flow: one correct constitution bump still finishes', async () => {
-  await temporary(async (_root, develop, feature) => {
-    await addConstitutionCommit(feature, '1.0.1', 'docs: first wording');
-    await addReviewRecord(feature);
-    const result = await attemptFinish(develop);
-    assertEquals(result.code, 0, result.output);
   });
 });

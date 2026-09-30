@@ -4,10 +4,11 @@
 
 Backfire runs through the work plugin's local backend. For each judgment, it
 sends the tool inputs within the tool's size limits and the questions used for
-the judgment to the external model provider selected in the work plugin's
-education profile; Hive is the default. Inputs can include student records,
-observations, lesson notes, scores, claims, evidence or other text supplied to
-a tool. Never send secrets or credentials.
+the judgment to an external model provider: the first profile in Backfire's
+order that is not known to be out of credit, OpenRouter and then Hive by
+default, the same order the code plugin uses. Inputs can include student
+records, observations, lesson notes, scores, claims, evidence or other text
+supplied to a tool. Never send secrets or credentials.
 
 Before a request leaves, the backend replaces these identifiers with stable
 pseudonyms such as `학생03`, `보호자01`, `학교02`, `연락처01` or `이메일01`, and

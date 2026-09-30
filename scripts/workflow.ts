@@ -5,7 +5,8 @@ import {
   ValidationError,
 } from '../plugins/code/skills/clean-code/scripts/cli.ts';
 import {lstat, readFile} from 'node:fs/promises';
-import {importRules} from './clean_architecture.ts';
+import type {ICruiseResult} from 'dependency-cruiser';
+import {dependencyCruiser, publicEntries} from './workflow_depcruise.ts';
 import {analyzePlan, planSchema, type PlanResult} from './workflow_plan.ts';
 import {
   repositoryPathspec,
@@ -13,9 +14,14 @@ import {
   snapshotWorkingTree,
 } from './workflow_git.ts';
 import {evaluateVerification} from './workflow_verify.ts';
-import {graphCommands, inspectGraph} from './workflow_graph.ts';
+import {graphCommands} from './workflow_graph.ts';
+import {inspectSymbol} from './workflow_symbol.ts';
 import {announceSkillTriggers} from './workflow_skills.ts';
-import {getFileAccessError, repositoryFileSchema} from './workflow_files.ts';
+import {
+  getFileAccessError,
+  listCodeFiles,
+  repositoryFileSchema,
+} from './workflow_files.ts';
 
 interface Signals {
   paths: string[];
@@ -68,7 +74,7 @@ export function buildWorkModeInstructions(
         ]
       : []),
     'Rerun npm run workflow -- with the same --base/--plan arguments after scope changes and before completion; follow the new result. The initial result is provisional, and import-graph checks do not provide runtime resource isolation.',
-    'Run npm run verify on the combined result and follow its repair/review instructions until the current code is verified. This runs npm run check and records its actual result.',
+    'Run npm run verify on the combined result and follow its repair instructions until the current code is verified. This runs npm run check and reads the same Turbo run summary.',
     "Linear, main agent only: before the develop merge review, commit the feature's record and move its Linear issue to In Review; after git flow feature finish, move the issue to Done with one completion comment giving the merge commit and the record location instead of a PR link. Ask the user to do in Linear's UI what Orca cannot (archive, delete, labels, projects, documents, cycles, milestones); add no other Linear integration.",
     'Difficulty is advisory and independent of execution mode and verification. Use per-task difficulty with --plan; workspace difficulty includes unrelated changes. Null means insufficient evidence, not an extra level. Select models separately using task requirements and observed performance.',
     'The comparison includes staged, unstaged, and untracked changes. Default baseline is HEAD; use --base <commit-or-ref> to compare against another commit.',
@@ -319,9 +325,6 @@ export async function inspectChanges(
       `${base}^{commit}`,
     ])
   ).trim();
-  const publicEntries = importRules(root)
-    .forbidden.filter(rule => rule.name?.startsWith('public-api:'))
-    .flatMap(rule => ('to' in rule ? (rule.to.pathNot ?? []) : []));
   const plan = input === undefined ? undefined : await analyzePlan(root, input);
   const {structuralPaths, ...changes} = await collectSignals(root, revision);
   const isPublic = (paths: string[]) =>
@@ -402,7 +405,7 @@ if (import.meta.main) {
       'workflow',
       'Select work mode, inspect code graphs and verify the current Git snapshot.',
     )
-      .option('--task <id:string>', 'Task identity for the evidence loop.', {
+      .option('--task <id:string>', 'Task identity for skill announcements.', {
         default: 'workspace',
       })
       .option('--base <ref:string>', 'Baseline Git commit or reference.', {
@@ -412,7 +415,7 @@ if (import.meta.main) {
         '--plan <path:string>',
         'JSON plan with exact files for each task.',
       )
-      .option('--verify', 'Run all checks and retain evidence.', {
+      .option('--verify', 'Run checks and read the same Turbo run summary.', {
         default: false,
       })
       .option('--graph <choice:string>', 'Inspect impact, symbol or policy.')
@@ -486,38 +489,61 @@ if (import.meta.main) {
         }
         const snapshot = await snapshotWorkingTree(process.cwd());
         const routing = await inspectChanges(process.cwd(), args.base, plan);
+        if (args.file !== undefined) {
+          const error = await getFileAccessError(routing.root, args.file, true);
+          if (error) throw new ValidationError(error);
+        }
         const graph =
-          args.graph === undefined
-            ? undefined
-            : await inspectGraph(routing.root, {
-                choice: args.graph,
-                ...(args.file !== undefined ? {file: args.file} : {}),
-                ...(args.line !== undefined ? {line: Number(args.line)} : {}),
-                ...(args.column !== undefined
-                  ? {column: Number(args.column)}
-                  : {}),
-              });
-        const graphFailed = graph?.policy.status === 'FAIL';
-        const {instructions: loopInstructions, ...loop} =
-          await evaluateVerification(routing.root, {
-            taskId: args.task,
-            base: routing.base,
-            plan: routing.tasks ?? null,
-            verify: args.verify && !graphFailed,
-          });
+          args.graph === 'policy' || args.graph === 'symbol'
+            ? await dependencyCruiser(
+                routing.root,
+                {policy: true},
+                listCodeFiles(routing.root),
+              )
+            : args.graph === 'impact'
+              ? await Promise.all([
+                  dependencyCruiser(
+                    routing.root,
+                    {affected: routing.base},
+                    listCodeFiles(routing.root),
+                  ),
+                  dependencyCruiser(
+                    routing.root,
+                    {
+                      reaches: `^${RegExp.escape(args.file!)}$`,
+                    },
+                    listCodeFiles(routing.root),
+                  ),
+                ])
+              : undefined;
+        const graphResults =
+          graph === undefined ? [] : Array.isArray(graph) ? graph : [graph];
+        const graphFailed = graphResults.some(
+          result => result.summary.error > 0,
+        );
+        const symbol =
+          args.graph === 'symbol'
+            ? await inspectSymbol(
+                routing.root,
+                graph as ICruiseResult,
+                args.file!,
+                Number(args.line),
+                Number(args.column),
+              )
+            : undefined;
+        const verification = await evaluateVerification(
+          routing.root,
+          args.verify,
+        );
         const current = await snapshotWorkingTree(routing.root);
         if (
-          [snapshot, ...(graph ? [graph.snapshot] : [])].some(
-            state =>
-              state.revision !== current.revision ||
-              state.dirty_hash !== current.dirty_hash,
-          )
+          snapshot.revision !== current.revision ||
+          snapshot.dirty_hash !== current.dirty_hash
         )
           throw new Error(
             'Code snapshot changed while processing the workflow; rerun the same command.',
           );
-        const routedMode =
-          loop.phase === 'REVIEW' || graphFailed ? 'REVIEW' : routing.mode;
+        const routedMode = graphFailed ? 'REVIEW' : routing.mode;
         const skills = await announceSkillTriggers(
           routing.root,
           {
@@ -541,12 +567,13 @@ if (import.meta.main) {
               ...(graphFailed ? ['graph import-policy violations'] : []),
               ...(skillScopeFailed ? ['clean-code scope unavailable'] : []),
             ],
-            loop,
+            verification,
             skill_triggers: skills.triggers,
             skill_snapshot: skills.snapshot,
             skill_scope: skills.scope,
             graph_commands: graphCommands,
             ...(graph ? {graph} : {}),
+            ...(symbol ? {symbol} : {}),
             instructions: [
               ...(graphFailed
                 ? [
@@ -554,9 +581,9 @@ if (import.meta.main) {
                   ]
                 : []),
               'Choose a graph_commands entry for the planned edit. It runs the fact bundle automatically; keep the same --task/--base/--plan context. Symbol analysis is for an existing identifier before deletion; after edits or deletions rerun impact or policy, then verify.',
-              ...loopInstructions,
+              ...verification.instructions,
               ...skills.instructions,
-              ...(loop.phase === 'VERIFIED'
+              ...(verification.phase === 'VERIFIED'
                 ? []
                 : buildWorkModeInstructions(mode, plan !== undefined)),
               'For each new user request, choose a fresh --task <id> and rerun before implementing; keep that ID, --base and plan contents throughout the repair loop. The default workspace task reports code-check status, not completion of a new request.',
@@ -564,7 +591,7 @@ if (import.meta.main) {
           },
           graphFailed ||
             skillScopeFailed ||
-            (args.verify && loop.phase !== 'VERIFIED'),
+            (args.verify && verification.phase !== 'VERIFIED'),
         );
       })
       .parse(process.argv.slice(2)),

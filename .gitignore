@@ -17,6 +17,7 @@ __pycache__/
 # Rebuildable Wiki output and private local execution evidence
 /generated/
 /.local/
+/.turbo/runs/
 
 # Per-worktree pointer to the current Spec Kit plan, written by the
 # agent-context extension
