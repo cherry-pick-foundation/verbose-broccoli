@@ -146,11 +146,11 @@ class _OrderProvider(pymodel.JevProvider):
 
     def __init__(self, profiles: list[dict], education: bool) -> None:
         super().__init__(Redactor(()))
+        self.name = profiles[0]["name"] if profiles else "compatible"
         self._profiles = profiles
         self._education = education
         self._profile_index = 0
         self._current: tuple[dict, pymodel.JevProvider] | None = None
-        self._switch_from: str | None = None
         self._providers: list[pymodel.JevProvider] = []
         self._lock = asyncio.Lock()
 
@@ -161,18 +161,6 @@ class _OrderProvider(pymodel.JevProvider):
             profile = self._profiles[self._profile_index]
             try:
                 retry = _retry_policy(profile)
-                required = {
-                    "cloudflare": "account_id",
-                    "compatible": "base_url",
-                }.get(profile.get("jev_provider"))
-                if (
-                    profile.get("api") == "jev"
-                    and required is not None
-                    and not profile.get(required)
-                ):
-                    raise JudgmentError(
-                        "backend_not_configured", profile["name"]
-                    )
                 key = load_credential(profile)
                 provider = _build_provider(profile, key, retry)
                 if "codexbar" in profile:
@@ -207,16 +195,7 @@ class _OrderProvider(pymodel.JevProvider):
         self,
     ) -> tuple[dict, pymodel.JevProvider] | None:
         async with self._lock:
-            current = self._current or await self._next_profile()
-            if self._switch_from is not None and current is not None:
-                logger.warning(
-                    "switching profile from %s to %s after insufficient "
-                    "balance",
-                    self._switch_from,
-                    current[0]["name"],
-                )
-                self._switch_from = None
-            return current
+            return self._current or await self._next_profile()
 
     async def _after_insufficient_balance(
         self, failed: tuple[dict, pymodel.JevProvider]
@@ -224,7 +203,14 @@ class _OrderProvider(pymodel.JevProvider):
         async with self._lock:
             if self._current is failed:
                 self._current = None
-                self._switch_from = failed[0]["name"]
+                current = await self._next_profile()
+                if current is not None:
+                    logger.warning(
+                        "switching profile from %s to %s after insufficient "
+                        "balance",
+                        failed[0]["name"],
+                        current[0]["name"],
+                    )
 
     async def evaluate(self, state, questions, model, timeout):
         restore = None

@@ -26,11 +26,26 @@ REPORTS = {
             "usage": {"providerCost": {"balance": 7.25}},
         }
     ],
+    "openrouter_limit_almost_used": [
+        {
+            "provider": "openrouter",
+            "usage": {"primary": {"usedPercent": 99.9}},
+        }
+    ],
     "openrouter_used_up": [
         {
             "provider": "openrouter",
             "usage": {
                 "primary": {"usedPercent": 100},
+                "providerCost": {"balance": 7.25},
+            },
+        }
+    ],
+    "openrouter_tertiary_used_up": [
+        {
+            "provider": "openrouter",
+            "usage": {
+                "tertiary": {"usedPercent": 100},
                 "providerCost": {"balance": 7.25},
             },
         }
@@ -81,6 +96,47 @@ REPORTS = {
             },
         }
     ],
+    "openrouter_comma_balance": [
+        {
+            "provider": "openrouter",
+            "usage": {
+                "details": [
+                    {
+                        "title": "Credits",
+                        "rows": [{"label": "Remaining", "value": "$1,234.56"}],
+                    }
+                ]
+            },
+        }
+    ],
+    "provider_balance_fallback": [
+        {
+            "provider": "openrouter",
+            "usage": {
+                "providerCost": {"balance": None},
+                "details": [
+                    {
+                        "title": "Credits",
+                        "rows": [{"label": "Remaining", "value": "$0.00"}],
+                    }
+                ],
+            },
+        }
+    ],
+    "provider_balance_invalid_fallback": [
+        {
+            "provider": "openrouter",
+            "usage": {
+                "providerCost": {"balance": "unknown"},
+                "details": [
+                    {
+                        "title": "Credits",
+                        "rows": [{"label": "Remaining", "value": "$0.00"}],
+                    }
+                ],
+            },
+        },
+    ],
     "error": [
         {
             "provider": "openrouter",
@@ -129,8 +185,13 @@ def install_codexbar(tmp_path, monkeypatch, output, *, exit_code=0):
     [
         ("openrouter", REPORTS["openrouter_zero"], False),
         ("openrouter", REPORTS["openrouter_positive"], True),
+        ("openrouter", REPORTS["openrouter_limit_almost_used"], True),
         ("openrouter", REPORTS["openrouter_used_up"], False),
+        ("openrouter", REPORTS["openrouter_tertiary_used_up"], False),
         ("openrouter", REPORTS["openrouter_details_zero"], False),
+        ("openrouter", REPORTS["openrouter_comma_balance"], True),
+        ("openrouter", REPORTS["provider_balance_fallback"], False),
+        ("openrouter", REPORTS["provider_balance_invalid_fallback"], False),
         ("openrouter", REPORTS["available_balance_zero"], False),
         ("openrouter", REPORTS["available_balance_positive"], True),
         ("openrouter", REPORTS["error"], None),

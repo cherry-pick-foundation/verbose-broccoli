@@ -1,5 +1,6 @@
 """Profile selection and private credentials use synthetic files only."""
 
+import json
 import tomllib
 
 import pytest
@@ -144,6 +145,46 @@ def test_invalid_profile_fails_with_safe_configuration_error(operator):
     operator.write_text('order = ["missing"]\n', encoding="utf-8")
     with pytest.raises(JudgmentError) as caught:
         config.load_profiles()
+    assert caught.value.error_type == "backend_not_configured"
+    assert str(operator) in str(caught.value)
+
+
+@pytest.mark.parametrize("order", [[], ["local", "local"]])
+def test_empty_or_repeated_order_fails_with_order_file(operator, order):
+    operator.write_text(
+        f"order = {json.dumps(order)}\n"
+        "[providers.local]\n"
+        'api = "openai"\n'
+        'base_url = "http://127.0.0.1:8080/v1"\n'
+        'model = "synthetic-model"\n'
+        'credential = "SYNTHETIC_API_KEY"\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(JudgmentError) as caught:
+        config.load_profiles()
+
+    assert caught.value.error_type == "backend_not_configured"
+    assert str(operator) in str(caught.value)
+
+
+@pytest.mark.parametrize("jev_provider", ["cloudflare", "compatible"])
+def test_missing_jev_required_field_fails_during_profile_loading(
+    operator, jev_provider
+):
+    operator.write_text(
+        f'''order = ["local"]
+[providers.local]
+api = "jev"
+jev_provider = "{jev_provider}"
+credential = "SYNTHETIC_API_KEY"
+''',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(JudgmentError) as caught:
+        config.load_profiles()
+
     assert caught.value.error_type == "backend_not_configured"
     assert str(operator) in str(caught.value)
 

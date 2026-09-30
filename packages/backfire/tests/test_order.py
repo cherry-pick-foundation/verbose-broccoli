@@ -7,6 +7,7 @@ import json
 from fake_provider import FakeProvider
 from fake_provider import Reply
 from fake_provider import completion
+import httpx
 from jev_judge_mcp.domain import NoulCriteria
 from jev_judge_mcp.domain import NoulQuestion
 from jev_judge_mcp.domain import Usage
@@ -59,7 +60,9 @@ async def ask(provider, state=None, questions=None):
     )
 
 
-def test_skip_zero_credit_profile_without_sending_a_request(monkeypatch):
+def test_skip_zero_credit_profile_without_sending_a_request(
+    monkeypatch, caplog
+):
     with FakeProvider([]) as empty:
         with FakeProvider([completion({"q": 0.75})]) as full:
             checked = []
@@ -76,6 +79,7 @@ def test_skip_zero_credit_profile_without_sending_a_request(monkeypatch):
                 ],
                 credit=credit,
             )
+            assert client.name == "empty"
 
             async def run():
                 try:
@@ -89,6 +93,8 @@ def test_skip_zero_credit_profile_without_sending_a_request(monkeypatch):
     assert empty.requests == []
     assert len(full.requests) == 1
     assert result.provider == "available"
+    assert client.name == "available"
+    assert "skipping profile empty: no credit" in caplog.text
 
 
 def test_unknown_credit_uses_the_profile(monkeypatch, caplog):
@@ -258,6 +264,34 @@ def test_no_credit_after_the_last_profile_runs_out(monkeypatch):
             asyncio.run(run())
 
     assert len(last.requests) == 1
+
+
+def test_no_credit_when_every_remaining_profile_is_skipped(monkeypatch):
+    with FakeProvider([Reply({"error": "synthetic"}, status=402)]) as first:
+        with FakeProvider([]) as empty:
+            client = wrapper(
+                monkeypatch,
+                [
+                    openai_profile("first", first, insufficient_balance=[402]),
+                    openai_profile("empty", empty, codexbar="empty-credit"),
+                ],
+                credit=lambda *_: False,
+            )
+
+            async def run():
+                try:
+                    await ask(client)
+                finally:
+                    await client.aclose()
+
+            with pytest.raises(
+                ProviderError,
+                match="^no_credit: No profile in the order has credit",
+            ):
+                asyncio.run(run())
+
+    assert len(first.requests) == 1
+    assert empty.requests == []
 
 
 def test_configuration_error_does_not_advance_to_another_profile(
@@ -453,5 +487,60 @@ def test_openai_profile_switches_on_405(monkeypatch):
             result = asyncio.run(run())
 
     assert len(first.requests) == 1
+    assert len(second.requests) == 1
+    assert result.provider == "second"
+
+
+def test_openrouter_provider_switches_on_mocked_402(monkeypatch):
+    original_client = httpx.AsyncClient
+    original_post = httpx.AsyncClient.post
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx.Response(402, request=request, json={"error": "empty"})
+
+    async def mock_post(client, url, **kwargs):
+        if httpx.URL(url).host != "openrouter.ai":
+            return await original_post(client, url, **kwargs)
+        async with original_client(
+            transport=httpx.MockTransport(respond)
+        ) as mocked:
+            request = mocked.build_request("POST", url, **kwargs)
+            return await mocked.send(request)
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
+    with FakeProvider([completion({"q": 0.75})]) as second:
+        client = wrapper(
+            monkeypatch,
+            [
+                {
+                    "name": "openrouter",
+                    "api": "jev",
+                    "jev_provider": "openrouter",
+                    "credential": "SYNTHETIC_API_KEY",
+                    "insufficient_balance": [402],
+                },
+                openai_profile("second", second),
+            ],
+        )
+        monkeypatch.setattr(
+            "backfire.providers.load_credential",
+            lambda profile: (
+                "sk-or-synthetic"
+                if profile["name"] == "openrouter"
+                else "synthetic-key"
+            ),
+        )
+
+        async def run():
+            try:
+                return await ask(client)
+            finally:
+                await client.aclose()
+
+        result = asyncio.run(run())
+
+    assert [request.url.host for request in requests] == ["openrouter.ai"]
     assert len(second.requests) == 1
     assert result.provider == "second"

@@ -65,8 +65,11 @@ def load_profiles() -> list[dict]:
     profiles = shipped_profiles | operator_profiles
     order = operator.get("order", shipped.get("order"))
     order_source = operator_path if "order" in operator else shipped_path
-    if not isinstance(order, list) or any(
-        not isinstance(name, str) or not name for name in order
+    if (
+        not isinstance(order, list)
+        or any(not isinstance(name, str) or not name for name in order)
+        or not order
+        or len(set(order)) != len(order)
     ):
         _invalid(order_source)
     result = []
@@ -106,6 +109,11 @@ def load_profiles() -> list[dict]:
             not isinstance(profile.get(key), str) or not profile[key].strip()
             for key in ("base_url", "model")
         ):
+            _invalid(source)
+        required = {"cloudflare": "account_id", "compatible": "base_url"}.get(
+            profile.get("jev_provider")
+        )
+        if profile["api"] == "jev" and required and not profile.get(required):
             _invalid(source)
         if "base_url" in profile:
             try:

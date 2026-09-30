@@ -1,7 +1,6 @@
 """Read provider credit from CodexBar's JSON output."""
 
 from decimal import Decimal
-from decimal import InvalidOperation
 import json
 import math
 import os
@@ -16,29 +15,25 @@ def _number(value: object) -> bool:
 
 
 def _detail_balance(details: object) -> Decimal | None:
-    if not isinstance(details, list):
-        return None
-    for section in details:
-        if not isinstance(section, dict) or not isinstance(
-            section.get("rows"), list
-        ):
-            continue
-        for row in section["rows"]:
+    for section in details if isinstance(details, list) else ():
+        rows = section.get("rows") if isinstance(section, dict) else None
+        for row in rows if isinstance(rows, list) else ():
             if not isinstance(row, dict):
                 continue
             label = row.get("label")
             eligible = label == "Available balance" or (
-                section.get("title") == "Credits" and label == "Remaining"
+                isinstance(section, dict)
+                and section.get("title") == "Credits"
+                and label == "Remaining"
             )
-            if eligible and isinstance(row.get("value"), str):
-                match = _DOLLAR.search(row["value"])
-                if match:
-                    try:
-                        return Decimal(
-                            match.group().replace("$", "").replace(",", "")
-                        )
-                    except InvalidOperation:
-                        return None
+            value = row.get("value")
+            match = (
+                _DOLLAR.search(value)
+                if eligible and isinstance(value, str)
+                else None
+            )
+            if match:
+                return Decimal(match.group().replace("$", "").replace(",", ""))
     return None
 
 
@@ -67,11 +62,9 @@ def _has_credit(reports: object, provider: str) -> bool | None:
             if used >= 100:
                 return False
     cost = usage.get("providerCost")
-    if isinstance(cost, dict) and "balance" in cost:
-        balance = cost["balance"]
-        if _number(balance):
-            return balance > 0
-        return True if known_limit else None
+    balance = cost.get("balance") if isinstance(cost, dict) else None
+    if _number(balance):
+        return balance > 0
     balance = _detail_balance(usage.get("details"))
     if balance is not None:
         return balance > 0

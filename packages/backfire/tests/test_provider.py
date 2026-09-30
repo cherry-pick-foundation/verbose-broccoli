@@ -204,37 +204,6 @@ def test_jev_profiles_use_pymodel_resolver(monkeypatch, name, expected_field):
         assert settings.cloudflare_account_id == "synthetic-account"
 
 
-@pytest.mark.parametrize("name", ["cloudflare", "compatible"])
-def test_jev_profiles_require_provider_fields_before_key_load(
-    monkeypatch, name
-):
-    monkeypatch.setattr(
-        "backfire.providers.load_profiles",
-        lambda **_: [
-            {
-                "name": "synthetic-profile",
-                "api": "jev",
-                "jev_provider": name,
-            }
-        ],
-    )
-    monkeypatch.setattr(
-        "backfire.providers.load_credential",
-        lambda _: pytest.fail("incomplete profile reached credential loading"),
-    )
-
-    client = provider_factory()(Settings.model_construct())
-
-    async def run():
-        await client.evaluate({"claim": "synthetic"}, QUESTIONS, "model", 2)
-
-    with pytest.raises(
-        ProviderConfigError, match="^backend_not_configured:"
-    ) as caught:
-        asyncio.run(run())
-    assert "synthetic-profile" in str(caught.value)
-
-
 def test_profile_configuration_failure_is_a_pymodel_provider_error():
     client = provider_factory()(Settings.model_construct())
 
