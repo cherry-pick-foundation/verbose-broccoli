@@ -185,9 +185,13 @@ messages.
     step rerun at `ff5ff91` (240 units, 12 calls) verified both added units
     (0.79 and 0.89) and the mise paragraph (0.63), and judged no unit
     contradicted. Develop then moved to `76246a2` (offer-search-backfire),
-    which merged without conflicts (`fc37666`) and changed no target
-    document, so the judgment above stands; `uv sync`, `npm run doctor` and
-    `npm run verify` (VERIFIED) passed again. The develop session held other
+    which merged without conflicts (`fc37666`); `uv sync`, `npm run doctor`
+    and `npm run verify` (VERIFIED) passed again. It changed
+    `docs/architecture.md` and `docs/backfire.md`, so the judgment step ran
+    a third time, at `76246a2` (240 units, 12 calls): both added units were
+    verified (0.81 and 0.89), the mise paragraph too (0.66), and
+    `AGENTS.md:32` was again judged contradicted at low confidence (0.27);
+    it stands for the reason given above. The develop session held other
     finishes until this one lands. A fresh review of the new tip follows.
 
 ## Dependencies
