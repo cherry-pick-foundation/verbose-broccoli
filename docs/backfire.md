@@ -295,7 +295,8 @@ plugin does not detect:
   spelling is `Mukho`; es-hangul drops the `h` after `ㄱ`, `ㄷ` and `ㅂ`);
 - addresses without an `address` keyword or field name or romanized address
   parts, such as a street name in English, romanized parts without their
-  hyphen (`Solbitro`), and building names in English words (`Solbit Apartment`);
+  hyphen (`Solbitro`), building names in English words (`Solbit Apartment`),
+  and a unit written letter first after an address (`Unit B27`);
 - a keyword after its value (`2011-04-23 (DOB)`), and HTML markup between a
   keyword and its value;
 - a difference between roster students who share a full name: they share one

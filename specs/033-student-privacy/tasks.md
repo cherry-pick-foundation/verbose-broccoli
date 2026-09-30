@@ -63,7 +63,13 @@ files and can run in parallel.
   to hide the rest of a birth clause (`1ecc923`), which also fixed hyphen
   variants, unit numbers and grade lists the fresh review found. Every
   reviewer script then passes except the accepted clause trade-offs and one
-  documented column-data case.
+  documented column-data case. Named table and CSV columns followed
+  (`20817e7`, `5a14cac`, `bc0cebc`, `5e06ee6`) as further fresh reviews found
+  them. By the user's decision (spec.md, Clarifications) the rounds stopped
+  after the review of `bc0cebc`: its reviewer confirmed at `5e06ee6` that all
+  four of its findings are closed (1,178 of 1,178 leak cases), and the one new
+  edge form it noted, a letter-first unit such as `Unit B27`, is a documented
+  limit.
 
 ## Phase 4: User Stories 3-4, student pages (P2, after CHE-59)
 
@@ -114,11 +120,14 @@ files and can run in parallel.
   `packages/wiki-consistency/src/wiki_consistency/rules.py`, so it stands.
   11 added units are mechanical-region candidates and stay prose.
 
-- [ ] T013 Final review by a reviewer from the other provider; resolve
+- [X] T013 Final review by a reviewer from the other provider; resolve
   findings. Coordinator. The develop merge review (Codex `gpt-6-luna`
   medium, `jev_decide` 0.88) of `5ac6e3d` asked for one change: a link
   leaving the Wiki made the page rules skip every page, an older shortcut;
-  fixed in `74f8977` and approved on follow-up.
+  fixed in `74f8977` and approved on follow-up. Follow-ups by Codex
+  `gpt-6-luna` at medium approved each later change up to `5e06ee6`, after
+  asking for a score kept after a birth date (`75da5f0`) and quote-aware CSV
+  columns (`5a14cac`).
 - [ ] T014 Record, In Review, merge `develop`, `npm run verify`, review
   record, `git flow feature finish` when the develop session allows; Done
   with one completion comment. Coordinator.
@@ -147,5 +156,10 @@ files and can run in parallel.
   synthetic leak script.
 - T008: Claude Code Sonnet at xhigh effort (`jev_decide` 0.83, confidence
   0.80).
+- T008 round two: Claude Code Opus at xhigh (`jev_decide` 0.58, confidence
+  0.52). Later rounds were implemented by the Claude Code Opus orchestrator.
+- Privacy reviews: fresh Codex `gpt-6-astra` at xhigh reviewers on
+  `d41c1cc`, `5ac6e3d`, `31875e1`, `75da5f0`, `1f8e686`/`5a14cac` and
+  `bc0cebc`, with follow-ups by the same reviewers.
 - Only Claude Code and Codex candidates were offered for this feature,
   because its workers can reach student data.
