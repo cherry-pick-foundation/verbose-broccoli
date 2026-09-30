@@ -17,23 +17,19 @@ it what is new. Why it runs every 6 hours, and the data behind that, are in
 
 ## Run
 
-From the repository root. The key file is the provider's file in the shared
-provider folder that the `web-agent` skill describes; it must exist, even
-while empty. For OpenRouter:
+From the repository root. Backfire reads provider keys from the shared provider
+folder through its profiles and tries them in its shared provider order. Only
+the optional GitHub token file is passed to the command:
 
 ```sh
 providers="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
-JEV_PROVIDER=openrouter uv run --frozen --offline --no-sync \
-  --env-file "$providers/openrouter.env" --env-file "$providers/github.env" \
+uv run --frozen --offline --no-sync --env-file "$providers/github.env" \
   --package credit-offers credit-offers --notify
 ```
 
 `github.env` may be empty. When it holds `GITHUB_TOKEN`, the search sends
 that token on its GitHub API requests, which raises GitHub's limit from 60
 to 5,000 requests an hour.
-
-For another provider, change `JEV_PROVIDER` and the file name the same way
-(`vercel`, `cloudflare` or `typesafe`).
 
 - `--notify` sends one desktop notification (`notify-send`) naming each
   strong offer's title, provider, amount and link. Without it, the command
@@ -77,7 +73,6 @@ is an error to look at.
   address, shared by every tool on the laptop; a run uses two, and a run
   that finds the limit used up ends with status 3, so its block is not
   checked.
-- Without a key for a provider that accepts Jev calls, a block with
-  candidates ends with status 3. Jev is paid on every provider tried so
-  far: Vercel AI Gateway's free tier refuses it, Cloudflare Workers AI asks
-  for a paid balance, and OpenRouter needs credit.
+- If backfire cannot find a usable provider in its shared profile order, a
+  block with candidates ends with status 3. It skips profiles without credit
+  and moves to the next profile when a provider reports insufficient balance.

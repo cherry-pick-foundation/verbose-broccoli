@@ -5,6 +5,11 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import httpx
+from jev_judge_mcp.domain import ChoiceQuestion
+from jev_judge_mcp.providers import ProviderConfigError
+from jev_judge_mcp.providers import ProviderError
+from jev_judge_mcp.providers import ProviderTimeoutError
+from jev_judge_mcp.providers.resolver import DEFAULT_MODEL
 import pytest
 
 import credit_offers
@@ -71,6 +76,39 @@ def answers_for(offers, choices):
     }
 
 
+class FakeProvider:
+    def __init__(self, answers=None, error=None):
+        self.answers = answers
+        self.error = error
+        self.calls = []
+        self.closed = 0
+
+    async def evaluate(self, state, questions, model, timeout):
+        self.calls.append((state, questions, model, timeout))
+        if self.error:
+            raise self.error
+        return Mock(answers=self.answers)
+
+    async def aclose(self):
+        self.closed += 1
+
+
+def install_judgment(monkeypatch, answers=None, error=None, factory_error=None):
+    provider = FakeProvider(answers, error)
+
+    def factory(settings):
+        assert settings is None
+        if factory_error:
+            raise factory_error
+        return provider
+
+    factory_mock = Mock(return_value=factory)
+    monkeypatch.setattr(
+        credit_offers.providers, "provider_factory", factory_mock
+    )
+    return provider, factory_mock
+
+
 def test_default_end_is_latest_local_boundary():
     now = datetime.fromisoformat("2026-09-30T13:59:00+09:00")
     local = now.astimezone()
@@ -93,8 +131,7 @@ def test_same_commit_exits_without_fetching_index_or_calling_jev(
     monkeypatch, capsys
 ):
     requests = install_tracker(monkeypatch, same_commit=True)
-    request_jev = Mock()
-    monkeypatch.setattr(credit_offers.model, "request_jev", request_jev)
+    _, factory = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
@@ -103,7 +140,7 @@ def test_same_commit_exits_without_fetching_index_or_calling_jev(
     assert all(
         not request.url.path.endswith("/index.json") for request in requests
     )
-    request_jev.assert_not_called()
+    factory.assert_not_called()
     assert "jev_calls=0" in capsys.readouterr().out
 
 
@@ -115,12 +152,8 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     requests = install_tracker(
         monkeypatch, old=[offer("old")], new=[offer("new")]
     )
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda body: {
-            "answers": answers_for(body["state"]["offers"], ["qualifies"])
-        },
+    provider, _ = install_judgment(
+        monkeypatch, answers_for([offer("new")], ["qualifies"])
     )
 
     assert credit_offers.main(["--end", END]) == 0
@@ -135,6 +168,8 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     assert len(raw_requests) == 2
     assert all("Authorization" not in r.headers for r in raw_requests)
     assert token not in captured.out + captured.err
+    assert len(provider.calls) == 1
+    assert provider.closed == 1
 
 
 def test_github_token_is_redacted_from_error(monkeypatch, capsys):
@@ -192,39 +227,34 @@ def test_filters_new_offers_and_judges_each_candidate_once(monkeypatch, capsys):
         old=[existing],
         new=[existing, strong, excluded, expired, inactive],
     )
-    calls = []
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda body: (
-            calls.append(body),
-            {
-                "answers": answers_for(
-                    [strong, excluded], ["qualifies", "excluded"]
-                )
-            },
-        )[1],
+    provider, _ = install_judgment(
+        monkeypatch, answers_for([strong, excluded], ["qualifies", "excluded"])
     )
 
     status = credit_offers.main(["--end", END])
 
     output = capsys.readouterr().out
     assert status == 0
-    assert len(calls) == 1
-    assert set(calls[0]["questions"]) == {"strong", "excluded"}
-    assert calls[0]["questions"]["strong"]["type"] == "choice"
-    assert {
-        slug: question["instructions"]
-        for slug, question in calls[0]["questions"].items()
-    } == {
-        slug: {
-            "offer": slug,
-            "task": "Judge this.",
-        }
+    assert len(provider.calls) == 1
+    state, questions, model, timeout = provider.calls[0]
+    assert model == DEFAULT_MODEL
+    assert timeout is None
+    assert state == {
+        "offers": [
+            {field: candidate.get(field) for field in credit_offers.FIELDS}
+            for candidate in (strong, excluded)
+        ]
+    }
+    assert questions == {
+        slug: ChoiceQuestion(
+            instructions={"offer": slug, "task": "Judge this."},
+            criteria=credit_offers.CRITERIA,
+        )
         for slug in ("strong", "excluded")
     }
     assert "strong\tqualifies\t0.9" in output
     assert "excluded\texcluded\t0.9" in output
+    assert provider.closed == 1
 
 
 def test_filtered_offers_make_no_jev_call(monkeypatch, capsys):
@@ -235,23 +265,20 @@ def test_filtered_offers_make_no_jev_call(monkeypatch, capsys):
             offer("inactive", status="removed"),
         ],
     )
-    request_jev = Mock()
-    monkeypatch.setattr(credit_offers.model, "request_jev", request_jev)
+    _, factory = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
     assert status == 1
-    request_jev.assert_not_called()
+    factory.assert_not_called()
     assert "jev_calls=0" in capsys.readouterr().out
 
 
 def test_excluded_only_answer_returns_one(monkeypatch, capsys):
     candidate = offer("excluded")
     install_tracker(monkeypatch, new=[candidate])
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda _: {"answers": answers_for([candidate], ["excluded"])},
+    provider, _ = install_judgment(
+        monkeypatch, answers_for([candidate], ["excluded"])
     )
 
     status = credit_offers.main(["--end", END])
@@ -260,20 +287,15 @@ def test_excluded_only_answer_returns_one(monkeypatch, capsys):
     assert status == 1
     assert "excluded\texcluded\t0.9" in output
     assert "jev_calls=1" in output
+    assert provider.closed == 1
 
 
 def test_notification_only_contains_strong_offers(monkeypatch):
     strong, excluded = offer("strong"), offer("excluded")
     strong["title"] = "--version"
     install_tracker(monkeypatch, new=[strong, excluded])
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda _: {
-            "answers": answers_for(
-                [strong, excluded], ["qualifies", "excluded"]
-            )
-        },
+    provider, _ = install_judgment(
+        monkeypatch, answers_for([strong, excluded], ["qualifies", "excluded"])
     )
     sent = []
 
@@ -294,6 +316,7 @@ def test_notification_only_contains_strong_offers(monkeypatch):
     assert "Example Provider" in sent[0][3]
     assert "Free credits" in sent[0][3]
     assert "https://example.test/strong" in sent[0][3]
+    assert provider.closed == 1
 
 
 @pytest.mark.parametrize(
@@ -309,10 +332,8 @@ def test_notification_failure_exits_three_after_printing_judgment(
     candidate = offer("candidate")
     install_tracker(monkeypatch, new=[candidate])
     monkeypatch.setenv("AI_GATEWAY_API_KEY", "synthetic-test-key")
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda _: {"answers": answers_for([candidate], ["qualifies"])},
+    provider, _ = install_judgment(
+        monkeypatch, answers_for([candidate], ["qualifies"])
     )
 
     monkeypatch.setattr(
@@ -327,6 +348,7 @@ def test_notification_failure_exits_three_after_printing_judgment(
     assert "jev_calls=1" in captured.out
     assert str(error) in captured.err
     assert "synthetic-test-key" not in captured.out + captured.err
+    assert provider.closed == 1
 
 
 def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
@@ -337,14 +359,13 @@ def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
 
     client = httpx.Client(transport=httpx.MockTransport(forbidden))
     monkeypatch.setattr(credit_offers.httpx, "Client", lambda **_: client)
-    request_jev = Mock()
-    monkeypatch.setattr(credit_offers.model, "request_jev", request_jev)
+    _, factory = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
     captured = capsys.readouterr()
     assert status == 3
-    request_jev.assert_not_called()
+    factory.assert_not_called()
     assert "403" in captured.err
     assert "jev_calls=0" in captured.out
     assert "synthetic-test-key" not in captured.out + captured.err
@@ -353,40 +374,74 @@ def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
 def test_invalid_answer_fails_with_status_three(monkeypatch, capsys):
     candidate = offer("bad-answer")
     install_tracker(monkeypatch, new=[candidate])
-    monkeypatch.setattr(
-        credit_offers.model,
-        "request_jev",
-        lambda _: {
-            "answers": {
-                "bad-answer": {"choice": "qualifies", "probabilities": {}}
-            }
-        },
+    provider, _ = install_judgment(
+        monkeypatch,
+        {"bad-answer": {"choice": "qualifies", "probabilities": {}}},
     )
 
     status = credit_offers.main(["--end", END])
 
     captured = capsys.readouterr()
     assert status == 3
-    assert "Invalid TypeSafe response" in captured.err
+    assert "Invalid choice answer" in captured.err
     assert "jev_calls=1" in captured.out
+    assert provider.closed == 1
 
 
-def test_missing_provider_key_names_only_the_variable(monkeypatch, capsys):
+@pytest.mark.parametrize(
+    ("error", "factory_error"),
+    [
+        (ProviderConfigError("provider configuration is unavailable"), True),
+        (
+            ProviderError("no_credit: No profile in the order has credit."),
+            False,
+        ),
+        (ProviderTimeoutError("provider timed out"), False),
+    ],
+    ids=("configuration", "no-credit", "timeout"),
+)
+def test_provider_failures_exit_three(
+    monkeypatch, capsys, error, factory_error
+):
     candidate = offer("candidate")
     install_tracker(monkeypatch, new=[candidate])
+    provider, _ = install_judgment(
+        monkeypatch,
+        error=error if not factory_error else None,
+        factory_error=error if factory_error else None,
+    )
 
-    def missing_key(_):
-        raise ValueError(
-            "AI_GATEWAY_API_KEY is required for vercel; no request sent"
-        )
+    assert credit_offers.main(["--end", END]) == 3
 
-    monkeypatch.setattr(credit_offers.model, "request_jev", missing_key)
+    captured = capsys.readouterr()
+    assert "jev_calls=0" in captured.out
+    assert len(provider.calls) == (0 if factory_error else 1)
+    assert provider.closed == (0 if factory_error else 1)
+
+
+def test_missing_operator_credential_exits_three_without_provider_call(
+    monkeypatch, tmp_path, capsys
+):
+    candidate = offer("candidate")
+    install_tracker(monkeypatch, new=[candidate])
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    config_dir = tmp_path / "verbose-broccoli" / "backfire"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.toml").write_text(
+        'order = ["missing"]\n'
+        "\n[providers.missing]\n"
+        'api = "openai"\n'
+        'credential = "API_KEY"\n'
+        'credential_file = "missing.env"\n'
+        'base_url = "https://example.invalid/v1"\n'
+        'model = "test-model"\n'
+    )
 
     status = credit_offers.main(["--end", END])
 
     captured = capsys.readouterr()
     assert status == 3
-    assert "AI_GATEWAY_API_KEY" in captured.err
+    assert "backend_not_configured" in captured.err
     assert "jev_calls=0" in captured.out
 
 
@@ -401,7 +456,7 @@ def test_search_writes_no_files(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     install_tracker(monkeypatch, same_commit=True)
     before = set(Path(tmp_path).iterdir())
-    monkeypatch.setattr(credit_offers.model, "request_jev", lambda _: None)
+    install_judgment(monkeypatch)
 
     assert credit_offers.main(["--end", END]) == 1
     assert set(Path(tmp_path).iterdir()) == before
