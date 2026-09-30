@@ -264,3 +264,29 @@ def test_verify_reads_real_tool_results():
         asyncio.run(
             profile._verify(session(True, "backend_not_configured"), {})
         )
+
+
+@pytest.mark.usefixtures("vault")
+def test_record_sorts_stored_results_again_at_a_threshold(backfire):
+    assert _run("extract --source material-source") == 0
+    run = profile._run_dir("run")
+    _proposals(run, ("First sentence.", [1, 2, 3]))
+    backfire.reply = lambda _: {
+        "provider": "synthetic",
+        "model": "stub",
+        "results": [
+            {"verdict": "verified", "action": "review", "confidence": 0.6},
+            {"verdict": "verified", "action": "review", "confidence": 0.4},
+            {"verdict": "unsupported", "action": "review", "confidence": 0.7},
+        ],
+    }
+    assert _run(f"check --catalog {CATALOG}") == 0
+    assert _run(f"{RECORD} --auto-accept 0.5") == 0
+    root = instance_path("synthetic", os.environ)
+    (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
+    assert (row["concepts"], row["unclear"]) == (["keep"], ["drop"])
+    page = (root / "wiki/profiles/sample.md").read_text()
+    profile_block = yaml.safe_load(page.split("---\n")[1])["profile"]
+    assert profile_block["auto_accept"] == 0.5
+    counts = {"sentences": 1, "kept": 1, "dropped": 1, "unclear": 1}
+    assert profile_block["counts"] == counts

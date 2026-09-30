@@ -251,6 +251,15 @@ def _check_command(args, root, run):
     return int(report["invalid"] > 0)
 
 
+def _outcome(result, auto_accept):
+    """Return a stored result's outcome, re-sorted at a threshold if given."""
+    if auto_accept is None:
+        return result["outcome"]
+    confident = (result.get("confidence") or 0) >= auto_accept
+    action = "auto" if confident else "review"
+    return OUTCOMES.get((action, result.get("verdict")), "unclear")
+
+
 def _record_command(args, root, run):
     metadata, entries = _catalog(root, args.catalog)
     proposals = _jsonl(run / "proposals.jsonl")
@@ -264,7 +273,11 @@ def _record_command(args, root, run):
     rows = []
     for n, (proposal, check) in enumerate(zip(proposals, checks), 1):
         by = {
-            o: [r["concept"] for r in check["results"] if r["outcome"] == o]
+            o: [
+                r["concept"]
+                for r in check["results"]
+                if _outcome(r, args.auto_accept) == o
+            ]
             for o in ("kept", "unclear")
         }
         accepted = [i for i in by["unclear"] if (n, i) in ticked]
@@ -296,6 +309,7 @@ def _record_command(args, root, run):
             "data": f"{args.name}.jsonl",
             "proposer": args.proposer,
             "checker": "; ".join(sorted(checker)),
+            **({"auto_accept": args.auto_accept} if args.auto_accept else {}),
             "counts": {
                 "sentences": len(rows),
                 "kept": kept,
@@ -334,6 +348,7 @@ def main(argv=None):
     names = ("catalog", "name", "title", "summary", "proposer")
     record = command("record", _record_command, *names)
     record.add_argument("--reviewed", action="store_true")
+    record.add_argument("--auto-accept", type=float)
     extract = command("extract", _extract_command)
     extract.add_argument("--source", nargs="+", required=True)
     args = parser.parse_args(argv)

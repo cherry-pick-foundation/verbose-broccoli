@@ -106,10 +106,20 @@ The command prints one JSON object over all recorded results: `sentences`,
 ## Record and finish
 
 `record --catalog catalogs/<catalog>.md --name <material> --title <title>
---summary <line> --proposer '<agent, model and effort>' [--reviewed]` writes
+--summary <line> --proposer '<agent, model and effort>' [--auto-accept <t>]
+[--reviewed]` writes
 `wiki/profiles/<material>.md` and `<material>.jsonl`, and replaces both when
 they exist; the vault's Git keeps the earlier record. It stops with exit code
 2 unless `checks.jsonl` covers every proposal.
+
+`--auto-accept <t>` sorts the stored results again without new calls: a
+result counts as confident when its confidence is at least `t`, and the
+rule above then keeps, drops or leaves it unclear; the page records `t` as
+`profile.auto_accept`. Without it, the outcomes stay as `check` recorded
+them at backfire's default of 0.8. On the pilot, 0.8 kept only 28% of the
+true concepts at 99% precision and 0.5 kept 74% at 95%; the user chose 0.5.
+`review.md` lists what `check` left unclear, so use `--reviewed` only
+without `--auto-accept`.
 
 Without `--reviewed`, every unclear concept stays in the row's `unclear` list.
 With it, the ticked ones of `review.md` become concepts and the unticked ones
@@ -176,6 +186,7 @@ profile:
   data: <material>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
+  auto_accept: <t, when record was given one>
   counts: {sentences: 0, kept: 0, dropped: 0, unclear: 0}
 ---
 ```
