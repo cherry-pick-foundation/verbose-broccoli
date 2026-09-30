@@ -265,3 +265,15 @@ buying credits
 The user decides how Jev calls are paid for; the request format itself is
 covered by the stub tests, and the live check waits for a provider that
 accepts the calls.
+
+**Cloudflare (2026-09-30)**: the user chose to try Cloudflare Workers AI
+first. Its model page (<https://developers.cloudflare.com/ai/models/typesafe/jev/>,
+read 2026-09-30) lists `typesafe/jev` as a third-party model at "$0.042 (per
+1M tokens)" input and $0.00 output, called with `POST
+https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/ai/run`
+and the body `{model: "typesafe/jev", input: {state, questions}}`, and
+answering `{model, answers, usage}`. jev-agent-tools 0.1.2's
+`dist/transports/cloudflare.js` sends the same body and reads the answer
+from the v4 envelope's `result.result`. The page does not say whether
+Workers AI's free daily allocation covers this model; the live check
+decides.

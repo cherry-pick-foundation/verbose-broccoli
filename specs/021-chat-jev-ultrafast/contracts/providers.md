@@ -27,24 +27,36 @@ model = "typesafe-ai/jev"
 ai-gateway-protocol-version = "0.0.1"
 ai-gateway-auth-method = "api-key"
 ai-evaluation-model-specification-version = "4"
+
+[cloudflare]
+protocol = "ai-run"
+url = "https://api.cloudflare.com/client/v4/accounts/{account}/ai/run"
+key_env = "CLOUDFLARE_API_TOKEN"
+account_env = "CLOUDFLARE_ACCOUNT_ID"
+model = "typesafe/jev"
 ```
+
+The `cloudflare` table was added on 2026-09-30 at the user's request, after
+Vercel's free tier refused Jev (research R10).
 
 ## Selection
 
 - `JEV_PROVIDER` names a table; unset or empty means `typesafe`.
 - An unknown name raises an error naming it and the known names, before any
   request.
-- A missing or empty credential variable raises an error naming the
-  variable, before any request. No error or log contains a key.
+- A missing or empty credential variable, or for `ai-run` a missing account
+  variable, raises an error naming the variable, before any request. No
+  error or log contains a key.
 
 ## Protocols
 
-| | `systemone` | `evaluation-model` |
-| --- | --- | --- |
-| Request body | Upstream's `{model, state, questions}`, unchanged (model from `TYPESAFE_MODEL`, default `jev-latest`) | `{state, questions}`; questions are sent as they are |
-| Headers | `Authorization: Bearer <key>` | `Authorization: Bearer <key>`, the configured headers, and `ai-model-id: <model>` |
-| Answer given to the caller | The response as upstream reads it | `{"answers": …, "usage": {"input_tokens", "output_tokens"}, "model": <model>}`, where a `choice` answer becomes `{type, choice, probabilities, confidence}` with confidence from `providerMetadata.typesafe.confidence[<id>]` or null, and other answers pass through unchanged |
-| Retries and errors | Upstream `post_json()`: retries 429, 503 and 529 twice, then raises without executing an action | The same function |
+| | `systemone` | `evaluation-model` | `ai-run` |
+| --- | --- | --- | --- |
+| Request body | Upstream's `{model, state, questions}`, unchanged (model from `TYPESAFE_MODEL`, default `jev-latest`) | `{state, questions}`; questions are sent as they are | `{model, input: {state, questions}}` with the configured model |
+| Address | `url` | `url` | `url` with `{account}` replaced by the account variable's value |
+| Headers | `Authorization: Bearer <key>` | `Authorization: Bearer <key>`, the configured headers, and `ai-model-id: <model>` | `Authorization: Bearer <key>` |
+| Answer given to the caller | The response as upstream reads it | `{"answers": …, "usage": {"input_tokens", "output_tokens"}, "model": <model>}`, where a `choice` answer becomes `{type, choice, probabilities, confidence}` with confidence from `providerMetadata.typesafe.confidence[<id>]` or null, and other answers pass through unchanged | The model output, taken from Cloudflare's v4 envelope (`result.result`, else `result`, else the body), already in TypeSafe's answer form |
+| Retries and errors | Upstream `post_json()`: retries 429, 503 and 529 twice, then raises without executing an action | The same function | The same function |
 
 The carrier also maps `noul` questions to `boolean` and back. Jev
 Ultrafast and the offer search ask only `choice` questions, so that mapping
