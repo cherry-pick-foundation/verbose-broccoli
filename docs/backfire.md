@@ -93,8 +93,12 @@ files and client environment entries.
 ## Work plugin
 
 `serve-mcp --education` selects the education profile and pseudonymizes
-every judgment, whichever profile kind the operator selects. The operator's
-configuration cannot turn it off.
+every judgment, whichever profile kind the operator selects: the tool's
+input, the question keys, and every text in the questions (wording, choice
+labels and their descriptions, Noul criteria and rubric levels). It also
+turns off PyModel's optional response cache (`JEV_MCP_CACHE`), so real names
+are never written to disk. The operator's configuration cannot turn either
+off.
 
 ### Before sending real student records
 

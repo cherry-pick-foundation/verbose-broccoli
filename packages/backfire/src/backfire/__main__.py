@@ -21,6 +21,8 @@ def main() -> None:
     args = parser.parse_args()
     pymodel.require_posix()
     settings = pymodel.load_settings()
+    if args.education:
+        settings = settings.model_copy(update={"jev_judge_mcp_cache": False})
     pymodel.ensure_secrets_redactable(settings)
     pymodel.ensure_http_access_control(settings)
     pymodel.ensure_http_port_free(settings)

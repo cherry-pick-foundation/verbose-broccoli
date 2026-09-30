@@ -1,4 +1,3 @@
-pseudonymize = true
 provider = "education"
 
 [providers.education]

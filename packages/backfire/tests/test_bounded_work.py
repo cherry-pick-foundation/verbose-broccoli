@@ -29,6 +29,8 @@ def encode(message):
 def bounded_case(tool):
     arguments, padding = {}, None
     if tool == "jev_verify":
+        # 8,000 reproduces CHE-38; 100,000 identical IDs make its quadratic
+        # stall hold this test for tens of seconds.
         arguments = {
             "claims": ["synthetic claim"],
             "evidence": [{"id": "same", "text": "synthetic evidence"}] * 8_000,
@@ -330,6 +332,7 @@ def test_each_tool_keeps_event_loop_lag_below_one_second(
             for name in ("simple_match", "simple_miss")
         )
         print(f"jev_extract: false_simple_timeouts={false_timeouts}")
+        assert rows["simple_match"]["value"] == "b"
         assert rows["runaway"]["status"] == "invalid_pattern"
     assert lag < MAX_LAG_SECONDS, (
         f"{tool} stalled the server event loop for {lag:.6f}s"

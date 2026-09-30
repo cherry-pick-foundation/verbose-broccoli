@@ -212,6 +212,16 @@ def provider_factory(
         try:
             profile = load_profile(education=education)
             retry = _retry_policy(profile)
+            required = {
+                "cloudflare": "account_id",
+                "compatible": "base_url",
+            }.get(profile.get("jev_provider"))
+            if (
+                profile.get("api") == "jev"
+                and required is not None
+                and not profile.get(required)
+            ):
+                raise JudgmentError("backend_not_configured", profile["name"])
             key = load_credential(profile)
             provider = (
                 _OpenAIProvider(profile, key, retry=retry)

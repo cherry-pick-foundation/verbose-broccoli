@@ -60,29 +60,7 @@
         "--package",
         "backfire",
         "pytest",
-        "packages/backfire/tests",
-        "-m",
-        "not slow"
-      ],
-      "cache": false
-    },
-    "backfire#test:slow": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "backfire",
-        "pytest",
-        "packages/backfire/tests",
-        "-m",
-        "slow"
+        "packages/backfire/tests"
       ],
       "cache": false
     },

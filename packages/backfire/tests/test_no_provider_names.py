@@ -49,14 +49,13 @@ def test_guard_allows_archive_and_only_the_two_shipped_configs(tmp_path):
     ]
 
 
-def test_education_profile_keeps_development_protection_settings():
+def test_education_profile_selects_the_development_provider():
     root = Path(__file__).resolve().parents[1] / "src"
     development = tomllib.loads((root / "backfire/config.toml").read_text())
     education = tomllib.loads(
         (root / "backfire_education/config.toml").read_text()
     )
     assert education == {
-        "pseudonymize": True,
         "provider": "education",
         "providers": {
             "education": development["providers"][development["provider"]],

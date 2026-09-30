@@ -7,7 +7,12 @@ import select
 import subprocess
 import sys
 
+from jev_judge_mcp.settings import Settings
 import pytest
+
+from backfire import __main__ as entry
+from backfire import providers
+from backfire.providers import _ProfileProvider
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY_POINTS = (
@@ -103,3 +108,62 @@ def test_stdio_lists_pymodel_tools_then_noul(tmp_path, entry, education):
                 process.wait(timeout=5)
             process.stdout.close()
             process.stderr.close()
+
+
+def test_serve_mcp_education_wraps_provider_and_disables_cache(monkeypatch):
+    settings = Settings.model_construct(jev_judge_mcp_cache=True)
+    backend = type(
+        "StubProvider", (), {"name": "compatible", "label": "stub"}
+    )()
+    profile = {
+        "name": "synthetic-education",
+        "api": "jev",
+        "jev_provider": "compatible",
+        "credential": "SYNTHETIC_KEY",
+        "base_url": "https://provider.invalid/v1",
+    }
+    monkeypatch.setattr(
+        entry.sys, "argv", ["backfire", "serve-mcp", "--education"]
+    )
+    monkeypatch.setattr(entry.pymodel, "load_settings", lambda: settings)
+
+    def no_op(*args, **kwargs):
+        del args, kwargs
+
+    for name in (
+        "require_posix",
+        "ensure_secrets_redactable",
+        "ensure_http_access_control",
+        "ensure_http_port_free",
+        "configure_logging",
+        "freeze_startup_heap",
+    ):
+        monkeypatch.setattr(entry.pymodel, name, no_op)
+    monkeypatch.setattr(entry.os, "_exit", lambda _: None)
+    monkeypatch.setattr(providers, "load_profile", lambda **_: profile.copy())
+    monkeypatch.setattr(providers, "load_credential", lambda _: "synthetic-key")
+
+    def resolve_provider(*args, **kwargs):
+        del args, kwargs
+        return backend
+
+    monkeypatch.setattr(
+        providers.pymodel,
+        "resolve_provider",
+        resolve_provider,
+    )
+    observed = {}
+
+    async def serve(server, used_settings):
+        observed["cache"] = used_settings.jev_judge_mcp_cache
+        observed["provider"] = server.toolset.runtime._provider_factory(
+            used_settings
+        )
+
+    monkeypatch.setattr(entry.pymodel, "serve", serve)
+    entry.main()
+
+    assert observed["cache"] is False
+    assert isinstance(observed["provider"], _ProfileProvider)
+    assert observed["provider"]._education is True
+    assert observed["provider"]._provider is backend
