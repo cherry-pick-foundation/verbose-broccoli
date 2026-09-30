@@ -315,6 +315,88 @@ def test_provider_receives_no_part_of_a_birth_date(
 
 
 @pytest.mark.parametrize(
+    ("text", "hidden"),
+    [
+        ("born on 2012-06-17T00:00:00", ["2012", "06", "17", "00:00"]),
+        ("born on 2012-06-17T00:00:00Z", ["2012", "17", "00:00"]),
+        ("born on 2012-06-17 at 09:30", ["2012", "09:30"]),
+        ("DOB: June 17, AD 2012", ["2012", "June"]),
+        ("born on June 17, A.D. 2012", ["2012", "June"]),
+        ("born on June 17 in circa 2012", ["2012", "June"]),
+        ("DOB: June 17, two thousand and zero one", ["two", "zero", "June"]),
+        ("born on June 17, two thousand nought one", ["nought", "June"]),
+        ("born on 17 June MMXII", ["MMXII", "June"]),
+        ("born on 17.VI.2012", ["VI", "2012"]),
+        ("born on 2012-06-17Tuesday", ["2012", "17"]),
+        ("born in two thousand, twelve", ["thousand", "twelve"]),
+        ("born on June seventeen, 2012", ["seventeen", "2012"]),
+        ("DOB: 17 June (Sunday), 2012", ["2012", "June"]),
+        ("born on June 17 in the summer of 2012", ["2012", "June"]),
+        ("born on June17th2012", ["2012", "June"]),
+        ("born on １７／０６／２０１２", ["２０１２", "１７"]),
+        ("born on ١٧/٠٦/٢٠١٢", ["٢٠١٢"]),
+        ("born on June 17\u200b2012", ["2012", "June"]),
+        ("born on 2012_06_17", ["2012"]),
+        ("DOB: June 17 | 2012", ["2012", "June"]),
+        ("DOB: June 17, in and of the year 2012", ["2012", "June"]),
+    ],
+)
+def test_provider_receives_no_birth_date_in_other_forms(
+    synthetic_roster, monkeypatch, text, hidden
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert not [
+        word for word in hidden if re.search(rf"\b{re.escape(word)}", sent)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("text", "kept"),
+    [
+        ("born on June 17, 2012; 85/100 on the reading test.", "85/100"),
+        ("born on June 17, 2012. 85 points on the reading test.", "85 points"),
+        ("born on June 17, 2012\n85/100 on the reading test.", "85/100"),
+        ("DOB: 2012-06-17 | 85/100 on the reading test.", "85/100"),
+        (
+            "born on June 17, 2012; on 2026-09-30 completed the lesson.",
+            "2026-09-30",
+        ),
+        (
+            "born on June 17, 2012. On September 30, 2026 finished the unit.",
+            "On September 30, 2026",
+        ),
+        ("born on June 17, 2012. May need reading support.", "May need"),
+        (
+            "born on June 17, 2012, and one of the strongest readers.",
+            "one of the strongest",
+        ),
+        ("DOB: [2012-06-17]; 85/100 on the reading test.", "85/100"),
+        ("She was born. May need reading support.", "May need"),
+        ("She was born. December lessons went well.", "December lessons"),
+        ("She was born. First in the spelling contest.", "First in"),
+        ("A new idea was born in one lesson.", "in one lesson"),
+        ("The idea was born in Marching practice.", "Marching"),
+        ("Her birthday may improve attendance.", "may improve"),
+        ("She was born first in her family.", "first in her"),
+    ],
+)
+def test_learning_content_beside_a_birth_date_is_sent(
+    synthetic_roster, monkeypatch, text, kept
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+        assert not isinstance(result, Exception)
+        sent = json.dumps(fake.requests[0]["body"], ensure_ascii=False)
+    assert kept in sent
+    assert "2012" not in sent and "June 17" not in sent
+
+
+@pytest.mark.parametrize(
     "text", ["born on June 17 (2012)", "born on June 17 [2012]"]
 )
 def test_a_year_left_beside_a_replaced_birth_date_is_refused(
@@ -422,7 +504,7 @@ def test_stand_ins_and_their_keywords_are_not_refused(
 @pytest.mark.parametrize(
     "state",
     [
-        {"note": "DOB: 23.IV.2011"},
+        {"note": "DOB: around Easter"},
         {"note": "**Date of birth** = sometime in spring"},
         {"note": "| Name | DOB |\n| --- | --- |\n| Ga Raon | 23.IV.2011 |"},
         {"note": "| Address | Grade |\n|---|---|\n| 487 Imaginary St | 10 |"},

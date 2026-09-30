@@ -55,31 +55,61 @@ _CARDINAL_WORDS = "|".join(_CARDINAL)
 _MARKUP = "|*_`~\"'“”‘’"
 _PUNCT = "\\-–—:：=>→" + _MARKUP
 _US_HIGH = {"freshman": 9, "sophomore": 10, "junior": 11, "senior": 12}
-_MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*+\.?"
+_BIRTH_BLANK = "\x01"
+# A month name, capitalized or in capitals, so "may" and "Marching" are not.
+_MONTH_NAMES = (
+    "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?"
+    "|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?"
+)
+_MONTH = rf"(?-i:(?:{_MONTH_NAMES}|{_MONTH_NAMES.upper()})\.?)(?![A-Za-z])"
 # A day of the month in words: first, twenty-third, thirtieth.
 _DAY_WORD = (
-    r"(?:(?:twenty|thirty)[\s-]?)?"
+    r"(?:(?:(?:twenty|thirty)[\s-]?)?"
     r"(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)"
     r"|tenth|eleventh|twelfth|(?:thir|four|fif|six|seven|eigh|nine)teenth"
-    r"|twentieth|thirtieth"
+    r"|twentieth|thirtieth)(?![A-Za-z])"
 )
-# One part of a date: a number (23, 23rd, 2011, 2011년), a month, a day in
-# words, or a number word (twenty, ninety, eleven, thousand).
+_NUMBER_WORD = (
+    rf"(?:zero|nought|oh|{'|'.join(_UNITS)}"
+    r"|(?:twen|thir|for|fif|six|seven|eigh|nine)ty|hundred|thousand)(?![A-Za-z])"
+)
+# A year in words has at least two: nineteen ninety-eight, two thousand and
+# eleven, twenty oh one.
+_WORD_YEAR = rf"{_NUMBER_WORD}(?:[\s,-]+(?:and[\s-]+)?{_NUMBER_WORD})+"
+_ROMAN_YEAR = (
+    r"(?-i:M{1,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3}))"
+)
+# A day of the month as a cardinal word: seventeen, twenty-one.
+_DAY_NUMBER = (
+    r"(?:(?:twenty|thirty)(?:[\s-]?(?:one|two|three|four|five|six|seven"
+    rf"|eight|nine))?|{'|'.join(_UNITS)})(?![A-Za-z])"
+)
+# One part of a date: a day, month or year.
 _DATE_PART = (
-    rf"(?:\d++(?:st|nd|rd|th|년|월|일)?|{_MONTH}|(?:{_DAY_WORD}"
-    rf"|{'|'.join(_UNITS)}|(?:twen|thir|for|fif|six|seven|eigh|nine)ty"
-    r"|thousand|hundred|oh)(?![A-Za-z]))"
+    r"(?:\d{8}(?![0-9])|\d{6}(?![0-9])|\d{1,4}(?![0-9])(?:st|nd|rd|th|년|월|일)?"
+    rf"|{_MONTH}|{_DAY_WORD}|{_WORD_YEAR}|{_DAY_NUMBER}"
+    rf"|{_ROMAN_YEAR}(?![A-Za-z])"
+    r"|(?<=[./-])(?-i:X{0,1}I{1,3}|IV|VI{0,3}|IX|X)(?=[./-]))"
 )
-# Anything but a letter or digit may join the parts of a date: spaces,
-# punctuation, brackets and quotes of any script.
-_DATE_GAP = r"[\W_]"
-# A whole date: parts joined by gaps, or by of, in, on, the, year, anno or
-# and with gaps around them, as in "June 17, [ 2012 ]", "2012 . 06 . 17",
-# "June 2012, on the 17th" or "nineteen ninety-eight"; a closing bracket or
-# quote ends it.
+# Words that may sit inside a date: "in the summer of", "Sunday", "AD".
+_DATE_WORDS = (
+    r"of|in|on|the|year|anno|AD|A\.D\.|CE|circa|ca\.|and|early|late|mid"
+    r"|spring|summer|autumn|fall|winter|(?:mon|tues|wednes|thurs|fri|satur|sun)day"
+)
+# What may join two parts: anything but a letter, digit or line break (an
+# underscore too), and those words.
+_DATE_JOIN = rf"(?:[^\w\n\r]|_|(?<![A-Za-z])(?:{_DATE_WORDS})(?![A-Za-z]))*+"
+# A time of day after the date: T00:00:00Z, at 09:30, 9:30 pm.
+_TIME = (
+    r"(?:T|[ ,]+(?:at\s+)?)\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?"
+    r"(?:\s*(?:Z|[ap]\.?m\.?|[+-]\d{2}:?\d{2}))?"
+)
+# A date is at most three parts, a day, a month and a year, so a score or a
+# lesson date after it stays; then a time of day and a closing bracket or
+# quote may follow.
 _DATE = (
-    rf"{_DATE_PART}(?:{_DATE_GAP}*+(?:(?:of|in|on|the|year|anno|and)"
-    rf"{_DATE_GAP}++)*+{_DATE_PART})*+(?:\s*+[\])}}）］】」』\"'”’»〉》])?"
+    rf"{_DATE_PART}(?:{_DATE_JOIN}{_DATE_PART}){{0,2}}(?:{_TIME})?"
+    r"(?:\s*[\])}）］】」』\"'”’])?"
 )
 # Words that may sit between a birth keyword and its date.
 _BIRTH_WORDS = (
@@ -196,7 +226,11 @@ def _unfilled(text: str, kind: str | None) -> bool:
     values = [text] if kind == "number" else []
     values.extend(match["value"] for match in _FIELD.finditer(_cells(text)))
     return any(
-        value.strip() and (_BLANK not in value or re.search("[0-9]", value))
+        value.strip()
+        and (
+            not ({_BLANK, _BIRTH_BLANK} & set(value))
+            or re.search("[0-9]", value)
+        )
         for value in values
     )
 
@@ -218,7 +252,11 @@ def _field_spans(
     text: str, kind: str
 ) -> list[tuple[int, int, tuple[str, str]]]:
     """Return the whole value of a field whose name says it is of ``kind``."""
-    match = re.fullmatch(rf"[\s{_BLANK}]*(.*?)[\s{_BLANK}]*", text, re.DOTALL)
+    match = re.fullmatch(
+        rf"[\s{_BLANK}{_BIRTH_BLANK}]*(.*?)[\s{_BLANK}{_BIRTH_BLANK}]*",
+        text,
+        re.DOTALL,
+    )
     value = match[1] if kind != "number" else None
     if kind == "cohort":
         year = _YEAR.fullmatch(value)
@@ -230,6 +268,28 @@ def _count(word: str) -> str:
     """Return the number that a numeral, ordinal or cardinal word names."""
     word = word.lower()
     return str(_ORDINAL.get(word) or _CARDINAL.get(word) or word)
+
+
+class _Dates:
+    """Birth-date matches that hold a digit, a month or a year.
+
+    A day or number in words alone, as in "born first" or "born in one
+    lesson", is not a date.
+    """
+
+    _SOLID = re.compile(
+        rf"\d|{_MONTH}|{_ROMAN_YEAR}(?![A-Za-z])|{_WORD_YEAR}", re.IGNORECASE
+    )
+
+    def __init__(self, pattern: re.Pattern[str]) -> None:
+        self.pattern = pattern
+
+    def finditer(self, text: str):
+        return (
+            match
+            for match in self.pattern.finditer(text)
+            if self._SOLID.search(match["date"])
+        )
 
 
 # (kind, pattern, group that is replaced, value of a match; None: the
@@ -316,15 +376,32 @@ _DETECTORS = [
     ),
     (
         "birth",
+        _Dates(
+            re.compile(
+                r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
+                r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
+                # Spaces, markup and field punctuation may sit between the
+                # keyword and its date, and a line break after a colon, but
+                # not a sentence end or a semicolon.
+                r"(?:[ \t\u00a0\u3000:：=|*_~`>→\-–—,(\[{（［【「\"'“”‘’]"
+                r"|(?<=[:：=|])\s*\n"
+                rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
+                rf"(?P<date>{_DATE})(?![0-9])",
+                re.IGNORECASE,
+            )
+        ),
+        "date",
+        None,
+    ),
+    (
+        "birth",
         re.compile(
-            r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
-            r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
-            # Anything but a letter or digit may sit between the keyword and
-            # the date. That includes a blanked stand-in, so the scan after
-            # the swap finds a year left beside a replaced date.
-            r"(?:[\W_]"
-            rf"|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
-            rf"(?P<date>{_DATE})(?![0-9A-Za-z])",
+            # The scan after the swap marks a replaced birth date; a year,
+            # month or year in words left beside it is part of that date.
+            rf"{_BIRTH_BLANK}(?:[^\w;.]|_"
+            rf"|(?<![A-Za-z])(?:{_DATE_WORDS})(?![A-Za-z]))*"
+            rf"(?P<date>(?:1[89]|20)\d\d(?![0-9])|{_MONTH}|{_WORD_YEAR}"
+            rf"|{_ROMAN_YEAR}(?![A-Za-z]))",
             re.IGNORECASE,
         ),
         "date",
@@ -764,9 +841,18 @@ def pseudonymize(
             for label in sorted(set(pseudonyms.values()), key=len, reverse=True)
         )
     )
+    births = {
+        label
+        for identifier, label in pseudonyms.items()
+        if identifier[0] == "birth"
+    }
+
+    def blank(match):
+        return _BIRTH_BLANK if match.group() in births else _BLANK
+
     for value in (provider_state, provider_documents):
         for text, kind in fields(value):
-            text = standin.sub(_BLANK, text) if pseudonyms else text
+            text = standin.sub(blank, text) if pseudonyms else text
             if _unfilled(text, kind) or find_spans(
                 text, identifiers, roster_pattern, name_pattern, kind
             ):

@@ -298,17 +298,32 @@ def test_birth_dates_in_english_prose_and_words(found, text, matched):
 
 
 @pytest.mark.parametrize(
-    ("text", "matched"),
+    "text",
     [
-        ("born on \x00 (2012)", "2012)"),
-        ("DOB: \x00, (2012)", "2012)"),
-        ("born on \x00 in 2012", "2012"),
-        ("born on \x00 [2012]", "2012]"),
-        ("DOB: \x00, [ 2012 ]", "2012 ]"),
+        "born on \x01 (2012)",
+        "DOB: \x01, (2012)",
+        "born on \x01 in 2012",
+        "born on \x01 [2012]",
+        "DOB: \x01, [ 2012 ]",
+        "born on \x01\n2012",
     ],
 )
-def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text, matched):
-    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+def test_a_year_left_beside_a_blanked_birth_date_is_found(found, text):
+    assert [(m, kind) for m, kind, _ in found(text)] == [("2012", "birth")]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "born on \x01; 85/100 on the reading test",
+        "born on \x01; on 2026-09-30 completed the lesson",
+        "born on \x01, 85 points",
+        "born on \x01. March lessons went well",
+        "Student \x00 (2012 entrant)",
+    ],
+)
+def test_other_text_beside_a_blanked_birth_date_is_not(found, text):
+    assert found(text) == []
 
 
 @pytest.mark.parametrize(
