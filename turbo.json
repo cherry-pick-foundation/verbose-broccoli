@@ -49,6 +49,7 @@
     "//#test:workflow": {"cache": false},
     "//#test:mise-doctor": {"cache": false},
     "//#test:cli-contract": {"cache": false},
+    "//#test:session-select": {"cache": false},
     "backfire#test": {
       "command": [
         "env",
@@ -171,6 +172,7 @@
         "credit-offers#test",
         "wiki-consistency#test",
         "//#test:concept-profile",
+        "//#test:session-select",
         "//#test:wiki-raw-import"
       ],
       "cache": false

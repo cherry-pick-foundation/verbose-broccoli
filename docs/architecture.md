@@ -204,7 +204,10 @@ plugin's Wiki tool may write a vault the user selects.
 The work plugin's `wiki-raw-import` skill creates a vault and copies documents
 the user confirms into its `raw/`, in `work` unless another vault is named.
 Only the `chat` and `work` vaults admit exported conversations; the skill
-admits each ChatGPT export into both. Each copy is one
+admits each ChatGPT export into both. Exported Claude Code and Codex
+sessions, rendered to Markdown by SpecStory's command-line tool, may go into
+any vault they belong to; the skill's session selection reference picks
+them with backfire, and the user approves the list. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
@@ -344,8 +347,10 @@ package two skills backed by two uv workspace packages.
   connection. The `web-agent` skill runs it.
 - `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
   offers that entered its published list during the latest 6-hour block,
-  asks Jev once per run whether each costs nothing and states no time limit
-  or end date, and sends a desktop notification for those that do. It saves
+  asks once per run, through backfire's shared provider order (feature 029,
+  [spec](../specs/029-offer-search-backfire/spec.md)), whether each costs
+  nothing and states no time limit or end date, and sends a desktop
+  notification for those that do. It saves
   nothing. The `credit-offers` skill runs it, and the user approved an Orca
   automation on the laptop that runs it every 6 hours as a precheck; the
   interval comes from the tracker's history
@@ -354,14 +359,14 @@ package two skills backed by two uv workspace packages.
   `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
   `openrouter.env`, `hive.env`, and `github.env` for the offer search's
-  optional GitHub token), which every plugin uses. The chat packages
-  get them through `uv run --env-file` and never read the files; backfire's
-  shipped profiles name them in `credential_file`.
+  optional GitHub token), which every plugin uses. The web agent gets its
+  provider key through `uv run --env-file`; credit offers passes only the
+  optional `github.env`. Backfire reads provider keys through its own shipped
+  profiles' `credential_file` fields and follows its shared provider order.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
-- Not automated: the live provider check, which waits for a provider that
-  accepts Jev calls, because Vercel AI Gateway's free tier does not include
-  Jev; catching up blocks the laptop slept through; screenshots and scrolling
+- Not automated: live provider calls, which spend paid credit; catching up
+  blocks the laptop slept through; screenshots and scrolling
   in an Orca tab that is not drawn on screen.
 
 ## Sharing and distribution
