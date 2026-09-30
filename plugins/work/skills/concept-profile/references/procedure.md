@@ -30,9 +30,12 @@ success, 1 means a proposal was refused or a backfire result was invalid, and
   data-row number in the sheet. The catalog's own ID and the examples are not
   in the file. Cell values are stripped of surrounding whitespace.
 - `extract --source <source-id> ...` writes `text/<source-id>.txt` from each
-  source's latest revision: PDF through `pdftotext`, everything else through
-  `wiki_consistency.evidence.convert` and `read`. A source with no letters in
-  its text, such as a scanned PDF, stops the command; the user decides.
+  source's latest revision: PDF through `pdftotext -raw`, everything else
+  through `wiki_consistency.evidence.convert` and `read`. `-raw` keeps the
+  content-stream order, which keeps sentences whole across the columns of a
+  two-column exam paper; the default reading order split 13 sentences of the
+  pilot's paper. A source with no letters in its text, such as a scanned PDF,
+  stops the command; the user decides.
 
 ## Proposals
 

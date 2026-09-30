@@ -108,7 +108,7 @@ def _extract_command(args, root, run):
         payload = _payload_path(root, item)
         if payload.suffix.lower() == ".pdf":
             text = subprocess.check_output(
-                ["pdftotext", payload, "-"], text=True
+                ["pdftotext", "-raw", payload, "-"], text=True
             )
         else:
             evidence.convert(root, args.wiki, cache, {source: [item]})
