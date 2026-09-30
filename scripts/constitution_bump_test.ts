@@ -48,9 +48,16 @@ void test('constitution bump rewrites the version line in a temporary copy', asy
   try {
     await mkdir(join(root, '.specify/memory'), {recursive: true});
     await copyFile(join(repositoryRoot, '.cz.toml'), join(root, '.cz.toml'));
+    const current = /^version = "(\d+)\.(\d+)\.(\d+)"$/m.exec(
+      await readFile(join(root, '.cz.toml'), 'utf8'),
+    );
+    assert(current, 'the .cz.toml version is not major.minor.patch');
+    const [, major, minor, patch] = current;
+    const before = `${major}.${minor}.${patch}`;
+    const after = `${major}.${minor}.${Number(patch) + 1}`;
     await writeFile(
       join(root, '.specify/memory/constitution.md'),
-      'Synthetic fixture mentions 2.2.0 here.\n\n**Version**: 2.2.0 | Ratified: test\n',
+      `Synthetic fixture mentions ${before} here.\n\n**Version**: ${before} | Ratified: test\n`,
     );
 
     for (const args of [
@@ -87,11 +94,11 @@ void test('constitution bump rewrites the version line in a temporary copy', asy
     assertEquals(bump.code, 0, bump.output);
     assertEquals(
       await readFile(join(root, '.specify/memory/constitution.md'), 'utf8'),
-      'Synthetic fixture mentions 2.2.0 here.\n\n**Version**: 2.2.1 | Ratified: test\n',
+      `Synthetic fixture mentions ${before} here.\n\n**Version**: ${after} | Ratified: test\n`,
     );
     assert(
       (await readFile(join(root, '.cz.toml'), 'utf8')).includes(
-        'version = "2.2.1"',
+        `version = "${after}"`,
       ),
     );
     assertEquals(
