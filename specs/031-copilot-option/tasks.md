@@ -55,3 +55,17 @@
 - [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish copilot-option`.
+
+## Notes
+
+- Before the develop merge review, `doc-regions:prepare --base develop
+  --max-evidence-chars 12000` gave 3 `jev_verify` requests over 238 units:
+  none contradicted, 16 verified, 222 unsupported within the evidence cap,
+  and 64 flagged for review. The units this feature changed (AGENTS.md's
+  review rule, the constitution's workflow and Governance text, and
+  `docs/architecture.md`'s review paragraph) were verified. The key-file
+  list in `docs/architecture.md` lacked `copilot.env` and now names it.
+  `doc-regions:audit` (MemoryLint 1.5.1) reports 19 warnings that
+  constitution rules belong in `AGENTS.md`, as for earlier features, and one
+  false warning that `scripts/workflow.ts` does not exist; they are reported
+  to the user without changing either file.
