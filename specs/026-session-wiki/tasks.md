@@ -83,4 +83,10 @@ parallel.
   (the security report alone is 406), 738 tests and 567 script and
   configuration. The feature is not split: the rule, the tool and the
   procedure depend on one another, and the script is the only own code.
+- Workers, chosen with backfire (`jev_decide`, then the `model-choice`
+  skill once `develop` brought it in): security review Claude Code Opus 5.5
+  high (confidence 0.49); glue Codex gpt-6-luna xhigh (0.39); duplication
+  check and trim, the same Codex worker reused (0.35); develop merge review
+  of the code Claude Code Sonnet 5.5 medium (0.56) and of the records Codex
+  gpt-6-luna medium (0.52).
 

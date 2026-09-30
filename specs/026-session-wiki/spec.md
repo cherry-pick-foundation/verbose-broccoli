@@ -8,6 +8,14 @@
 
 **Linear issue**: CHE-47
 
+**Own-code limit**: 560, a temporary setting for the old own-code check, which
+the user abolished on 2026-09-30 in favor of the 1,000-line splitting review;
+CHE-44 removes the check. The line keeps the check's required prefix. The
+feature adds 507 net lines of own code, all in `session_select.py`. Its whole
+change is 2,378 added lines against `develop` (1,073 records, documents and
+data, 738 tests, 567 script and configuration); the user agreed not to split
+it, because the rule, the tool and the procedure depend on one another.
+
 **Input**: Linear issue CHE-47, "Select local Claude Code and Codex sessions
 with backfire and record them in the Wiki vaults", and the develop session's
 task brief of 2026-09-30. The user decided that every session Claude Code and
@@ -42,6 +50,14 @@ four vaults, runs afterwards in an Orca folder workspace on the vaults folder.
   session has no lasting value unless it holds a lesson or decision that Git
   and the Spec Kit records do not keep. The develop session answered from the
   user's earlier choice to include all sessions.
+- Q: The first sample returned 34% `review` results. How is that cut? → A:
+  Sharpen the catalog so clear `none` cases, such as Orca worker sessions and
+  sessions without a decision or lesson, pass without the user; keep
+  backfire's auto-accept threshold; hold back Codex's own approval reviews
+  before classification like the sessions with possible secrets and those
+  without a user message; re-test on a fresh sample; run the full
+  classification at the start of stage 2 with a fresh render. The user
+  accepted the re-test's 19% `review` rate.
 
 ## User Scenarios & Testing *(mandatory)*
 

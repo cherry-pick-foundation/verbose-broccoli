@@ -84,8 +84,13 @@ specs/026-session-wiki/                                # these records
 | --- | --- | --- |
 | Security review of SpecStory and betterleaks | Claude Code, Opus 5.5, high | 0.49 |
 | Glue script and tests | Codex, gpt-6-luna, xhigh | 0.39 |
-| Develop merge review of the code | Claude Code, Sonnet 5.5, medium | 0.57 |
-| Develop merge review of the records | Codex, gpt-6-luna, high | 0.66 |
+| Develop merge review of the code | Claude Code, Sonnet 5.5, medium | 0.56 |
+| Develop merge review of the records | Codex, gpt-6-luna, medium | 0.52 |
+
+The two review picks were made again after `develop` brought in the code
+plugin's `model-choice` skill, with its evidence: live model catalogs,
+usage limits from CodexBar (Codex weekly window 37% used; Claude session 9%
+and weekly 21% used) and earlier reviewers' track records.
 
 The coordinator (Claude Code) writes the constitution change, the documents,
 the procedure and the catalog, and reviews the Codex code before it is
