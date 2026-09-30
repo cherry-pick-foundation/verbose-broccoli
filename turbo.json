@@ -6,6 +6,7 @@
     "PATH",
     "XDG_*",
     "UV_*",
+    "MISE_*",
     "PYTHONDONTWRITEBYTECODE",
     "TMPDIR",
     "CI",
