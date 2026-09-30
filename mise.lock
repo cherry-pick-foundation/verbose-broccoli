@@ -129,6 +129,53 @@ checksum = "sha256:ea9a8048498b869be8475a01488cd056f60b769f2d450311b9c24f07d11ed
 url = "https://github.com/vale-cli/vale/releases/download/v3.23.0/vale_3.23.0_Windows_64-bit.zip"
 url_api = "https://api.github.com/repos/vale-cli/vale/releases/assets/589026724"
 
+[[tools."github:betterleaks/betterleaks"]]
+version = "1.9.0"
+backend = "github:betterleaks/betterleaks"
+specifiers = ["1.9.0"]
+
+[tools."github:betterleaks/betterleaks"."platforms.linux-arm64"]
+checksum = "sha256:1d39116e0a58dc94574715e2aa12a2dbd5062f193eee3fec011fef6ba06bd13b"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108932"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.linux-arm64-musl"]
+checksum = "sha256:1d39116e0a58dc94574715e2aa12a2dbd5062f193eee3fec011fef6ba06bd13b"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108932"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.linux-x64"]
+checksum = "sha256:f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108929"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.linux-x64-musl"]
+checksum = "sha256:f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_linux_x64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108929"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.macos-arm64"]
+checksum = "sha256:83dd7eaab13d44a1e8e347a17064cdef153a1478db473276d41b38d55613d3f2"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108927"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.macos-x64"]
+checksum = "sha256:68dfd83458d9e7f90663daa7a81c7f944083b170dae82e4f5f8d0581ed519ef1"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_darwin_x64.tar.gz"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108931"
+provenance = "github-attestations"
+
+[tools."github:betterleaks/betterleaks"."platforms.windows-x64"]
+checksum = "sha256:b765daec9fda475b031b5a5159798cbe4294a3f2a50683cbc0471226e376d3da"
+url = "https://github.com/betterleaks/betterleaks/releases/download/v1.9.0/betterleaks_1.9.0_windows_x64.zip"
+url_api = "https://api.github.com/repos/betterleaks/betterleaks/releases/assets/599108997"
+provenance = "github-attestations"
+
 [[tools."github:gittower/git-flow-next"]]
 version = "2.1.0"
 backend = "github:gittower/git-flow-next"
@@ -168,3 +215,43 @@ url_api = "https://api.github.com/repos/gittower/git-flow-next/releases/assets/5
 checksum = "sha256:9bfbc2746ea647fe664e0a5be375f7d7e144412d5031064f60efb1f8fbe1b656"
 url = "https://github.com/gittower/git-flow-next/releases/download/v2.1.0/git-flow-next-v2.1.0-windows-amd64.zip"
 url_api = "https://api.github.com/repos/gittower/git-flow-next/releases/assets/549957111"
+
+[[tools."github:specstoryai/getspecstory"]]
+version = "2.15.1"
+backend = "github:specstoryai/getspecstory"
+specifiers = ["2.15.1"]
+
+[tools."github:specstoryai/getspecstory"."platforms.linux-arm64"]
+checksum = "sha256:8756343fe45bcf4ff9db155be42a4c032c1ddb22d8d46e649e2ce653443ac929"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912434"
+
+[tools."github:specstoryai/getspecstory"."platforms.linux-arm64-musl"]
+checksum = "sha256:8756343fe45bcf4ff9db155be42a4c032c1ddb22d8d46e649e2ce653443ac929"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912434"
+
+[tools."github:specstoryai/getspecstory"."platforms.linux-x64"]
+checksum = "sha256:7d8e842a81a8acd07a868d090ad89552028b22ec22df839f20615977abedd017"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912426"
+
+[tools."github:specstoryai/getspecstory"."platforms.linux-x64-musl"]
+checksum = "sha256:7d8e842a81a8acd07a868d090ad89552028b22ec22df839f20615977abedd017"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912426"
+
+[tools."github:specstoryai/getspecstory"."platforms.macos-arm64"]
+checksum = "sha256:7774c74037f43815bbd21c84a1ef25ac19eff2b075bb162c34bee76606b8aa40"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912432"
+
+[tools."github:specstoryai/getspecstory"."platforms.macos-x64"]
+checksum = "sha256:9e95caac271043ca419581a88ae4cb5f92f0fcaff41b1aa693fdbbbe690f1f6d"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Darwin_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912433"
+
+[tools."github:specstoryai/getspecstory"."platforms.windows-x64"]
+checksum = "sha256:fd9d5d317b0f496a09376c29827adec2e4d6554829020b8d83ea53efd3fef3c1"
+url = "https://github.com/specstoryai/getspecstory/releases/download/v2.15.1/SpecStoryCLI_Windows_x86_64.zip"
+url_api = "https://api.github.com/repos/specstoryai/getspecstory/releases/assets/586912493"
