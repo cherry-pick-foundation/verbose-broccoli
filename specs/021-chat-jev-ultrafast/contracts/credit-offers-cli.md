@@ -8,6 +8,7 @@ Package `packages/credit-offers/`, console script `credit-offers`. See
 ```sh
 JEV_PROVIDER=<provider> uv run --frozen --offline --no-sync \
   --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/<provider>.env" \
+  --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/github.env" \
   --package credit-offers credit-offers [--hours N] [--end ISO-8601] [--notify]
 ```
 
@@ -27,7 +28,12 @@ repository = "luongnv89/freetokens"
 index_path = "index.json"
 api_root = "https://api.github.com"
 raw_root = "https://raw.githubusercontent.com"
+token_env = "GITHUB_TOKEN"
 ```
+
+When the variable `token_env` names is set, the GitHub API requests carry it
+as a bearer token; the raw-file requests never do (user decision,
+2026-09-30).
 
 ## Behavior
 

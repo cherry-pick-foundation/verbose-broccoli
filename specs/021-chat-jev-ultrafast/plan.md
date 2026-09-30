@@ -45,7 +45,8 @@ script; two plugin skills
 no Jev call (SC-002)
 
 **Constraints**: At most one Jev call per run; no writes; keys never printed;
-GitHub's unauthenticated limit of 60 API requests an hour (a run uses two);
+GitHub's API limit of 60 unauthenticated requests an hour, or 5,000 with
+the optional `GITHUB_TOKEN` (a run uses two);
 no own-code line limit (the user's 300-line limit was replaced by a splitting
 review for changes of 1,000 lines or more, CHE-44)
 

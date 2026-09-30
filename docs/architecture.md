@@ -344,7 +344,8 @@ package two skills backed by two uv workspace packages.
 - Keys live in the shared provider folder
   `$XDG_CONFIG_HOME/verbose-broccoli/providers/` (by default under
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
-  `openrouter.env`, `hive.env`), which every plugin uses. The chat packages
+  `openrouter.env`, `hive.env`, and `github.env` for the offer search's
+  optional GitHub token), which every plugin uses. The chat packages
   get them through `uv run --env-file` and never read the files; backfire's
   shipped profiles name them in `credential_file`.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the

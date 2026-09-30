@@ -142,8 +142,12 @@ saved locally.
 **Rationale**: `index.json` changed in 111 commits between 2026-08-21 and
 2026-09-29 and is the tracker's published list; 32 of 239 offers entered it
 minutes to 12 hours after their YAML file, so the index, not the file, defines
-when an offer appears for this search. Two API calls and two raw fetches per
-run stay far below the unauthenticated limit.
+when an offer appears for this search. A run makes two API calls and two raw
+fetches. The unauthenticated limit, 60 API requests an hour, is shared by
+every tool on the laptop's network address, and on 2026-09-30 it was used up
+twice, so a run failed with HTTP 403. The user therefore had the search
+send an optional token (`GITHUB_TOKEN` from `providers/github.env`) on its
+API requests, which raises the limit to 5,000 an hour.
 
 **Limit**: runs missed while the laptop sleeps are not caught up; an offer
 that entered and left the index inside one block is not seen.

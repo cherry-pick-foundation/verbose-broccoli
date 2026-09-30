@@ -43,6 +43,7 @@ install -d -m 700 "$providers"
 | `vercel.env` | `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel`; Jev needs paid AI Gateway credit, since the free tier refuses it |
 | `openrouter.env` | `OPENROUTER_API_KEY=<key>` | `JEV_PROVIDER=openrouter` |
 | `typesafe.env` | `TYPESAFE_API_KEY=<key>` | `JEV_PROVIDER=typesafe` |
+| `github.env` | `GITHUB_TOKEN=<token>` | The `credit-offers` search's GitHub API requests; a token with no extra permissions is enough |
 
 Steps that type text also need upstream's OpenAI-compatible text helper:
 `TEXT_MODEL_API_KEY`, and optionally `TEXT_MODEL_BASE_URL`, `TEXT_MODEL` and

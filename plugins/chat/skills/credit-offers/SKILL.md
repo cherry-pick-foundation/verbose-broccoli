@@ -22,10 +22,15 @@ provider folder that the `web-agent` skill describes; it must exist, even
 while empty. For OpenRouter:
 
 ```sh
+providers="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
 JEV_PROVIDER=openrouter uv run --frozen --offline --no-sync \
-  --env-file "${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers/openrouter.env" \
+  --env-file "$providers/openrouter.env" --env-file "$providers/github.env" \
   --package credit-offers credit-offers --notify
 ```
+
+`github.env` may be empty. When it holds `GITHUB_TOKEN`, the search sends
+that token on its GitHub API requests, which raises GitHub's limit from 60
+to 5,000 requests an hour.
 
 For another provider, change `JEV_PROVIDER` and the file name the same way
 (`vercel`, `cloudflare` or `typesafe`).
@@ -59,8 +64,10 @@ run's details.
 - A block the laptop slept through is not checked later.
 - An offer's first appearance in the tracker can be later than the
   provider's own launch.
-- GitHub allows 60 unauthenticated API requests an hour per address; a run
-  uses two.
+- Without a token, GitHub allows 60 API requests an hour per network
+  address, shared by every tool on the laptop; a run uses two, and a run
+  that finds the limit used up ends with status 3, so its block is not
+  checked.
 - Without a key for a provider that accepts Jev calls, a block with
   candidates ends with status 3. Jev is paid on every provider tried so
   far: Vercel AI Gateway's free tier refuses it, Cloudflare Workers AI asks
