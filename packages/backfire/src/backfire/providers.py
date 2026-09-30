@@ -24,8 +24,14 @@ from backfire.config import load_profiles
 from backfire.credit import check_credit
 from backfire.failures import JudgmentError
 from backfire_education.pseudonymize import pseudonymize
+from backfire_education.pseudonymize import strings
 
 logger = logging.getLogger(__name__)
+# Hangul syllables and Jamo, composed or decomposed.
+_HANGUL = re.compile(
+    "[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7af\ud7b0-\ud7ff"
+    "\uffa0-\uffdc]"
+)
 
 
 class _AnswerlessError(Exception):
@@ -226,6 +232,8 @@ class _OrderProvider(pymodel.JevProvider):
                     else pymodel.ProviderError(str(error))
                 )
                 raise failure from None
+        if any(_HANGUL.search(text) for text in strings((state, questions))):
+            raise pymodel.ProviderError(str(JudgmentError("hangul_remaining")))
         while True:
             current = await self._active_profile()
             if current is None:

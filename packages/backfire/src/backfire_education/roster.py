@@ -46,7 +46,7 @@ def load_roster() -> dict[str, tuple[str, str]]:
         raise JudgmentError("backend_not_configured", str(path)) from None
 
     path = Path(config["roster"])
-    students, guardians, schools = {}, {}, {}
+    students, guardians, schools, ids, romanized = {}, {}, {}, {}, {}
     try:
         with _open_regular(
             path, mode="r", encoding="utf-8-sig", newline=""
@@ -59,6 +59,12 @@ def load_roster() -> dict[str, tuple[str, str]]:
                 if not name:
                     raise ValueError
                 students[name] = ("student", name)
+                number = (row.get("id") or "").strip()
+                if number:
+                    ids[number] = students[name]
+                spelling = " ".join((row.get("romanized") or "").split())
+                if spelling:
+                    romanized[name] = spelling
                 school = (row.get("school") or "").strip()
                 if school:
                     schools[school] = ("school", school)
@@ -75,12 +81,19 @@ def load_roster() -> dict[str, tuple[str, str]]:
         if short:
             given[short].append(name)
     identifiers = dict(students)
+    for name, spelling in romanized.items():
+        identifiers.setdefault(spelling, students[name])
     for short, names in given.items():
-        identifiers.setdefault(
-            short,
-            ("student", names[0]) if len(names) == 1 else ("given", short),
+        identifier = (
+            ("student", names[0]) if len(names) == 1 else ("given", short)
         )
-    for values in (guardians, schools):
+        identifiers.setdefault(short, identifier)
+        # The romanized given name is the spelling without its surname.
+        for name in names:
+            _, _, latin = romanized.get(name, "").partition(" ")
+            if latin:
+                identifiers.setdefault(latin, identifier)
+    for values in (ids, guardians, schools):
         for value, identifier in values.items():
             identifiers.setdefault(value, identifier)
     return identifiers

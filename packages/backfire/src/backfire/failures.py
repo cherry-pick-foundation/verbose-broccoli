@@ -10,6 +10,14 @@ MESSAGES = {
         "make them differ by more than a name."
     ),
     "no_credit": "No profile in the order has credit.",
+    "hangul_remaining": (
+        "The request contains Hangul, so nothing was sent; translate it into "
+        "English first."
+    ),
+    "identifier_remaining": (
+        "An identifier survived replacement, so nothing was sent; report "
+        "this to the operator."
+    ),
 }
 
 

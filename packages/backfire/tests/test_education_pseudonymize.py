@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import json
+import re
 import sys
 
 from jev_judge_mcp.domain import Usage
@@ -86,8 +87,8 @@ def test_replaces_nested_state_and_rebuilds_each_question_type(roster):
         Score,
     }
     assert len(masked_questions) == len(questions)
-    assert "학생" in masked_state["summary"]
-    assert "학교" in masked_state["nested"][0]["school"]
+    assert "Student" in masked_state["summary"]
+    assert "School" in masked_state["nested"][0]["school"]
 
 
 def test_pymodel_question_dataclasses_mask_fields_and_restore_answers(roster):
@@ -235,8 +236,8 @@ def test_toolset_education_wrapper_masks_pymodel_questions_and_state(
             return await tools.call(
                 "jev_noul",
                 {
-                    "propositions": ["가라온은 다누리의 기록을 확인한다."],
-                    "context": "가상별학교에서 가라온이 작성했다.",
+                    "propositions": ["가라온 checks the 다누리 record."],
+                    "context": "가라온 wrote it at 가상별학교.",
                 },
             )
         finally:
@@ -257,14 +258,9 @@ def test_given_name_particles_shared_given_name_and_longest_school_match(
     roster,
 ):
     del roster  # Unused.
-    state = (
-        "가라온은 라온이가 왔고, 하늘이는 나하늘과 다하늘을 봤다. 가상별학교."
-    )
+    state = "가라온 and 라온 came; 하늘 saw 나하늘 and 다하늘 at 가상별학교."
     masked, _, _ = pseudonymize(state, {})
-    full, given = (
-        masked.split("은 ", 1)[0],
-        masked.split("은 ", 1)[1].split("이가", 1)[0],
-    )
+    full, given = re.findall(r"Student \d+", masked)[:2]
     assert full == given
     assert (
         "나하늘" not in masked
@@ -272,18 +268,17 @@ def test_given_name_particles_shared_given_name_and_longest_school_match(
         and "하늘이" not in masked
     )
     assert "가상별학교" not in masked
-    assert masked.endswith("학교01.")
+    assert masked.endswith("School 01.")
     # The shared given name has its own assignment, distinct from both students.
     raw, _, _ = pseudonymize("나하늘 다하늘 하늘", {})
-    student_a, student_b, shared = raw.split()
-    assert len({student_a, student_b, shared}) == 3
+    assert len(set(re.findall(r"Student \d+", raw))) == 3
 
 
 def test_phone_email_normalization_and_pseudonym_like_text(roster):
     del roster  # Unused.
     source = (
         "+1 202-555-0123 and +12025550123; Synthetic.One+2@Example.test "
-        "and synthetic.one+2@example.test; keep 학생10명."
+        "and synthetic.one+2@example.test; keep Student 10 people."
     )
     masked, _, _ = pseudonymize(source, {})
     phone_a, phone_b = (
@@ -293,26 +288,26 @@ def test_phone_email_normalization_and_pseudonym_like_text(roster):
     assert phone_a == phone_b
     assert "+1 202-555-0123" not in masked and "+12025550123" not in masked
     assert "Synthetic.One+2@Example.test" not in masked
-    assert masked.count("이메일") == 2
-    assert masked.endswith("keep 학생10명.")
+    assert masked.count("Email") == 2
+    assert masked.endswith("keep Student 10 people.")
 
 
 def test_longer_email_wins_roster_match_at_same_start(roster):
     del roster  # Unused.
     masked, _, _ = pseudonymize("Ann@example.test", {})
-    assert masked == "이메일01"
+    assert masked == "Email 01"
 
 
 def test_roster_overlap_masks_the_rest_of_an_email(roster):
     del roster  # Unused.
     masked, _, _ = pseudonymize("Ann Lee.one@example.test", {})
-    assert masked == "학생01"
+    assert masked == "Student 01"
 
 
 def test_chain_of_overlaps_extends_the_kept_roster_span(roster):
     del roster  # Unused.
     masked, _, _ = pseudonymize("Ann Lee.one@example.test Tail!", {})
-    assert masked == "학생01!"
+    assert masked == "Student 01!"
 
 
 @pytest.mark.parametrize(
@@ -410,11 +405,11 @@ def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
         "다누리의 확인": Noul(),
     }
     _, masked, restore = pseudonymize({}, questions)
-    choice_key = next(key for key in masked if key.startswith("학생"))
+    choice_key = next(key for key in masked if key.startswith("Student"))
     score_key = next(
         key
         for key in masked
-        if key not in {choice_key} and key.startswith("학생")
+        if key not in {choice_key} and key.startswith("Student")
     )
     noul_key = next(key for key in masked if key not in {choice_key, score_key})
     choice = masked[choice_key]
@@ -448,7 +443,7 @@ def test_restore_question_keys_choice_labels_score_levels_and_noul(roster):
         "1": "나하늘의 진전",
     }
     assert result["다누리의 확인"] == answers[noul_key]
-    assert "학생" not in json.dumps(result, ensure_ascii=False)
+    assert "Student" not in json.dumps(result, ensure_ascii=False)
 
 
 @pytest.mark.parametrize(
