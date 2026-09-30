@@ -140,8 +140,9 @@ data file and page follow the layout in [plan.md](plan.md).
    action `auto` is dropped; anything else (`review`, `unknown`,
    `invalid_response`) is unclear.
 3. **Given** a proposal whose sentence does not occur in the extracted text,
-   or whose concept ID is not in the catalog, **When** the script reads it,
-   **Then** it refuses that sentence, names it, and writes nothing for it.
+   or whose concept key is not in the catalog, **When** the script reads it,
+   **Then** it names every such proposal and sends and writes nothing, so the
+   proposer fixes the file first.
 4. **Given** a run interrupted during checks, **When** it is rerun, **Then**
    sentences already checked are not sent again.
 5. **Given** unclear proposals, **When** the user returns the review sheet,
@@ -210,8 +211,9 @@ rules that keep unclear links from piling up.
   normalized before the verbatim test.
 - A source is a scanned PDF with no text layer: extraction reports it and the
   material is not profiled until the user decides.
-- Backfire fails for a sentence (transport error, `invalid_response`): its
-  proposals are unclear, and the failure is counted in the report.
+- Backfire fails (a transport or tool error): the run stops before anything
+  is written for that sentence, and rerunning resumes there. A single result
+  that comes back `unknown` (`invalid_response`) is unclear and counted.
 - A catalog cell holds several examples: all of them go into the evidence.
 - The material could hold student data (for example a school's own exam with
   names in it): backfire runs in education mode, which replaces roster names
@@ -237,8 +239,8 @@ rules that keep unclear links from piling up.
   claim wording taken from the catalog record, and sort each result into
   kept, dropped or unclear by the rule in User Story 1, scenario 2.
 - **FR-006**: The script MUST refuse proposals whose sentence is not verbatim
-  in the extracted text (after whitespace normalization) or whose concept ID
-  is not in the catalog.
+  in the extracted text (after whitespace normalization) or whose concept key
+  is not in the catalog, before any check is sent.
 - **FR-007**: The script MUST resume an interrupted check run without
   re-sending checked sentences, and keep its working files within a stated
   storage budget, with cleanup after the record is committed.

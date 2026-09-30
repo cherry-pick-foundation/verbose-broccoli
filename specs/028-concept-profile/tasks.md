@@ -50,13 +50,13 @@ files stay in the work vault and the run folder.
 procedure and the template describe the three record kinds as `plan.md`
 does.
 
-- [ ] T002 [US1] Create `plugins/work/skills/concept-profile/SKILL.md` and
+- [x] T002 [US1] Create `plugins/work/skills/concept-profile/SKILL.md` and
   `references/procedure.md`: the procedure (admit, extract, propose, check,
   review, record, consistency, cleanup), the proposer's instructions and
   proposal format, the record layouts including the mapping record and its
   method, and the limits that keep unclear items from piling up (FR-001 to
   FR-004, FR-010, FR-013; plan.md "Record layouts", R5).
-- [ ] T003 [US1] Create `scripts/concept_profile.py` with the `catalog`,
+- [x] T003 [US1] Create `scripts/concept_profile.py` with the `catalog`,
   `extract`, `check` and `record` commands, and
   `scripts/concept_profile_test.py`; wire `test:concept-profile` into
   `package.json` and `turbo.json`; regenerate `docs/` (FR-005 to FR-011;
@@ -81,7 +81,12 @@ does.
     develop's provider order, OpenRouter Jev: model 0.46, confidence 0.40;
     effort 0.51, confidence 0.43). The first call failed on Hive with an
     empty provider answer; the user chose one retry from develop's backfire.
-- [ ] T004 [US1] Add the catalog, profile and mapping records to the vault
+  - 2026-09-30 done: commits fd97217 (T002), e382259 (T003), 82527dd (T004)
+    and, after main's review, b7ad08c (T003: a backfire failure stops the
+    run so a rerun resumes, instead of marking the rest unclear). Script 344
+    lines, tests 246, procedure 217, SKILL.md 13; `npm run verify` VERIFIED.
+    Main merged develop (b1eb510) in between and ran its setup.
+- [x] T004 [US1] Add the catalog, profile and mapping records to the vault
   schema template `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   pointing to the `concept-profile` skill for their layout (FR-012).
 
@@ -106,8 +111,11 @@ below.
 - [ ] T006 [US2] Bring the vault's `AGENTS.md` in line with the template
   (T004); write the catalog record; run `catalog` and `extract` for each
   material in its own run folder (depends on T003, T004, T005).
-  - Catalog record drafted, not yet written to the vault (vault schema
-    change waits for T004).
+  - 2026-09-30: vault schema section added and catalog record written
+    (uncommitted in the vault until the pilot records join them); both run
+    folders hold catalog.tsv (1,222 concepts) and the extracted texts. The
+    vault's `check` fails on 171 lines of earlier pages (Linear CHE-58 and
+    moved worksheet folders), none on this feature's pages.
 - [ ] T007 [P] [US2] Propose concepts for every sentence of the volume into
   its `proposals.jsonl` (depends on T006).
 - [ ] T008 [P] [US2] Propose concepts for every sentence of the exam paper
