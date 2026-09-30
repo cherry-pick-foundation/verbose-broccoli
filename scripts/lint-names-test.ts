@@ -1,18 +1,35 @@
 import {test} from 'node:test';
 import {assert, assertMatch} from '@std/assert';
-import {fromFileUrl, join} from '@std/path';
+import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
+import {homedir, tmpdir} from 'node:os';
+import {delimiter} from 'node:path';
 
 const script = fromFileUrl(new URL('./lint-names.sh', import.meta.url));
 const decoder = new TextDecoder();
+
+// Mise's shim for ls-lint fails outside a folder with a mise config, such as
+// the temporary repositories below. So the tests put the shims folder first on
+// PATH, as a shell without mise's activation has it, and the pinned binary that
+// `mise which` finds from the repository root ahead of it.
+const shims = join(
+  process.env.MISE_DATA_DIR ?? join(homedir(), '.local', 'share', 'mise'),
+  'shims',
+);
+const lsLint = spawnSync('mise', ['which', 'ls-lint'], {
+  cwd: fromFileUrl(new URL('..', import.meta.url)),
+  encoding: 'utf8',
+}).stdout.trim();
+assert(lsLint !== '', 'mise which ls-lint found no ls-lint');
+const path = [dirname(lsLint), shims, process.env.PATH].join(delimiter);
 
 function run(cwd: string, command: string, ...args: string[]) {
   const result = spawnSync(command, args, {
     cwd,
     env: {
       ...process.env,
+      PATH: path,
       GIT_CONFIG_GLOBAL: '/dev/null',
       GIT_CONFIG_NOSYSTEM: '1',
     },
