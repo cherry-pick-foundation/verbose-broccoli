@@ -137,6 +137,19 @@ REPORTS = {
             },
         },
     ],
+    "openrouter_malformed_balance": [
+        {
+            "provider": "openrouter",
+            "usage": {
+                "details": [
+                    {
+                        "title": "Credits",
+                        "rows": [{"label": "Remaining", "value": "$,"}],
+                    }
+                ]
+            },
+        }
+    ],
     "error": [
         {
             "provider": "openrouter",
@@ -190,6 +203,7 @@ def install_codexbar(tmp_path, monkeypatch, output, *, exit_code=0):
         ("openrouter", REPORTS["openrouter_tertiary_used_up"], False),
         ("openrouter", REPORTS["openrouter_details_zero"], False),
         ("openrouter", REPORTS["openrouter_comma_balance"], True),
+        ("openrouter", REPORTS["openrouter_malformed_balance"], None),
         ("openrouter", REPORTS["provider_balance_fallback"], False),
         ("openrouter", REPORTS["provider_balance_invalid_fallback"], False),
         ("openrouter", REPORTS["available_balance_zero"], False),

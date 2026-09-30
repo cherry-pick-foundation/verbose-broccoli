@@ -7,7 +7,7 @@ import os
 import re
 import subprocess
 
-_DOLLAR = re.compile(r"-?\$[\d,]+(?:\.\d+)?|\$-[\d,]+(?:\.\d+)?")
+_DOLLAR = re.compile(r"-?\$[\d,]*\d(?:\.\d+)?|\$-[\d,]*\d(?:\.\d+)?")
 
 
 def _number(value: object) -> bool:
