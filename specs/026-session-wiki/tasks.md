@@ -42,6 +42,11 @@ parallel.
 - [ ] T009 Merge `develop`, run `npm run verify`, pass the develop merge
   review by the other provider, commit the review record and finish with
   `git flow feature finish session-wiki`.
+  - 2026-09-30 pause for a restart: `develop` (b9a0293) is merged and
+    `npm run verify` is VERIFIED at da17737; no worker is running. Next:
+    move CHE-47 to In Review, start the two develop merge reviewers named in
+    the notes (their specs are in the ignored `.local/che47/`), resolve their
+    findings, then the review record and the finish.
 
 ## Notes
 
