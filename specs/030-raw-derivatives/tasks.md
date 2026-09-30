@@ -57,10 +57,10 @@ worker owns T002; main owns the records, the commits and integration.
 - [x] T010 [US2] Replace or drop the page links to the selected passage and
   word lists, the AI-written teaching analyses and the midterm-scope text's
   own copy (FR-008).
-- [ ] T011 [US2] Replace or drop the page links to Markdown text
+- [x] T011 [US2] Replace or drop the page links to Markdown text
   extractions, the earlier Wiki build's process records, the older student
   notes and the midterm scope decision record (FR-008).
-- [ ] T012 [US2] Drop the vocabulary-test registry's links and add a
+- [x] T012 [US2] Drop the vocabulary-test registry's links and add a
   vocabulary test plan section to each of the 9 student pages it covers
   (FR-009).
 
