@@ -257,8 +257,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   Vale 3.23.0 rules (`packages/wiki-consistency/vale/`), outside mechanical
   regions, the front matter and `log.md`: phone numbers, email and postal
   addresses and registration numbers; Hangul, Chinese or Japanese text other
-  than one quote with its English translation in parentheses beside it; roster school names in Hangul outside such a quote,
-  instead of domain IDs; and dates not written as YYYY-MM-DD or times
+  than one quote with its English translation in parentheses beside it;
+  roster school names in Hangul outside such a quote, instead of domain IDs; and dates not written as YYYY-MM-DD or times
   without a zone. The privacy and time rules also check code and link
   targets; the language, school and date rules skip them. A small Python
   step reads backfire's roster only when a page needs it, checks that a
@@ -271,8 +271,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   skipped), and a failure never repeats the matched text. The rules are
   patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
   passes, a registration-number shape is flagged even with an impossible
-  birth date, phone and email detection is Vale's, not backfire's, and the
-  front matter's title and summary go unchecked. The check writes nothing
+  birth date, phone and email detection is Vale's, not backfire's, and only
+  the student-name rule reads the front matter's title and summary. The check writes nothing
   outside that temporary folder and uses no network. `update` regenerates
   stale regions.
 - The judgment step runs at the end of an operation that changed pages, and

@@ -79,6 +79,18 @@ files and can run in parallel.
   1,112 tests, 672 code, 514 specs, 316 documents). Not split: the gate's
   detectors, region list and tests protect student data only together, and
   Part 2's repository change is under 200 lines.
+- Document judgment step against `develop`'s merge base: 262 units in 14
+  `jev_verify` calls and 22 added units in 2 `jev_classify` calls. Backfire
+  now refuses Hangul, so each Hangul run in the requests (Korean examples in
+  the documents and the district names) was romanized with es-hangul first,
+  the same way in claims and evidence, and the generated region list and the
+  lockfile were left out of the evidence, which otherwise exceeded the
+  provider's token limit. One low-confidence contradiction (0.11) found a
+  real ambiguity in `docs/architecture.md` about which rule reads the front
+  matter; fixed. 8 added units in `docs/backfire.md` were suggested as
+  mechanical-region candidates and stay prose: no generator owns them. The
+  audit's 20 findings concern the constitution's existing text, not this
+  change, and go to the user unchanged.
 
 - [ ] T013 Final review by a reviewer from the other provider; resolve
   findings. Coordinator.
