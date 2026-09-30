@@ -144,12 +144,21 @@ below.
 
 ## Phase 3b: Reference books in the vault (FR-017)
 
-- [ ] T013 [US3] Add the reference record to the procedure and the vault
+- [x] T013 [US3] Add the reference record to the procedure and the vault
   schema template, and address mapping sections in its text file.
-- [ ] T014 [US3] Admit the four reference PDFs with `wiki-raw-import`; write
+  - 2026-09-30: main, 0c7d344.
+- [x] T014 [US3] Admit the four reference PDFs with `wiki-raw-import`; write
   the four reference pages with their unchanged text files; bring the vault
   schema in line; run `wiki-consistency update` and `check`, log and commit
   in the vault.
+  - 2026-09-30: main. The PDFs were already admitted on 2026-09-28 (rerun:
+    4 already admitted); each extraction's recorded digest matches its bag.
+    Vault commit aea4652: 4 pages and 4 unchanged text files in
+    wiki/references/. Check: 0 problems on these pages. Judgment step: 4
+    units unverifiable (they describe the extraction, which the PDFs cannot
+    confirm); semantic search was not ready after a 30-minute index. The
+    Advanced Grammar in Use text has 7 Hangul lines that the mapping
+    feature must keep out of backfire calls.
 
 ---
 
