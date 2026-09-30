@@ -1,0 +1,7 @@
+extends: existence
+message: "page rule phone: pages hold no phone numbers"
+level: error
+scope: raw
+vocab: false
+raw:
+  - '(?<![0-9])(?:(?:\+82[- .]?10|0?1[016789])[- .]?[0-9]{3,4}[- .]?[0-9]{4}|(?:02|0[3-6][0-9]|070)[- .]?[0-9]{3,4}[- .]?[0-9]{4})(?![0-9])'

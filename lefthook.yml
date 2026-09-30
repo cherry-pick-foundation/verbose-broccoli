@@ -1,0 +1,8 @@
+lefthook: node_modules/lefthook/bin/index.js
+no_auto_install: true
+assert_lefthook_installed: true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: ./node_modules/.bin/commitlint --config scripts/commitlint.config.mjs --edit {1}

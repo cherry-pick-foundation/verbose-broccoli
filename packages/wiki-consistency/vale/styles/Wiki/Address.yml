@@ -1,0 +1,7 @@
+extends: existence
+message: "page rule address: pages hold no postal addresses"
+level: error
+scope: raw
+vocab: false
+raw:
+  - '(?<![A-Za-z0-9])(?:[\p{Hangul}]+(?:대로|로|길)[ \t]*[0-9]+(?:-[0-9]+)?|[0-9]+(?:-[0-9]+)?[ \t]*,?[ \t]+[A-Z][A-Za-z]*(?:-[A-Z][A-Za-z]*)*-(?:ro|daero|gil)|[A-Z][A-Za-z]*(?:-[A-Z][A-Za-z]*)*-(?:ro|daero|gil)[ \t]+[0-9]+(?:-[0-9]+)?|[0-9]+(?:-[0-9]+)?[ \t]*번지)(?![A-Za-z0-9-])'

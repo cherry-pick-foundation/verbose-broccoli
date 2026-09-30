@@ -206,15 +206,15 @@ void test('workflow: binary and symlink additions cannot become direct work', as
   });
 });
 
-void test('workflow: package exports identify nonstandard public entry filenames', async () => {
+void test('workflow: static public entry rules identify configured exports', async () => {
   await repository(
     {
-      'plugins/demo/package.json': JSON.stringify({exports: './src/api.ts'}),
-      'plugins/demo/src/api.ts': 'export const value = 1;\n',
+      'plugins/code/skills/clean-code/scripts/cli.ts':
+        'export const value = 1;\n',
     },
     async root => {
       await writeFile(
-        join(root, 'plugins/demo/src/api.ts'),
+        join(root, 'plugins/code/skills/clean-code/scripts/cli.ts'),
         'export const value = 2;\n',
       );
       const result = await inspectChanges(root);
