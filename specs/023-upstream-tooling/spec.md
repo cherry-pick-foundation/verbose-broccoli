@@ -56,6 +56,18 @@ to be pinned gates its addition.
   checksum-only downloads (lychee, git-flow-next, Vale) pinned by their
   digests in `mise.lock`; and keep the security reports in the feature's
   records (`security/`).
+- Q: (Scope addition from the develop session, the user's decision.) What
+  replaces CHE-42's own-code limit? → A: The 300-line limit is abolished.
+  This feature removes `npm run own-code` from verify, deletes the check,
+  its tests and the scc tool pin, and removes the approval mechanism from
+  the docs; one judgment line in `AGENTS.md`'s Review section asks for a
+  split review of a change of 1,000 lines or more, in the style of Google's
+  "Small CLs" guidance.
+- Q: The lefthook switch changes the Git hooks every worktree shares. When,
+  and should a missing lefthook refuse commits? → A: Switch right before
+  the finish, with the control that refuses a commit when lefthook is
+  missing; the develop session tells the other orchestrators to merge
+  `develop` and run `npm ci` after the finish.
 - Q: For the workflow and verify swaps, keep verify's own run record (task,
   base and plan, before/after snapshots, log hash, interrupted-run
   detection, the two-failure REVIEW threshold, the lock and the graph

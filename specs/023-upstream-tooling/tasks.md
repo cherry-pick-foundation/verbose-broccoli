@@ -141,6 +141,10 @@ user chose B (spec.md clarification).
   difficulty, graph and symbol commands and the skill triggers (FR-011,
   FR-012).
 
+- [ ] T013 [US3] Remove the own-code check (`npm run own-code`,
+  `scripts/own_code.ts`, its test, `tools/scc`, the `linguist-languages`
+  pin) from verify and the checks (spec.md clarification).
+
 ## Phase 4: Records and finish (US4)
 
 - [ ] T090 [US4] Record per swap the tool, pin, license, review verdict,
@@ -148,5 +152,10 @@ user chose B (spec.md clarification).
   (FR-014).
 - [ ] T091 Update `docs/architecture.md` and `AGENTS.md` wherever a replaced
   command is named (FR-013).
+- [ ] T093 Remove the own-code limit's section and approval line from
+  `docs/architecture.md`, and add the 1,000-line split-review line to
+  `AGENTS.md`'s Review section.
+- [ ] T094 Amend the constitution for commitizen (the author runs it,
+  reviewers check it) and wherever it describes verify's evidence.
 - [ ] T092 Merge `develop`, verify, pass the develop merge review, and
   finish with `git flow feature finish`.
