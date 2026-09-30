@@ -25,9 +25,8 @@ the naming rule to the Wiki schema template and the four vault schemas.
 - **Wiring**: an npm script `lint:names`, a Turborepo task in the `check`
   graph, the tool in `orca.yaml`'s setup and CI's `mise install` line.
 - **Vault files**: `AGENTS.md` of `default`, `chat`, `code` and `work` under
-  `~/.local/share/verbose-broccoli/vaults/`, each its own Git repository; the
-  template `plugins/work/skills/wiki-raw-import/assets/AGENTS.md` and the
-  example `docs/examples/wiki/AGENTS.md`.
+  `~/.local/share/verbose-broccoli/vaults/`, each its own Git repository, and
+  their template `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`.
 
 ## Constitution Check
 
@@ -52,8 +51,8 @@ the naming rule to the Wiki schema template and the four vault schemas.
 1. A Codex worker reviews ls-lint 2.3.1's source and release read-only.
 2. After it clears, pin ls-lint, write `.ls-lint.yml`, and wire it into
    `npm run verify`.
-3. Add the naming rule to the template, the example and the `default`,
-   `chat` and `code` vault schemas; the `work` vault after CHE-61.
+3. Add the naming rule to the template and the `default`, `chat` and `code`
+   vault schemas; the `work` vault after CHE-61.
 4. After the `develop` session grants a finish slot: merge the newest
    `develop`, rename with `git mv`, update every reference, regenerate the
    generated documents, and commit the renames as one commit.

@@ -42,8 +42,11 @@ Codex, the provider other than the implementer's.
 
 ## Phase 3: Vault schemas
 
-- [ ] T004 [P] [US3] Add the naming rule to the schema template, the example
-  schema and the `default`, `chat` and `code` vault schemas (FR-006).
+- [x] T004 [P] [US3] Add the naming rule to the schema template and the
+  `default`, `chat` and `code` vault schemas (FR-006). 2026-09-30: vault
+  commits `9beb59f` (default), `08a8761` (chat) and `2999422` (code). Their
+  tracked Wiki files were already kebab-case. Their student-page line still
+  names pages by student name until CHE-61's template change reaches them.
 - [ ] T005 [US3] Add the naming rule to the `work` vault schema after CHE-61
   has finished (FR-006).
 

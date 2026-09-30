@@ -91,6 +91,9 @@ Rules:
   with `## [YYYY-MM-DD] raw-import | <location>` and lists the counts
   admitted, already admitted, refused and failed.
 - Git versions this file and `wiki/`.
+- Name every file and folder under `wiki/` in kebab-case: lowercase letters,
+  digits and hyphens, such as `quadratic-formula.md`. Raw copies keep their
+  original file names.
 
 ## Pages
 
