@@ -209,7 +209,10 @@ plugin's Wiki tool may write a vault the user selects.
 The work plugin's `wiki-raw-import` skill creates a vault and copies documents
 the user confirms into its `raw/`, in `work` unless another vault is named.
 Only the `chat` and `work` vaults admit exported conversations; the skill
-admits each ChatGPT export into both. Each copy is one
+admits each ChatGPT export into both. Exported Claude Code and Codex
+sessions, rendered to Markdown by SpecStory's command-line tool, may go into
+any vault they belong to; the skill's session selection reference picks
+them with backfire, and the user approves the list. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
