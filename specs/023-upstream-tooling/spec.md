@@ -30,9 +30,32 @@ to be pinned gates its addition.
 
 ### Session 2026-09-30
 
-- Pending: the user's answers on mise installs, the constitution version
-  check, Vale and the roster, the raw import record, the behaviours the
-  swaps drop, and the security findings (asked through the develop session).
+- Q: Install uv 0.11.32, lychee 0.24.2, git-flow-next 2.1.0 and Vale
+  3.23.0 through mise, and trust each worktree's `mise.toml`? → A: Yes,
+  only after their security reviews cleared.
+- Q: commitizen can write the constitution's version line but cannot check
+  that a commit raised it by its type. Keep the check, or let commitizen
+  write the version and drop the automatic refusal? → A: commitizen writes
+  the version; the refusal in the commit-message hook and in the feature
+  finish hook goes, and the Governance section says the author runs
+  commitizen and reviewers check it.
+- Q: Vale rules cannot read backfire's roster. Keep a small Python step for
+  the roster rules, or drop them? → A: Keep the small Python step.
+- Q: bagit's command line cannot write the `Source-Modified` and
+  `Admission-Time` fields. Keep calling bagit's `make_bag`, or change the
+  record? → A: Keep `make_bag` and cut the wrapper around it.
+- Q: Do any of the listed dropped behaviours matter? → A: No; dropping all
+  of them is accepted.
+- Q: Accept the 25 medium security findings with the listed controls, and
+  change mise's settings on this machine? → A: Yes. Apply the controls;
+  set `paranoid = true` with content-based trust of each worktree's
+  `mise.toml`, `locked_verify_provenance = true`,
+  `use_versions_host_track = false`, `node.gpg_verify = true` and
+  `github.gh_cli_tokens = false`, after backing up the configuration;
+  install from a reviewed `mise.lock` with `--locked`; accept the
+  checksum-only downloads (lychee, git-flow-next, Vale) pinned by their
+  digests in `mise.lock`; and keep the security reports in the feature's
+  records (`security/`).
 - Q: For the workflow and verify swaps, keep verify's own run record (task,
   base and plan, before/after snapshots, log hash, interrupted-run
   detection, the two-failure REVIEW threshold, the lock and the graph

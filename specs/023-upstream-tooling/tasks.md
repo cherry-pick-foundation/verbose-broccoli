@@ -84,9 +84,32 @@ repository or into Orca or Linear messages. Tests use synthetic fixtures.
 
 ## Phase 2: Swaps after the user's answers (US1, US2)
 
-Planned when the answers arrive: mise (environment check), commitizen
-(constitution version), lefthook (Git hooks), Vale (page rules) and bagit
-(raw import).
+The user's answers are in spec.md's clarifications. On 2026-09-30 the
+coordinator backed up `~/.config/mise/config.toml` and set the approved
+mise settings.
+
+- [ ] T020 [US1] Replace `scripts/doctor.ts` with a root `mise.toml`
+  pinning uv, lychee, git-flow-next and Vale (Node stays on the user's mise
+  Node 24; Quarto stays separately installed) and `[doctor.checks]` for the
+  tool versions, the locked uv and npm environments, the git-flow
+  configuration and the installed hooks; a reviewed `mise.lock`;
+  `npm run doctor` runs `mise doctor project`; `orca.yaml` trusts and
+  installs from the lock; remove `doctor.ts` and its test (FR-003,
+  FR-015).
+- [ ] T021 [US1] Let commitizen 4.19.0 (a `tools/commitizen` uv project,
+  bump hooks empty) write the constitution's version line; remove
+  `scripts/constitution_version.ts`, its commitlint rule and tests, and
+  the finish hook's constitution loop (FR-007).
+- [ ] T022 [US1] Declare the commit-message hook in `lefthook.yml`
+  (lefthook 2.1.15, the local binary, `no_auto_install`,
+  `assert_lefthook_installed`); remove `scripts/git-hooks/commit-msg`;
+  `orca.yaml` installs lefthook's hooks (FR-006).
+- [ ] T023 [P] [US2] Replace `rules.py`'s pattern rules with Vale 3.23.0
+  rules run offline with `--no-global --output=line` and literal messages,
+  and keep a small Python step for the roster rules (FR-008).
+- [ ] T024 [P] [US2] Keep `bagit.make_bag` in the raw import and cut the
+  wrapper: drop the one-run lock, the stale-staging cleanup and the
+  changed-while-copying re-check; keep the exclusions (FR-010).
 
 ## Phase 3: After CHE-42 merges (US3)
 
