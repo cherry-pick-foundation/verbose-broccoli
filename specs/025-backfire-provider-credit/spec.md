@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-30
 
-**Status**: Draft
+**Status**: Planned
 
 **Linear issue**: CHE-46
 
@@ -67,6 +67,20 @@ messages the develop session relayed:
 - The user picks the Cloudflare and Vercel models from researched options.
 - The skip and switch rules stay; a used-up free allowance or free credit
   counts as insufficient balance.
+
+After the research ([research.md](research.md)), the user decided:
+
+- Measure all seven candidates (Cloudflare: Gemma 4 26B A4B, gpt-oss-120b,
+  gpt-oss-20b, Qwen3 30B A3B; Vercel: gpt-oss-120b, gpt-oss-20b, Gemini 2.5
+  Flash-Lite) on the full 111-decision set before choosing, then run only
+  function checks on the chosen models. This work, the Cloudflare and Vercel
+  profiles, the account-ID fill and the text-based switch on Cloudflare's
+  code 3036 move to a new feature, Linear CHE-51, which starts from
+  `develop` after this one merges.
+- Delete backfire's Jev-on-Vercel provider (`vercel.py`) and its profile.
+- Until CHE-51 adds its profiles, the shared order is OpenRouter, then Hive.
+- The offer search in `packages/credit-offers` moving onto backfire is a
+  separate feature too; it is out of scope here.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -195,9 +209,8 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 - The insufficient-balance answer is recognized by HTTP status only. Hive
   documents 405 for an exhausted balance; Cloudflare answered 402 on
   2026-09-30; 402 (Payment Required) is the default for other profiles.
-  The statuses for a used-up Cloudflare free allowance and Vercel free
-  credit are in research.md. A status in PyModel's retry set is retried
-  before the switch unless the profile's `retry.statuses` removes it.
+  The answers for a used-up Cloudflare free allowance and Vercel free
+  credit are in research.md; CHE-51 handles them with its profiles.
 - PyModel's optional response cache keys entries by provider name; the
   name becomes the profile's name, so answers from different profiles are
   kept apart.
@@ -242,17 +255,10 @@ the two new profile fields, CodexBar's role and limits, and the new error.
   order and one set of profiles. Education mode MUST pseudonymize each
   judgment once before any attempt, whichever profile answers, and keeps
   PyModel's response cache off.
-- **FR-012**: The shipped order MUST be Cloudflare, Vercel, OpenRouter,
-  Hive.
-- **FR-013**: The Cloudflare and Vercel profiles MUST be general-model
-  profiles (`api = "openai"`) on the providers' OpenAI-compatible endpoints,
-  each with the free model the user chose. A profile's `base_url` MAY name
-  variables of its key file in braces, such as `{CLOUDFLARE_ACCOUNT_ID}`;
-  backfire fills them from the key file when it first uses the profile, so
-  no account identifier is committed.
-- **FR-014**: A used-up free allowance or free credit MUST count as
-  insufficient balance for the profile, through the statuses its profile
-  lists.
+- **FR-012**: The shipped order MUST be OpenRouter, then Hive. CHE-51 puts
+  the Cloudflare and Vercel profiles in front of them.
+- **FR-013**: Backfire's Jev-on-Vercel provider (`vercel.py`), its profile
+  and its tests MUST be removed, with its entry in the third-party notices.
 - **FR-010**: Tests MUST use saved CodexBar JSON built from its documented
   format and synthetic keys, never real balances or keys, and MUST NOT
   call a real provider.
@@ -263,8 +269,7 @@ the two new profile fields, CodexBar's role and limits, and the new error.
 
 - **Order**: the ordered list of profile names both modes try.
 - **Profile**: an existing provider profile with two new optional fields,
-  `codexbar` and `insufficient_balance`, and a `base_url` that may name
-  key-file variables.
+  `codexbar` and `insufficient_balance`.
 - **Credit report**: CodexBar's JSON for one provider; backfire reads only
   the rate windows' used percentages and the balance.
 

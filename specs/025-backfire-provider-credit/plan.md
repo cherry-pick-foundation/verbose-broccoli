@@ -49,40 +49,28 @@ shipped `config.toml` files.
 
 ### Configuration
 
-The shipped code-plugin configuration becomes:
+Both modes read one shipped configuration,
+`packages/backfire/src/backfire/config.toml`;
+`packages/backfire/src/backfire_education/config.toml` is deleted, and
+education mode differs only in pseudonymization and the response cache.
+Until CHE-51 adds the Cloudflare and Vercel profiles, it becomes:
 
 ```toml
-order = ["hive", "openrouter", "vercel"]
+order = ["openrouter", "hive"]
 
-[providers.hive]
-# existing fields
-insufficient_balance = [405]
-
-[providers.vercel]
-# existing fields
-codexbar = "vercel"
-
-[providers.openrouter]   # the same table CHE-41 adds, plus codexbar
+[providers.openrouter]   # the table CHE-41 added, plus codexbar
 api = "jev"
 jev_provider = "openrouter"
 credential = "OPENROUTER_API_KEY"
 credential_file = "../providers/openrouter.env"
 codexbar = "openrouter"
-```
 
-The education configuration becomes:
-
-```toml
-order = ["education", "openrouter"]
-
-[providers.education]
-# existing fields, the same as the code plugin's hive profile
+[providers.hive]
+# existing fields
 insufficient_balance = [405]
-
-[providers.openrouter]
-# the same table as the code plugin's openrouter profile
 ```
 
+The Jev-on-Vercel profile and `vercel.py` are deleted (FR-013).
 The operator file accepts `order` and `providers`; `provider` is no longer
 read. Both plugins read it, as today.
 `config.load_profile` becomes `config.load_profiles`, which returns the
@@ -176,38 +164,46 @@ credits"/"Available balance" row); `docs/cli.md` (JSON uses
 | `packages/backfire/src/backfire/credit.py` | new: run and read CodexBar | +50 |
 | `packages/backfire/src/backfire/providers.py` | order wrapper, status error | +50 / -25 |
 | `packages/backfire/src/backfire/failures.py` | `no_credit` message | +4 |
-| `packages/backfire/src/backfire/config.toml`, `backfire_education/config.toml` | `order`, new fields | +6 / -2 |
-| `packages/backfire/tests/` | new and updated tests, JSON fixtures | about +250 |
-| `docs/backfire.md` | order, CodexBar, switch, error | about +40 / -15 |
+| `packages/backfire/src/backfire/config.toml` | shared `order`, new fields | +6 / -10 |
+| `packages/backfire/src/backfire_education/config.toml` | deleted; both modes share one file | whole file |
+| `packages/backfire/src/backfire/vercel.py`, `tests/test_vercel.py` | deleted (FR-013) | whole files |
+| `packages/backfire/tests/` | new and updated tests, JSON fixtures | about +450 |
+| `docs/backfire.md`, `licenses/THIRD_PARTY_NOTICES.md` | order, CodexBar, switch, error; Vercel port removed | about +60 / -40 |
 
-About 130 lines of own non-test code and about 450 changed lines in all,
-well under the 1,000-line split review.
+The first implementation pass measured about 940 changed lines of code,
+tests, docs and `turbo.json`, with about 250 lines of own non-test code;
+deleted files count as about one line each under the `AGENTS.md` split
+review. The final size is recorded in `report.md`.
 
 ### Parallel work
 
-CHE-41 (feature-chat-jev-ultrafast) adds the `openrouter` profile and moves
-key files to `providers/`; both touch the same `config.toml`,
-`config.py` and `test_config.py`. If CHE-41 is on `develop` before the
-implementation starts, merge `develop` first; otherwise the later finisher
-merges and keeps both changes. This branch adds CHE-41's `openrouter`
-table unchanged except for `codexbar`, so the merge keeps one copy. CHE-44
-and CHE-45 touch `AGENTS.md` and skills only.
+CHE-41 (feature-chat-jev-ultrafast) merged into `develop` at `65f3ea3`
+while this feature was in progress. It adds the `openrouter` profile and
+moves key files to `providers/`, touching `config.toml`, `config.py`,
+`test_config.py` and `docs/backfire.md`; this branch merges `develop` after
+the first implementation pass and keeps both changes. CHE-44 and CHE-45
+touch `AGENTS.md`, tooling and skills. CHE-51 starts from `develop` after
+this feature merges.
 
 ### Live checks
 
 CHE-45 installed CodexBar 0.69.0 on 2026-09-30 (`~/.local/bin/codexbar`).
 
-1. One CodexBar read for OpenRouter and one for Vercel (credit endpoints,
-   not Jev calls), to confirm the real report shape and the Vercel skip.
-2. One short OpenRouter judgment through backfire with the operator order
-   set to `openrouter` alone, to confirm the result names the profile.
+1. One judgment through backfire with the shipped configuration, whose
+   order starts with OpenRouter: it makes one CodexBar read of the
+   OpenRouter credit (CodexBar calls OpenRouter's key and credits
+   endpoints, not Jev) and one OpenRouter Jev call, and confirms that the
+   result names the `openrouter` profile.
 
 No Hive, Vercel or Cloudflare Jev call is planned. The report counts every
 live call, including the Hive calls made by `jev_decide` for worker choice.
 
 ## Workers
 
-- Implementation: one Codex worker for `packages/backfire/` (T002-T006).
+- Implementation: one Codex worker for `packages/backfire/` (T002-T006,
+  T012).
+- Research for CHE-51's model choice: one Claude Code worker
+  (`research.md`).
 - `docs/backfire.md` and the Spec Kit records: the coordinator.
 - Review before the develop merge: a fresh Claude Code reviewer for the
   code, a fresh Codex reviewer for the coordinator's docs and records.

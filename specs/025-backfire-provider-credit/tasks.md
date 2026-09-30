@@ -67,19 +67,28 @@ files and can run in parallel.
   `npm run format:check` for the package, fix findings, and commit with
   `Spec-Kit-Task` trailers.
 
+- [ ] T012 [US3] After merging `develop` (CHE-41), set the shared order to
+  `openrouter`, then `hive` in `packages/backfire/src/backfire/config.toml`
+  (CHE-41's `openrouter` table plus `codexbar = "openrouter"`), delete
+  `packages/backfire/src/backfire/vercel.py`, `tests/test_vercel.py`, the
+  `vercel` profile and the `vercel` branch in `providers._jev_provider`,
+  and update the affected tests.
+
 ## Phase 4: User Story 4, documentation (P2)
 
 - [ ] T007 [US4] Update `docs/backfire.md`: "Select a provider" describes
   `order`, the shipped orders, `codexbar` and `insufficient_balance`;
   a short section on CodexBar (what it reads, when, keys only in the
   environment, what happens when it is missing); the switch; the result's
-  `provider` field; and `no_credit` in "Troubleshoot errors". Coordinator.
+  `provider` field; and `no_credit` in "Troubleshoot errors"; the shared
+  configuration and order; no Vercel profile; the Vercel port removed from
+  `licenses/THIRD_PARTY_NOTICES.md`. Coordinator.
 
 ## Phase 5: Acceptance and finish
 
-- [ ] T008 After CHE-45 reports CodexBar installed, confirm the command
-  line and the real report shape for OpenRouter and Vercel, and run the
-  plan's live checks; record each call in `report.md`. Coordinator.
+- [ ] T008 Run the plan's live check with CodexBar 0.69.0 (one judgment
+  through the shipped order, starting with OpenRouter); record each live
+  call in `report.md`. Coordinator.
 - [ ] T009 Analysis of spec, plan and tasks; `npm run verify` on the
   feature; record the change size. Coordinator.
 - [ ] T010 Move CHE-46 to In Review and the board to in-review; fresh
@@ -107,3 +116,10 @@ order after the rest.
   read before first use and at each switch. CHE-41 was not on `develop`
   yet, so T001 found nothing to merge; this branch adds its `openrouter`
   table.
+- 2026-09-30: the user changed the order to Cloudflare, Vercel, OpenRouter,
+  Hive with one shared configuration for both modes, and free models for
+  Cloudflare and Vercel. A Claude Code research worker (Sonnet 5.5, high,
+  `jev_decide` confidence 0.77, one Hive call) wrote `research.md`. The user
+  then moved the model measurement and the Cloudflare and Vercel profiles
+  to CHE-51, chose the interim order OpenRouter, Hive, and decided to delete
+  `vercel.py` (T012). The offer search moves to its own feature.
