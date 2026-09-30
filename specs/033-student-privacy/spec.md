@@ -46,6 +46,13 @@ session.
   end, semicolon, line break or table cell end, as one `Birth date`
   stand-in, accepting that other content in that clause is hidden too;
   document the trade-off, and have a fresh Codex privacy reviewer confirm it.
+- Q: Each fresh Codex privacy review found new adversarial spellings that
+  the patterns missed, five rounds in a row, each fixed as found. When do the
+  reviews stop? → A: after the round on `bc0cebc`: fix what that fresh review
+  finds, have the same reviewer confirm its findings are closed, and list any
+  further edge forms as documented limits. Pattern matching cannot prove that
+  a request holds no identifier, and the realistic risk is accidental leakage
+  in agent-written English, not deliberate evasion.
 - Q: Which romanization do the roster and pages use? → A: customary surname
   spellings (Kim, Lee, Park, Choi) with Revised Romanization for given names,
   written together: `Kim Gildong`.
