@@ -1,7 +1,8 @@
+from contextlib import asynccontextmanager
 import json
 from pathlib import Path
 import shutil
-import sqlite3
+from types import SimpleNamespace
 
 from conftest import REVISIONS
 from conftest import SOURCE_ID
@@ -951,93 +952,233 @@ def test_evidence_queries_cover_the_full_collection_limit(
     assert all(query["limit"] >= document_count for query in evidence_queries)
 
 
-def test_evidence_query_limit_covers_qmd_embedding_chunks(
+def test_evidence_search_finds_cited_hit_beyond_request_limit(
     tmp_path, monkeypatch
 ):
-    instance, cache, _ = _ready(tmp_path)
-    index_path = cache / "qmd" / f"{instance.name}.sqlite"
-    with sqlite3.connect(index_path) as database:
-        content_hash = database.execute(
-            "SELECT hash FROM documents WHERE collection = 'evidence' "
-            "AND active = 1 LIMIT 1"
-        ).fetchone()[0]
-        database.executemany(
-            "INSERT INTO content_vectors "
-            "(hash, seq, pos, model, embed_fingerprint, "
-            "total_chunks, embedded_at) "
-            "VALUES (?, ?, 0, 'synthetic', 'synthetic', "
-            "50, 'synthetic')",
-            [(content_hash, sequence) for sequence in range(50)],
-        )
-    database.close()
+    instance, env = make_instance(tmp_path)
+    latest = "20260929T000000000000Z"
+    add_revision(
+        instance,
+        latest,
+        "\n\n".join(
+            [
+                *(
+                    f"Unrelated synthetic passage {index}."
+                    for index in range(50)
+                ),
+                "Cited synthetic passage.",
+            ]
+        ),
+    )
+    page = instance / "wiki" / "concepts" / "alpha.md"
+    page.write_text(
+        page.read_text(encoding="utf-8")
+        .replace(REVISIONS[-1], latest)
+        .replace(
+            "See [the source](../sources/source.md).",
+            "Cited synthetic passage.",
+        ),
+        encoding="utf-8",
+    )
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
     captured = []
+    real_search = search.search
 
-    def capture_search(wiki_id, cache_root, queries, **kwargs):
-        del wiki_id, cache_root, kwargs  # Unused.
-        captured.extend(queries)
-        return []
+    def add_decoys_then_search(wiki_id, cache_root, queries, **kwargs):
+        evidence_queries = [
+            query for query in queries if query["collection"] == "evidence"
+        ]
+        captured.extend(evidence_queries)
+        assert evidence_queries
+        root = (
+            cache_root
+            / "wiki-evidence"
+            / wiki_id
+            / f"markitdown-{evidence.CONVERTER_VERSION}"
+            / "decoys"
+        )
+        root.mkdir(parents=True)
+        for index in range(25):
+            (root / f"decoy-{index:02}.md").write_text(
+                "\n".join(
+                    str(query["text"]) * 10 for query in evidence_queries
+                ),
+                encoding="utf-8",
+            )
+        return real_search(wiki_id, cache_root, queries, **kwargs)
+
+    monkeypatch.setattr(requests.search, "search", add_decoys_then_search)
+
+    result = _prepare(instance, cache, scope="lint", max_evidence_chars=80)
+
+    cited_path = f"{SOURCE_ID}/{latest}.md"
+    assert all(query["limit"] < 25 for query in captured)
+    assert all(cited_path in query["allowed_paths"] for query in captured)
+    assert any(
+        "Cited synthetic passage." in item["text"]
+        for request in result["requests"]
+        if request["kind"] == "evidence"
+        for item in request["arguments"]["evidence"]
+    )
+
+
+def test_vector_evidence_search_returns_all_cited_chunks_past_limit(
+    tmp_path, monkeypatch
+):
+    instance, env = make_instance(tmp_path)
+    latest = "20260929T000000000000Z"
+    add_revision(
+        instance,
+        latest,
+        "\n\n".join(
+            [
+                *(
+                    f"Unrelated synthetic passage {index}."
+                    for index in range(50)
+                ),
+                "Cited synthetic passage.",
+            ]
+        ),
+    )
+    page = instance / "wiki" / "concepts" / "alpha.md"
+    page.write_text(
+        page.read_text(encoding="utf-8")
+        .replace(REVISIONS[-1], latest)
+        .replace(
+            "See [the source](../sources/source.md).",
+            "Cited synthetic passage.",
+        ),
+        encoding="utf-8",
+    )
+    assert update_regions(instance) == []
+    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
+    evidence.convert(instance, instance.name, cache, revisions(instance))
+    search.index(instance, instance.name, cache, download=False)
+    target_path = f"{SOURCE_ID}/{latest}.md"
+    evidence_file = (
+        cache
+        / "wiki-evidence"
+        / instance.name
+        / f"markitdown-{evidence.CONVERTER_VERSION}"
+        / target_path
+    )
+    passage_lines = [
+        index
+        for index, line in enumerate(
+            evidence_file.read_text(encoding="utf-8").splitlines(), 1
+        )
+        if line.startswith("Unrelated synthetic passage ")
+        or line == "Cited synthetic passage."
+    ]
+    assert len(passage_lines) == 51
+    monkeypatch.setattr(search, "_model_is_cached", lambda unused_cache: True)
+    monkeypatch.setattr(
+        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    )
+    queries = []
+    tool_calls = []
+    servers = []
+
+    class FakeSession:
+        def __init__(self, read, write):
+            del read, write
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *unused_args):
+            return None
+
+        async def initialize(self):
+            return None
+
+        async def call_tool(self, name, arguments):
+            tool_calls.append((name, arguments))
+            if name == "status":
+                return SimpleNamespace(
+                    is_error=False,
+                    structured_content={
+                        "needsEmbedding": 0,
+                        "collections": [
+                            {
+                                "name": "pages",
+                                "path": str(instance / "wiki"),
+                                "documents": 2,
+                            },
+                            {
+                                "name": "evidence",
+                                "path": str(
+                                    cache
+                                    / "wiki-evidence"
+                                    / instance.name
+                                    / f"markitdown-{evidence.CONVERTER_VERSION}"
+                                ),
+                                "documents": 1,
+                            },
+                        ],
+                    },
+                )
+            results = []
+            if arguments["collections"] == ["evidence"]:
+                results = [
+                    {
+                        "file": (
+                            f"qmd://evidence/{target_path}?index={instance.name}"
+                        ),
+                        "line": line,
+                        "score": 1.0 if line == passage_lines[-1] else 0.1,
+                    }
+                    for line in passage_lines
+                ]
+            return SimpleNamespace(
+                is_error=False, structured_content={"results": results}
+            )
+
+    @asynccontextmanager
+    async def fake_stdio_client(server):
+        servers.append(server)
+        yield object(), object()
+
+    monkeypatch.setattr(search, "ClientSession", FakeSession)
+    monkeypatch.setattr(search, "stdio_client", fake_stdio_client)
+    real_search = search.search
+
+    def capture_search(wiki_id, cache_root, search_queries, **kwargs):
+        queries.extend(
+            query
+            for query in search_queries
+            if query["collection"] == "evidence"
+        )
+        return real_search(wiki_id, cache_root, search_queries, **kwargs)
 
     monkeypatch.setattr(requests.search, "search", capture_search)
 
-    requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=1,
-        candidates=3,
-    )
+    result = _prepare(instance, cache, scope="lint", max_evidence_chars=80)
 
-    evidence_queries = [
-        query for query in captured if query["collection"] == "evidence"
+    assert queries
+    assert all(query["limit"] < len(passage_lines) for query in queries)
+    assert all(target_path in query["allowed_paths"] for query in queries)
+    assert len(servers) == 2
+    mcp_queries = [
+        arguments
+        for name, arguments in tool_calls
+        if name == "query" and arguments["collections"] == ["evidence"]
     ]
-    assert evidence_queries
-    assert all(query["limit"] >= 50 for query in evidence_queries)
-
-
-def test_evidence_query_limit_includes_chunks_in_qmd_wal(tmp_path, monkeypatch):
-    instance, cache, _ = _ready(tmp_path)
-    index_path = cache / "qmd" / f"{instance.name}.sqlite"
-    database = sqlite3.connect(index_path)
-    database.execute("PRAGMA journal_mode = WAL")
-    content_hash = database.execute(
-        "SELECT hash FROM documents WHERE collection = 'evidence' "
-        "AND active = 1 LIMIT 1"
-    ).fetchone()[0]
-    database.executemany(
-        "INSERT INTO content_vectors "
-        "(hash, seq, pos, model, embed_fingerprint, total_chunks, embedded_at) "
-        "VALUES (?, ?, 0, 'synthetic', 'synthetic', "
-        "50, 'synthetic')",
-        [(content_hash, sequence) for sequence in range(50)],
+    assert mcp_queries
+    assert all(query["limit"] == 100000 for query in mcp_queries)
+    assert all(query["rerank"] is False for query in mcp_queries)
+    assert {
+        search["type"] for query in mcp_queries for search in query["searches"]
+    } == {"lex", "vec"}
+    assert any(
+        "Cited synthetic passage." in item["text"]
+        for request in result["requests"]
+        if request["kind"] == "evidence"
+        for item in request["arguments"]["evidence"]
     )
-    database.commit()
-    captured = []
-    monkeypatch.setattr(
-        requests.search,
-        "search",
-        lambda unused_wiki_id, unused_cache_root, queries, **unused_kwargs: (
-            captured.extend(queries) or []
-        ),
-    )
-
-    try:
-        requests.prepare(
-            instance,
-            instance.name,
-            cache,
-            scope="changed",
-            max_evidence_chars=1,
-            candidates=3,
-        )
-    finally:
-        database.close()
-
-    evidence_queries = [
-        query for query in captured if query["collection"] == "evidence"
-    ]
-    assert evidence_queries
-    assert all(query["limit"] >= 50 for query in evidence_queries)
 
 
 def test_evidence_search_is_limited_to_cited_files(tmp_path, monkeypatch):

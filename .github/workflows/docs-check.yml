@@ -25,8 +25,16 @@ jobs:
           echo "14b342e71204f811bde6153be8e04b62aef63c236fef92b55f9c83154b409647  $RUNNER_TEMP/docs-node.tar.xz" | sha256sum --check --strict
           tar -xJf "$RUNNER_TEMP/docs-node.tar.xz" -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/node-v24.19.0-linux-x64/bin" >> "$GITHUB_PATH"
+      - name: Prepare standalone uv 0.11.32
+        run: |
+          curl --fail --silent --show-error --location https://github.com/astral-sh/uv/releases/download/0.11.32/uv-x86_64-unknown-linux-gnu.tar.gz --output "$RUNNER_TEMP/docs-uv.tar.gz"
+          echo "aab924fd522efd06f1c5f3b93a243864fc453132c94b2dc49f1371b528a4b967  $RUNNER_TEMP/docs-uv.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/docs-uv.tar.gz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/uv-x86_64-unknown-linux-gnu" >> "$GITHUB_PATH"
       - name: Prepare frozen dependencies
         run: |
+          uv python install --no-bin "$(cat packages/backfire/.python-version)"
           npm ci --ignore-scripts --no-audit --no-fund
+          uv sync --locked --no-dev --project packages/doc-regions
       - name: Check generated references
-        run: npm run docs:check
+        run: npm run doc-regions:check

@@ -1,0 +1,83 @@
+[tools]
+"aqua:astral-sh/uv" = "0.11.32"
+"aqua:lycheeverse/lychee" = "0.24.2"
+"aqua:vale-cli/vale" = "3.23.0"
+"github:gittower/git-flow-next" = "2.1.0"
+
+[doctor.checks.quarto]
+description = "Quarto 1.10.18 is available"
+run = 'test "$(quarto --version)" = "1.10.18"'
+hint = "Install Quarto 1.10.18 and ensure `quarto` is on PATH."
+timeout = "5s"
+
+[doctor.checks.codexbar]
+description = "CodexBar 0.69.0 is available"
+run = 'codexbar --version | head -n 1 | grep -qiE "^codexbar 0[.]69[.]0( |$)"'
+hint = "Install CodexBar 0.69.0 and ensure `codexbar` is on PATH."
+timeout = "5s"
+
+[doctor.checks.uv-workspace]
+description = "The uv workspace and education extra match uv.lock"
+run = "uv sync --locked --check --all-packages --extra education"
+hint = "Run `uv sync --locked --all-packages --extra education`."
+timeout = "30s"
+
+[doctor.checks.uv-spec-kit]
+description = "The tools/spec-kit environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/spec-kit"
+hint = "Run `uv sync --locked --project tools/spec-kit`."
+timeout = "30s"
+
+[doctor.checks.uv-shellcheck]
+description = "The tools/shellcheck environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/shellcheck"
+hint = "Run `uv sync --locked --project tools/shellcheck`."
+timeout = "30s"
+
+[doctor.checks.uv-ruff]
+description = "The tools/ruff environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/ruff"
+hint = "Run `uv sync --locked --project tools/ruff`."
+timeout = "30s"
+
+[doctor.checks.uv-check-jsonschema]
+description = "The tools/check-jsonschema environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/check-jsonschema"
+hint = "Run `uv sync --locked --project tools/check-jsonschema`."
+timeout = "30s"
+
+[doctor.checks.uv-commitizen]
+description = "The tools/commitizen environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/commitizen"
+hint = "Run `uv sync --locked --project tools/commitizen`."
+timeout = "30s"
+
+[doctor.checks.npm-root]
+description = "The root npm dependency tree matches package-lock.json"
+run = "npm ls --all"
+hint = "Run `npm ci --ignore-scripts --no-audit --no-fund`."
+timeout = "30s"
+
+[doctor.checks.npm-wiki-consistency]
+description = "The wiki-consistency npm dependency tree matches its lock"
+run = "npm ls --all"
+dir = "packages/wiki-consistency"
+hint = "Run `npm run wiki-consistency:install`."
+timeout = "30s"
+
+[doctor.checks.git-flow]
+description = "The git-flow configuration matches .gitflow"
+run = "git flow config status"
+hint = "Run `git flow config sync`."
+timeout = "5s"
+
+[doctor.checks.lefthook]
+description = "The installed Git hooks match lefthook.yml"
+run = "./node_modules/.bin/lefthook check-install"
+hint = "Run `./node_modules/.bin/lefthook install` from the designated worktree."
+timeout = "5s"
