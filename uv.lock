@@ -333,6 +333,7 @@ source = { editable = "packages/credit-offers" }
 dependencies = [
     { name = "backfire" },
     { name = "httpx" },
+    { name = "jev-judge-mcp" },
 ]
 
 [package.dev-dependencies]
@@ -344,6 +345,7 @@ dev = [
 requires-dist = [
     { name = "backfire", editable = "packages/backfire" },
     { name = "httpx", specifier = ">=0.28,<1" },
+    { name = "jev-judge-mcp", specifier = "==0.6.0" },
 ]
 
 [package.metadata.requires-dev]

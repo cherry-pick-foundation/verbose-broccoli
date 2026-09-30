@@ -400,13 +400,11 @@ def test_invalid_answer_fails_with_status_three(monkeypatch, capsys):
     ],
     ids=("configuration", "no-credit", "timeout"),
 )
-def test_provider_failures_exit_three_without_key(
+def test_provider_failures_exit_three(
     monkeypatch, capsys, error, factory_error
 ):
     candidate = offer("candidate")
     install_tracker(monkeypatch, new=[candidate])
-    provider_key = "synthetic-provider-key"
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", provider_key)
     provider, _ = install_judgment(
         monkeypatch,
         error=error if not factory_error else None,
@@ -417,9 +415,34 @@ def test_provider_failures_exit_three_without_key(
 
     captured = capsys.readouterr()
     assert "jev_calls=0" in captured.out
-    assert provider_key not in captured.out + captured.err
     assert len(provider.calls) == (0 if factory_error else 1)
     assert provider.closed == (0 if factory_error else 1)
+
+
+def test_missing_operator_credential_exits_three_without_provider_call(
+    monkeypatch, tmp_path, capsys
+):
+    candidate = offer("candidate")
+    install_tracker(monkeypatch, new=[candidate])
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    config_dir = tmp_path / "verbose-broccoli" / "backfire"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.toml").write_text(
+        'order = ["missing"]\n'
+        "\n[providers.missing]\n"
+        'api = "openai"\n'
+        'credential = "API_KEY"\n'
+        'credential_file = "missing.env"\n'
+        'base_url = "https://example.invalid/v1"\n'
+        'model = "test-model"\n'
+    )
+
+    status = credit_offers.main(["--end", END])
+
+    captured = capsys.readouterr()
+    assert status == 3
+    assert "backend_not_configured" in captured.err
+    assert "jev_calls=0" in captured.out
 
 
 def test_invalid_arguments_exit_two(capsys):
