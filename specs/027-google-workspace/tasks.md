@@ -114,6 +114,13 @@ messages.
   `mise trust` the reviewed file, `mise install --locked`, and check that
   the mise-installed `gws --version` prints 0.22.5 and that the lock's
   checksum matches T006's (FR-006).
+  - Handoff, 2026-09-30 (computer restart): T001 to T009 are done and
+    committed, and develop `845255f` (CHE-46) is merged in (`ba7a6ad`); no
+    worker is running. Blocked on CHE-44 reaching `develop`. Next: merge
+    `develop`, then start T010 with the task text saved in the git-ignored
+    `.local/che-52-handoff/impl3.txt` (Claude Code, `fable`, medium, as
+    chosen for T007 to T009), then T011. The reviewed binary is in
+    `.local/gws/bin/`.
 
 ## Phase 6: Finish
 
