@@ -214,26 +214,29 @@ def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
 
 
 @pytest.mark.usefixtures("vault")
-def test_resume_drops_a_torn_line_and_skips_checked_sentences(backfire):
+def test_failure_stops_the_run_and_a_rerun_resumes(backfire, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
     _proposals(run, ("First sentence.", [1]), ("Second sentence.", [1]))
-    sent = []
+    ok = {"results": [{"verdict": "verified", "action": "auto"}]}
 
-    def interrupted(arguments):
-        sent.append(arguments["evidence"][0]["text"])
-        if len(sent) == 2:
-            raise KeyboardInterrupt
-        return {"results": [{"verdict": "verified", "action": "auto"}]}
+    def failing(_):
+        if len(backfire.calls) == 2:
+            raise RuntimeError("provider failed")
+        return ok
 
-    backfire.reply = interrupted
-    with pytest.raises(KeyboardInterrupt):
-        _run(f"check --catalog {CATALOG}")
-    with (run / "checks.jsonl").open("a") as stream:
-        stream.write('{"row": 2')
+    backfire.reply = failing
+    assert _run(f"check --catalog {CATALOG}") == 2
+    assert "row 2: provider failed" in capsys.readouterr().err
+    checks = run / "checks.jsonl"
+    assert [c["row"] for c in _jsonl(checks)] == [1]
+    with checks.open("a") as stream:
+        stream.write('{"row": 2')  # A torn line from a killed run.
+    backfire.reply = lambda _: ok
     assert _run(f"check --catalog {CATALOG}") == 0
+    sent = [c["evidence"][0]["text"] for c in backfire.calls]
     assert sent == ["First sentence.", "Second sentence.", "Second sentence."]
-    assert [c["row"] for c in _jsonl(run / "checks.jsonl")] == [1, 2]
+    assert [c["row"] for c in _jsonl(checks)] == [1, 2]
 
 
 @pytest.mark.usefixtures("vault")

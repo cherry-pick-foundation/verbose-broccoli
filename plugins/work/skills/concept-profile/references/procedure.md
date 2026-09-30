@@ -20,7 +20,8 @@ when `XDG_STATE_HOME` is unset. Before each write, the script refuses to pass
 200 MB in the run folder. It writes a file under a temporary name and renames
 it, and appends `checks.jsonl` one line per sentence. Exit code 0 means
 success, 1 means a proposal was refused or a backfire result was invalid, and
-2 means an error stopped the command before it wrote.
+2 means an error stopped the command, such as a backfire failure during
+`check`.
 
 - `catalog --catalog catalogs/<catalog>.md` writes `catalog.tsv` for the
   proposer from the catalog page's first source, the spreadsheet, at the
@@ -70,8 +71,14 @@ catalog ID as `id` and the label, statement and examples on separate lines as
 
 A result is kept when its verdict is `verified` with action `auto`, dropped
 when it is `contradicted` or `unsupported` with action `auto`, and unclear
-otherwise. A failed call, or one that returns the wrong number of results,
-leaves all its concepts unclear.
+otherwise. A single result whose verdict is `unknown` (backfire's
+`invalid_response`) is recorded as unclear and counted in `invalid`.
+
+If a call raises, backfire returns a tool error or output that is not the
+expected JSON, or the number of results differs from the number of claims, the
+command writes nothing for that sentence, prints `row <n>: <reason>` on stderr
+and exits 2. The sentences before it stay in `checks.jsonl`, so the same
+command resumes at the failed sentence.
 
 `checks.jsonl` gets one line per sentence: `row` (the proposal's line number),
 `provider`, `model`, `usage`, `seconds`, and `results`: each backfire result

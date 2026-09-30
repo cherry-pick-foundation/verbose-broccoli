@@ -134,6 +134,8 @@ async def _backfire():
 
 async def _verify(session, arguments):
     result = await session.call_tool("jev_verify", arguments)
+    if result.isError:
+        raise ValueError(result.content[0].text)
     return json.loads(result.content[0].text)
 
 
@@ -161,14 +163,13 @@ async def _send(run, todo, entries, claim, done):
                 for e in found
             ]
             claims = [claim.format(text=text, **e) for e in found]
-            try:
-                arguments = {"claims": claims, "evidence": items}
-                response = await _verify(session, arguments)
-            except Exception:  # noqa: BLE001 - the proposals stay unclear.
-                response = {}
+            arguments = {"claims": claims, "evidence": items}
+            response = await _verify(session, arguments) if found else {}
             results = response.get("results", [])
             if len(results) != len(found):
-                results = [{}] * len(found)
+                raise ValueError(
+                    f"{len(results)} results for {len(found)} claims"
+                )
             check = {
                 "row": n,
                 **{k: response.get(k) for k in ("provider", "model")},
@@ -206,7 +207,11 @@ def _check_command(args, root, run):
     todo = [(n, r) for n, r in enumerate(proposals, 1) if n > len(done)]
     if todo:
         claim = metadata["catalog"]["claim"]
-        asyncio.run(_send(run, todo, entries, claim, done))
+        try:
+            asyncio.run(_send(run, todo, entries, claim, done))
+        except Exception as error:  # noqa: BLE001 - any backfire failure.
+            print(f"row {len(done) + 1}: {error}", file=sys.stderr)
+            return 2
     by_id = {e["id"]: e for e in entries.values()}
     sheet = []
     for check in done:
