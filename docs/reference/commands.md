@@ -40,6 +40,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:plugin-skills       | npm run test:plugin-skills       |                                                                                                                      |
 | test:plugins-validate    | npm run test:plugins-validate    |                                                                                                                      |
 | test:ruff                | npm run test:ruff                |                                                                                                                      |
+| test:session-select      | npm run test:session-select      |                                                                                                                      |
 | test:wiki-consistency    | npm run test:wiki-consistency    |                                                                                                                      |
 | test:wiki-raw-import     | npm run test:wiki-raw-import     |                                                                                                                      |
 | test:workflow            | npm run test:workflow            |                                                                                                                      |

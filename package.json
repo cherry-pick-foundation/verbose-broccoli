@@ -45,6 +45,7 @@
     "test:plugins-validate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/plugins_validate_test.ts",
     "test:jev-ultrafast": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=packages/jev-ultrafast uv run --frozen --offline --no-sync --package jev-ultrafast pytest -p no:cacheprovider packages/jev-ultrafast/tests",
     "test:credit-offers": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package credit-offers pytest -p no:cacheprovider packages/credit-offers/tests",
+    "test:session-select": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package backfire pytest -p no:cacheprovider plugins/work/skills/wiki-raw-import/scripts/session_select_test.py",
     "turborepo": "umask 077 && turbo_config_dir=\"$(mktemp -d)\" && vercel_config_dir=\"$(mktemp -d)\" && trap 'rm -rf \"$turbo_config_dir\" \"$vercel_config_dir\"' EXIT && env -u TURBO_BINARY_PATH -u TURBO_TOKEN -u TURBO_TEAM -u TURBO_TEAMID -u VERCEL_ARTIFACTS_TOKEN -u VERCEL_ARTIFACTS_OWNER TURBO_TELEMETRY_DISABLED=1 NO_UPDATE_NOTIFIER=1 TURBO_CONFIG_DIR_PATH=\"$turbo_config_dir\" VERCEL_CONFIG_DIR_PATH=\"$vercel_config_dir\" turbo",
     "check": "npm run turborepo -- run check --summarize",
     "lint:fix": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' gts fix . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --fix --no-cache .",
