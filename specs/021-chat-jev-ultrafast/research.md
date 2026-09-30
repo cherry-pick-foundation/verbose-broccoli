@@ -275,5 +275,15 @@ and the body `{model: "typesafe/jev", input: {state, questions}}`, and
 answering `{model, answers, usage}`. jev-agent-tools 0.1.2's
 `dist/transports/cloudflare.js` sends the same body and reads the answer
 from the v4 envelope's `result.result`. The page does not say whether
-Workers AI's free daily allocation covers this model; the live check
-decides.
+Workers AI's free daily allocation covers this model.
+
+The live check, one request at 00:58:31 UTC on 2026-09-30 (09:58 KST) with
+the user's token, was refused with HTTP 402 and
+the body `{"errors":[{"message":"Insufficient balance; add money to your
+gateway or use BYOK","code":2021}],"success":false,"result":{},"messages":[]}`.
+Jev on Workers AI therefore needs a paid balance as well. The refusal came
+from the account's endpoint rather than a request-format error, but no answer
+was returned, so the answer path is covered only by the stub tests. Across
+the feature, no Jev call was answered: Vercel refused three requests and
+Cloudflare one, and none was charged. Paying for Jev calls, on Vercel or
+Cloudflare, is the user's decision.
