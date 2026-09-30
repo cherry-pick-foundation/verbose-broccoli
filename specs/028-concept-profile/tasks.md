@@ -116,14 +116,25 @@ below.
     folders hold catalog.tsv (1,222 concepts) and the extracted texts. The
     vault's `check` fails on 171 lines of earlier pages (Linear CHE-58 and
     moved worksheet folders), none on this feature's pages.
-- [ ] T007 [P] [US2] Propose concepts for every sentence of the volume into
+- [x] T007 [P] [US2] Propose concepts for every sentence of the volume into
   its `proposals.jsonl` (depends on T006).
-- [ ] T008 [P] [US2] Propose concepts for every sentence of the exam paper
+- [x] T008 [P] [US2] Propose concepts for every sentence of the exam paper
   into its `proposals.jsonl` (depends on T006).
   - T007 and T008: Claude Code `fable` at xhigh (backfire: model 0.70,
     confidence 0.66; effort 0.48, confidence 0.39).
+  - 2026-09-30 done: the volume 250 sentences, 7,352 proposals, about 19
+    minutes; the exam 281 sentences, 6,247 proposals, about 24 minutes. The
+    exam paper's default pdftotext order split 13 sentences across columns;
+    extraction now uses `pdftotext -raw` (d3d79e6), which keeps them whole.
 - [ ] T009 [US2] Run `check` for both materials; write the hand-check sheet
   of 30 sampled sentences; ask the user to return it and the review sheets.
+  - 2026-09-30: a 5-sentence probe found `result.isError` (mcp 2.2.0 has
+    `is_error`) and calls of about 86,000 tokens that failed above 30
+    claims; fixed with one evidence text per call (2c6045e). Check: 531
+    sentences, 530 calls, 7.6 million tokens, about 3 minutes, about $0.28;
+    2,047 kept, 1 dropped, 11,551 unclear, 12 invalid. The unclear-item
+    sheet is not sent (too many to review); the hand-check sheet (30
+    sentences, 783 proposals) went to the user.
 - [ ] T010 [US2] Run `record --reviewed`, `wiki-consistency update` and
   `check`, log and commit in the vault; score the hand-check; report
   accuracy, calls, tokens and time to the user and record the decision on
