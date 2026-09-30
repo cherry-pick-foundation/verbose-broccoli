@@ -142,6 +142,17 @@ below.
 
 ---
 
+## Phase 3b: Reference books in the vault (FR-017)
+
+- [ ] T013 [US3] Add the reference record to the procedure and the vault
+  schema template, and address mapping sections in its text file.
+- [ ] T014 [US3] Admit the four reference PDFs with `wiki-raw-import`; write
+  the four reference pages with their unchanged text files; bring the vault
+  schema in line; run `wiki-consistency update` and `check`, log and commit
+  in the vault.
+
+---
+
 ## Phase 4: Review and finish
 
 - [ ] T011 Measure the change size against `develop`; move CHE-57 to In

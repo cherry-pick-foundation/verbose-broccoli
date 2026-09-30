@@ -78,6 +78,14 @@ The branch and worktree names stay as they are.
   two pilot profile records in the vault; and the run folder
   `~/.local/state/verbose-broccoli/concept-profile/`, emptied after the
   records are committed.
+- Q: How do the reference books enter the work vault (decided by the user,
+  relayed by the develop session)? → A: Raw gets only the four original
+  PDFs, admitted with `wiki-raw-import`; their SHA-256 digests match the
+  `source_sha256` in the front matter of the Markdown extractions in
+  `~/Documents/20_reference/`. The extractions (PyMuPDF4LLM, status
+  verification-needed) are agent-made output, not sources, so they go into
+  the Wiki layer, each citing its PDF's raw revision. The mappings stay a
+  later feature. The book text stays in the private vault.
 - Q: What counts as a sentence? → A: Every English sentence in passages,
   dialogues and full-sentence English answer choices; Korean text, headings,
   labels and phrase-only choices are skipped.
@@ -99,6 +107,8 @@ One term per idea, used in every name this feature adds:
   Use book.
 - **Mapping**: the record that links each concept of one catalog to the
   sections of one reference that explain it.
+- **Reference record**: a reference's page in the vault, citing the
+  reference's raw PDF, with the extracted book text in a file beside it.
 - **Proposal**: a concept that the proposer (a worker model) says a
   sentence shows, or a reference section it says explains a concept.
 - **Check**: one `jev_verify` call on all proposals of one sentence (or of
@@ -268,6 +278,11 @@ rules that keep unclear links from piling up.
 - **FR-015**: Nothing outside the repository (vault changes, raw admissions,
   run folders) MUST be created before the user approves it.
 - **FR-016**: `npm run verify` MUST pass on the result merged with `develop`.
+- **FR-017**: The four reference books MUST be in the work vault: each
+  original PDF as a raw source, and each Markdown extraction, unchanged, as
+  the text file of a reference record whose page cites the PDF's revision.
+  The schema template and the procedure MUST describe the reference record,
+  and mappings MUST address sections in that text file.
 
 ### Key Entities
 

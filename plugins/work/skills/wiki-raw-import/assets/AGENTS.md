@@ -149,6 +149,9 @@ never quote the marker syntax.
   file beside it. The data file is not a page.
 - `wiki/mappings/` holds mapping pages, each with a same-name JSON Lines data
   file beside it. The data file is not a page.
+- `wiki/references/` holds reference pages, each citing the reference book's
+  raw PDF, with the book's extracted text in a same-name `.markdown` file
+  beside it. The text file is not a page.
 
 Use the work plugin's `concept-profile` skill for their layouts.
 

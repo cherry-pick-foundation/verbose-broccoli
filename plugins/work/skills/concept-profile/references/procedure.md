@@ -2,10 +2,10 @@
 
 ## Sources and extraction
 
-Admit the catalog spreadsheet, each material file, and each reference book
-through the work plugin's `wiki-raw-import` skill. Check the raw revisions
-with that skill. Read only the admitted revisions; never edit or delete
-anything in `raw/`.
+Admit the catalog spreadsheet, each material file, and each reference
+book's original PDF through the work plugin's `wiki-raw-import` skill. Check
+the raw revisions with that skill. Read only the admitted revisions; never
+edit or delete anything in `raw/`.
 
 From this skill folder, the script runs in the Wiki consistency environment.
 `--wiki <vault>` (default `work`) and `--run <name>` come before the command:
@@ -192,6 +192,27 @@ order. `unclear` holds those the user has not decided. Dropped and unticked
 concepts are not recorded. In `counts`, `kept` counts the concepts of all rows,
 `unclear` the undecided ones, and `dropped` every other proposal.
 
+### Reference: `wiki/references/<reference>.md` and `<reference>.markdown`
+
+A reference book's original PDF is its raw source. Its Markdown extraction
+is agent-made output, so it goes into the Wiki layer unchanged, byte for
+byte and with its own front matter, as `<reference>.markdown` beside the
+page; check that its SHA-256 equals the extraction's and that the
+`source_sha256` in its front matter equals the PDF bag's digest. The text
+file is not a page: `wiki-consistency` reads only `wiki/**/*.md`, and book
+text would fail the page rules and cost thousands of judgments. Name both
+in kebab-case with the edition, for example
+`english-grammar-in-use-5th-edition`.
+
+The page cites the PDF's revision, says what the book is, which edition,
+and how the text was extracted and whether it is verified, and links the
+text file:
+
+```yaml
+reference:
+  text: <reference>.markdown
+```
+
 ### Mapping: `wiki/mappings/<catalog>--<reference>.md` and `.jsonl`
 
 The layout and method are designed here; a later feature builds the mappings.
@@ -199,16 +220,16 @@ The layout and method are designed here; a later feature builds the mappings.
 ```yaml
 mapping:
   catalog: ../catalogs/<catalog>.md
-  reference: <reference title>
+  reference: ../references/<reference>.md
   data: <catalog>--<reference>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
   counts: {concepts: 0, kept: 0, dropped: 0, unclear: 0}
 ```
 
-`sources` cites the catalog spreadsheet and the reference's raw extraction.
-A section is addressed by its heading path in that revision, such as
-`Unit 12 > 12A`. Data rows, one per concept, in catalog order:
+`sources` cites the catalog spreadsheet and the reference's raw PDF. A
+section is addressed by its heading path in the reference's text file, such
+as `Unit 12 > 12A`. Data rows, one per concept, in catalog order:
 
 ```json
 {"concept": "<id>", "sections": ["<heading path>"], "unclear": ["<heading path>"]}

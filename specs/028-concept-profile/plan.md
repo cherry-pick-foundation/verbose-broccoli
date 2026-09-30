@@ -172,6 +172,27 @@ catalog link and the data link. Data rows, one per sentence, in order:
 catalog order; `unclear` holds those the user has not decided. Dropped and
 rejected concepts are not recorded.
 
+### Reference record: `wiki/references/<reference>.md` and `<reference>.markdown`
+
+The reference's original PDF is its raw source. The page cites that PDF's
+revision, and its body says what the book is, which edition, and that the
+text is a PyMuPDF4LLM extraction marked verification-needed.
+
+```yaml
+reference:
+  text: <reference>.markdown
+```
+
+`<reference>.markdown` is the Markdown extraction kept byte for byte, its
+own front matter (extraction tool, date, the PDF's SHA-256, status)
+included; its SHA-256 equals the extraction's in
+`~/Documents/20_reference/`. It is not a page: `wiki-consistency`, its Vale
+rules and its judgment step read only `wiki/**/*.md`, and 1 to 6 MB of book
+text as pages would fail the page rules (numbers read as phone numbers,
+dates, non-English symbols) and cost thousands of judgments against the
+PDF. Its name is kebab-case with the edition, for example
+`english-grammar-in-use-5th-edition`.
+
 ### Mapping record: `wiki/mappings/<catalog>--<reference>.md` and `.jsonl`
 
 Designed now, built in a later feature.
@@ -186,9 +207,10 @@ mapping:
   counts: {concepts: 0, kept: 0, dropped: 0, unclear: 0}
 ```
 
-`sources` cites the catalog's spreadsheet and the reference's raw
-extraction. A section is addressed by its heading path in that revision of
-the extraction, for example `Unit 12 > 12A`. Data rows, one per concept, in
+`sources` cites the catalog's spreadsheet and the reference's raw PDF, and
+`mapping.reference` links the reference record. A section is addressed by
+its heading path in the reference record's text file, for example
+`Unit 12 > 12A`. Data rows, one per concept, in
 catalog order:
 
 ```json
