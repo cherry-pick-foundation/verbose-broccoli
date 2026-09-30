@@ -35,8 +35,8 @@ mode after a switch).
 | Provider | Calls | Purpose |
 | --- | --- | --- |
 | Hive | 3 | `jev_decide` choosing the implementer, the research worker and the reviewers, through `develop`'s backfire |
-| CodexBar | 1 read | OpenRouter credit before the live judgment; CodexBar called OpenRouter's key and credits endpoints, not Jev |
-| OpenRouter | 1 | The live judgment on 2026-09-30 12:35 KST: `jev_verify` on one synthetic claim; the result named `openrouter`, model `typesafe/jev-1.13`, verdict verified at 0.99, 523 input and 46 output tokens |
+| CodexBar | 3 reads | OpenRouter credit, once per backfire server: the live judgment and the two document-step runs; CodexBar called OpenRouter's key and credits endpoints, not Jev |
+| OpenRouter | 9 | The live judgment on 2026-09-30 12:35 KST, `jev_verify` on one synthetic claim: the result named `openrouter`, model `typesafe/jev-1.13`, verdict verified at 0.99, 523 input and 46 output tokens. Then 8 calls for the document judgment step below |
 | Vercel | 0 | |
 | Cloudflare | 0 | |
 
@@ -54,6 +54,35 @@ The `AGENTS.md` split review: the offer search and the new Cloudflare and
 Vercel profiles were already split out (CHE-51 and a separate feature). The
 rest is one mechanism, the order, the credit reading and the switch, whose
 parts are not useful alone, so it stays one feature.
+
+## Document judgment step
+
+`npm run doc-regions:prepare -- --base develop --max-evidence-chars 40000`
+at `develop` `b9a0293` produced 241 units in six `jev_verify` requests and
+one `jev_classify` request, sent through this branch's backfire on
+2026-09-30: 8 OpenRouter calls, one of them lost to an error in the
+coordinator's sending script and sent again.
+
+- One unit was judged contradicted: the constitution's "Retain existing
+  source and storage roots unless a specified capability changes them"
+  (`.specify/memory/constitution.md:150-151`), against this feature's
+  deletion of `backfire_education/config.toml` and `vercel.py`. It stands:
+  FR-009 and FR-013 specify both deletions, and constitution findings are
+  reported to the user, not changed here.
+- 92 other units were flagged for review. They are either outside this
+  feature's diff (the constitution, `AGENTS.md`, `README.md` and unrelated
+  sections of `docs/architecture.md`) or backfire guide and architecture
+  passages this feature wrote, which the coordinator checked against the
+  code; none needed a change.
+- `jev_classify` suggested `docs/backfire.md:44-49` (the shared order) as a
+  mechanical candidate at 0.61 and kept four units as agent regions. It
+  stays an agent region: the paragraph explains the order in prose around
+  the two profile names.
+
+`npm run doc-regions:audit` (MemoryLint 1.5.1) reported 19 boundary
+warnings, all suggesting that constitution passages move to `AGENTS.md`.
+They exist on `develop` already, and this feature does not change either
+file; they are reported to the user only.
 
 ## Workers
 
