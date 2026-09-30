@@ -234,6 +234,11 @@ time limit.
     `claude-sonnet-5-5` at low effort for the code and Codex `gpt-6-luna`
     at high effort for the records (0.65 against 0.25 for the round-2
     choice).
+  - 2026-09-30: round 3 at `aa36cfa`. The code reviewer (Claude Code,
+    `claude-sonnet-5-5`, low) found no blocking points and two test notes
+    that need no change. The records reviewer (Codex, `gpt-6-luna`, high)
+    found five minor inconsistencies, fixed in `df3e06e`. The fixes are text
+    only, so no fourth round.
 
 - [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
   folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the
