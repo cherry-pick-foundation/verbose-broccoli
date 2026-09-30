@@ -52,9 +52,15 @@
 
 ## Phase 4: Finish
 
-- [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge
+- [x] T007 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish copilot-option`.
+  - `develop` f170b2d merged in 6a64d98, keeping both edits to the provider
+    key-file list in `docs/architecture.md`; `npm run verify` printed
+    VERIFIED there (32 of 32 tasks).
+  - Reviewer: Codex `gpt-6-luna`, effort `medium`, chosen by backfire
+    `jev_decide` (probability 0.74, confidence 0.69). It approved 6a64d98
+    with no findings. The finish follows the review record.
 
 ## Notes
 
@@ -69,3 +75,8 @@
   constitution rules belong in `AGENTS.md`, as for earlier features, and one
   false warning that `scripts/workflow.ts` does not exist; they are reported
   to the user without changing either file.
+- Two of four full `npm run verify` runs failed in
+  `packages/doc-regions/tests/test_requests.py::test_prepare_excludes_judged_documents_and_empty_evidence_has_no_verify`:
+  the temporary repository's `.git/index` changed during the run. The test
+  passed in the other runs and alone; this feature does not touch that
+  package, and the develop session has the report.
