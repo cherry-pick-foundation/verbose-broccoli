@@ -65,11 +65,29 @@ Codex, the provider other than the implementer's.
 
 ## Phase 4: Renames
 
-- [ ] T006 [US2] In the granted finish slot, merge the newest `develop`,
+- [x] T006 [US2] In the granted finish slot, merge the newest `develop`,
   rename every remaining non-kebab path with `git mv`, update every
   reference, and commit the renames as one commit (FR-004, FR-005).
+  2026-09-30: the `develop` session granted the slot at `develop` 46a5bc3,
+  merged in 96745bf. Commit 96ca42b renames 130 paths and updates 28 files.
+  Records keep the paths their prose mentioned at the time; only Markdown
+  links to a renamed file changed. `npm run verify` printed VERIFIED with
+  33 of 33 tasks, the naming check included.
 
 ## Phase 5: Review and finish
 
 - [ ] T007 Develop merge review by a fresh Codex reviewer; finish into
   `develop`; move CHE-63 to Done.
+  - Size against `develop`: 157 files, 763 insertions and 94 deletions,
+    below the 1,000-line split review. Net own code: 66 lines, 58 of them
+    `.ls-lint.yml` (records, documents, Markdown and `mise.lock` excluded).
+  - Document judgment step against `develop` 46a5bc3: 240 units in 24
+    `jev_verify` calls. `doc-regions prepare` passes `--no-renames`, so its
+    evidence carried every renamed file twice (about 187,000 characters) and
+    Jev refused each request as too large; the requests were resent with the
+    same units and the diff with rename detection (34,469 characters).
+    Result: no confident contradiction. One unit in `docs/backfire.md` on
+    provider selection was judged contradicted at confidence 0.34 for
+    review; it stands, since this feature changes no backfire code.
+  - Merge reviewer: Codex `gpt-6-luna` at high (backfire: 0.82, confidence
+    0.78).
