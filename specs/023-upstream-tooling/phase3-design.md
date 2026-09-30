@@ -1,3 +1,7 @@
+> **Superseded in part (2026-09-30):** the user chose "Alternative B" below,
+> which replaces verify's own run record; the Recommendation keeps it. See
+> spec.md, Clarifications, and research.md R9 for the adopted design.
+
 # Phase 3 design: upstream workflow and import tooling
 
 **Assumption.** Keep today’s workflow contract and current import rules. Use the pinned tools’ CLI/configuration where they replace a graph engine or a check result; keep local code where it binds results to this repository’s files, task plan, and working-tree state. The static dependency-cruiser config will describe the package manifests present when the swap lands, so future manifest/export changes need a config update.

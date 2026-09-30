@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -34,7 +34,7 @@
 - The tools themselves are the user's decision (Linear CHE-44), so the
   requirements name them; this is the feature's scope, not an
   implementation choice.
-- Open: the user's answers on mise installs, the constitution version,
-  Vale and the roster, the raw import record, dropped behaviours, the
-  security findings and the workflow/verify option. The spec records them
-  under Clarifications when they arrive.
+- The user's answers on mise installs, the constitution version, Vale and
+  the roster, the raw import record, dropped behaviours, the security
+  findings, the workflow/verify option and the hook switch are recorded
+  under the spec's Clarifications (2026-09-30).

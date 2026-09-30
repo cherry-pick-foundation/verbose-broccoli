@@ -18,7 +18,6 @@ scripts:
     mise exec -- uv sync --locked --project tools/commitizen
     npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
     mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
-    ./node_modules/.bin/lefthook install
     git config gitflow.shared.trustHooks true
     mise exec -- git flow config sync
     npm run doctor

@@ -1,8 +1,9 @@
 # Research: Upstream Tools in Place of Own Tooling Code
 
-Own-code lines below are scc 4.1.0 "Code" counts of the files on `develop`
-at `0bc0c63`, the counter and method CHE-42 chose (research R1 of
-`specs/022-own-code-limit/`). Tests are not counted.
+Own-code lines are scc 4.1.0 "Code" counts, the counter and method CHE-42
+chose (research R1 of `specs/022-own-code-limit/`); tests are not counted.
+The first counts below were taken on `develop` at `0bc0c63`, where this
+branch started; Results names the baselines of the final counts.
 
 ## R0. Security review and licenses
 
@@ -32,6 +33,12 @@ at `0bc0c63`, the counter and method CHE-42 chose (research R1 of
   | dependency-cruiser | 18.2.0 | MIT |
   | Turborepo | 2.11.5 | MIT |
 
+- **Controls not adopted**: the qmd embedding model stays a download the
+  user starts through `wiki-consistency index --download`, from its
+  Hugging Face URL, as before this feature, instead of a pre-downloaded file
+  checked against a pinned digest (R3, Q-M1); and no operating-system rule
+  keeps the checks offline and away from secrets (R4 and R5 ask for one).
+  The control list the user accepted named both as they are.
 - **Rationale**: The develop session relayed the user's security gate on
   2026-09-30. The versions are the ones the repository pins already (cogapp,
   qmd, bagit, dependency-cruiser, Turborepo), the installed mise, and the
@@ -76,9 +83,13 @@ at `0bc0c63`, the counter and method CHE-42 chose (research R1 of
 - **Shared wiring**: lefthook installs into Git's common hooks folder and
   refuses to install while `core.hooksPath` is set, so the switch from
   `core.hooksPath = scripts/git-hooks` affects every worktree of the
-  repository at once. It is done once, after the finish, from the `develop`
-  worktree, with the user's approval. Until an in-flight branch merges
-  `develop`, its commits find no `lefthook.yml` and skip the hook.
+  repository at once. It is done once, right before the finish, with the
+  user's approval; later installs run by hand from the `develop` worktree
+  when lefthook changes, never from Orca's per-worktree setup, which only
+  runs `lefthook check-install` through `npm run doctor` (the R2 review asks
+  for one serialized install). Until an in-flight branch merges `develop`
+  and runs `npm ci`, the shared hook refuses its commits
+  (`assert_lefthook_installed`), as the user chose.
 
 ## R7. Wiki search
 
@@ -171,7 +182,7 @@ tip 11,962: **net -2,524**.
 | Plugin manifests | check-jsonschema 0.38.2 (PyPI, `tools/check-jsonschema`), Apache-2.0 | R4: 0 high, 1 medium | `scripts/validate_plugins.ts` | 80 → 0 (-80) | Symlinked-manifest refusal, custom roots, JSON summary |
 | Reference docs | cogapp 3.6.0 (already pinned), MIT | R4: 0 high, 1 medium | `scripts/docs.ts`, `docs_test.ts`, `docs:*` tasks | 683 → 147 (-536) | Two-step publication and recovery folder, lock, symlink and stray-file refusal, terminal-control and local-path guards, permission-bounded help run, "Input owners" line |
 | Wiki search | qmd 2.8.3 CLI and MCP (already pinned), MIT | R3: 0 high, 5 medium | `search.mjs` | 516 → 257 (-259) | Stale-index file list, exact vector chunk cap, checks for impossible query shapes, removal of unexpected collections and update hooks |
-| Import check, workflow and verify | dependency-cruiser 18.2.0 (MIT), import-linter 2.15 (BSD-2-Clause, with grimp 3.17), Turborepo 2.11.5 (MIT) | R5: 0 high, 5 medium; R2: 0 high, 3 medium | `scripts/clean_architecture.ts`, `workflow-evidence.schema.json`, verify's evidence record | 1,937 → 1,451 (-486) | Rules built from every package.json's exports and aliases, the architecture JSON report, verify's task/base/plan binding, snapshots, log hash, interrupted-run detection, failure streak, REVIEW threshold and lock, graph labels and test-file hints |
+| Import check, workflow and verify | dependency-cruiser 18.2.0 (MIT), import-linter 2.15 (BSD-2-Clause, with grimp 3.17), Turborepo 2.11.5 (MIT) | R5: 0 high, 4 medium (import-linter 1, grimp 1, dependency-cruiser 2); R2: 0 high, 3 medium | `scripts/clean_architecture.ts`, `workflow-evidence.schema.json`, verify's evidence record | 1,937 → 1,451 (-486) | Rules built from every package.json's exports and aliases, the architecture JSON report, verify's task/base/plan binding, snapshots, log hash, interrupted-run detection, failure streak, REVIEW threshold and lock, graph labels and test-file hints |
 | Own-code limit | none (removed by the user's decision) | none | `scripts/own_code.ts`, its test, `tools/scc`, `linguist-languages` | 127 → 0 (-127) | The 300-line limit and its approval line |
 | Environment check | mise 2026.9.16/17 (APT), MIT | R1, R6: 0 high, 4 medium | `scripts/doctor.ts`, its test | 426 → 0 (-426) | JSON report and `--report`, `--quarto`, executable-path checks, lock hash |
 | Constitution version | commitizen 4.19.0 (PyPI, `tools/commitizen`), MIT | R4: 0 high, 1 medium | `scripts/constitution_version.ts`, the finish hook's version loop | 188 → 7 (-181); finish hook 65 → 58 (-7) | Automatic refusal in the commit-message and finish hooks, `--amend` detection |

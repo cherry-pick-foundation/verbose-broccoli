@@ -555,9 +555,11 @@ from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
   share, and each hook reads the running worktree's `lefthook.yml` and runs
   its `node_modules/lefthook`. When a worktree lacks that binary, the hook
   refuses the commit (`assert_lefthook_installed`) instead of skipping the
-  check, and lefthook never installs itself (`no_auto_install`). Orca's setup
-  script runs `./node_modules/.bin/lefthook install`, and `npm run doctor`
-  checks the installation.
+  check, and lefthook never installs itself (`no_auto_install`). Because the
+  hooks are shared, they are installed once, by hand, from the `develop`
+  worktree with `./node_modules/.bin/lefthook install` (again only when
+  lefthook changes); Orca's setup script does not install them, and `npm run
+  doctor` checks the installation.
 - `npm run test:commit-msg` checks commit messages through lefthook in
   temporary repositories.
 

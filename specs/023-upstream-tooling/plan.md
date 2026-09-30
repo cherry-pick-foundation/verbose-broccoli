@@ -23,8 +23,11 @@ work runs in three waves:
    and the affected-files graph, and import-linter for Python boundaries.
 
 Every tool passed a read-only security review at its pinned version with no
-high-severity finding (research.md R0); the repository applies the controls
-the reviews name. The research is in [research.md](research.md).
+high-severity finding (research.md R0). The repository applies the controls
+that went to the user with the findings, which the user accepted on
+2026-09-30; the reports name more controls than that list, and the ones not
+adopted are named in research.md R0. The research is in
+[research.md](research.md).
 
 ## Technical Context
 
@@ -101,7 +104,8 @@ packages/wiki-consistency/tests/test_search.py
 docs/architecture.md, AGENTS.md  # commands renamed (coordinator)
 ```
 
-Waves 2 and 3 are planned in tasks.md once their decisions are in.
+Waves 2 and 3 were planned in tasks.md after the user's decisions (spec.md,
+Clarifications).
 
 ## Validation
 
