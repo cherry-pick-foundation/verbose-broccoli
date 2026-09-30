@@ -24,7 +24,10 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   `raw/{web,files,notes,assets}/<source-id>/<revision>/` that records the
   original path, modification time, admission time and SHA-256 digest. Raw
   is create-only: a changed original becomes a new revision, and earlier
-  revisions and their provenance stay.
+  revisions and their provenance stay. Exported conversations are raw
+  evidence only in the `chat` and `work` vaults, exported Claude Code and
+  Codex sessions in any vault they belong to, and other conversation records
+  in none.
 - Write pages in English, whatever the language of the raw evidence, which
   stays unchanged. Student names keep the roster's spelling, a school is
   written as its domain ID, and a short direct quote may keep its original
