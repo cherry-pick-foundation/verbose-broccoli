@@ -176,6 +176,15 @@ messages.
     picker means the files gws created. The fixes change records and
     wording, not the implementation, so the coordinator reviewed them
     instead of a second review round.
+  - Develop moved to `ff5ff91` (CHE-47) before the finish. Its merge
+    (`c134e76`) combined both features' mise pins: gws beside CHE-47's
+    betterleaks 1.9.0 and SpecStory 2.15.1 in `mise.toml`, `mise.lock` and
+    `orca.yaml`, and the architecture's mise paragraph now names all seven
+    tools. `mise install --locked` of the seven tools and `npm run doctor`
+    passed, and `npm run verify` printed VERIFIED. The document judgment
+    step rerun at `ff5ff91` (240 units, 12 calls) verified both added units
+    (0.79 and 0.89) and the mise paragraph (0.63), and judged no unit
+    contradicted. A fresh review of the new tip follows.
 
 ## Dependencies
 
