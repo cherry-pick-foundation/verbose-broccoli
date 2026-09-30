@@ -37,12 +37,13 @@ npm ci --ignore-scripts --no-audit --no-fund --prefix ../../wiki-consistency
 ```
 
 The first two lines give `doc-regions` and `backfire`, which the tool uses
-as libraries, the `.venv/` their builds need; `check` reads the roster and
-finds names, phone numbers and email addresses with backfire's code.
+as libraries, the `.venv/` their builds need. `check` uses local Vale 3.23.0
+regex rules for page text; it reads backfire's roster only when a direct student
+page or unquoted Hangul, Chinese or Japanese text needs roster checks.
 
 | Command | What it does | Network | Writes |
 | --- | --- | --- | --- |
-| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags, that `log.md` only grew, and the page rules a pattern can test (below); lists orphan pages and stale citations | none | nothing |
+| `check` | Checks mechanical regions, links, page metadata, the topics declared in `AGENTS.md`, cited bags, that `log.md` only grew, and the Vale page rules below; lists orphan pages and stale citations | none | nothing |
 | `update` | Regenerates stale mechanical regions | none | region text in `wiki/` |
 | `convert [--scope changed\|lint]` | Converts cited raw revisions to Markdown | none | `CACHE/wiki-evidence/` |
 | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |
@@ -51,25 +52,30 @@ finds names, phone numbers and email addresses with backfire's code.
 On success a command prints one JSON object and exits 0. A failed check or an
 execution failure exits 1 and invalid arguments exit 2; both print their
 details on stderr only.
-`check` needs Git and lychee; `index` and `prepare` need Node 22 or later.
+`check` needs Vale 3.23.0, Git and lychee; `index` and `prepare` need Node 22
+or later.
 
-The page rules that `check` tests, in every page except `log.md`, outside
-mechanical regions and outside the front matter's `sources` field: no
-phone numbers, email or postal addresses, or registration numbers; each
-page directly in `wiki/students/` is named after a student in the roster;
-no Hangul, Chinese or Japanese text except roster names and one quote of at
-most 100 characters with its English translation on the same line, as
-`"<original>" (<translation>)` or `"<translation>" ("<original>")`, with
-`"…"`, `“…”`, `‘…’`, `「…」` or `『…』` as quotation marks; no roster school
-name in Hangul outside such a quote; dates as YYYY-MM-DD
-and times with `Z`, an offset from `-14:00` to `+14:00` (a minus offset
-only in an ISO date-time), or a UTC form. The language, school and date
-rules skip link targets outside code (link destinations, autolinks and
-bare URLs), which a page cannot change without breaking the link. A failure names the page,
-line and rule but not the matched text. `check` reads the roster through
-backfire's `education.toml` only when a student page or such text exists;
-it then fails if the file is missing. The instance's `AGENTS.md` lists the
-rules that stay with the judgment step.
+Vale checks every Markdown page except `log.md`, outside Cog regions and all
+front matter. Its privacy and time rules inspect code and link targets. Its
+language, school and date rules use Markdown text scope, which skips code,
+link targets and front matter. A page rule reports the page, line and rule,
+never the matched text.
+
+Vale patterns flag phone numbers, email addresses, postal addresses,
+registration numbers and dates not shaped as `YYYY-MM-DD`. Registration
+numbers are not birth-date validated, and impossible dates in the fixed ISO
+shape pass. Time patterns accept `Z`, numeric offsets and UTC forms; a range
+with a zoned end is a pattern approximation. Phone and email detection uses
+Vale regexes instead of backfire's phone and email code.
+
+Direct pages in `wiki/students/` must match a roster student. Hangul, Chinese
+and Japanese text must be a roster name or a short quote with an English
+translation on the same line, using `"…"`, `“…”`, `‘…’`, `「…」` or
+`『…』`. Vale approximates the quote length and translation form with patterns.
+Roster school names in Hangul are flagged outside that quote form. Since Vale
+skips front matter, page rules do not inspect title or summary text; metadata
+shape checks still apply. The instance's `AGENTS.md` lists rules that stay
+with the judgment step.
 
 ## After an operation that changed the Wiki
 
