@@ -236,6 +236,8 @@ plugin does not detect:
   spelling is `Mukho`; es-hangul drops the `h` after `ㄱ`, `ㄷ` and `ㅂ`);
 - addresses without an `address` keyword or romanized address parts, such as a
   street name in English.
+- a difference between roster students who share a full name: they share one
+  stand-in, and their EduOK numbers and romanized names map to it too.
 
 They reach the provider as written; add roster names to the roster or leave the
 text out of tool inputs. A student removed from the roster is no longer detected.
