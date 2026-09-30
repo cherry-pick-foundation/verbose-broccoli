@@ -21,7 +21,7 @@ skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
 `backfire` server, which
-pseudonymizes student identifiers; its other business capabilities have no
+replaces student identifiers with English stand-ins and refuses Hangul; its other business capabilities have no
 implementation until new features specify them.
 The `chat` package contains the `web-agent` and `credit-offers` skills
 (see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
@@ -239,9 +239,9 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 `AGENTS.md`, from the `wiki-raw-import` skill's template, states the rules.
 
 - Pages are written in English, whatever the language of the raw evidence,
-  which stays unchanged; student names keep the roster's spelling so backfire
-  still replaces them, a school is written as its domain ID, and a short
-  direct quote may stay next to its translation.
+  which stays unchanged; student names use the roster's romanized spelling,
+  the Korean spelling stays only in the roster, a school is written as its
+  domain ID, and a short direct quote may stay next to its translation.
 - Pages carry YAML front matter with a title, a one-line summary, the
   source revisions they cite and one or more topics. A vault groups its
   pages by topic instead of splitting into more vaults; the front matter of
@@ -260,23 +260,24 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   Vale 3.23.0 rules (`packages/wiki-consistency/vale/`), outside mechanical
   regions, the front matter and `log.md`: phone numbers, email and postal
   addresses and registration numbers; Hangul, Chinese or Japanese text other
-  than roster names and one quote with its English translation in
-  parentheses beside it; roster school names in Hangul outside such a quote,
-  instead of domain IDs; and dates not written as YYYY-MM-DD or times
+  than one quote with its English translation in parentheses beside it;
+  roster school names in Hangul outside such a quote, instead of domain IDs; and dates not written as YYYY-MM-DD or times
   without a zone. The privacy and time rules also check code and link
   targets; the language, school and date rules skip them. A small Python
   step reads backfire's roster only when a page needs it, checks that a
-  student page (`wiki/students/<name>.md`) is named after a roster student,
-  and gives Vale the roster's names and schools through a private temporary
+  student page is `wiki/students/s-<EduOK student number>.md` with a number
+  from the roster's `id` column, reports the Korean spelling of a roster
+  student, given or guardian name anywhere in a page, quotes and front matter
+  included, and gives Vale the roster's schools through a private temporary
   folder in the cache that it removes afterwards. Vale runs offline with
   `--no-global` and line output, on regular files only (symbolic links are
   skipped), and a failure never repeats the matched text. The rules are
   patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
   passes, a registration-number shape is flagged even with an impossible
-  birth date, phone and email detection is Vale's, not backfire's, and the
-  front matter's title and summary go unchecked. The check writes nothing
-  outside that temporary folder and uses no network. `update` regenerates
-  stale regions.
+  birth date, phone and email detection is Vale's, not backfire's, and only
+  the student-name rule reads the front matter's title and summary. The
+  check writes nothing outside that temporary folder and uses no network.
+  `update` regenerates stale regions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
@@ -300,10 +301,13 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   candidate units of other pages), `jev_find` cross-reference requests
   in a lint, and `jev_classify` requests for new units. qmd only finds
   candidates; backfire judges.
-- The agent sends the requests to the work plugin's backfire server, which
-  replaces the roster's student, guardian and school names, phone numbers
-  and email addresses before the provider call and sends all other text as
-  it is, and confirms a contradiction between two pages with `jev_compare`.
+- The agent translates Korean evidence into English first and sends the
+  requests to the work plugin's backfire server, which replaces student,
+  guardian and school identifiers, regions, school years, birth dates,
+  addresses, phone numbers and email addresses with English stand-ins before
+  the provider call, refuses a request that still holds Hangul or a detected
+  identifier, and sends all other text as it is; the agent confirms a
+  contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
   library; Orca's setup script runs the same installs, and `npm run
@@ -331,9 +335,14 @@ credit: before first use it reads the provider's credit through CodexBar's
 command-line tool when the profile names a CodexBar provider, and it moves
 to the next profile when a provider answers insufficient balance. Each profile is either a
 general-model provider through system-one-adapter (Hive) or one of
-PyModel's Jev providers (OpenRouter). With `--education` it pseudonymizes
-every judgment with the module in `packages/backfire/src/backfire_education/`
-before any profile receives it. What backfire needs from
+PyModel's Jev providers (OpenRouter). With `--education` it replaces the
+identifiers of every judgment with English stand-ins, using the module in
+`packages/backfire/src/backfire_education/`, scans the result again and
+refuses it if an identifier is left, before any profile receives it. Both modes
+refuse a request that contains Hangul. The region names it replaces come from
+the Ministry of the Interior and Safety's legal-district codes, vendored in
+`packages/backfire/vendor/` and turned into `regions.json` by
+`scripts/backfire-regions.ts`, which `npm run verify` checks. What backfire needs from
 PyModel's own code (CHE-38) is prepared as a patch for PyModel in
 `specs/021-backfire-rebuild/upstream/`. See the
 [Backfire operator guide](backfire.md) for setup, profiles and

@@ -160,3 +160,31 @@ def test_relative_config_root_fails(roster, monkeypatch):
     with pytest.raises(JudgmentError) as caught:
         load_roster()
     assert caught.value.detail == "XDG_CONFIG_HOME"
+
+
+def test_id_and_romanized_columns_share_the_students_identifier(roster):
+    roster.write_text(
+        "name,id,romanized\n"
+        "가라온,7700101,Ga Raon\n"
+        "나하늘,7700102,Na Haneul\n"
+        "다하늘,7700103,Da Haneul\n"
+        "라마루,,\n",
+        encoding="utf-8",
+    )
+    assert load_roster() == {
+        "가라온": ("student", "가라온"),
+        "나하늘": ("student", "나하늘"),
+        "다하늘": ("student", "다하늘"),
+        "라마루": ("student", "라마루"),
+        "7700101": ("student", "가라온"),
+        "7700102": ("student", "나하늘"),
+        "7700103": ("student", "다하늘"),
+        "Ga Raon": ("student", "가라온"),
+        "Na Haneul": ("student", "나하늘"),
+        "Da Haneul": ("student", "다하늘"),
+        "라온": ("student", "가라온"),
+        "Raon": ("student", "가라온"),
+        "하늘": ("given", "하늘"),
+        "Haneul": ("given", "하늘"),
+        "마루": ("student", "라마루"),
+    }

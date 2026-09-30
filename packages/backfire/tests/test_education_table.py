@@ -31,12 +31,12 @@ def test_reload_stability_hmac_privacy_counters_and_no_unneeded_writes(data):
     ]
     first = table.assign(identifiers)
     assert list(first.values()) == [
-        "학생01",
-        "학생02",
-        "학교01",
-        "보호자01",
-        "연락처01",
-        "이메일01",
+        "Student 01",
+        "Student 02",
+        "School 01",
+        "Guardian 01",
+        "Phone 01",
+        "Email 01",
     ]
     raw, before = data.read_bytes(), data.stat()
     assert table.assign(identifiers) == first
@@ -55,7 +55,7 @@ def test_reload_stability_hmac_privacy_counters_and_no_unneeded_writes(data):
         ).hexdigest()
         assert document["entries"][digest] == pseudonym
     assert table.assign([("student", "다새봄")]) == {
-        ("student", "다새봄"): "학생03"
+        ("student", "다새봄"): "Student 03"
     }
     assert table.assign(identifiers) == first
     assert stat.S_IMODE(data.parent.stat().st_mode) == 0o700
@@ -67,14 +67,14 @@ def test_reload_stability_hmac_privacy_counters_and_no_unneeded_writes(data):
 
 def test_numbers_can_exceed_two_digits_and_table_deletion_resets(data):
     result = table.assign(("student", f"synthetic-{i}") for i in range(104))
-    assert list(result.values())[-1] == "학생104"
+    assert list(result.values())[-1] == "Student 104"
     previous_key = json.loads(data.read_bytes())["key"]
     data.unlink()
     assert (
         table.assign([("student", "new-synthetic")])[
             ("student", "new-synthetic")
         ]
-        == "학생01"
+        == "Student 01"
     )
     assert json.loads(data.read_bytes())["key"] != previous_key
 
@@ -114,7 +114,7 @@ def test_two_processes_do_not_lose_or_duplicate_assignments(data):
     assert (
         len(document["entries"]) == len(set(document["entries"].values())) == 81
     )
-    assert document["counters"] == {"학생": 81}
+    assert document["counters"] == {"Student": 81}
 
 
 @pytest.mark.parametrize("failure", [PermissionError, KeyboardInterrupt])
@@ -149,7 +149,8 @@ def test_budget_leaves_previous_table_unchanged(data, monkeypatch):
     assert table.BUDGET_BYTES == 1024 * 1024
     monkeypatch.setattr(table, "BUDGET_BYTES", len(old))
     assert (
-        table.assign([("student", "가라온")])[("student", "가라온")] == "학생01"
+        table.assign([("student", "가라온")])[("student", "가라온")]
+        == "Student 01"
     )
     with pytest.raises(JudgmentError) as caught:
         table.assign([("student", "다새봄")])
@@ -167,12 +168,15 @@ def test_budget_leaves_previous_table_unchanged(data, monkeypatch):
         lambda d: {**d, "version": True},
         lambda d: {**d, "key": "private-invalid"},
         lambda d: {**d, "entries": []},
-        lambda d: {**d, "counters": {"학생": False}},
+        lambda d: {**d, "counters": {"Student": False}},
         lambda d: {**d, "counters": {}},
         lambda d: {**d, "extra": "private-invalid"},
-        lambda d: {**d, "entries": {"0" * 64: "학생01", "1" * 64: "학생01"}},
-        lambda d: {**d, "entries": {"bad": "학생01"}},
-        lambda d: {**d, "entries": {"0" * 64: "학생00"}},
+        lambda d: {
+            **d,
+            "entries": {"0" * 64: "Student 01", "1" * 64: "Student 01"},
+        },
+        lambda d: {**d, "entries": {"bad": "Student 01"}},
+        lambda d: {**d, "entries": {"0" * 64: "Student 00"}},
     ],
 )
 def test_malformed_tables_fail_privately(data, change):
@@ -227,3 +231,81 @@ def test_empty_assignment_does_not_write_table_and_relative_root_fails(
     with pytest.raises(JudgmentError) as caught:
         table.assign([])
     assert caught.value.detail == "XDG_DATA_HOME"
+
+
+def _legacy_table(data, **changes):
+    key = bytes(32)
+    digest = hmac.new(key, b"student:synthetic-old", hashlib.sha256).hexdigest()
+    table = {
+        "version": 1,
+        "key": key.hex(),
+        "counters": {"학생": 2, "학교": 1},
+        "entries": {
+            digest: "학생01",
+            "1" * 64: "학생02",
+            "2" * 64: "학교01",
+        },
+        **changes,
+    }
+    data.parent.mkdir(parents=True, mode=0o700)
+    data.write_text(json.dumps(table, ensure_ascii=False))
+    data.chmod(0o600)
+
+
+def test_old_korean_prefixes_read_as_english_with_the_same_numbers(data):
+    _legacy_table(data)
+    assert table.assign([("student", "synthetic-old")]) == {
+        ("student", "synthetic-old"): "Student 01"
+    }
+    assert data.read_bytes().count("학".encode()) > 0  # Unchanged on read.
+    assert table.assign([("student", "synthetic-new")]) == {
+        ("student", "synthetic-new"): "Student 03"
+    }
+    assert table.assign([("school", "synthetic-school")]) == {
+        ("school", "synthetic-school"): "School 02"
+    }
+    document = json.loads(data.read_bytes())
+    assert document["counters"] == {"Student": 3, "School": 2}
+    assert set(document["entries"].values()) == {
+        "Student 01",
+        "Student 02",
+        "Student 03",
+        "School 01",
+        "School 02",
+    }
+
+
+def test_old_and_new_prefixes_in_one_table_fail(data):
+    _legacy_table(data, counters={"학생": 2, "Student": 2, "학교": 1})
+    with pytest.raises(JudgmentError) as caught:
+        table.assign([])
+    assert caught.value.detail == str(data)
+
+
+def test_every_kind_has_an_english_label_and_its_own_count(data):
+    del data  # Unused.
+    kinds = [
+        "student",
+        "given",
+        "guardian",
+        "school",
+        "phone",
+        "email",
+        "region",
+        "cohort",
+        "birth",
+        "address",
+    ]
+    result = table.assign([(kind, "synthetic") for kind in kinds])
+    assert list(result.values()) == [
+        "Student 01",
+        "Student 02",
+        "Guardian 01",
+        "School 01",
+        "Phone 01",
+        "Email 01",
+        "Region 01",
+        "Cohort 01",
+        "Birth date 01",
+        "Address 01",
+    ]

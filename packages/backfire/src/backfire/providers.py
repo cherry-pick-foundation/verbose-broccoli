@@ -24,12 +24,36 @@ from backfire.config import load_profiles
 from backfire.credit import check_credit
 from backfire.failures import JudgmentError
 from backfire_education.pseudonymize import pseudonymize
+from backfire_education.pseudonymize import strings
 
 logger = logging.getLogger(__name__)
+# Hangul syllables and Jamo, composed or decomposed.
+_HANGUL = re.compile(
+    "[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7af\ud7b0-\ud7ff"
+    "\uffa0-\uffdc]"
+)
 
 
 class _AnswerlessError(Exception):
     pass
+
+
+def _without_text(
+    error: pymodel.ProviderError, label: str
+) -> pymodel.ProviderError:
+    """Copy a provider error, keeping only the profile and its HTTP status.
+
+    A provider's response can quote the request, so education mode forwards
+    none of its text.
+    """
+    status = re.match(
+        rf"{re.escape(label)} (?:request failed after \d+ attempts: last "
+        r"failure: )?(\d+):",
+        str(error),
+    )
+    return type(error)(
+        f"{label} {status[1]}" if status else f"{label} request failed"
+    )
 
 
 def _retry_policy(profile: dict) -> RetryPolicy | None:
@@ -226,6 +250,8 @@ class _OrderProvider(pymodel.JevProvider):
                     else pymodel.ProviderError(str(error))
                 )
                 raise failure from None
+        if any(_HANGUL.search(text) for text in strings((state, questions))):
+            raise pymodel.ProviderError(str(JudgmentError("hangul_remaining")))
         while True:
             current = await self._active_profile()
             if current is None:
@@ -242,6 +268,8 @@ class _OrderProvider(pymodel.JevProvider):
                 if match is None or int(match.group(1)) not in profile.get(
                     "insufficient_balance", [402]
                 ):
+                    if self._education:
+                        raise _without_text(error, provider.label) from None
                     raise
                 await self._after_insufficient_balance(current)
                 continue

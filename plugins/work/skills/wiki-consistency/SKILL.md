@@ -8,9 +8,10 @@ description: Keep a verbose-broccoli Wiki instance's pages consistent with their
 A Wiki page is made of mechanical regions, which a generator rebuilds from
 named files, and agent-written text, which backfire judges against the raw
 evidence the page cites. Agent-written text is in English, apart from short
-direct quotes kept next to their translation. Student names keep the
-roster's spelling so that step 3 can replace them, and schools are written
-as their domain IDs. The instance's `AGENTS.md` states these rules, the page
+direct quotes kept next to their translation. Student names use the
+roster's romanized spelling so that step 3 can replace them, the Korean
+spelling stays only in the roster, and schools are written as their domain
+IDs. The instance's `AGENTS.md` states these rules, the page
 metadata, the special pages and these steps.
 
 `DATA` and `CACHE` below are the `verbose-broccoli` folders under the XDG data
@@ -39,7 +40,7 @@ npm ci --ignore-scripts --no-audit --no-fund --prefix ../../../../packages/wiki-
 The first two lines give `doc-regions` and `backfire`, which the tool uses
 as libraries, the `.venv/` their builds need. `check` uses local Vale 3.23.0
 regex rules for page text; it reads backfire's roster only when a direct student
-page or unquoted Hangul, Chinese or Japanese text needs roster checks.
+page or Hangul, Chinese or Japanese text needs roster checks.
 
 | Command | What it does | Network | Writes |
 | --- | --- | --- | --- |
@@ -68,8 +69,12 @@ shape pass. Time patterns accept `Z`, numeric offsets and UTC forms; a range
 with a zoned end is a pattern approximation. Phone and email detection uses
 Vale regexes instead of backfire's phone and email code.
 
-Direct pages in `wiki/students/` must match a roster student. Hangul, Chinese
-and Japanese text must be a roster name or a short quote with an English
+Direct pages in `wiki/students/` must be named `s-<id>`, with `<id>` a value of
+the roster's `id` column (the EduOK student number). No page may hold the
+Korean spelling of a roster student, given or guardian name, in a quote, the
+front matter or a mechanical region too; write the roster's romanized name.
+That rule reads every line of every page except `log.md`. Other Hangul,
+Chinese and Japanese text must be a short quote with an English
 translation on the same line, using `"…"`, `“…”`, `‘…’`, `「…」` or
 `『…』`. Vale approximates the quote length and translation form with patterns.
 Roster school names in Hangul are flagged outside that quote form. Since Vale
@@ -89,13 +94,17 @@ with the judgment step.
    documents qmd has not embedded yet; when `index` gave a `semantic_error`,
    pass it on as it is. Report any `partial` revisions from `convert` with
    their warning details.
-3. Send each request's `arguments` to the backfire tool it names, on the
-   **work plugin's** backfire server. Before the provider sees them, its judge
-   replaces the student, guardian and school names in the operator's roster,
-   phone numbers and email addresses; every other identifier and all other
-   text are sent as they are. In Claude Code its tools include
-   `mcp__plugin_work_backfire__jev_verify`. Never use the code plugin's
-   server for Wiki text.
+3. Translate any Korean text in each request's `arguments`, such as a quoted
+   passage of the evidence, into English yourself, in your own session, and
+   keep the structure and IDs as they are. Then send the `arguments` to the
+   backfire tool the request names, on the **work plugin's** backfire server.
+   Before the provider sees them, its judge replaces the identifiers it
+   detects (names and numbers from the operator's roster, schools, regions,
+   school years, birth dates, addresses, phone numbers and email addresses)
+   with English stand-ins and refuses a request that still contains Hangul
+   (`hangul_remaining`); all other text is sent as it is. In Claude Code its
+   tools include `mcp__plugin_work_backfire__jev_verify`. Never use the code
+   plugin's server for Wiki text.
 4. For a `pages` request whose result is `contradicted`, call
    `jev_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.

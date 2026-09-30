@@ -17,15 +17,30 @@ from backfire.failures import JudgmentError
 
 BUDGET_BYTES = 1024 * 1024
 PREFIXES = {
-    "student": "학생",
-    "given": "학생",
-    "guardian": "보호자",
-    "school": "학교",
-    "phone": "연락처",
-    "email": "이메일",
+    "student": "Student",
+    "given": "Student",
+    "guardian": "Guardian",
+    "school": "School",
+    "phone": "Phone",
+    "email": "Email",
+    "region": "Region",
+    "cohort": "Cohort",
+    "birth": "Birth date",
+    "address": "Address",
+}
+# Tables written before the English stand-ins hold these prefixes.
+_LEGACY = {
+    "학생": "Student",
+    "보호자": "Guardian",
+    "학교": "School",
+    "연락처": "Phone",
+    "이메일": "Email",
 }
 _HEX = re.compile(r"[0-9a-f]{64}")
-_PSEUDONYM = re.compile(r"(학생|보호자|학교|연락처|이메일)([0-9]{2,})")
+_PSEUDONYM = re.compile(
+    "(" + "|".join(set(PREFIXES.values())) + r") ([0-9]{2,})"
+)
+_LEGACY_PSEUDONYM = re.compile("(" + "|".join(_LEGACY) + ")([0-9]{2,})")
 
 
 @contextmanager
@@ -42,6 +57,31 @@ def _private_file(path: Path, *, create=False):
         ):
             raise ValueError
         yield file
+
+
+def _english(table):
+    """Read the old Korean prefixes (학생01) as English ones (Student 01)."""
+    if not (
+        isinstance(table, dict)
+        and isinstance(table.get("counters"), dict)
+        and isinstance(table.get("entries"), dict)
+    ):
+        return
+    counters = {
+        _LEGACY.get(prefix, prefix): count
+        for prefix, count in table["counters"].items()
+    }
+    if len(counters) != len(table["counters"]):
+        raise ValueError
+    table["counters"] = counters
+    for digest, pseudonym in table["entries"].items():
+        match = (
+            _LEGACY_PSEUDONYM.fullmatch(pseudonym)
+            if isinstance(pseudonym, str)
+            else None
+        )
+        if match:
+            table["entries"][digest] = f"{_LEGACY[match[1]]} {match[2]}"
 
 
 def _validate(table):
@@ -75,7 +115,7 @@ def _validate(table):
         prefix, number = match[1], int(match[2])
         if (
             number < 1
-            or pseudonym != f"{prefix}{number:02d}"
+            or pseudonym != f"{prefix} {number:02d}"
             or number > table["counters"].get(prefix, 0)
         ):
             raise ValueError
@@ -96,6 +136,7 @@ def _read(path):
     if len(raw) > BUDGET_BYTES:
         raise ValueError
     table = json.loads(raw)
+    _english(table)
     _validate(table)
     return table
 
@@ -144,7 +185,7 @@ def assign(identifiers) -> dict[tuple[str, str], str]:
                     prefix = PREFIXES[kind]
                     number = table["counters"].get(prefix, 0) + 1
                     table["counters"][prefix] = number
-                    table["entries"][digest] = f"{prefix}{number:02d}"
+                    table["entries"][digest] = f"{prefix} {number:02d}"
                     changed = True
                 result[kind, value] = table["entries"][digest]
             if changed:

@@ -6,6 +6,8 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | Task                     | Invocation                       | Declared description                                                                                                 |
 | ------------------------ | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | backfire:install         | npm run backfire:install         |                                                                                                                      |
+| backfire:regions         | npm run backfire:regions         |                                                                                                                      |
+| backfire:regions:check   | npm run backfire:regions:check   | Check that backfire's generated region list matches the vendored legal-district codes, offline and without writing   |
 | check                    | npm run check                    |                                                                                                                      |
 | clean-architecture       | npm run clean-architecture       |                                                                                                                      |
 | clean-code               | npm run clean-code               |                                                                                                                      |
@@ -27,6 +29,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | python:imports           | npm run python:imports           |                                                                                                                      |
 | test                     | npm run test                     |                                                                                                                      |
 | test:backfire            | npm run test:backfire            |                                                                                                                      |
+| test:backfire-regions    | npm run test:backfire-regions    |                                                                                                                      |
 | test:clean-architecture  | npm run test:clean-architecture  |                                                                                                                      |
 | test:clean-code          | npm run test:clean-code          |                                                                                                                      |
 | test:cli-contract        | npm run test:cli-contract        |                                                                                                                      |
