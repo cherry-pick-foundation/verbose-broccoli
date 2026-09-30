@@ -17,7 +17,7 @@ files and can run in parallel.
 
 ## Phase 2: Foundation
 
-- [ ] T002 [US1] [US2] [US3] Replace `provider` with `order` in
+- [X] T002 [US1] [US2] [US3] Replace `provider` with `order` in
   `packages/backfire/src/backfire/config.py` (`load_profiles` returns the
   validated profiles in order; the operator file accepts `order` and
   `providers`; every name must resolve; `codexbar` must be a non-empty
@@ -29,7 +29,7 @@ files and can run in parallel.
   Vercel and OpenRouter profiles. Update `tests/test_config.py` and
   `tests/test_no_provider_names.py` for the new shape; the education
   profiles stay equal to the code plugin's Hive and OpenRouter profiles.
-- [ ] T003 [P] [US1] Add `packages/backfire/src/backfire/credit.py`: run
+- [X] T003 [P] [US1] Add `packages/backfire/src/backfire/credit.py`: run
   `codexbar usage --provider <id> --format json` with the profile's key in
   the environment variable named by `credential`, a 30-second limit, and
   read the report as plan.md "CodexBar reading" says; return no credit,
@@ -43,7 +43,7 @@ files and can run in parallel.
 
 ## Phase 3: User Stories 1-3, the order wrapper (P1)
 
-- [ ] T004 [US1] [US2] [US3] In `packages/backfire/src/backfire/providers.py`,
+- [X] T004 [US1] [US2] [US3] In `packages/backfire/src/backfire/providers.py`,
   replace `_ProfileProvider` with the order wrapper of plan.md "Flow":
   lazy build, credit read before first use, skip, switch on an
   `insufficient_balance` status read from PyModel's `"{label} {status}:"`
@@ -52,7 +52,7 @@ files and can run in parallel.
   profile is left. Make `_OpenAIProvider` raise
   `self._status_error(status, ...)` for HTTP errors. Add `no_credit` to
   `failures.py`. Keep education pseudonymization once per judgment.
-- [ ] T005 [US1] [US2] [US3] Tests in `tests/test_provider.py` (or a new
+- [X] T005 [US1] [US2] [US3] Tests in `tests/test_provider.py` (or a new
   `tests/test_order.py`): skip on no credit with no request to the skipped
   provider; unknown credit uses the profile; mid-run switch re-sends the
   judgment and later judgments go to the new profile; a switch target
@@ -63,11 +63,11 @@ files and can run in parallel.
   profile the second provider receives only pseudonymized text, the
   judgment is pseudonymized once and the answer is restored;
   the Hive-style profile switches on 405 through `_OpenAIProvider`.
-- [ ] T006 Run `npm run test:backfire`, `npm run lint` and
+- [X] T006 Run `npm run test:backfire`, `npm run lint` and
   `npm run format:check` for the package, fix findings, and commit with
   `Spec-Kit-Task` trailers.
 
-- [ ] T012 [US3] After merging `develop` (CHE-41), set the shared order to
+- [X] T012 [US3] After merging `develop` (CHE-41), set the shared order to
   `openrouter`, then `hive` in `packages/backfire/src/backfire/config.toml`
   (CHE-41's `openrouter` table plus `codexbar = "openrouter"`), delete
   `packages/backfire/src/backfire/vercel.py`, `tests/test_vercel.py`, the
@@ -76,7 +76,7 @@ files and can run in parallel.
 
 ## Phase 4: User Story 4, documentation (P2)
 
-- [ ] T007 [US4] Update `docs/backfire.md`: "Select a provider" describes
+- [X] T007 [US4] Update `docs/backfire.md`: "Select a provider" describes
   `order`, the shipped orders, `codexbar` and `insufficient_balance`;
   a short section on CodexBar (what it reads, when, keys only in the
   environment, what happens when it is missing); the switch; the result's
@@ -86,7 +86,7 @@ files and can run in parallel.
 
 ## Phase 5: Acceptance and finish
 
-- [ ] T008 Run the plan's live check with CodexBar 0.69.0 (one judgment
+- [X] T008 Run the plan's live check with CodexBar 0.69.0 (one judgment
   through the shipped order, starting with OpenRouter); record each live
   call in `report.md`. Coordinator.
 - [ ] T009 Analysis of spec, plan and tasks; `npm run verify` on the
@@ -123,3 +123,8 @@ order after the rest.
   then moved the model measurement and the Cloudflare and Vercel profiles
   to CHE-51, chose the interim order OpenRouter, Hive, and decided to delete
   `vercel.py` (T012). The offer search moves to its own feature.
+- 2026-09-30: Codex (`gpt-6-luna`, xhigh) did T002-T006 in `7e326e6` and
+  T012 in `a48b795`; the coordinator merged `develop` (CHE-41, CHE-45) in
+  `486a3d7`, updated the docs, skill texts and notices, and ran the live
+  check (T008): one CodexBar read and one OpenRouter call, result named
+  `openrouter`. Next: T009 analysis and verify, T010 review, T011 finish.

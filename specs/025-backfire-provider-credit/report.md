@@ -1,0 +1,69 @@
+# Report: Backfire Provider Choice by Credit
+
+**Linear issue**: CHE-46 | **Branch**: `feature/backfire-provider-credit`
+
+## Outcome
+
+Backfire now reads one ordered list of provider profiles, shared by the code
+and work plugins, from `packages/backfire/src/backfire/config.toml`:
+OpenRouter, then Hive. Before it first uses a profile that names a CodexBar
+provider, it reads that provider's credit through CodexBar 0.69.0 and skips
+the profile when the balance is zero or less or a limit is used up. When the
+provider in use answers a status its profile lists as insufficient balance,
+backfire sends the same judgment to the next profile and keeps it for the
+session; with no profile left, the judgment fails with `no_credit`. Each
+result's `provider` field names the profile that answered. Backfire's
+Jev-on-Vercel provider (`vercel.py`) is deleted, as the user decided.
+
+The Cloudflare and Vercel profiles with free models, their measurement on the
+111-decision set, the account-ID fill and the switch on Cloudflare's code
+3036 moved to CHE-51. Moving the offer search in `packages/credit-offers`
+onto backfire is a separate feature. [research.md](research.md) is CHE-51's
+starting point.
+
+## Tests
+
+`npm run test:backfire`: 175 passed and 1 expected failure. The expected
+failure is the existing CHE-38 case in `tests/test_bounded_work.py`, not
+part of this feature. New tests: `tests/test_credit.py` (CodexBar reading,
+the minimal environment, unknown credit) and `tests/test_order.py` (skip,
+switch, concurrent failures, `no_credit`, configuration errors, education
+mode after a switch).
+
+## Live calls
+
+| Provider | Calls | Purpose |
+| --- | --- | --- |
+| Hive | 3 | `jev_decide` choosing the implementer, the research worker and the reviewers, through `develop`'s backfire |
+| CodexBar | 1 read | OpenRouter credit before the live judgment; CodexBar called OpenRouter's key and credits endpoints, not Jev |
+| OpenRouter | 1 | The live judgment on 2026-09-30 12:35 KST: `jev_verify` on one synthetic claim; the result named `openrouter`, model `typesafe/jev-1.13`, verdict verified at 0.99, 523 input and 46 output tokens |
+| Vercel | 0 | |
+| Cloudflare | 0 | |
+
+## Size and split review
+
+Against `develop`, without the Spec Kit records: code 298 lines added and
+240 deleted, tests 831 added and 197 deleted, documents 85 added and 61
+deleted. Three whole files were deleted (`vercel.py`, `test_vercel.py`,
+`backfire_education/config.toml`), which the split rule counts as about
+one line each; without them the change is about 1,500 lines. Non-test code
+grows by 58 lines net, because the 125-line Vercel port is gone; about 960
+of the changed lines are tests.
+
+The `AGENTS.md` split review: the offer search and the new Cloudflare and
+Vercel profiles were already split out (CHE-51 and a separate feature). The
+rest is one mechanism, the order, the credit reading and the switch, whose
+parts are not useful alone, so it stays one feature.
+
+## Workers
+
+| Work | Agent and model | Chosen by | Confidence |
+| --- | --- | --- | --- |
+| Implementation (T002-T006, T012) | Codex `gpt-6-luna`, xhigh | `jev_decide` | 0.39 |
+| Research for CHE-51 | Claude Code Sonnet 5.5, high | `jev_decide` | 0.77 |
+| Code review | Claude Code Sonnet 5.5, high | `jev_decide` | 0.48 |
+| Records review | Codex `gpt-6-luna`, xhigh | `jev_decide` | 0.48 |
+
+## Review
+
+<!-- Filled after the develop merge review. -->
