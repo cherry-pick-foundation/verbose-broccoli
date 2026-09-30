@@ -252,16 +252,21 @@ compare it with the recorded interval.
   index, not the provider's own launch date.
 - The desktop notification uses the laptop's GNOME notification service
   through `notify-send`.
-- On 2026-09-30 the user had no Vercel or TypeSafe key yet and chose to skip
-  the live provider check: the Vercel path is tested against a stub, and the
-  credential file (`~/.config/verbose-broccoli/chat/jev.env`, mode `0600`,
-  holding `AI_GATEWAY_API_KEY` or `TYPESAFE_API_KEY`) stays documented for
-  later. Until the key exists, a scheduled search that has candidates fails
-  closed and Orca records a skipped run; the test notification exercises the
-  notification path with a sample offer.
-- The user's 2026-09-30 rule applies: the feature reports its net new lines
-  of locally written code, counting neither upstream copies nor tests, and
-  asks before going over 300.
+- Provider keys live in the shared provider folder
+  `~/.config/verbose-broccoli/providers/`, one `0600` file per provider,
+  used by every plugin (user decision, 2026-09-30; it replaced the chat
+  plugin's own `jev.env`). The user added a Vercel key that day, but
+  Vercel's free tier refuses Jev (research R10), so the user chose to try
+  Cloudflare Workers AI and adds its token to `providers/cloudflare.env`.
+  Until a provider accepts Jev calls, a scheduled search that has candidates
+  fails closed and Orca records a skipped run; the stub tests cover the
+  request formats, and the test notification exercises the notification
+  path with a sample offer.
+- The user's first 2026-09-30 rule, a limit of 300 net new lines of own code
+  per feature, was replaced the same day: the limit is abolished, and a
+  change of 1,000 lines or more is reviewed for splitting before the merge
+  review (CHE-44). Until CHE-44 removes the `own-code` check, the approval
+  line at the top of this spec keeps that check passing.
 - The chat plugin's skills run in local Codex CLI or Claude Code sessions,
   including Orca automations, from the repository's uv workspace. Shipping a
   self-contained chat plugin build is out of scope.

@@ -220,6 +220,20 @@ time limit.
     cost is about 1 to 2 cents. The fixes do not change the implementation
     materially, so no second round. Lines: 284 of 300.
 
+- [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
+  folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the
+  `credit-offers` invocation and the documents at `providers/<provider>.env`;
+  point backfire's shipped `hive`, `education` and `vercel` profiles at
+  `../providers/hive.env` and `../providers/vercel.env` through
+  `credential_file`, relative to the operator folder so the path follows
+  `XDG_CONFIG_HOME`; update `docs/backfire.md`.
+  - 2026-09-30: done by main. A `~/.config/...` path in the shipped profile
+    let backfire's isolated test find the real key on this laptop, so the
+    profiles use the operator-relative path. `load_credential` now
+    normalizes `..`, so the key is found even when the operator folder does
+    not exist; `test_shipped_key_file_in_the_shared_provider_folder_is_read`
+    covers it (149 backfire tests pass).
+
 ## Dependencies & Execution Order
 
 - T001 blocks T002-T006. T002 and T004 edit different files and can run in

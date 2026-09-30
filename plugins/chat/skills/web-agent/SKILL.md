@@ -21,33 +21,39 @@ upstream; its `UPSTREAM.md` lists every difference:
 
 ## Credentials
 
-Keys live only in `~/.config/verbose-broccoli/chat/jev.env`, readable by the
-user alone. Create the file once, empty, then add the key lines the chosen
-provider needs. The second command does nothing when the file exists, so it
-never empties a file that already holds a key:
+Keys live in the shared provider folder `~/.config/verbose-broccoli/providers/`,
+one file per provider, which every plugin uses. The folder is readable by
+the user alone (mode `0700`) and each file has mode `0600`. Create a
+provider's file once, empty, then add its key lines. The second command
+does nothing when the file exists, so it never empties a file that already
+holds a key:
 
 ```sh
-install -d -m 700 ~/.config/verbose-broccoli/chat
-[ -e ~/.config/verbose-broccoli/chat/jev.env ] ||
-  install -m 600 /dev/null ~/.config/verbose-broccoli/chat/jev.env
+install -d -m 700 ~/.config/verbose-broccoli/providers
+[ -e ~/.config/verbose-broccoli/providers/cloudflare.env ] ||
+  install -m 600 /dev/null ~/.config/verbose-broccoli/providers/cloudflare.env
 ```
 
-| Line | Needed for |
-| --- | --- |
-| `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel`; Jev needs paid AI Gateway credit, since the free tier refuses it |
-| `TYPESAFE_API_KEY=<key>` | `JEV_PROVIDER=typesafe` |
-| `CLOUDFLARE_API_TOKEN=<token>` and `CLOUDFLARE_ACCOUNT_ID=<id>` | `JEV_PROVIDER=cloudflare`; a token with the Workers AI permission for that account |
-| `TEXT_MODEL_API_KEY=<key>`, and optionally `TEXT_MODEL_BASE_URL`, `TEXT_MODEL`, `TEXT_MODEL_REASONING` | Steps that type text (upstream's OpenAI-compatible text helper) |
+| File in `providers/` | Lines | Provider |
+| --- | --- | --- |
+| `cloudflare.env` | `CLOUDFLARE_API_TOKEN=<token>`, `CLOUDFLARE_ACCOUNT_ID=<id>` | `JEV_PROVIDER=cloudflare`; a token with the Workers AI permission for that account |
+| `vercel.env` | `AI_GATEWAY_API_KEY=<key>` | `JEV_PROVIDER=vercel`; Jev needs paid AI Gateway credit, since the free tier refuses it |
+| `typesafe.env` | `TYPESAFE_API_KEY=<key>` | `JEV_PROVIDER=typesafe` |
 
-Never print the file, paste a key into a prompt, or commit it.
+Steps that type text also need upstream's OpenAI-compatible text helper:
+`TEXT_MODEL_API_KEY`, and optionally `TEXT_MODEL_BASE_URL`, `TEXT_MODEL` and
+`TEXT_MODEL_REASONING`, in the file of the provider that serves that model.
+Pass one `--env-file` per file a run needs; uv reads them all.
+
+Never print a key file, paste a key into a prompt, or commit it.
 
 ## Run
 
 From the repository root, with Orca running:
 
 ```sh
-JEV_PROVIDER=vercel uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/chat/jev.env \
+JEV_PROVIDER=cloudflare uv run --frozen --offline --no-sync \
+  --env-file ~/.config/verbose-broccoli/providers/cloudflare.env \
   --package jev-ultrafast \
   python packages/jev-ultrafast/examples/run.py \
   --url 'https://en.wikipedia.org/wiki/Main_Page' \

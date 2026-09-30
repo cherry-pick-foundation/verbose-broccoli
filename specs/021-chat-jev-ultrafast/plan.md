@@ -28,8 +28,10 @@ history and the interval calculation are in [research.md](research.md).
 dependencies); the standard library's `tomllib`, `json`, `subprocess` and
 `datetime`; the host's `orca` CLI and `notify-send`
 
-**Storage**: None. Credentials in `~/.config/verbose-broccoli/chat/jev.env`
-(mode `0600`, outside the repository)
+**Storage**: None. Credentials in the shared provider folder
+`~/.config/verbose-broccoli/providers/`, one `0600` file per provider,
+outside the repository (user decision, 2026-09-30; it replaced the chat
+plugin's own `jev.env`)
 
 **Testing**: pytest with `httpx.MockTransport` and stubbed subprocess and CDP
 calls; no paid calls in tests

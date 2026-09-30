@@ -17,14 +17,17 @@ it what is new. Why it runs every 6 hours, and the data behind that, are in
 
 ## Run
 
-From the repository root. The credential file is the one the `web-agent`
-skill describes; it must exist, even while empty.
+From the repository root. The key file is the provider's file in the shared
+provider folder that the `web-agent` skill describes; it must exist, even
+while empty. For Cloudflare Workers AI:
 
 ```sh
-JEV_PROVIDER=vercel uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/chat/jev.env \
+JEV_PROVIDER=cloudflare uv run --frozen --offline --no-sync \
+  --env-file ~/.config/verbose-broccoli/providers/cloudflare.env \
   --package credit-offers credit-offers --notify
 ```
+
+For Vercel AI Gateway, use `JEV_PROVIDER=vercel` and `providers/vercel.env`.
 
 - `--notify` sends one desktop notification (`notify-send`) naming each
   strong offer's title, provider, amount and link. Without it, the command

@@ -6,8 +6,8 @@ Package `packages/credit-offers/`, console script `credit-offers`. See
 ## Invocation
 
 ```sh
-JEV_PROVIDER=vercel uv run --frozen --offline --no-sync \
-  --env-file ~/.config/verbose-broccoli/chat/jev.env \
+JEV_PROVIDER=<provider> uv run --frozen --offline --no-sync \
+  --env-file ~/.config/verbose-broccoli/providers/<provider>.env \
   --package credit-offers credit-offers [--hours N] [--end ISO-8601] [--notify]
 ```
 
