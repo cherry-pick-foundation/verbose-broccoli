@@ -616,6 +616,9 @@ def test_a_field_name_gives_the_same_stand_in_as_the_text_form(
         {"born": None},
         {"DOB": ""},
         {"grades": [10, 11]},
+        {"grade": {"math": "B+"}},
+        {"grades": {"math": 10}},
+        {"student_id": ""},
     ],
 )
 def test_fields_that_are_not_identifiers_stay(synthetic_roster, state):
@@ -643,3 +646,66 @@ def test_korean_field_names_are_known_too(synthetic_roster):
         "학년": "Cohort 01",
         "학년도": 2026,
     }
+
+
+@pytest.mark.parametrize(
+    ("state", "hidden"),
+    [
+        ({"DOB": {"year": 2011, "month": 4, "day": 23}}, ["2011", "year"]),
+        (
+            {"address": {"line1": "487 Imaginary Street", "zip": "12345"}},
+            ["Imaginary", "12345", "line1"],
+        ),
+        ({"home_address": [{"street": ["Imaginary Street"]}]}, ["Imaginary"]),
+        ({"DOB": {"2011-04-23": True}}, ["2011"]),
+        ({"grade": {"level": 10}}, ["10"]),
+        ({"grade": {"DOB": "2011-04-23"}}, ["2011"]),
+        ({"student": {"dateOfBirth": [{"y": 2011}]}}, ["2011"]),
+    ],
+)
+def test_every_value_and_key_inside_a_named_field_is_replaced(
+    synthetic_roster, state, hidden
+):
+    del synthetic_roster  # Unused.
+    sent = _sent(state, {})
+    for text in hidden:
+        assert text not in sent
+
+
+@pytest.mark.parametrize("key", [7700101, 7700101.0])
+def test_keys_that_are_not_strings_are_replaced_as_their_text(
+    synthetic_roster, key
+):
+    del synthetic_roster  # Unused.
+    masked, _, _ = pseudonymize({key: "record", "a": [{key: 1}]}, {})
+    assert masked == {"Student 01": "record", "a": [{"Student 01": 1}]}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Solbit-ro 12-gil 487",
+        "Ha-neul-ro 487",
+        "487 Solbit-ro, Jongno-gu, Seoul 03000",
+    ],
+)
+def test_a_romanized_address_leaves_no_fragment(synthetic_roster, text):
+    del synthetic_roster  # Unused.
+    assert pseudonymize({"note": text}, {})[0] == {"note": "Address 01"}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "생년월일: 이천십일년",
+        "학번 = 7799999",
+        "| 이름 | 주소 |\n|---|---|\n| 가라온 | 어딘가 |",
+    ],
+)
+def test_korean_field_names_that_keep_their_value_are_refused(
+    synthetic_roster, text
+):
+    del synthetic_roster  # Unused.
+    with pytest.raises(JudgmentError) as caught:
+        pseudonymize({"note": text}, {})
+    assert caught.value.error_type == "identifier_remaining"

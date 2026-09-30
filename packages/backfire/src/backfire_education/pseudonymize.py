@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Mapping
 import dataclasses
 import functools
+import itertools
 import json
 from pathlib import Path
 import re
@@ -42,23 +43,59 @@ _ORDINAL = {
 _ORDINAL_WORDS = "|".join(_ORDINAL)
 # A school year counts up to sixth in "sixth-year elementary school student".
 _YEAR_WORDS = "|".join(list(_ORDINAL)[:6])
-# Punctuation that may sit between a keyword and its value.
-_PUNCT = "\\-:：=\"'“”‘’"
+_UNITS = (
+    "one two three four five six seven eight nine ten eleven twelve thirteen "
+    "fourteen fifteen sixteen seventeen eighteen nineteen"
+).split()
+# A school year spelled out, as in "Grade ten" or "year eleven".
+_CARDINAL = {word: number for number, word in enumerate(_UNITS[:12], 1)}
+_CARDINAL_WORDS = "|".join(_CARDINAL)
+# Punctuation and Markdown or table markup that may sit between a keyword and
+# its value.
+_MARKUP = "|*_`~\"'“”‘’"
+_PUNCT = "\\-–—:：=>→" + _MARKUP
 _US_HIGH = {"freshman": 9, "sophomore": 10, "junior": 11, "senior": 12}
 _MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?"
+# A day of the month: 23, 23rd or twenty-third.
+_DAY = (
+    r"(?:\d{1,2}(?:st|nd|rd|th)?|(?:(?:twenty|thirty)[\s-]?)?"
+    r"(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)"
+    r"|tenth|eleventh|twelfth|(?:thir|four|fif|six|seven|eigh|nine)teenth"
+    r"|twentieth|thirtieth)"
+)
+# A year in digits or words: 2011, two thousand and eleven, twenty eleven.
+_TAIL = rf"(?:twenty(?:[\s-]+(?:{'|'.join(_UNITS)}))?|{'|'.join(_UNITS)})"
+_YEAR_NUMBER = (
+    rf"(?:\d{{4}}|two[\s-]+thousand(?:[\s-]+and)?(?:[\s-]+{_TAIL})?"
+    rf"|twenty(?:[\s-]+oh)?[\s-]+{_TAIL})"
+)
 # Year first (2011-04-23), day or month first (23/04/2011, 04/23), or spelled.
 _DATE = (
-    r"\d{4}[-./]\d{1,2}(?:[-./]\d{1,2})?"
+    r"\d{4}[-./]\s?\d{1,2}(?:[-./]\s?\d{1,2})?"
     r"|\d{1,2}[-./]\d{1,2}(?:[-./]\d{1,4})?"
-    rf"|{_MONTH}\s+(?:\d{{1,2}}(?:st|nd|rd|th)?(?:,?\s+\d{{4}})?|\d{{4}})"
-    rf"|\d{{1,2}}(?:st|nd|rd|th)?\s+(?:of\s+)?{_MONTH}(?:,?\s+\d{{4}})?"
-    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{8}|\d{6}|\d{4}년?"
+    r"|\d{4}년\s*\d{1,2}월\s*\d{1,2}일|\d{4}년"
+    rf"|{_MONTH}[\s-]+(?:(?:the\s+)?{_DAY}(?:,?[\s-]+{_YEAR_NUMBER})?"
+    rf"|(?:of\s+)?{_YEAR_NUMBER})"
+    rf"|{_DAY}[\s-]+(?:of\s+)?{_MONTH}(?:,?[\s-]+(?:of\s+)?{_YEAR_NUMBER})?"
+    rf"|\d{{8}}|\d{{6}}|{_YEAR_NUMBER}(?:,?\s+{_MONTH}(?:\s+{_DAY})?)?"
 )
-# A lot number after a name is not part of a date (Solbit-ro, 2026-09-28).
+# Words that may sit between a birth keyword and its date.
+_BIRTH_WORDS = (
+    r"is|was|on|in|the|of|year|early|late|mid|around|about|spring|summer"
+    r"|autumn|fall|winter|(?:mon|tues|wednes|thurs|fri|satur|sun)day,?"
+)
+# A romanized road, sub-road, neighbourhood or unit: Ha-neul-ro, 12-gil,
+# 45beon-gil, Seo-dong, 101-dong, 1203-ho, Jongno 1-ga.
 _ADDRESS_PART = (
-    r"\d{1,4}-(?:dong|ho)"
-    r"|(?:[A-Za-z]+|\d+beon)-(?:daero|ro|gil|dong|eup|myeon|ri)"
-    r"(?:[\s,]*\d+(?:-\d+)?(?![0-9]|beon|[-./]\d))?"
+    r"(?:\d{1,4}(?:-(?:dong|ho|ga|gil)|beon-gil)"
+    r"|[A-Za-z]+(?:-[A-Za-z]+){0,3}-(?:daero|ro|gil|dong|eup|myeon|ri))"
+    r"(?![A-Za-z])"
+)
+# A building, lot or unit number or a postal code; not part of a date
+# (Solbit-ro, 2026-09-28).
+_ADDRESS_NUMBER = (
+    r"(?:#|(?:apt|unit|room)\.?\s*)?\d{1,5}(?:-\d{1,4})?"
+    r"(?![0-9A-Za-z]|[-./][0-9A-Za-z])"
 )
 _REGION_UNITS = (
     "special self-governing province",
@@ -75,10 +112,6 @@ _REGION_UNITS = (
 
 def _norm(text: str) -> str:
     return " ".join(text.split()).lower()
-
-
-def _first_group(match: re.Match[str]) -> str:
-    return match[1]
 
 
 # Field names that say what their value is: DOB, home address, grade.
@@ -99,12 +132,71 @@ _FIELDS = (
         "cohort",
         re.compile(_QUALIFIER + r"(?:grade(?: level)?|(?:school )?year|학년)"),
     ),
+    # A student-number field is not replaced for its name: after the swap its
+    # value must be a roster number's stand-in, or the request is refused.
+    (
+        "number",
+        re.compile(
+            r"student ?(?:number|no|id)|edu ?ok ?(?:number|no|id)?|학번"
+        ),
+    ),
 )
 # A school year alone, as a field value; other numbers there are not one.
 _YEAR = re.compile(
-    rf"(?:(1[0-2]|[1-9])(?:\.0)?(?:st|nd|rd|th)?|({_ORDINAL_WORDS}))",
+    rf"(?:(1[0-2]|[1-9])(?:\.0)?(?:st|nd|rd|th)?|({_ORDINAL_WORDS}"
+    rf"|{_CARDINAL_WORDS}))",
     re.IGNORECASE,
 )
+# A birth-date, address or student-number field in text: the name, then a
+# colon, pipe or equals sign, then the value up to the end of its line, cell
+# or sentence, or a comma or semicolon.
+_FIELD = re.compile(
+    r"(?<![A-Za-z])(?<!mail[\s_-])(?:date[\s_-]?of[\s_-]?birth"
+    r"|birth[\s_-]?(?:date|day)|dob|생년월일|생일|address|주소"
+    r"|student[\s_-]?(?:number|no\.?|id)|edu[\s_-]?ok(?:[\s_-]?(?:number|no\.?"
+    rf"|id))?|학번)[\s{_MARKUP}]*[:：|=][\s{_PUNCT}]*+"
+    r"(?P<value>(?:[^|\n\r\t,;.]|\.(?!\s|\Z))*)",
+    re.IGNORECASE,
+)
+# The delimiter row under a Markdown table's header row.
+_DELIMITER = re.compile(r"(?=[^|]*\|)(?=[^-]*-)[ \t|:-]+")
+
+
+def _cells(text: str) -> str:
+    """Return text with each Markdown table's header row set on its cells.
+
+    A header row becomes "name: cell" lines, one for each cell below it, so a
+    field named in a header meets its values.
+    """
+    lines, cells = text.split("\n"), []
+    for index, line in enumerate(lines[1:], 1):
+        if "|" in lines[index - 1] and _DELIMITER.fullmatch(line):
+            names = lines[index - 1].strip().strip("|").split("|")
+            lines[index - 1] = ""
+            for row in itertools.takewhile(
+                lambda row: "|" in row, lines[index + 1 :]
+            ):
+                cells.extend(
+                    f"{name}: {cell}"
+                    for name, cell in zip(
+                        names, row.strip().strip("|").split("|")
+                    )
+                )
+    return "\n".join(lines + cells)
+
+
+def _unfilled(text: str, kind: str | None) -> bool:
+    """Return whether a swapped text keeps a birth date, address or number.
+
+    A field keeps its value unless the value is empty, or holds a stand-in
+    (blanked) and no digit. The value of a student-number field is the text.
+    """
+    values = [text] if kind == "number" else []
+    values.extend(match["value"] for match in _FIELD.finditer(_cells(text)))
+    return any(
+        value.strip() and (_BLANK not in value or re.search("[0-9]", value))
+        for value in values
+    )
 
 
 def _field_kind(name: object) -> str | None:
@@ -125,11 +217,17 @@ def _field_spans(
 ) -> list[tuple[int, int, tuple[str, str]]]:
     """Return the whole value of a field whose name says it is of ``kind``."""
     match = re.fullmatch(rf"[\s{_BLANK}]*(.*?)[\s{_BLANK}]*", text, re.DOTALL)
-    value = match[1]
+    value = match[1] if kind != "number" else None
     if kind == "cohort":
         year = _YEAR.fullmatch(value)
-        value = year and (year[1] or str(_ORDINAL[year[2].lower()]))
+        value = year and (year[1] or _count(year[2]))
     return [(*match.span(1), (kind, _norm(value)))] if value else []
+
+
+def _count(word: str) -> str:
+    """Return the number that a numeral, ordinal or cardinal word names."""
+    word = word.lower()
+    return str(_ORDINAL.get(word) or _CARDINAL.get(word) or word)
 
 
 # (kind, pattern, group that is replaced, value of a match; None: the
@@ -150,10 +248,13 @@ _DETECTORS = [
     (
         "cohort",
         re.compile(
-            _EDGE.format(rf"grade[\s{_PUNCT}]+(1[0-2]|[1-9])"), re.IGNORECASE
+            _EDGE.format(
+                rf"grade[\s{_PUNCT}]+(1[0-2]|[1-9]|{_CARDINAL_WORDS})"
+            ),
+            re.IGNORECASE,
         ),
         0,
-        _first_group,
+        lambda match: _count(match[1]),
     ),
     (
         "cohort",
@@ -170,10 +271,12 @@ _DETECTORS = [
     (
         "cohort",
         re.compile(
-            _EDGE.format(rf"year[\s{_PUNCT}]+([0-9]{{1,2}})"), re.IGNORECASE
+            _EDGE.format(rf"year[\s{_PUNCT}]+([0-9]{{1,2}}|{_CARDINAL_WORDS})")
+            + r"(?![\s-]+(?:thousand|hundred))",
+            re.IGNORECASE,
         ),
         0,
-        lambda match: f"year {match[1]}",
+        lambda match: f"year {_count(match[1])}",
     ),
     (
         "cohort",
@@ -212,10 +315,10 @@ _DETECTORS = [
     (
         "birth",
         re.compile(
-            r"(?<![A-Za-z])(?:date of birth|birth ?date|birth ?year|birthday"
-            r"|born|DOB|생년월일|생일|출생)"
-            rf"[\s{_PUNCT},(]{{0,6}}(?:(?:is|was|on|in)\s+)?"
-            rf"(?P<date>{_DATE})(?![0-9])",
+            r"(?<![A-Za-z])(?:date[\s_-]?of[\s_-]?birth"
+            r"|birth[\s_-]?(?:date|day|year)|born|DOB|생년월일|생일|출생)"
+            rf"(?:[\s{_PUNCT},()]|(?<![A-Za-z])(?:{_BIRTH_WORDS})(?![A-Za-z]))*"
+            rf"(?P<date>{_DATE})(?![0-9A-Za-z])",
             re.IGNORECASE,
         ),
         "date",
@@ -225,22 +328,12 @@ _DETECTORS = [
     (
         "address",
         re.compile(
-            r"(?<![A-Za-z])(?:address|주소)\s*[:：=]?\s*"
-            rf"(?P<rest>[^\s|:：={_BLANK}][^\n\r\t|{_BLANK}]*)",
+            rf"(?<![A-Za-z])(?:address|주소)[\s{_PUNCT}]*"
+            rf"(?P<rest>[^\s{_PUNCT}{_BLANK}][^\n\r\t|{_BLANK}]*?)"
+            rf"(?=[\s{_MARKUP}]*(?:[\n\r\t|{_BLANK}]|\Z))",
             re.IGNORECASE,
         ),
         "rest",
-        None,
-    ),
-    (
-        "address",
-        re.compile(
-            rf"(?<![A-Za-z0-9])(?:\d{{5}}[\s,]+)?(?:\d{{1,4}}(?:-\d{{1,4}})?[\s,]+)?"
-            rf"(?:{_ADDRESS_PART})"
-            rf"(?:[\s,]+(?:{_ADDRESS_PART}))*(?:[\s,]+\d{{5}}(?![0-9]))?",
-            re.IGNORECASE,
-        ),
-        0,
         None,
     ),
 ]
@@ -259,6 +352,23 @@ def _region_pattern() -> re.Pattern[str]:
     units = "|".join(re.escape(unit) for unit in _REGION_UNITS)
     return re.compile(
         _EDGE.format(rf"(?:{latin})(?:\s+(?:{units}))?") + f"|{korean}",
+        re.IGNORECASE,
+    )
+
+
+@functools.cache
+def _address_pattern() -> re.Pattern[str]:
+    """Build the regex for a romanized address run.
+
+    A run is address parts with the numbers, postal codes and region names
+    around them, separated by spaces or commas; it holds at least one part.
+    """
+    token = (
+        rf"(?:{_ADDRESS_PART}|{_ADDRESS_NUMBER}|{_region_pattern().pattern})"
+    )
+    return re.compile(
+        rf"(?<![A-Za-z0-9])(?:{token}[\s,]+){{0,6}}(?:{_ADDRESS_PART})"
+        rf"(?:[\s,]+{token})*",
         re.IGNORECASE,
     )
 
@@ -384,8 +494,8 @@ def find_spans(
         roster_pattern: Compiled pattern for roster text, or None.
         name_pattern: Compiled pattern for flexible Latin names, or None.
         kind: The identifier kind that the text's field name says it is
-            (birth, address or cohort), or None. The whole text is then one
-            span of that kind.
+            (birth, address, cohort or number), or None. The whole text is
+            then one span of that kind; a number is found as any text is.
 
     Returns:
         A list of (start, stop, identifier) tuples; every value except a
@@ -425,7 +535,11 @@ def find_spans(
         (match.start(), match.end(), ("email", match.group().lower()), 2)
         for match in _EMAIL.finditer(text)
     )
-    detectors = [*_DETECTORS, ("region", _region_pattern(), 0, None)]
+    detectors = [
+        *_DETECTORS,
+        ("address", _address_pattern(), 0, None),
+        ("region", _region_pattern(), 0, None),
+    ]
     for rank, (kind, pattern, group, value) in enumerate(detectors, 3):
         candidates.extend(
             (
@@ -452,30 +566,51 @@ def _is_number(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def _text(value):
+    """Return the text of a key or number; 7700101.0 reads as 7700101."""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _inner_kind(kind, key):
+    """Return the kind of a value under ``key`` inside a value of ``kind``.
+
+    Everything inside a birth date, an address or a student number is one; a
+    field named inside a school year keeps the kind its name gives.
+    """
+    return (
+        kind
+        if kind in {"birth", "address", "number"}
+        else (_field_kind(key) or kind)
+    )
+
+
 def fields(value, kind=None):
     """Yield (text, kind) for every string and number in a state or question.
 
-    Numbers come as their text. Dictionary keys come with no kind; a value
-    under a key that names one (DOB, address, grade) carries it, also inside a
-    list.
+    Numbers and other keys come as their text. A value or key under a key
+    that names a kind (DOB, address, grade, student ID) carries it, at any
+    depth.
     """
     if hasattr(value, "model_dump"):
         yield from fields(value.model_dump(mode="json"), kind)
     elif isinstance(value, str):
         yield value, kind
     elif _is_number(value):
-        yield str(value), kind
+        yield _text(value), kind
     elif isinstance(value, Mapping):
         for key, item in value.items():
-            if isinstance(key, str):
-                yield key, None
-            yield from fields(item, _field_kind(key))
+            yield _text(key), kind
+            yield from fields(item, _inner_kind(kind, key))
     elif isinstance(value, (list, tuple)):
         for item in value:
             yield from fields(item, kind)
     elif dataclasses.is_dataclass(value) and not isinstance(value, type):
         for field in dataclasses.fields(value):
-            yield from fields(getattr(value, field.name))
+            yield from fields(
+                getattr(value, field.name), _inner_kind(kind, field.name)
+            )
 
 
 def strings(value):
@@ -487,15 +622,20 @@ def _replace_tree(value, replace, kind=None):
     if isinstance(value, str):
         return replace(value, kind)
     if _is_number(value):
-        text = replace(str(value), kind)
-        return value if text == str(value) else text
+        text = _text(value)
+        replaced = replace(text, kind)
+        return value if replaced == text else replaced
     if isinstance(value, Mapping):
         result = {}
         for key, item in value.items():
-            new_key = replace(key) if isinstance(key, str) else key
+            text = _text(key)
+            new_key = replace(text, kind)
+            new_key = key if new_key == text else new_key
             if new_key in result:
                 raise JudgmentError("pseudonym_conflict")
-            result[new_key] = _replace_tree(item, replace, _field_kind(key))
+            result[new_key] = _replace_tree(
+                item, replace, _inner_kind(kind, key)
+            )
         return result
     if isinstance(value, list):
         return [_replace_tree(item, replace, kind) for item in value]
@@ -505,7 +645,11 @@ def _replace_tree(value, replace, kind=None):
         return dataclasses.replace(
             value,
             **{
-                field.name: _replace_tree(getattr(value, field.name), replace)
+                field.name: _replace_tree(
+                    getattr(value, field.name),
+                    replace,
+                    _inner_kind(kind, field.name),
+                )
                 for field in dataclasses.fields(value)
             },
         )
@@ -616,12 +760,9 @@ def pseudonymize(
     )
     for value in (provider_state, provider_documents):
         for text, kind in fields(value):
-            if find_spans(
-                standin.sub(_BLANK, text) if pseudonyms else text,
-                identifiers,
-                roster_pattern,
-                name_pattern,
-                kind,
+            text = standin.sub(_BLANK, text) if pseudonyms else text
+            if _unfilled(text, kind) or find_spans(
+                text, identifiers, roster_pattern, name_pattern, kind
             ):
                 raise JudgmentError("identifier_remaining")
 

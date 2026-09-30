@@ -120,6 +120,22 @@ def test_school_years_with_a_gap_or_spelled_ordinal(found, text, values):
 
 
 @pytest.mark.parametrize(
+    ("text", "values"),
+    [
+        ("Grade ten", ["10"]),
+        ("grade: Twelve", ["12"]),
+        ("year eleven", ["year 11"]),
+        ("| Year | one |", ["year 1"]),
+        ("Grade ten and Grade 10 and tenth grade", ["10", "10", "10"]),
+    ],
+)
+def test_school_years_spelled_as_numbers(found, text, values):
+    assert [value for _, kind, value in found(text) if kind == "cohort"] == (
+        values
+    )
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "2026학년도",
@@ -133,6 +149,9 @@ def test_school_years_with_a_gap_or_spelled_ordinal(found, text, values):
         "grade: B",
         "thirteenth grade",
         "seventh-year elementary school student",
+        "grade thirteen",
+        "Year twenty",
+        "in the year two thousand",
     ],
 )
 def test_academic_years_stay(found, text):
@@ -241,6 +260,60 @@ def test_birth_dates_after_punctuation_or_in_other_orders(found, text, matched):
 
 
 @pytest.mark.parametrize(
+    ("text", "matched"),
+    [
+        ("born on the 23rd of April 2011", "23rd of April 2011"),
+        ("born on April 23rd, 2011", "April 23rd, 2011"),
+        ("her birthday is the twenty-third of April", "twenty-third of April"),
+        ("born on Saturday, April the 23rd, 2011", "April the 23rd, 2011"),
+        ("born in late April of 2011", "April of 2011"),
+        ("born in the year twenty eleven", "twenty eleven"),
+        (
+            "birthday: the first of May, two thousand and eleven",
+            "first of May, two thousand and eleven",
+        ),
+        ("DOB 2011 April 23", "2011 April 23"),
+        ("DOB: 2011. 4. 23.", "2011. 4. 23"),
+    ],
+)
+def test_birth_dates_in_english_prose_and_words(found, text, matched):
+    assert [(m, kind) for m, kind, _ in found(text)] == [(matched, "birth")]
+
+
+@pytest.mark.parametrize(
+    ("text", "matched", "kind"),
+    [
+        ("| DOB | 2011-04-23 |", "2011-04-23", "birth"),
+        ("DOB: **2011-04-23**", "2011-04-23", "birth"),
+        ("DOB: `2011-04-23`", "2011-04-23", "birth"),
+        (
+            "| **Date of birth** |   _April 23, 2011_ |",
+            "April 23, 2011",
+            "birth",
+        ),
+        ("date_of_birth -> 2011-04-23", "2011-04-23", "birth"),
+        ("~~Birthday~~ — 23 April 2011", "23 April 2011", "birth"),
+        ("| Grade | 10 |", "Grade | 10", "cohort"),
+        ("Grade **10**", "Grade **10", "cohort"),
+        ("`Year`: `11`", "Year`: `11", "cohort"),
+        (
+            "| Address | 487 Imaginary Street |",
+            "487 Imaginary Street",
+            "address",
+        ),
+        (
+            "**Home address**: `487 Imaginary Street`",
+            "487 Imaginary Street",
+            "address",
+        ),
+        ("| Student ID | **7700101** |", "7700101", "student"),
+    ],
+)
+def test_markup_between_a_keyword_and_its_value(found, text, matched, kind):
+    assert [(m, k) for m, k, _ in found(text)] == [(matched, kind)]
+
+
+@pytest.mark.parametrize(
     "text",
     [
         "lesson on 2026-09-28",
@@ -294,6 +367,31 @@ def test_addresses_follow_a_keyword_or_have_romanized_parts(
 )
 def test_romanized_addresses_take_their_adjacent_number(found, text, matched):
     assert [m for m, kind, _ in found(text) if kind == "address"] == [matched]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Solbit-ro 12-gil 487",
+        "Ha-neul-ro 487",
+        "487 Ha-neul-ro 12beon-gil",
+        "45beon-gil 7-3",
+        "Solbit-ro 12beon-gil 7, 101-dong 1203-ho",
+        "Solbit-ro 487, 101-1203",
+        "Solbit-ro 487, Apt 1203",
+        "487 Solbit-ro, Jongno-gu, Seoul 03000",
+        "Seoul Jongno-gu Ha-neul-ro 12-gil 34-5",
+        "Jongno 1-ga 12",
+    ],
+)
+def test_a_romanized_address_run_is_one_identifier(found, text):
+    assert found(f"Lives at {text}.") == [
+        (text, "address", " ".join(text.split()).lower())
+    ]
+
+
+def test_hyphenated_words_are_not_address_parts(found):
+    assert found("A well-rounded learner, 12-hour days, a high-rise.") == []
 
 
 def test_address_keyword_takes_the_rest_of_the_line_only(found):

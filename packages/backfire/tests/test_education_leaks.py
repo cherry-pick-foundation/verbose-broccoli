@@ -237,6 +237,9 @@ def test_a_surviving_identifier_is_refused_without_its_value(
         {"born": 2011},
         {"address": "487 Imaginary Street"},
         {"grade": 10},
+        {"DOB": {"year": 2011, "month": 4, "day": 23}},
+        {"address": [{"line1": "487 Imaginary Street", "zip": "12345"}]},
+        {7700101: "record"},
     ],
 )
 def test_the_scan_after_the_swap_covers_numbers_and_field_names(
@@ -268,6 +271,9 @@ def test_the_scan_after_the_swap_covers_numbers_and_field_names(
         {"born": 2011},
         {"address": "487 Imaginary Street"},
         {"grade": 10},
+        {"DOB": {"year": 2011, "month": 4, "day": 23}},
+        {"address": [{"line1": "487 Imaginary Street", "zip": "12345"}]},
+        {7700101: "record"},
     ],
 )
 def test_provider_receives_no_number_or_field_value_identifier(
@@ -354,3 +360,54 @@ def test_stand_ins_and_their_keywords_are_not_refused(
     assert "Address 01" in sent and "Birth date 01" in sent
     assert "Cohort 01" in sent and "Region 01" in sent
     assert "Bijeon" not in sent and "Jongno" not in sent
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        {"note": "DOB: 23.IV.2011"},
+        {"note": "**Date of birth** = sometime in spring"},
+        {"note": "birthday: April 23 (2011)"},
+        {"note": "| Name | DOB |\n| --- | --- |\n| Ga Raon | 23.IV.2011 |"},
+        {"note": "| Address | Grade |\n|---|---|\n| 487 Imaginary St | 10 |"},
+        {"note": "Student ID: 7799999"},
+        {"note": "EduOK number = 7799999"},
+        {"note": "| StudentNo | Score |\n|---|---|\n| 7799999 | 85 |"},
+        {"student_id": 7799999},
+        {"StudentNo": "N/A"},
+    ],
+)
+def test_a_named_field_that_keeps_its_value_is_refused(
+    synthetic_roster, monkeypatch, state
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        error = send(monkeypatch, fake, state)
+    assert str(error).startswith("identifier_remaining:")
+    assert "7799999" not in str(error) and "2011" not in str(error)
+    assert fake.requests == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "We checked the address of the lesson.",
+        "She was born in a small town and loved stories.",
+        "Her birthday party was fun.",
+        "Every student number is unique; the student ID card is blue.",
+        "The DOB: 2011-04-23 was checked.",
+        "DOB: 2011-04-23, Grade: 10, Student ID: 7700101; DOB:",
+        "| Student ID | Score |\n|---|---|\n| 7700101 | 85 |",
+        "| Field | Value |\n|---|---|\n| DOB | 2011-04-23 |\n"
+        "| Address | Solbit-ro 487 |",
+        "| Name | Email address |\n|---|---|\n| Ga Raon | none |",
+    ],
+)
+def test_ordinary_prose_and_replaced_fields_are_sent(
+    synthetic_roster, monkeypatch, text
+):
+    del synthetic_roster  # Unused.
+    with FakeProvider([completion({"q": 0.5})]) as fake:
+        result = send(monkeypatch, fake, {"note": text})
+    assert not isinstance(result, Exception)
+    assert len(fake.requests) == 1
