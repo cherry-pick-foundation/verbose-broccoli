@@ -58,9 +58,10 @@ sentence shows, not only the lesson target or the exam answer.
 
 ## Check and review
 
-`check --catalog catalogs/<catalog>.md` first tests every row: its text, after
-whitespace is normalized, must occur in the extracted text of its source, and
-every key must be in the catalog. If any row fails, the command names each on
+`check --catalog catalogs/<catalog>.md` first tests every row: its text must
+hold no Hangul, because everything sent to backfire is English; after
+whitespace is normalized, it must occur in the extracted text of its source;
+and every key must be in the catalog. If any row fails, the command names each on
 stderr as `proposal <n>: <reason>`, exits 1 and sends nothing.
 
 Then it opens one `backfire serve-mcp --education` session, started from

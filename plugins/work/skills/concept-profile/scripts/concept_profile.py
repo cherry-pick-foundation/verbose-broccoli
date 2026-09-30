@@ -25,6 +25,7 @@ from wiki_consistency.instance import roots
 
 LIMIT = 200 * 1024**2
 BACKFIRE = Path(__file__).resolve().parents[5] / "packages/backfire"
+HANGUL = re.compile("[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]")
 TICKED = re.compile(r'^- \[[xX]\] (\d+) ("(?:[^"\\]|\\.)*")', re.M)
 OUTCOMES = {
     ("auto", "verified"): "kept",
@@ -145,7 +146,9 @@ def _refusals(run, proposals, entries):
         for p in (run / "text").glob("*.txt")
     }
     for n, row in enumerate(proposals, 1):
-        if _norm(row["text"]) not in texts.get(row["source"], ""):
+        if HANGUL.search(row["text"]):
+            yield f"proposal {n}: backfire takes English only, no Hangul"
+        elif _norm(row["text"]) not in texts.get(row["source"], ""):
             yield f"proposal {n}: sentence is absent from the extracted text"
         elif not set(row["concepts"]) <= entries.keys():
             yield f"proposal {n}: concept key is not in the catalog"

@@ -207,12 +207,14 @@ def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
 def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
-    _proposals(run, ("Not extracted.", [1]), ("First sentence.", [99]))
+    rows = ("Not extracted.", [1]), ("First sentence.", [99]), ("첫 문장.", [1])
+    _proposals(run, *rows)
     assert _run(f"check --catalog {CATALOG}") == 1
     assert not (run / "checks.jsonl").exists() and not backfire.calls
     err = capsys.readouterr().err
     assert "proposal 1: sentence is absent" in err
     assert "proposal 2: concept key is not in the catalog" in err
+    assert "proposal 3: backfire takes English only, no Hangul" in err
 
 
 @pytest.mark.usefixtures("vault")
