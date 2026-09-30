@@ -25,7 +25,9 @@ def offer(slug, status="active", expiry_date=None):
     }
 
 
-def install_tracker(monkeypatch, old=(), new=(), same_commit=False):
+def install_tracker(
+    monkeypatch, old=(), new=(), same_commit=False, forbidden=False
+):
     start, _ = credit_offers._block(6, END)
     start_sha, end_sha = "old-commit", "new-commit"
     if same_commit:
@@ -36,6 +38,8 @@ def install_tracker(monkeypatch, old=(), new=(), same_commit=False):
     def respond(request):
         requests.append(request)
         if request.url.path.endswith("/commits"):
+            if forbidden:
+                return httpx.Response(403, request=request)
             sha = (
                 start_sha
                 if request.url.params["until"] == start.isoformat()
@@ -101,6 +105,64 @@ def test_same_commit_exits_without_fetching_index_or_calling_jev(
     )
     request_jev.assert_not_called()
     assert "jev_calls=0" in capsys.readouterr().out
+
+
+def test_github_token_is_sent_only_to_api_requests_and_not_logged(
+    monkeypatch, capsys
+):
+    token = "synthetic-github-token"
+    monkeypatch.setenv("GITHUB_TOKEN", token)
+    requests = install_tracker(
+        monkeypatch, old=[offer("old")], new=[offer("new")]
+    )
+    monkeypatch.setattr(
+        credit_offers.model,
+        "request_jev",
+        lambda body: {
+            "answers": answers_for(body["state"]["offers"], ["qualifies"])
+        },
+    )
+
+    assert credit_offers.main(["--end", END]) == 0
+
+    captured = capsys.readouterr()
+    api_requests = [r for r in requests if r.url.path.endswith("/commits")]
+    raw_requests = [r for r in requests if r.url.path.endswith("/index.json")]
+    assert len(api_requests) == 2
+    assert all(
+        r.headers["Authorization"] == f"Bearer {token}" for r in api_requests
+    )
+    assert len(raw_requests) == 2
+    assert all("Authorization" not in r.headers for r in raw_requests)
+    assert token not in captured.out + captured.err
+
+
+def test_github_token_is_not_logged_on_http_error(monkeypatch, capsys):
+    token = "synthetic-github-token"
+    monkeypatch.setenv("GITHUB_TOKEN", token)
+    requests = install_tracker(monkeypatch, forbidden=True)
+
+    assert credit_offers.main(["--end", END]) == 3
+
+    captured = capsys.readouterr()
+    assert len(requests) == 1
+    assert requests[0].headers["Authorization"] == f"Bearer {token}"
+    assert "403" in captured.err
+    assert token not in captured.out + captured.err
+
+
+@pytest.mark.parametrize("token", [None, ""])
+def test_github_token_is_omitted_when_unset_or_empty(monkeypatch, token):
+    if token is None:
+        monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    else:
+        monkeypatch.setenv("GITHUB_TOKEN", token)
+    requests = install_tracker(monkeypatch, same_commit=True)
+
+    assert credit_offers.main(["--end", END]) == 1
+
+    assert len(requests) == 2
+    assert all("Authorization" not in request.headers for request in requests)
 
 
 def test_filters_new_offers_and_judges_each_candidate_once(monkeypatch, capsys):

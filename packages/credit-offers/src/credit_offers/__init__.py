@@ -80,9 +80,16 @@ def main(argv=None):
     try:
         api = f"{TRACKER['api_root']}/repos/{TRACKER['repository']}/commits"
         query = {"path": TRACKER["index_path"], "per_page": 1}
+        token = os.environ.get(TRACKER["token_env"])
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
         with httpx.Client(timeout=25) as client:
             commits = [
-                _get_json(client, api, params={**query, "until": t.isoformat()})
+                _get_json(
+                    client,
+                    api,
+                    headers=headers,
+                    params={**query, "until": t.isoformat()},
+                )
                 for t in (start, end)
             ]
             if not all(commits):
