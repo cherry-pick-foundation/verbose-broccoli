@@ -40,6 +40,12 @@ session.
 - When the user names a student in Korean, agents resolve the name to the
   EduOK number through the roster or the raw EduOK capture, then open the
   page. Pages hold no Korean names.
+- Q: Birth dates kept leaking in new forms after five fix rounds, and wider
+  matching removed scores and lesson dates. How should the gate treat them?
+  → A: after a birth keyword, hide the rest of that clause, up to a sentence
+  end, semicolon, line break or table cell end, as one `Birth date`
+  stand-in, accepting that other content in that clause is hidden too;
+  document the trade-off, and have a fresh Codex privacy reviewer confirm it.
 - Q: Which romanization do the roster and pages use? → A: customary surname
   spellings (Kim, Lee, Park, Choi) with Revised Romanization for given names,
   written together: `Kim Gildong`.
@@ -153,9 +159,12 @@ holds Hangul names.
   lowercase tokens ending in `-h`, `-m` or `-e` such as `byeolbit-h`.
 - **FR-006**: EduOK student numbers from the roster's `id` column MUST be
   replaced where they stand as whole numbers.
-- **FR-007**: Birth dates MUST be replaced where a date or year follows a
-  birth keyword (`born`, `birthday`, `date of birth`, `DOB`, `생년월일`,
-  `생일`, `출생`) or reads `NNNN년생`; other dates stay.
+- **FR-007**: After a birth keyword (`born`, `birthday`, `birth date`,
+  `date of birth`, `DOB`, `생년월일`, `생일`, `출생`), the rest of its clause,
+  up to a sentence end, a semicolon, a line break or a table cell end, MUST
+  be replaced as one birth date when it holds a digit, a month name, a year in
+  words or a Roman numeral year; other text in that clause is hidden with it.
+  `NNNN년생` is a birth year. Text after the clause stays.
 - **FR-008**: Addresses MUST be replaced: the rest of a field after an address
   keyword (`address`, `주소`) and romanized Korean address parts (`-ro`,
   `-gil`, `-daero`, `-dong`, `-eup`, `-myeon`, `-ri` names with their

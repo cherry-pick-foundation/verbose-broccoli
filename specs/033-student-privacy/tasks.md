@@ -57,6 +57,13 @@ files and can run in parallel.
   value stays; commit `e48e215`, both reviewers' scripts at 0 unexpected
   exposures, 63 new tests failing on the old source, `npm run verify`
   VERIFIED.
+  Later rounds (`4f34a75`, `aa7a44b`, `1f8e686`, `75da5f0`), each checked
+  by the Codex privacy reviewer's follow-ups and a fresh Codex privacy
+  review, kept finding birth-date forms or lost content; the user then chose
+  to hide the rest of a birth clause (`1ecc923`), which also fixed hyphen
+  variants, unit numbers and grade lists the fresh review found. Every
+  reviewer script then passes except the accepted clause trade-offs and one
+  documented column-data case.
 
 ## Phase 4: User Stories 3-4, student pages (P2, after CHE-59)
 

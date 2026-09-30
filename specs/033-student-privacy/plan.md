@@ -96,9 +96,10 @@ digit boundaries so they never match inside a longer word or number.
   it.
 - **Domain ID → `school`**: roster values, and `[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[hme]`
   bounded by characters other than letters, digits and hyphens.
-- **Birth date → `birth`**: FR-007's keywords followed within a short gap by a
-  date (`2009-03-15`, `2009.3.15`, `09.03.15`, `March 15, 2009`,
-  `15 March 2009`, `2009년 3월 15일`) or a year; `NNNN년생` and `NN년생`.
+- **Birth date → `birth`**: FR-007's keywords, then the rest of the clause
+  when it holds a date-like token (as built after the privacy reviews; the
+  first design matched date formats and kept leaking new forms);
+  `NNNN년생` and `NN년생`.
 - **Address → `address`**: FR-008's keyword forms up to the end of the line
   or field, and romanized address runs (`Bijeon-ro 12`, `Seo-dong 123-4`,
   `101-dong 1203-ho`, `Jungang-daero 45beon-gil 7`) with an adjacent
