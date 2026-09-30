@@ -68,11 +68,13 @@ Rules:
 ## Wiki
 
 - Write everything in `wiki/` in English, whatever the language of the raw
-  evidence, which stays unchanged. Student names keep the roster's spelling,
-  so backfire still replaces them. Write a school as its domain ID, the short
-  ID that names its folders in the user's documents, not by its Korean name.
-  A short direct quote may keep its original language next to an English
-  translation.
+  evidence, which stays unchanged. Write student names in the roster's
+  romanized spelling (its `romanized` column, such as `Kim Gildong`), so
+  backfire still replaces them; the Korean spelling stays only in the roster.
+  Write a school as its domain ID, the short ID that names its folders in the
+  user's documents, not by its Korean name. A short direct quote may keep its
+  original language next to an English translation, except a student,
+  given or guardian name.
 - When sources disagree, student information follows the user's student
   information system (EduOK) first, and school information follows the
   school's official homepage first.
@@ -80,10 +82,12 @@ Rules:
 - A student who has a page stays in backfire's roster even after leaving
   the student information system (EduOK), so the name keeps getting its
   alias.
-- Pages hold no contact details or ID numbers: no phone numbers, email or
-  postal addresses, guardian contacts or resident registration numbers.
-- A student's page is `wiki/students/<name>.md`, named with the student's
-  name in the roster's spelling.
+- Pages record only the personal details the work needs: a student's
+  romanized name, school (domain ID) and school year, plus the EduOK number
+  as the page file name. Nothing else that identifies a student or family
+  goes in: no phone numbers, email or postal addresses, birth dates,
+  guardian names or contacts, or registration numbers.
+- A student's page is `wiki/students/s-<EduOK student number>.md`.
 - `wiki/index.md` is the catalog of Wiki pages and `wiki/overview.md` their
   synthesis. Both start empty; `index.md` gets its region lines (below)
   before the first `update`.
@@ -91,6 +95,22 @@ Rules:
   with `## [YYYY-MM-DD] raw-import | <location>` and lists the counts
   admitted, already admitted, refused and failed.
 - Git versions this file and `wiki/`.
+
+## Student data
+
+- Only Claude Code and Codex agents, the user's own Claude and ChatGPT
+  accounts, may read student pages, the roster or raw student sources. Never
+  give them to Copilot, OMP or any other provider.
+- When the user names a student in Korean, first resolve the name to the
+  EduOK student number. Look it up in backfire's roster (columns `name`,
+  `romanized`, `id`; its path is in
+  `$XDG_CONFIG_HOME/verbose-broccoli/backfire/education.toml`, or under
+  `~/.config` when that is unset) or, if the roster lacks the student, in the
+  raw EduOK student list capture. Match a given name alone and a name with a
+  particle attached (`은`, `이`, `를`). When several students share the name
+  and the user's words do not tell them apart, ask which one is meant; never
+  guess. Then open `wiki/students/s-<number>.md`. Pages never hold Korean
+  names, so do not search them for one.
 
 ## Pages
 
@@ -169,8 +189,12 @@ every page except `log.md`, outside mechanical regions and outside the
 front matter's `sources` field:
 
 - no phone numbers, email or postal addresses, or registration numbers;
-- each student page's name is in backfire's roster;
-- no Hangul, Chinese or Japanese text except roster names and one quote of
+- each student page is named `s-<id>`, with `<id>` a value of the roster's
+  `id` column;
+- no Korean spelling of a roster student, given or guardian name anywhere in a
+  page, in a quote, the front matter or a mechanical region too; use the
+  roster's romanized name;
+- no Hangul, Chinese or Japanese text except one quote of
   at most 100 characters with its English translation on the same line,
   written as `"<original>" (<translation>)` or
   `"<translation>" ("<original>")`, with `"…"`, `“…”`, `‘…’`, `「…」` or

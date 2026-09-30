@@ -210,18 +210,6 @@ def check(root):
         private = Path(temp)
         styles = private / "styles"
         shutil.copytree(_STYLE, styles)
-        vocab = styles / "config" / "vocabularies" / "Roster" / "accept.txt"
-        vocab.parent.mkdir(parents=True, exist_ok=True)
-        names = sorted(
-            re.escape(name)
-            for name, (kind, _) in identifiers.items()
-            if kind in {"student", "given", "guardian"}
-            and "\n" not in name
-            and "\r" not in name
-        )
-        vocab.write_text(
-            "\n".join(names) + ("\n" if names else ""), encoding="utf-8"
-        )
         if not roster_error:
             _school_rule(identifiers, styles)
         config = private / ".vale.ini"
@@ -246,21 +234,40 @@ def check(root):
                 if not item["message"].startswith("page rule english:")
             ),
         ]
-    students = {
+    numbers = {
         name
-        for name, (kind, value) in identifiers.items()
-        if kind == "student" and name == value
+        for name, (kind, _) in identifiers.items()
+        if kind == "student" and re.fullmatch("[0-9]+", name)
     }
     problems.extend(
         {
             "document": page,
             "line": 1,
             "message": (
-                "page rule student-roster: add the student to the backfire "
-                "roster or fix the page name"
+                "page rule student-roster: name the page s-<EduOK student "
+                "number> with a number from the roster's id column"
             ),
         }
         for page in student_pages
-        if Path(page).stem not in students
+        if not Path(page).stem.startswith("s-")
+        or Path(page).stem[2:] not in numbers
+    )
+    names = [
+        name
+        for name, (kind, _) in identifiers.items()
+        if kind in {"student", "given", "guardian"} and _HANGUL.search(name)
+    ]
+    problems.extend(
+        {
+            "document": page,
+            "line": number,
+            "message": (
+                "page rule student-name: write the name as the roster's "
+                "romanized spelling, not its Korean spelling"
+            ),
+        }
+        for page, text in pages.items()
+        for number, line in enumerate(text.splitlines(), 1)
+        if any(name in line for name in names)
     )
     return problems

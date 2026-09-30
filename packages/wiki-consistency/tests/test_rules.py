@@ -14,6 +14,8 @@ from wiki_consistency.lint import check
 import wiki_consistency.rules as rules
 
 STUDENTS = ("가라온", "나하늘", "다하늘")
+IDS = ("2100000001", "2100000002", "2100000003")
+ROMANIZED = ("Ga Raon", "Na Haneul", "Da Haneul")
 GUARDIAN = "다누리"
 SCHOOL = "가상별학교"
 QUOTES = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "』"))
@@ -43,15 +45,15 @@ def _roster(tmp_path):
 
 def write_roster(tmp_path, rows=None):
     rows = rows or [
-        (STUDENTS[0], SCHOOL, GUARDIAN),
-        (STUDENTS[1], "", ""),
-        (STUDENTS[2], "", ""),
+        (STUDENTS[0], SCHOOL, GUARDIAN, IDS[0], ROMANIZED[0]),
+        (STUDENTS[1], "", "", IDS[1], ROMANIZED[1]),
+        (STUDENTS[2], "", "", IDS[2], ROMANIZED[2]),
     ]
     path = _roster(tmp_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.writer(file)
-        writer.writerow(("name", "school", "guardians"))
+        writer.writerow(("name", "school", "guardians", "id", "romanized"))
         writer.writerows(rows)
     config = _config(tmp_path)
     config.parent.mkdir(parents=True, exist_ok=True)
@@ -142,10 +144,20 @@ def test_page_rules_report_page_and_line_without_the_match(
     assert_rule(problems, "wiki/overview.md", 2, rule, matched)
 
 
-def test_student_page_must_match_a_roster_name(tmp_path):
+@pytest.mark.parametrize(
+    "stem",
+    (
+        "s-2100000009",
+        f"s-{ROMANIZED[0]}",
+        IDS[0],
+        f"S-{IDS[0]}",
+        STUDENTS[0],
+    ),
+)
+def test_student_page_must_be_named_by_a_roster_id(tmp_path, stem):
     instance = ready_vault(tmp_path)
-    write_roster(tmp_path, [(STUDENTS[0], "", "")])
-    page = instance / "wiki" / "students" / f"{STUDENTS[1]}.md"
+    write_roster(tmp_path)
+    page = instance / "wiki" / "students" / f"{stem}.md"
     page.parent.mkdir()
     page.write_text("# Student\n", encoding="utf-8")
 
@@ -156,16 +168,14 @@ def test_student_page_must_match_a_roster_name(tmp_path):
     )
 
 
-def test_student_page_matches_roster_exactly(tmp_path):
+def test_student_page_named_by_a_roster_id_passes(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "students" / f"{STUDENTS[0]}.md"
+    page = instance / "wiki" / "students" / f"s-{IDS[0]}.md"
     page.parent.mkdir()
     page.write_text("# Student\n", encoding="utf-8")
 
-    assert not has_rule(checked(instance, tmp_path), "student-roster"), (
-        "roster name should pass"
-    )
+    assert checked_rules(instance, tmp_path) == []
 
 
 @pytest.mark.parametrize("opening, closing", QUOTES)
@@ -219,14 +229,53 @@ def test_translated_quote_of_100_characters_passes(tmp_path):
     )
 
 
-def test_roster_student_and_given_names_and_guardians_are_allowed(tmp_path):
+@pytest.mark.parametrize("name", (STUDENTS[0], "하늘", GUARDIAN))
+@pytest.mark.parametrize(
+    "template",
+    (
+        "{}.",
+        "“{}” (meaning)",
+        "“meaning” (“{}”)",
+    ),
+)
+def test_korean_roster_names_fail_even_in_translated_quotes(
+    tmp_path, name, template
+):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    write_overview(instance, f"{STUDENTS[0]}; 하늘; {GUARDIAN}.")
+    write_overview(instance, template.format(name))
 
-    assert not has_rule(checked(instance, tmp_path), "english"), (
-        "roster terms should pass"
+    problems = checked(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "student-name", name)
+    assert name not in json.dumps(problems, ensure_ascii=False)
+
+
+def test_korean_roster_name_fails_in_front_matter_and_sources(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        f"---\ntitle: {STUDENTS[0]}\nsources:\n  - {GUARDIAN}\n---\n"
+        "# Overview\n",
+        encoding="utf-8",
     )
+
+    problems = checked_rules(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "student-name", STUDENTS[0])
+    assert_rule(problems, "wiki/overview.md", 4, "student-name", GUARDIAN)
+
+
+def test_romanized_roster_names_and_other_hangul_pass_the_name_rule(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    write_overview(instance, f"{ROMANIZED[0]}; Haneul; 가상인물.")
+
+    problems = checked(instance, tmp_path)
+
+    assert not has_rule(problems, "student-name")
+    assert has_rule(problems, "english", "wiki/overview.md")
 
 
 def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
