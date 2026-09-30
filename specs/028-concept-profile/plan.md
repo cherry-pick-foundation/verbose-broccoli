@@ -28,7 +28,7 @@ them, and `wiki-consistency` keeps the vault consistent.
 | Admit sources as raw | `wiki-raw-import` skill | `plugins/work/skills/wiki-raw-import/SKILL.md` |
 | Find a source's latest raw revision and payload | `wiki_consistency.instance.revisions` | `packages/wiki-consistency/src/wiki_consistency/instance.py` |
 | HWP, HWPX, DOCX to text | `wiki_consistency.evidence.convert` and `read` (markitdown with a python-hwpx converter; cached in `CACHE/wiki-evidence/`) | `packages/wiki-consistency/src/wiki_consistency/evidence.py` |
-| PDF to text | `pdftotext` (poppler, `/usr/bin/pdftotext`) | user decision |
+| PDF to text | `pdftotext -raw` (poppler, `/usr/bin/pdftotext`); `-raw` keeps sentences whole across two-column pages (13 of 13 split sentences on the pilot's exam paper) | user decision; pilot |
 | Read the catalog spreadsheet | openpyxl, locked through `markitdown[xlsx]` | `uv.lock`, `packages/wiki-consistency/pyproject.toml` |
 | Call backfire without its MCP tools loaded | the `mcp` stdio client pattern in `plugins/code/skills/model-choice/references/model-choice.md` | that file, "Calling backfire without its MCP tools" |
 | Check claims against evidence | backfire `jev_verify`, education mode | `plugins/work/mcp.json` (`serve-mcp --education`) |
@@ -229,7 +229,7 @@ Commands, each with `--wiki <vault>` (default `work`) and `--run <name>`:
 - `catalog --catalog <page>`: write `catalog.tsv` from the raw spreadsheet as
   the catalog record describes it.
 - `extract --source <id> ...`: write `text/<id>.txt` for each source's latest
-  revision: PDF through `pdftotext`, other formats through
+  revision: PDF through `pdftotext -raw`, other formats through
   `wiki_consistency.evidence.convert` and `read`.
 - `check --catalog <page>`: validate `proposals.jsonl` (FR-006), send one
   `jev_verify` per unchecked sentence to `backfire serve-mcp --education`
