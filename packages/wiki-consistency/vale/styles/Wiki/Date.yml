@@ -1,7 +1,7 @@
 extends: existence
 message: "page rule date: write dates as YYYY-MM-DD"
 level: error
-scope: text
+scope: text & ~frontmatter
 vocab: false
 ignorecase: true
 raw:

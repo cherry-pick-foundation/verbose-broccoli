@@ -47,6 +47,7 @@
     "//#test:clean-code": {"cache": false},
     "//#test:clean-architecture": {"cache": false},
     "//#test:workflow": {"cache": false},
+    "//#test:mise-doctor": {"cache": false},
     "//#test:cli-contract": {"cache": false},
     "backfire#test": {
       "command": [
@@ -160,6 +161,7 @@
         "//#test:clean-code",
         "//#test:clean-architecture",
         "//#test:workflow",
+        "//#test:mise-doctor",
         "//#test:cli-contract",
         "//#test:plugins-validate",
         "backfire#test",

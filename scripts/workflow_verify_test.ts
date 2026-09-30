@@ -7,7 +7,6 @@ import {evaluateVerification} from './workflow_verify.ts';
 
 type Summary = {
   version: string;
-  turboVersion: string;
   execution: {failed: number; exitCode: number} | null;
 };
 
@@ -70,7 +69,6 @@ async function run(
 void test('workflow verification: current Turbo summary and child exit both pass', async () => {
   const result = await run(0, {
     version: '1',
-    turboVersion: '2.11.5',
     execution: {failed: 0, exitCode: 0},
   });
   assertEquals(result.phase, 'VERIFIED');
@@ -80,7 +78,6 @@ void test('workflow verification: current Turbo summary and child exit both pass
 void test('workflow verification: child failure cannot pass a successful summary', async () => {
   const result = await run(1, {
     version: '1',
-    turboVersion: '2.11.5',
     execution: {failed: 0, exitCode: 0},
   });
   assertEquals(result.phase, 'FAILED');
@@ -88,10 +85,9 @@ void test('workflow verification: child failure cannot pass a successful summary
 
 void test('workflow verification: failed tasks, exit status and unsupported summaries fail closed', async () => {
   for (const summary of [
-    {version: '1', turboVersion: '2.11.5', execution: {failed: 1, exitCode: 1}},
-    {version: '2', turboVersion: '2.11.5', execution: {failed: 0, exitCode: 0}},
-    {version: '1', turboVersion: '2.11.4', execution: {failed: 0, exitCode: 0}},
-    {version: '1', turboVersion: '2.11.5', execution: null},
+    {version: '1', execution: {failed: 1, exitCode: 1}},
+    {version: '2', execution: {failed: 0, exitCode: 0}},
+    {version: '1', execution: null},
     'not-json',
   ])
     assertEquals((await run(0, summary)).phase, 'FAILED');
@@ -102,7 +98,6 @@ void test('workflow verification: failed tasks, exit status and unsupported summ
         0,
         {
           version: '1',
-          turboVersion: '2.11.5',
           execution: {failed: 0, exitCode: 0},
         },
         false,

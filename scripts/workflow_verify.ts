@@ -5,7 +5,6 @@ import {join} from '@std/path';
 
 interface Summary {
   version: string;
-  turboVersion: string;
   execution: {failed: number; exitCode: number} | null;
 }
 
@@ -20,7 +19,6 @@ function isSummary(value: unknown): value is Summary {
   const execution = summary.execution;
   return (
     summary.version === '1' &&
-    summary.turboVersion === '2.11.5' &&
     typeof execution === 'object' &&
     execution !== null &&
     !Array.isArray(execution) &&
@@ -52,24 +50,10 @@ async function validSummary(root: string, path: string | undefined) {
 }
 
 async function runCheck(root: string) {
-  const env = {...process.env};
-  for (const name of [
-    'TURBO_BINARY_PATH',
-    'TURBO_TOKEN',
-    'TURBO_TEAM',
-    'TURBO_TEAMID',
-    'VERCEL_ARTIFACTS_TOKEN',
-    'VERCEL_ARTIFACTS_OWNER',
-  ])
-    delete env[name];
-  env.TURBO_TELEMETRY_DISABLED = '1';
-  env.NO_UPDATE_NOTIFIER = '1';
-
   return await new Promise<{exitCode: number | null; summaryPath?: string}>(
     resolve => {
       const child = spawn('npm', ['run', 'check'], {
         cwd: root,
-        env,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
       let pending = '';

@@ -229,6 +229,22 @@ def test_roster_student_and_given_names_and_guardians_are_allowed(tmp_path):
     )
 
 
+def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path, [("나[하늘", "", "")])
+    write_overview(instance, "나[하늘")
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+
+
+def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path, [("가.온", "", "")])
+    write_overview(instance, "가x온")
+
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+
+
 def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
@@ -445,14 +461,14 @@ def test_fractional_iso_seconds_with_zone_pass(tmp_path, zone):
     assert not has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
 
 
-def test_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
+def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
     alpha = instance / "wiki" / "concepts" / "alpha.md"
     alpha.write_text(
         alpha.read_text(encoding="utf-8").replace(
             "title: Alpha",
-            "title: 2026.09.29\nsummary: synthetic@example.invalid",
+            "title: 2026.09.29",
         ),
         encoding="utf-8",
     )
@@ -462,6 +478,42 @@ def test_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
     )
 
     assert checked_rules(instance, tmp_path) == []
+
+
+def test_non_privacy_rules_skip_front_matter(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "---\ntitle: 2026.09.29 14:30 學生 가상별학교\n---\n# Overview\n",
+        encoding="utf-8",
+    )
+
+    problems = checked_rules(instance, tmp_path)
+
+    for rule in ("date", "time", "english", "school"):
+        assert not has_rule(problems, rule, "wiki/overview.md")
+
+
+def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    page.write_text(
+        "---\ntitle: 010-0000-0000\nsources:\n"
+        "  - 010-0000-0000\n---\n# Overview\n",
+        encoding="utf-8",
+    )
+
+    problems = checked_rules(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
+    assert not any(
+        item["document"] == "wiki/overview.md"
+        and item["line"] == 4
+        and item["message"].startswith("page rule phone:")
+        for item in problems
+    )
 
 
 def test_raw_scope_finds_front_matter_and_cog_without_python_filter(

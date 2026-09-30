@@ -233,6 +233,7 @@ def index(instance, wiki_id, cache, *, download):
 
 
 def _collection_chunk_count(wiki_id: str, cache: Path, collection: str) -> int:
+    # qmd returns document counts; request builders keep this function name.
     status, _ = _run_mcp_search(wiki_id, cache, [])
     return _counts(status).get(collection, 0)
 

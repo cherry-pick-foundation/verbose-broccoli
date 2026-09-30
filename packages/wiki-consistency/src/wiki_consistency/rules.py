@@ -50,13 +50,34 @@ def _pages(root):
     return pages
 
 
+def _front_matter_end(lines):
+    if lines and lines[0].strip() == "---":
+        return next(
+            (
+                number
+                for number, line in enumerate(lines[1:], 2)
+                if line.strip() in {"---", "..."}
+            ),
+            None,
+        )
+    return None
+
+
+def _front_matter_lines(text):
+    end = _front_matter_end(text.splitlines())
+    return set(range(1, end + 1)) if end is not None else set()
+
+
 def _ignored_lines(document, text):
     lines, ignored = text.splitlines(), set()
-    if lines and lines[0].strip() == "---":
-        for number, line in enumerate(lines[1:], 2):
-            if line.strip() in {"---", "..."}:
-                ignored.update(range(1, number + 1))
-                break
+    end = _front_matter_end(lines)
+    if end is not None:
+        in_sources = False
+        for number, line in enumerate(lines[1 : end - 1], 2):
+            if line.strip() and not line[0].isspace():
+                in_sources = bool(re.match(r"^sources\s*:", line))
+            if in_sources:
+                ignored.add(number)
     spans, errors = scan(document, text)
     if not errors:
         for span in spans:
@@ -71,6 +92,9 @@ def _run(root, pages, config):
         if not key.startswith("VALE_")
     }
     ignored = {page: _ignored_lines(page, text) for page, text in pages.items()}
+    front_matter = {
+        page: _front_matter_lines(text) for page, text in pages.items()
+    }
     result = subprocess.run(
         [
             "vale",
@@ -99,7 +123,14 @@ def _run(root, pages, config):
             raise RuntimeError("Vale returned an unexpected result")
         document, number, message = match[1], int(match[2]), match[3]
         key = document, number, message
-        if number not in ignored[document] and key not in seen:
+        if (
+            number not in ignored[document]
+            and not (
+                message.startswith("page rule time:")
+                and number in front_matter[document]
+            )
+            and key not in seen
+        ):
             seen.add(key)
             problems.append(
                 {"document": document, "line": number, "message": message}
@@ -152,7 +183,7 @@ def _school_rule(identifiers, styles):
         (styles / "Wiki" / "School.yml").write_text(
             "extends: existence\n"
             'message: "page rule school: write the school as its domain ID"\n'
-            "level: error\nscope: text\nvocab: false\n"
+            "level: error\nscope: text & ~frontmatter\nvocab: false\n"
             f"raw:\n  - {json.dumps(pattern)}\n",
             encoding="utf-8",
         )
@@ -182,7 +213,7 @@ def check(root):
         vocab = styles / "config" / "vocabularies" / "Roster" / "accept.txt"
         vocab.parent.mkdir(parents=True, exist_ok=True)
         names = sorted(
-            name
+            re.escape(name)
             for name, (kind, _) in identifiers.items()
             if kind in {"student", "given", "guardian"}
             and "\n" not in name

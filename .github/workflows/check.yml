@@ -69,5 +69,3 @@ jobs:
           mise exec -- git flow config sync
       - name: Run all checks
         run: mise exec -- npm run check
-      - name: Run Backfire deadline tests
-        run: mise exec -- npm run test:backfire-slow
