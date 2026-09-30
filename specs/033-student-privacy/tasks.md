@@ -71,6 +71,15 @@ files and can run in parallel.
 
 ## Phase 5: Finish
 
+- 2026-09-30: `develop` 4f12cb2 (CHE-63's kebab-case renames) merged in
+  `3bda766`; four conflicts were renames against this branch's changes and
+  kept both sides. `npm run verify` VERIFIED there (35 of 35 tasks) after
+  removing untracked bytecode caches that the new name check flagged.
+- Size: 3,700 changed lines against `develop` (1,054 generated region list,
+  1,112 tests, 672 code, 514 specs, 316 documents). Not split: the gate's
+  detectors, region list and tests protect student data only together, and
+  Part 2's repository change is under 200 lines.
+
 - [ ] T013 Final review by a reviewer from the other provider; resolve
   findings. Coordinator.
 - [ ] T014 Record, In Review, merge `develop`, `npm run verify`, review
