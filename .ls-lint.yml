@@ -16,7 +16,8 @@
 # - LICENSE: the license file as upstream projects ship it.
 # - Hidden folders such as .github are kebab-case after the dot.
 #
-# Keep every path below literal: the security review
+# Keep every path below literal (scripts/lint-names.sh adds the git-ignored
+# paths as literal entries, too): the security review
 # (specs/034-kebab-file-names/security/ls-lint-2.3.1.md, F-03) found that
 # wildcard paths follow symlinks.
 ls:
@@ -42,17 +43,7 @@ ls:
   packages/jev-ultrafast/src: *python-src
   packages/wiki-consistency/src: *python-src
 
-# Untracked dependency, build and cache folders.
+# .git holds Git's own files. Every other ignored folder, such as .venv, is
+# skipped by scripts/lint-names.sh, which reads the list from Git.
 ignore:
   - .git
-  - .local
-  - .turbo
-  - .venv
-  - node_modules
-  - packages/backfire/src/backfire.egg-info
-  - packages/wiki-consistency/node_modules
-  - tools/check-jsonschema/.venv
-  - tools/commitizen/.venv
-  - tools/ruff/.venv
-  - tools/shellcheck/.venv
-  - tools/spec-kit/.venv

@@ -16,6 +16,7 @@
     "scripts/constitution-bump-test.ts",
     "scripts/git-flow-test.ts",
     "scripts/gts-test.ts",
+    "scripts/lint-names-test.ts",
     "scripts/mise-doctor-test.ts",
     "scripts/plugin-skills-test.ts",
     "scripts/plugins-validate-test.ts",
