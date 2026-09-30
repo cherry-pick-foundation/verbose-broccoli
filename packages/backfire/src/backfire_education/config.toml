@@ -4,6 +4,7 @@ provider = "education"
 api = "openai"
 base_url = "https://api-cdn.thehive.ai/api/v3"
 model = "deepseek-ai/deepseek-v4.1-flash"
+credential_file = "../providers/hive.env"
 credential = "HIVE_API_KEY"
 request = { max_tokens = 32768, response_format = { type = "json_object" }, reasoning_effort = "medium" }
 

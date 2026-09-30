@@ -55,6 +55,17 @@ def test_operator_profile_is_read_and_can_use_relative_key_file(operator):
     assert config.load_credential(selected) == "synthetic-value"
 
 
+def test_shipped_key_file_in_the_shared_provider_folder_is_read(operator):
+    operator.parent.rmdir()
+    shared = operator.parent.parent / "providers/hive.env"
+    shared.parent.mkdir()
+    shared.write_text("HIVE_API_KEY=synthetic-value\n", encoding="utf-8")
+    shared.chmod(0o600)
+    selected = config.load_profile()
+    assert selected["credential_file"] == "../providers/hive.env"
+    assert config.load_credential(selected) == "synthetic-value"
+
+
 def test_operator_retry_table_is_passed_through(operator):
     operator.write_text(
         """provider = "local"
