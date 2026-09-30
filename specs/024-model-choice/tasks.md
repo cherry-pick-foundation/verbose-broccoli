@@ -183,6 +183,15 @@ providers it can read, with no key in its output or files.
 - [ ] T015 Develop merge review by a fresh reviewer from a provider other
   than the implementer's; resolve findings; record the review; finish with
   `git flow feature finish` and move CHE-45 to Done.
+  - 2026-09-30: Codex on `gpt-6-luna` at medium (backfire: model 0.75,
+    confidence 0.72; effort 0.58, confidence 0.52), fresh and read-only,
+    reviewed 4f4ac64: one medium finding, the usage example's shared `clean`
+    array did not unset `OPENROUTER_API_KEY` and `AI_GATEWAY_API_KEY`. A
+    Claude Code worker on `claude-sonnet-5-5` at medium (backfire 0.78,
+    confidence 0.74) fixed it in 7b148bb; with a dummy Vercel key exported,
+    the OpenRouter call saw only its own key. The skill matched its upstream
+    record, and the license was unchanged. The same reviewer confirms the
+    fix before the review record.
 
 ## Dependencies
 
