@@ -32,8 +32,8 @@ Add `--wiki <vault>` for a vault other than `work`; use the vault the user
 names, and ask when it is unclear. Exit 0 means every
 item succeeded, 1 means at least one item was refused or failed (or `verify`
 found an invalid revision), and 2 means an error stopped the command. For an
-invalid argument, selection or configuration, a missing instance or a held
-lock, nothing was written.
+invalid argument, selection or configuration, or a missing instance, nothing
+was written.
 
 ## Procedure
 

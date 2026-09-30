@@ -6,8 +6,17 @@ from conftest import add_revision
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
+import pytest
 
 from wiki_consistency.lint import check
+
+
+@pytest.fixture(autouse=True)
+def private_cache(monkeypatch, tmp_path):
+    cache = tmp_path / "xdg-cache"
+    (cache / "verbose-broccoli").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("XDG_CACHE_HOME", str(cache))
 
 
 def checked(instance, env):
