@@ -90,8 +90,33 @@ Planned when the answers arrive: mise (environment check), commitizen
 
 ## Phase 3: After CHE-42 merges (US3)
 
-Planned when CHE-42 is on `develop`: Turborepo run summaries, dependency-
-cruiser's command and configuration, and import-linter.
+CHE-42 merged into `develop` as `3bd2e7f` and into this branch as
+`6aecd50`. A read-only Codex design report compared keeping verify's run
+record (A, about -208 own-code lines) with replacing it (B, about -668); the
+user chose B (spec.md clarification).
+
+- [ ] T010 [US3] Replace `scripts/clean_architecture.ts` with dependency-
+  cruiser 18.2.0's own command and a JSON configuration
+  (`.dependency-cruiser.json`) carrying today's rules and the current
+  packages' public-API rules; run `clean-architecture` as `depcruise` with
+  its error reporter, `--no-cache` and `GIT_OPTIONAL_LOCKS=0`; pass the
+  graph commands' and the plan analysis's questions to `depcruise`
+  (`--reaches` for dependents, `--affected` with a full commit hash for
+  change impact) with little reshaping; remove the code and tests only the
+  old check used (FR-011, FR-012).
+- [ ] T011 [US3] Add import-linter 2.15 with built-in contracts only
+  (layers and acyclic siblings over `backfire`, `backfire_tools`,
+  `backfire_education`, `doc_regions` and `wiki_consistency`), run with
+  `--no-cache` in a `python:imports` task that `check` runs, with a
+  synthetic violation test (FR-011).
+- [ ] T012 [US3] Make `npm run verify` run `turbo run check --summarize`
+  with the Turborepo controls (telemetry off, no update notifier, the
+  remote-cache variables unset, `.turbo/runs/` ignored) and pass or fail on
+  its exit status and the same run's summary; remove the local evidence
+  record, its schema, log hashing, snapshots, failure streak and lock, and
+  the workflow's loop output that reads them; keep mode selection,
+  difficulty, graph and symbol commands and the skill triggers (FR-011,
+  FR-012).
 
 ## Phase 4: Records and finish (US4)
 

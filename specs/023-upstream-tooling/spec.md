@@ -31,8 +31,19 @@ to be pinned gates its addition.
 ### Session 2026-09-30
 
 - Pending: the user's answers on mise installs, the constitution version
-  check, Vale and the roster, the raw import record, and the behaviours the
-  swaps drop (asked through the develop session).
+  check, Vale and the roster, the raw import record, the behaviours the
+  swaps drop, and the security findings (asked through the develop session).
+- Q: For the workflow and verify swaps, keep verify's own run record (task,
+  base and plan, before/after snapshots, log hash, interrupted-run
+  detection, the two-failure REVIEW threshold, the lock and the graph
+  labels; about -208 own-code lines), or replace it (about -668)? → A:
+  Replace it. `npm run verify` runs Turborepo with a run summary and passes
+  on its exit status, which still gates the feature finish; the local run
+  record, snapshots, log hashing, failure streak and lock go. `AGENTS.md`
+  and the constitution change wherever they describe the verify evidence,
+  and the Turborepo security controls stay (telemetry off, no update
+  notifier, summaries kept out of commits). The develop session relayed the
+  user's answer.
 
 ## User Scenarios & Testing *(mandatory)*
 
