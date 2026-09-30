@@ -344,8 +344,10 @@ package two skills backed by two uv workspace packages.
   connection. The `web-agent` skill runs it.
 - `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
   offers that entered its published list during the latest 6-hour block,
-  asks Jev once per run whether each costs nothing and states no time limit
-  or end date, and sends a desktop notification for those that do. It saves
+  asks once per run, through backfire's shared provider order (feature 029,
+  [spec](../specs/029-offer-search-backfire/spec.md)), whether each costs
+  nothing and states no time limit or end date, and sends a desktop
+  notification for those that do. It saves
   nothing. The `credit-offers` skill runs it, and the user approved an Orca
   automation on the laptop that runs it every 6 hours as a precheck; the
   interval comes from the tracker's history
@@ -360,9 +362,8 @@ package two skills backed by two uv workspace packages.
   profiles' `credential_file` fields and follows its shared provider order.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
-- Not automated: the live provider check, which waits for a provider that
-  accepts Jev calls, because Vercel AI Gateway's free tier does not include
-  Jev; catching up blocks the laptop slept through; screenshots and scrolling
+- Not automated: live provider calls, which spend paid credit; catching up
+  blocks the laptop slept through; screenshots and scrolling
   in an Orca tab that is not drawn on screen.
 
 ## Sharing and distribution

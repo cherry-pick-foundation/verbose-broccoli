@@ -41,6 +41,35 @@ end with status 3 without showing a key.
   OpenRouter's credit, and CodexBar usage reads for Codex (two), Claude
   (two) and OpenRouter (one).
 
+## Document judgment step
+
+`npm run doc-regions:prepare -- --base develop --max-evidence-chars 40000`
+at `develop` `0e8e177` produced 238 units in three `jev_verify` requests,
+sent through backfire on 2026-09-30: 4 OpenRouter calls, one of them lost
+to an error in the coordinator's sending script and sent again. No unit
+was new, so no `jev_classify` request was made.
+
+- Three units in `docs/architecture.md` "Chat web agent and credit offers"
+  were judged contradicted. Two were fixed: the offer search's paragraph
+  now says it asks through backfire's shared provider order, and the "Not
+  automated" line no longer says no provider accepts Jev calls. The third,
+  the `packages/jev-ultrafast/` paragraph, stands: it describes only the
+  web agent, which keeps `JEV_PROVIDER` and OpenRouter.
+- 71 units were flagged for review. They lie outside this feature's diff
+  (the constitution, `AGENTS.md` and unrelated sections), except the
+  backfire guide's "Both plugins read one shipped configuration", which now
+  also names the credit-offer search, and one new sentence in its
+  introduction.
+- The MemoryLint audit (`npm run doc-regions:audit`) is reported under
+  "Verification".
+
+## Verification
+
+- `npm run doc-regions:audit` (MemoryLint 1.5.1) reported 19 warnings,
+  all "boundary" findings that suggest moving rules from
+  `.specify/memory/constitution.md` to `AGENTS.md`. None comes from this
+  feature; they are reported to the user and the files are unchanged.
+
 ## Size
 
 Own code in `packages/credit-offers/src`: 28 lines added, 21 removed
