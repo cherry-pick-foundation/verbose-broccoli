@@ -239,6 +239,13 @@ time limit.
     that need no change. The records reviewer (Codex, `gpt-6-luna`, high)
     found five minor inconsistencies, fixed in `df3e06e`. The fixes are text
     only, so no fourth round.
+  - 2026-09-30: the user chose OpenRouter for the automation and had the
+    search send an optional GitHub token (`GITHUB_TOKEN`, `providers/github.env`)
+    on its API requests, after GitHub's shared unauthenticated limit made a
+    run fail twice. Codex (`gpt-6-luna`, high, chosen by `jev_decide` at
+    0.78) implemented it in `1b48337` (18 tests). The own-code check reads
+    +567, and the user raised the recorded allowance to 567. A short fourth
+    review covers `1b48337` and the token documents.
 
 - [x] T018 Scope change (user, 2026-09-30): move provider keys to the shared
   folder `~/.config/verbose-broccoli/providers/`. Point the chat skills, the
