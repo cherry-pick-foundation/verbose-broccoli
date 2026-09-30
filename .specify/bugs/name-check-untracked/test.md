@@ -25,6 +25,8 @@ tests fail without the fix and pass with it, and `npm run verify` ends
 
 ## Residual Risks
 
+- An ignored path whose name holds a newline is not skipped (Git C-quotes
+  it), so the check reports it instead of skipping it. That fails loud.
 - A git-ignored path whose own name holds a wildcard character is handed to
   ls-lint as an ignore entry; see the assessment's risks.
 - ls-lint checks a folder only when it walks the folder, so a tool that

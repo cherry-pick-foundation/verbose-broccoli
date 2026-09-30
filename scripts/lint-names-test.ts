@@ -25,12 +25,13 @@ function run(cwd: string, command: string, ...args: string[]) {
   };
 }
 
-// A fresh Git repository with a kebab-case rule for files and folders and
-// `cache/` ignored, the way `.venv` is in the real repository.
+// A fresh Git repository with a kebab-case rule for files and folders, and
+// `cache/` and a Korean-named folder ignored, the way `.venv` is in the real
+// repository.
 async function repository() {
   const root = await mkdtemp(join(tmpdir(), 'lint-names-'));
   run(root, 'git', 'init', '--quiet');
-  await writeFile(join(root, '.gitignore'), 'cache/\n');
+  await writeFile(join(root, '.gitignore'), 'cache/\n한글/\n');
   await writeFile(
     join(root, '.ls-lint.yml'),
     'ls:\n  .dir: kebab-case\n  ".": kebab-case\n  .*: kebab-case\nignore:\n  - .git\n',
@@ -38,6 +39,8 @@ async function repository() {
   await mkdir(join(root, 'cache', 'Bad_Folder'), {recursive: true});
   await writeFile(join(root, 'cache', 'Bad_File.txt'), '');
   await writeFile(join(root, 'cache', 'Bad_Folder', 'x.txt'), '');
+  await mkdir(join(root, '한글'));
+  await writeFile(join(root, '한글', 'Bad_Name.txt'), '');
   return root;
 }
 

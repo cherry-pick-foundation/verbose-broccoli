@@ -31,6 +31,20 @@ ignore list shrinks to `.git`.
   an untracked `Bad_File.txt` and `Bad_Folder` fail, and the ignored `cache/`
   names do not appear in the output. Fails without the fix.
 
+- `lint-names skips folders that Git ignores` also holds an ignored folder
+  with a Korean name and a non-kebab-case file. Added after the develop merge
+  review (below); fails without `core.quotepath=off`, because Git then prints
+  the name C-quoted and it matches no path.
+
+## Review
+
+A fresh Codex reviewer (gpt-6-luna, medium; backfire `jev_decide` 0.99)
+reviewed `735b412` read-only: 0 blockers, 0 majors, 1 minor. Names that hold
+a newline are C-quoted by Git even with `core.quotepath=off`, so they cannot
+match an ignore entry and stay checked, and a non-kebab name under such an
+ignored path is reported, never skipped. This is left as it is and noted in
+the script; the non-ASCII case is fixed.
+
 ## Deviations from Assessment
 
 None.
