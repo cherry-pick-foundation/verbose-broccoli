@@ -219,7 +219,7 @@ time limit.
     `TYPESAFE_MODEL`; the automation is described as approved; the monthly
     cost is about 1 to 2 cents. The fixes do not change the implementation
     materially, so no second round. Lines: 284 of 300.
-  - 2026-09-30: after the first round, `develop` moved twice (CHE-40's
+  - 2026-09-30: after the first round, `develop` moved twice (CHE-42's
     own-code check, then CHE-39's backfire rebuild) and was merged in. The
     user then added Cloudflare and OpenRouter as providers and moved keys
     to the shared provider folder (T018). Round 2 at `7e1ef04`: the code
