@@ -174,7 +174,7 @@ Stand-ins are English, so a provider never receives Hangul.
 | --- | --- |
 | A roster student's Korean name, also with particles (`가라온은`) | `Student 03` |
 | That student's EduOK number from `id`, as a whole number, also when it is a JSON number or key (`7700101`, `7700101.0`) | the same `Student 03` |
-| That student's romanized name in any case, with or without a hyphen or space inside the given name, surname first or last (`Kim Gildong`, `KIM GIL-DONG`, `gildong kim`) | the same `Student 03` |
+| That student's romanized name in any case, with or without hyphens or spaces (any number, non-breaking ones included) inside the given name, surname first or last (`Kim Gildong`, `KIM GIL-DONG`, `gildong kim`) | the same `Student 03` |
 | That student's given name alone, Korean (`라온이가`) or romanized (`Gildong`), derived from the full name | the same `Student 03` |
 | A given name several roster students share | its own `Student NN` |
 | A roster guardian name | `Guardian 01` |
@@ -183,8 +183,8 @@ Stand-ins are English, so a provider never receives Hangul.
 | An email address | `Email 01` |
 | A province, city, county or district name, current or abolished, in Korean (`평택시`) or romanized (`Jongno-gu`, `Pyeongtaek`, `North Chungcheong`, `Chungbuk`), with a unit word after it such as `City` or `Province` | `Region 01` |
 | A school year: `Grade 10`, `Grade: 10`, `Grade: 11th`, `Grades 10 and 11`, `Grade ten`, `10th grade`, `tenth grade` (up to `twelfth`), `Year 11`, `year eleven` (spelled from `one` to `twelve`), `first-year high school student`, `fourth-year elementary school student` (first to sixth year), `high school sophomore`, `고1`, `중2`, `초6`, `1학년`, `예비 고1`; one stand-in per grade, with no coarse band | `Cohort 01` |
-| After `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: the rest of its clause, up to a sentence end, a semicolon, a line break or a table cell end (`|`), when it holds a digit, a month name, a year in words or a Roman numeral year, so a birth date in any form is hidden: `born on June 17, [ 2012 ]`, `DOB: 17.VI.2012`, `born in nineteen ninety-eight`. Other text in that clause is hidden with it: `born on June 17, 2012, and 90 points` sends no score. Also forms such as `2009년생` | `Birth date 01` |
-| The rest of a line or table cell after `address` or `주소`, and a run of romanized address parts, such as `Bijeon-ro 12`, `Ha-neul-ro 487`, `Solbit-ro 12-gil 487`, `Jungang-daero 45beon-gil 7`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jongno 1-ga`, with the building, lot or unit numbers (`487 Solbit-ro`, `Solbit-ro, 487`, `101-1203`, `Apt #1203`, `building 101, unit 1203`), postal codes and region names before or after it; the whole run becomes one stand-in | `Address 01` |
+| After `born`, `birthday`, `birth date`, `birth year`, `date of birth`, `DOB`, `생년월일`, `생일` or `출생`: the rest of its clause, up to a sentence end, a semicolon, a line break or a table cell end (`|`), when it holds a digit, a month name (lowercase too, except `may`), a year in words or a Roman numeral year (`MMXIII`, `mmxiii`), so a birth date in any form is hidden: `born on June 17, [ 2012 ]`, `DOB: 17.VI.2012`, `born in nineteen ninety-eight`. Other text in that clause is hidden with it: `born on June 17, 2012, and 90 points` sends no score. Also forms such as `2009년생` | `Birth date 01` |
+| The rest of a line or table cell after `address` or `주소`, and a run of romanized address parts, such as `Bijeon-ro 12`, `Ha-neul-ro 487`, `Solbit-ro 12-gil 487`, `Jungang-daero 45beon-gil 7`, `Seo-dong 123-4`, `101-dong 1203-ho` or `Jongno 1-ga`, with the building, lot or unit numbers (`487 Solbit-ro`, `Solbit-ro, 487`, `101-1203`, `Apt #1203`, `building 101, unit 1203`, `(Apt 2317)`, `apt. no. 2317`, `103/2317`), postal codes and region names before or after it; the whole run becomes one stand-in | `Address 01` |
 
 Between a keyword and its value there may be spaces, punctuation (`:`, `=`,
 `-`, `—`, `->`, quotation marks) and Markdown or table markup (`|`, `**`, `_`,
@@ -197,7 +197,8 @@ A column header can say the same for the cells below it: in a Markdown table
 (the header row above its delimiter row) or a CSV or tab-separated block (its
 first line), a header that names a school year, birth date, address or student
 number makes each cell below it a stand-in of that kind, row by row until a
-line without the separator; in a school-year column only cells that read as a
+row without the separator; a quoted CSV cell keeps its commas and line breaks,
+and an escaped pipe (`\|`) stays inside its Markdown cell; in a school-year column only cells that read as a
 school year, so `| Grade |` over `| 11 |` becomes a `Cohort` while `B+`
 stays.
 

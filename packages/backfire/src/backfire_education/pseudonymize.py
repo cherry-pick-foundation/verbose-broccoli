@@ -98,7 +98,13 @@ _CLAUSE_CHAR = (
 _LEADING_WORDS = re.compile(
     r"^(?:(?:on|in|the|is|was|of|year|around|about)\s+)+", re.IGNORECASE
 )
-_DATE_LIKE = rf"(?:\d|{_MONTH}|{_WORD_YEAR}|{_ROMAN_YEAR}(?![A-Za-z]))"
+# In a birth clause a month may be lowercase too, except "may", a common
+# verb, and a Roman year may be lowercase from "mm" or "mcm" on (mmxiii).
+_DATE_LIKE = (
+    rf"(?:\d|{_MONTH}|{_WORD_YEAR}|{_ROMAN_YEAR}(?![A-Za-z])"
+    rf"|(?i:{_MONTH_NAMES.replace('|May|', '|')})(?![A-Za-z])"
+    r"|(?-i:m(?:m|cm)[cdlxvi]*)(?![A-Za-z]))"
+)
 _BIRTH_CLAUSE = (
     rf"(?={_CLAUSE_CHAR}*?(?<![A-Za-z]){_DATE_LIKE}){_CLAUSE_CHAR}*(?<!\s)"
 )
@@ -112,8 +118,8 @@ _ADDRESS_PART = (
 # A building, lot or unit number or a postal code; not part of a date
 # (Solbit-ro, 2026-09-28).
 _ADDRESS_NUMBER = (
-    r"(?:(?:apt|apartment|unit|room|rm|suite|ste|building|bldg|block|blk"
-    r"|floor|fl|no|house)\.?\s*#?\s*|#\s*)?\d{1,5}(?:-\d{1,4})?"
+    r"(?:(?:(?:apt|apartment|unit|room|rm|suite|ste|building|bldg|block|blk"
+    r"|floor|fl|no|house)\.?\s*)+#?\s*|#\s*)?\d{1,5}(?:[-/]\d{1,5})?"
     r"(?![0-9A-Za-z]|[-./][0-9A-Za-z])"
 )
 _REGION_UNITS = (
@@ -190,7 +196,7 @@ def _cells(text: str) -> str:
     lines, cells = text.split("\n"), []
     for index, line in enumerate(lines[1:], 1):
         if "|" in lines[index - 1] and _DELIMITER.fullmatch(line):
-            names = lines[index - 1].strip().strip("|").split("|")
+            names = re.split(r"(?<!\\)\|", lines[index - 1].strip().strip("|"))
             lines[index - 1] = ""
             for row in itertools.takewhile(
                 lambda row: "|" in row, lines[index + 1 :]
@@ -198,7 +204,7 @@ def _cells(text: str) -> str:
                 cells.extend(
                     f"{name}: {cell}"
                     for name, cell in zip(
-                        names, row.strip().strip("|").split("|")
+                        names, re.split(r"(?<!\\)\|", row.strip().strip("|"))
                     )
                 )
     return "\n".join(lines + cells)
@@ -247,42 +253,54 @@ def _field_spans(
     return [(*match.span(1), (kind, _norm(value)))] if value else []
 
 
-def _row_cells(line: str, separator: str) -> list[tuple[int, int]]:
-    """Return the (start, stop) of each cell in a table or CSV row.
+def _record(text: str, start: int, separator: str):
+    """Return the cells of the table or CSV record at start, and its end.
 
-    In CSV and TSV a separator inside double quotes belongs to its cell.
+    In CSV and TSV a separator or line break inside double quotes belongs to
+    its cell; in a Markdown row an escaped pipe does.
     """
-    cells, start, quoted = [], 0, False
-    for index, char in enumerate(line):
+    cells, cell, quoted, index = [], start, False, start
+    while index < len(text):
+        char = text[index]
         if char == '"' and separator != "|":
             quoted = not quoted
-        elif char == separator and not quoted:
-            cells.append((start, index))
-            start = index + 1
-    cells.append((start, len(line)))
+        elif char == "\n" and not quoted:
+            break
+        elif (
+            char == separator
+            and not quoted
+            and not (separator == "|" and text[index - 1 : index] == "\\")
+        ):
+            cells.append((cell, index))
+            cell = index + 1
+        index += 1
+    cells.append((cell, index))
     if separator == "|":
         # The edge cells of "| a | b |" are empty; drop them.
         cells = [
-            cell
-            for position, cell in enumerate(cells)
-            if line[slice(*cell)].strip() or 0 < position < len(cells) - 1
+            span
+            for position, span in enumerate(cells)
+            if text[slice(*span)].strip() or 0 < position < len(cells) - 1
         ]
-    return cells
+    return cells, index + 1
 
 
-def _column_spans(text: str) -> list[tuple[int, int, tuple[str, str]]]:
+def _column_spans(
+    text: str,
+) -> tuple[list[tuple[int, int, tuple[str, str]]], list[tuple[int, int]]]:
     """Return the cells of named columns in Markdown tables, CSV or TSV.
 
     A header cell that names a school year, birth date, address or student
-    number makes the cells below it that kind, row by row until a line
+    number makes the cells below it that kind, record by record until one
     without the separator: school-year cells when they read as one, the
-    others whatever they hold.
+    others whatever they hold. Also return where each header row is, so
+    its column names are not read as values.
     """
-    lines, spans, offset = text.split("\n"), [], 0
-    starts = []
-    for line in lines:
-        starts.append(offset)
-        offset += len(line) + 1
+    spans, headers = [], []
+    lines = text.split("\n")
+    starts = list(
+        itertools.accumulate((len(line) + 1 for line in lines), initial=0)
+    )
     for index, header in enumerate(lines):
         for separator in ("|", "\t", ","):
             if separator not in header:
@@ -295,26 +313,29 @@ def _column_spans(text: str) -> list[tuple[int, int, tuple[str, str]]]:
                     continue
             elif index and separator in lines[index - 1]:
                 continue
+            cells, position = _record(text, starts[index], separator)
             names = [
-                _field_kind(header[slice(*cell)].strip(_MARKUP + " \t"))
-                for cell in _row_cells(header, separator)
+                _field_kind(text[slice(*cell)].strip(_MARKUP + " \t\r"))
+                for cell in cells
             ]
             if not any(names):
                 continue
-            for row, line in enumerate(lines[index + 1 :], index + 1):
-                if separator not in line:
+            headers.append((starts[index], starts[index] + len(header)))
+            if separator == "|":
+                position = (
+                    starts[index + 2] if index + 2 < len(lines) else len(text)
+                )
+            while position < len(text):
+                cells, end = _record(text, position, separator)
+                if len(cells) < 2:
                     break
-                if separator == "|" and _DELIMITER.fullmatch(line):
-                    continue
-                for kind, (start, stop) in zip(
-                    names, _row_cells(line, separator)
-                ):
-                    cell = line[start:stop]
-                    value = cell.strip(_MARKUP + " \t\r")
+                for kind, (start, stop) in zip(names, cells):
+                    cell = text[start:stop]
+                    value = cell.strip(_MARKUP + " \t\r\n")
                     # A blanked stand-in is a value already replaced.
                     if not kind or not value or _BLANK in value:
                         continue
-                    first = starts[row] + start + cell.index(value)
+                    first = start + cell.index(value)
                     if kind == "cohort":
                         year = _YEAR.fullmatch(value)
                         if year:
@@ -336,8 +357,9 @@ def _column_spans(text: str) -> list[tuple[int, int, tuple[str, str]]]:
                                 ),
                             )
                         )
+                position = end
             break
-    return spans
+    return spans, headers
 
 
 def _count(word: str) -> str:
@@ -494,8 +516,8 @@ def _address_pattern() -> re.Pattern[str]:
         rf"(?:{_ADDRESS_PART}|{_ADDRESS_NUMBER}|{_region_pattern().pattern})"
     )
     return re.compile(
-        rf"(?<![A-Za-z0-9])(?:{token}[\s,]+){{0,6}}(?:{_ADDRESS_PART})"
-        rf"(?:[\s,]+{token})*",
+        rf"(?<![A-Za-z0-9])(?:{token}[\s,;()]+){{0,6}}(?:{_ADDRESS_PART})"
+        rf"(?:[\s,;()]+{token})*\)?",
         re.IGNORECASE,
     )
 
@@ -511,7 +533,7 @@ def _forms(name: str) -> list[str]:
         Patterns that each start with a letter.
     """
     surname, *rest = re.split(r"[ -]", name)
-    given = "[- ]?".join("".join(rest) or surname)
+    given = r"[-\s]*".join("".join(rest) or surname)
     if not rest:
         return [given]
     return [
@@ -638,7 +660,8 @@ def find_spans(
         return span
     text = text.translate(_AS_HYPHEN)
     # Roster matches (rank 0) win over column cells at the same place.
-    candidates = [(*span, 2) for span in _column_spans(text)]
+    columns, headers = _column_spans(text)
+    candidates = [(*span, 2) for span in columns]
     if roster_pattern is not None:
         candidates.extend(
             (match.start(), match.end(), identifiers[match.group()], 0)
@@ -678,6 +701,12 @@ def find_spans(
             )
             for match in pattern.finditer(text)
         )
+    # A header row holds column names, not values.
+    candidates = [
+        item
+        for item in candidates
+        if not any(start <= item[0] < stop for start, stop in headers)
+    ]
     candidates.sort(key=lambda item: (item[0], -(item[1] - item[0]), item[3]))
     selected, end = [], -1
     for start, stop, identifier, _ in candidates:

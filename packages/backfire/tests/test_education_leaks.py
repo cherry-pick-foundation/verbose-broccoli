@@ -426,6 +426,14 @@ def test_content_in_the_clause_of_a_birth_date_is_hidden_with_it(
         ("Lives at Solbit-ro 487, Apt #1203.", ["487", "1203"]),
         ("Lives at Solbit-ro 487, building 101, unit 1203.", ["101", "1203"]),
         ("Grade: 11th this year.", ["11th"]),
+        ("Ga Ra\u00a0on came today.", ["Ra\u00a0on"]),
+        ("Ga Ra  on came today.", ["Ra  on"]),
+        ("born in june", ["june"]),
+        ("born on november nineteenth", ["november"]),
+        ("born in mmxiii", ["mmxiii"]),
+        ("Lives at Solbit-ro 487 (Apt 2317)", ["2317"]),
+        ("Lives at Solbit-ro 487, apt. no. 2317", ["2317"]),
+        ("Lives at Solbit-ro 487, 103/2317", ["103", "2317"]),
         ("Grades 10 and 11 share a room.", ["10", "11"]),
         ("born on September 23, '13 and enjoys reading", ["'13", "September"]),
         ("born on the 23rd day of September 2013", ["2013", "September"]),
@@ -532,6 +540,15 @@ def test_stand_ins_and_their_keywords_are_not_refused(
         ("| StudentNo | Score |\n|---|---|\n| 7799999 | 85 |", ["7799999"]),
         ("Name,Grade,DOB\nGa Raon,11,2011-04-23", ["11", "2011"]),
         ('Name,StudentNo,Grade\n"Ga, Raon",7799999,11', ["7799999", "11"]),
+        (
+            'Name,Note,DOB\nGa Raon,"Likes reading\nand drawing",2013-11-19',
+            ["2013"],
+        ),
+        (
+            "| Name | Note | DOB |\n|---|---|---|\n"
+            "|Ga Raon|A \\| B|2013-11-19|",
+            ["2013"],
+        ),
         (
             "Name\tAddress\tStudent ID\nGa Raon\t487 Imaginary St\t7799999",
             ["487", "7799999"],
