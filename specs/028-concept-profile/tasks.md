@@ -199,6 +199,15 @@ below.
   docs/backfire.md carry Hangul that backfire refuses (reported to the
   develop session); the other 256 were sent: 0 contradicted, none of the
   115 flagged in this feature's files.
+- 2026-09-30 handoff (computer restart): stopped before the finish, with the
+  finish slot on hold. Done up to 930fe65. The user kept the answer key and
+  the two proposals files for stage 2 in
+  `~/.local/state/verbose-broccoli/concept-profile/`; the rest was deleted.
+  Next, once the develop session grants the slot: merge develop (f385143 or
+  newer), rerun setup if tooling changed, `npm run verify`, the
+  review-record commit, check develop has not moved, `git flow feature
+  finish` from the develop worktree, a CHE-57 comment (issue stays open),
+  and the board status `completed`.
 - [ ] T012 Develop merge review by a fresh reviewer from the other provider,
   given only the scope and requirements; resolve findings; add the
   review-record commit; check `develop` has not moved; `git flow feature
