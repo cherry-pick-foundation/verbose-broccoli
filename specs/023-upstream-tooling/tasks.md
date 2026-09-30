@@ -171,3 +171,15 @@ user chose B (spec.md clarification).
   reviewers check it) and wherever it describes verify's evidence.
 - [ ] T092 Merge `develop`, verify, pass the develop merge review, and
   finish with `git flow feature finish`.
+  - 2026-09-30, split review (`AGENTS.md`, Review): against `develop` the
+    branch changes 94 files, 7,558 lines added and 10,871 deleted; without
+    the Spec Kit records, the six copied security reports and lock files it
+    is 76 files, about 3,100 added and 8,700 deleted, most of it whole files
+    removed. Not split: the swaps share `package.json`, `turbo.json`,
+    `tsconfig.json`, `orca.yaml` and the CI workflow, the hook switch and the
+    verify change must land together, and the user asked for one feature
+    (CHE-44).
+  - 2026-09-30, merge reviewers chosen with the `model-choice` skill
+    (backfire `jev_decide`): code, Claude Code `sonnet` at medium effort
+    (0.70; the implementer was Codex); records, Codex `gpt-6-luna` at max
+    effort (0.60; the author was Claude Code).
