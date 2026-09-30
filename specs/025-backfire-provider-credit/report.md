@@ -23,7 +23,7 @@ starting point.
 
 ## Tests
 
-`npm run test:backfire`: 175 passed and 1 expected failure. The expected
+`npm run test:backfire`: 185 passed and 1 expected failure. The expected
 failure is the existing CHE-38 case in `tests/test_bounded_work.py`, not
 part of this feature. New tests: `tests/test_credit.py` (CodexBar reading,
 the minimal environment, unknown credit) and `tests/test_order.py` (skip,
@@ -34,7 +34,7 @@ mode after a switch).
 
 | Provider | Calls | Purpose |
 | --- | --- | --- |
-| Hive | 3 | `jev_decide` choosing the implementer, the research worker and the reviewers, through `develop`'s backfire |
+| Hive | 4 | `jev_decide` choosing the implementer, the research worker, the reviewers and the review fixer, through `develop`'s backfire |
 | CodexBar | 3 reads | OpenRouter credit, once per backfire server: the live judgment and the two document-step runs; CodexBar called OpenRouter's key and credits endpoints, not Jev |
 | OpenRouter | 9 | The live judgment on 2026-09-30 12:35 KST, `jev_verify` on one synthetic claim: the result named `openrouter`, model `typesafe/jev-1.13`, verdict verified at 0.99, 523 input and 46 output tokens. Then 8 calls for the document judgment step below |
 | Vercel | 0 | |
@@ -92,7 +92,29 @@ file; they are reported to the user only.
 | Research for CHE-51 | Claude Code Sonnet 5.5, high | `jev_decide` | 0.77 |
 | Code review | Claude Code Sonnet 5.5, high | `jev_decide` | 0.48 |
 | Records review | Codex `gpt-6-luna`, xhigh | `jev_decide` | 0.48 |
+| Review fixes | Codex `gpt-6-luna`, high | `jev_decide` | 0.39 |
 
 ## Review
 
-<!-- Filled after the develop merge review. -->
+Fresh reviewers, started through Orca in the coordinator's child Run,
+reviewed the branch at `c2b7b70` for the merge into `develop`, favoring
+speed:
+
+- Code (Claude Code Sonnet 5.5, high effort): approve, with 0 blockers, 0
+  majors and 6 minors: the response-cache key on the first call, an empty
+  or repeated `order` accepted, a null `providerCost.balance` skipping the
+  details fallback, missing tests (skip log line, every profile skipped,
+  99.9% used, comma amounts, tertiary window), no switch test through
+  PyModel's own OpenRouter provider, and three simplifications. A Codex
+  worker (`gpt-6-luna`, high, `jev_decide` confidence 0.39) fixed all six in
+  `48da42a` (non-test code +37/-50, 184 tests passing). The coordinator
+  reviewed that fix and found that it dropped a guard, so a dollar value
+  with no digit would raise instead of counting as unknown credit; the same
+  worker fixed it in `8aae2c6` (185 tests passing).
+- Documents and records (Codex `gpt-6-luna`, xhigh): request changes, with
+  0 blockers, 1 major and 3 minors: the spec's size criterion contradicted
+  the measured size; `research.md` cited the wrong guide line; `plan.md`
+  kept Vercel status guidance for a profile this feature no longer ships;
+  and the guide and skill texts said "the first profile that has credit"
+  although unknown credit keeps a profile. The coordinator fixed all four
+  in `166e9a0`.

@@ -89,9 +89,9 @@ files and can run in parallel.
 - [X] T008 Run the plan's live check with CodexBar 0.69.0 (one judgment
   through the shipped order, starting with OpenRouter); record each live
   call in `report.md`. Coordinator.
-- [ ] T009 Analysis of spec, plan and tasks; `npm run verify` on the
+- [X] T009 Analysis of spec, plan and tasks; `npm run verify` on the
   feature; record the change size. Coordinator.
-- [ ] T010 Move CHE-46 to In Review and the board to in-review; fresh
+- [X] T010 Move CHE-46 to In Review and the board to in-review; fresh
   Claude Code review of the code and fresh Codex review of the docs and
   records; resolve findings; review-record commit. Coordinator.
 - [ ] T011 Merge `develop`, `npm run verify`, check `develop` has not moved,
@@ -128,3 +128,9 @@ order after the rest.
   `486a3d7`, updated the docs, skill texts and notices, and ran the live
   check (T008): one CodexBar read and one OpenRouter call, result named
   `openrouter`. Next: T009 analysis and verify, T010 review, T011 finish.
+- 2026-09-30: T009: document judgment step (8 OpenRouter calls) and
+  `npm run verify` VERIFIED at `c2b7b70`. T010: CHE-46 In Review; code review
+  (Claude Code Sonnet 5.5, high) approved with 6 minors, fixed by Codex
+  (`gpt-6-luna`, high) in `48da42a` and `8aae2c6`; records review (Codex
+  `gpt-6-luna`, xhigh) found 1 major and 3 minors, fixed in `166e9a0`.
+  Next: T011, merge `develop`, verify, review record and finish.
