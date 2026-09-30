@@ -112,6 +112,20 @@ vault schema template, and the four vaults' `AGENTS.md`.
   vault schemas MUST state that raw holds original sources only.
 - **FR-007**: The rule MUST stay a short judgment rule. The raw-import tool
   MUST NOT gain a classifier or a delete command.
+- **FR-008**: Wiki pages MUST point only to original sources. Links to
+  other generated files MUST be replaced with the original they came from,
+  or dropped where none exists: selected passage and word lists, AI-written
+  teaching analyses, Markdown text extractions of textbooks and passages, the
+  earlier Wiki build's process records (Slack captures included), the older
+  student notes and the midterm scope decision record. The 15 ggcj-h
+  per-question mock-exam vocabulary PDFs stay.
+- **FR-009**: The vocabulary-test registry of 2026-09-21 is not a raw source.
+  Its links MUST be dropped, and each of the 9 student pages it covers MUST
+  get a short "Vocabulary test plan" section: the assigned word book (citing
+  its raw bag where the word book is in raw), the schedule's start and end
+  dates, the number of dates, the unique headword count and the test
+  weekdays, recorded as the plan of 2026-09-21. Word lists, answer keys,
+  attendance and results stay out.
 
 ### Key Entities
 
@@ -130,6 +144,9 @@ vault schema template, and the four vaults' `AGENTS.md`.
 - **SC-003**: `check --wiki work` reports 0 findings outside CHE-58's.
 - **SC-004**: The rule appears in the skill's steps 1 and 4, the template
   and all four vault schemas.
+- **SC-005**: 0 page links point at the generated files FR-008 and FR-009
+  name, and the 9 covered student pages each have a vocabulary test plan
+  section.
 
 ## Assumptions
 
@@ -145,3 +162,5 @@ vault schema template, and the four vaults' `AGENTS.md`.
   student names.
 - The CHE-57 feature (concept profiles) commits in the same vault; this
   feature commits there only after CHE-57's vault commit.
+- FR-008 and FR-009 were decided by the user on 2026-09-30, after the first
+  page changes showed that pages still linked other generated files.

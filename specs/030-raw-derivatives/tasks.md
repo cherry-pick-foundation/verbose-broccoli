@@ -52,6 +52,18 @@ worker owns T002; main owns the records, the commits and integration.
 - [x] T006 [P] [US3] Add the derivative rule to the skill's steps 1 and 4,
   the schema template and the four vault schemas (FR-006, FR-007).
 
+## Phase 3b: Original sources only (FR-008, FR-009)
+
+- [x] T010 [US2] Replace or drop the page links to the selected passage and
+  word lists, the AI-written teaching analyses and the midterm-scope text's
+  own copy (FR-008).
+- [ ] T011 [US2] Replace or drop the page links to Markdown text
+  extractions, the earlier Wiki build's process records, the older student
+  notes and the midterm scope decision record (FR-008).
+- [ ] T012 [US2] Drop the vocabulary-test registry's links and add a
+  vocabulary test plan section to each of the 9 student pages it covers
+  (FR-009).
+
 ## Phase 4: Integration
 
 - [ ] T007 Review each diff, commit the repository and each vault, merge
@@ -70,11 +82,12 @@ comment, not into this file.
 
 - T004 needs T002. T005 needs T003 and T004.
 - T006 is independent of T002 to T005.
-- T007 needs T002 to T006; T008 needs T007; T009 needs T008.
+- T010, T011 and T012 need T003 and run in that order.
+- T007 needs T002 to T006 and T010 to T012; T008 needs T007; T009 needs T008.
 
 ## Worker Assignment
 
 - Codex `gpt-6-luna` at `high` (backfire 0.45, confidence 0.37): T002.
 - Claude Code `claude-sonnet-5-5` at `high` (backfire 0.29, confidence
-  0.19): T003 to T006.
+  0.19): T003 to T006 and T010 to T012, in one reused terminal.
 - Main: everything else.
