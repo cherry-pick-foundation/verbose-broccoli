@@ -89,4 +89,23 @@ parallel.
   check and trim, the same Codex worker reused (0.35); develop merge review
   of the code Claude Code Sonnet 5.5 medium (0.56) and of the records Codex
   gpt-6-luna medium (0.52).
+- Before the develop merge review, `doc-regions:prepare --base develop
+  --max-evidence-chars 12000` gave 7 `jev_verify` requests over 237 units:
+  none contradicted, 227 accepted automatically (mostly unsupported within
+  the evidence cap) and 10 flagged for review, each with at most 0.02
+  probability of contradiction and "needs diff" as the missing evidence. The
+  two flagged units this feature changed, the Wiki storage paragraph of
+  `docs/architecture.md` and the constitution's Governance record, match the
+  changed files and stand. `doc-regions:audit` (MemoryLint) reports 19
+  warnings that constitution rules belong in `AGENTS.md`; they concern text
+  that existed before this feature and the Sync Impact Report, and are
+  reported to the user without changing either file.
+- At the user's request, the glue worker compared each part of the script
+  with SpecStory, betterleaks, backfire, PyModel, the mcp client and the
+  standard library. None duplicated them: SpecStory's listing is per project
+  and its index stores full text, its Claude provider needs an existing
+  project folder, it has no reader for its own Markdown, backfire's span
+  finder has no word-boundary rule, and PyModel's command line takes one
+  request without backfire's education server. The trim left 551 lines and
+  +496 net own code.
 
