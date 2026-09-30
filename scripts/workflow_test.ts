@@ -483,7 +483,9 @@ void test('workflow: review instructions time independent review at merge', () =
   assert(
     lines.some(
       line =>
-        line.includes('fresh reviewer from the other provider') &&
+        line.includes(
+          "fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot)",
+        ) &&
         line.includes('develop (favoring speed)') &&
         line.includes('main (favoring accuracy)') &&
         line.includes('not for each change'),

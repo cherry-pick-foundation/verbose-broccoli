@@ -2,10 +2,10 @@
 name: model-choice
 license: MIT
 description: >
-  Choose the agent (Codex, Claude Code or OMP), model and reasoning effort for
-  an Orca worker, reviewer or orchestrator with backfire's judgment tools,
-  from live model catalogs and the task's evidence. Use before starting any
-  worker, reviewer or orchestrator through Orca.
+  Choose the agent (Codex, Claude Code, Copilot or OMP), model and reasoning
+  effort for an Orca worker, reviewer or orchestrator with backfire's
+  judgment tools, from live model catalogs and the task's evidence. Use
+  before starting any worker, reviewer or orchestrator through Orca.
 ---
 
 # Build with TypeSafe
