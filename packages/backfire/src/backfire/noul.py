@@ -2,7 +2,7 @@
 
 The definition, questions and decision logic come from jev-mcp 0.9.0
 (src/index.ts at a1fcc1e47fc696614f081e23a66ff48a890f22fd, MIT, Copyright (c)
-2026 Joey Kudish; see licenses/THIRD_PARTY_NOTICES.md).
+2026 Joey Kudish; see licenses/third-party-notices.md).
 """
 
 from typing import cast

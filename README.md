@@ -11,4 +11,4 @@ capability is specified anew from current needs.
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 Third-party components retain their upstream licenses; see
-[licenses/THIRD_PARTY_NOTICES.md](licenses/THIRD_PARTY_NOTICES.md).
+[licenses/third-party-notices.md](licenses/third-party-notices.md).

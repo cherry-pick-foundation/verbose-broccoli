@@ -4,7 +4,7 @@ import {fromFileUrl, join} from '@std/path';
 import {z} from '@zod/zod';
 import canonicalize from 'canonicalize';
 import {sha256} from './hash.ts';
-import {runGit, snapshotWorkingTree} from './workflow_git.ts';
+import {runGit, snapshotWorkingTree} from './workflow-git.ts';
 
 interface Input {
   taskId: string;
@@ -64,7 +64,7 @@ async function cleanCodeScope(root: string) {
   }>((resolve, reject) => {
     execFile(
       process.execPath,
-      [join(skill, 'scripts/clean_code.ts'), '--scope'],
+      [join(skill, 'scripts/clean-code.ts'), '--scope'],
       {cwd: root, encoding: 'buffer', maxBuffer: Infinity},
       (error, stdout, stderr) => {
         if (error && !Number.isInteger(error.code)) {

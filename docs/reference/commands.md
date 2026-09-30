@@ -53,7 +53,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | workflow                 | npm run workflow                 |                                                                                                                      |
 <!-- [[[end]]] -->
 
-<!-- [[[cog import doc_sources; cog.out(doc_sources.command_help("scripts/workflow.ts", "plugins/code/skills/clean-code/scripts/clean_code.ts")) ]]] -->
+<!-- [[[cog import doc_sources; cog.out(doc_sources.command_help("scripts/workflow.ts", "plugins/code/skills/clean-code/scripts/clean-code.ts")) ]]] -->
 ## clean-code
 
 ```text

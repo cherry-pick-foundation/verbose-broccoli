@@ -94,7 +94,7 @@ If the requirement cannot be met without substantial new local implementation, s
 
 Follow these in every English reply to the user. They copy the English section
 under "Language techniques" in `~/.agents/skills/plain-language/references/REFERENCE.md`;
-change both together. `licenses/THIRD_PARTY_NOTICES.md` records their source.
+change both together. `licenses/third-party-notices.md` records their source.
 
 - Numbers are prompts for a second look, not caps: about 20 words per
   sentence, about 5 sentences per paragraph, and a list from three parallel

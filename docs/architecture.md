@@ -13,7 +13,7 @@ own npm package manifest with the skill's dependencies. Current versions and
 MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
-and `clean_code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
+and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
 `wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
@@ -356,7 +356,7 @@ package two skills backed by two uv workspace packages.
 
 - `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
   fixed revision and patched in two modules; its
-  [`UPSTREAM.md`](../packages/jev-ultrafast/UPSTREAM.md) lists the revision,
+  [`upstream.md`](../packages/jev-ultrafast/upstream.md) lists the revision,
   the original file hashes and every difference. Its Jev calls go to the
   provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
   `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
@@ -430,7 +430,7 @@ Maintain each skill only in its owning package, without discovery links or
 duplicate source trees elsewhere in the repository. The one exception is the
 `backfire` skill: the code and work plugins each carry a vendored copy of the
 same upstream skill, because a plugin may not link to another plugin's files,
-and `scripts/plugin_skills_test.ts` keeps the copies' shared files identical.
+and `scripts/plugin-skills-test.ts` keeps the copies' shared files identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
@@ -650,7 +650,7 @@ or an agent region, written by agents. No part is human-written.
   quoted marker as a region.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
-- `scripts/doc_regions.toml` lists the targets, including the generated
+- `scripts/doc-regions.toml` lists the targets, including the generated
   `docs/reference/` pages, and `AGENTS.md` and the constitution as
   report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
   target when the project writes one.

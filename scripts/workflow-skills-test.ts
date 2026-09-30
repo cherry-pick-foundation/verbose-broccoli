@@ -11,12 +11,12 @@ import {dirname, fromFileUrl, join} from '@std/path';
 import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, rm, stat, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {snapshotWorkingTree} from './workflow_git.ts';
+import {snapshotWorkingTree} from './workflow-git.ts';
 import {
   parseCleanCodeScope,
   selectSkills,
   announceSkillTriggers,
-} from './workflow_skills.ts';
+} from './workflow-skills.ts';
 
 type Input = Parameters<typeof selectSkills>[0];
 const input: Input = {

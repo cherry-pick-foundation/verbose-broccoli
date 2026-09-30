@@ -14,7 +14,9 @@ from doc_regions.requests import verify_requests
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
-    name: json.loads((FIXTURES / f"{name}_input_schema.json").read_text())
+    name: json.loads(
+        (FIXTURES / f"{name.replace('_', '-')}-input-schema.json").read_text()
+    )
     for name in ("jev_verify", "jev_classify")
 }
 
