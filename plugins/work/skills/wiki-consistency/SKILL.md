@@ -104,9 +104,10 @@ with the judgment step.
    detects (names and numbers from the operator's roster, schools, regions,
    school years, birth dates, addresses, phone numbers and email addresses)
    with English stand-ins and refuses a request that still contains Hangul
-   (`hangul_remaining`); all other text is sent as it is. In Claude Code its
-   tools include `mcp__plugin_work_backfire__jev_verify`. Never use the code
-   plugin's server for Wiki text.
+   (`hangul_remaining`); all other text is sent as it is. Select
+   `backfire-education`; Claude Code lists it as
+   `plugin:work:backfire-education`. Never use the code plugin's server for
+   Wiki text.
 4. For a `pages` request whose result is `contradicted`, call
    `jev_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.

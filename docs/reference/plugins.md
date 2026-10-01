@@ -25,7 +25,7 @@ Server names below are declarations, not runtime availability or tool catalogs.
 | Package          | [plugins/code](../../plugins/code/)                 |
 | Manifest         | [plugin.json](../../plugins/code/plugin.json)       |
 | MCP declaration  | [mcp.json](../../plugins/code/mcp.json)             |
-| MCP server names | backfire                                            |
+| MCP server names | backfire-code                                       |
 
 ## work
 
@@ -36,5 +36,5 @@ Server names below are declarations, not runtime availability or tool catalogs.
 | Package          | [plugins/work](../../plugins/work/)                                                                                           |
 | Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                                                 |
 | MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                                                       |
-| MCP server names | backfire, reference-library                                                                                                   |
+| MCP server names | backfire-education, reference-library                                                                                         |
 <!-- [[[end]]] -->

@@ -14,13 +14,13 @@ MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
-an MCP declaration for the `backfire` server.
+an MCP declaration for the `backfire-code` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
 `wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
 skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
-`backfire` server, which
+`backfire-education` server, which
 replaces student identifiers with English stand-ins and refuses Hangul, and
 for the `reference-library` server (see
 [Reference library](#reference-library--2026-10-01)); its other business capabilities have no
@@ -350,8 +350,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 
 ### Backfire server
 
-`plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
-stdio server and start it from the repository with `uv --directory
+`plugins/code/mcp.json` declares `backfire-code` and `plugins/work/mcp.json`
+declares `backfire-education`. Both start the stdio server from the repository with `uv --directory
 ${PLUGIN_ROOT}/../../packages/backfire run --frozen --offline --no-sync
 backfire serve-mcp`, the work plugin adding `--education`; backfire is used
 from the repository and never installed. The server is PyModel's
@@ -432,9 +432,10 @@ blocked in each client's own settings: Claude Code's permission deny rules
 for a server of the same name added by the user) and Codex's `disabled_tools`
 in the user's `~/.codex/config.toml`, whose `reference-library` entry runs the
 same pinned copy under `~/.local/share/mcp-servers/zotero/1.0.1`. Claude Code
-2.1.286 reads a plugin's `.mcp.json`, not Agent Plugins' `mcp.json`, and Codex
-does not load the repository's plugins, so the server is not yet loaded by
-either client from this declaration. The security checks of the connector
+2.1.286 reads the prepared plugin's `mcp.json` through its native manifest's
+`mcpServers` path; Codex reads that same portable declaration. See
+[Sharing and distribution](#sharing-and-distribution) for preparation and loading.
+The security checks of the connector
 and of Caddy are in `specs/040-reference-library/security/`.
 
 ### Chat web agent and credit offers — 2026-09-30
@@ -496,21 +497,32 @@ Shared packages are implementation dependencies, not a fourth plugin. Plugins do
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
-The code and work plugins are used from the repository checkout and never
-installed: their `backfire` server runs from `packages/backfire` through a
-repository path in `mcp.json` (the user's decision of 2026-09-30), so a copy
-of a plugin outside the repository cannot start it. Do not distribute
+Backfire and the reference connector run from the repository checkout.
+`npm run plugins:prepare` validates the canonical manifests and prepares local
+client packages in `.local/plugin-clients/`. It resolves `${PLUGIN_ROOT}` to
+the source plugin directory, so copied client packages retain the checkout's
+dependency paths. Run preparation from a permanent checkout such as `develop`
+before installing; an installed package still needs that checkout and its
+dependencies. The generated output is limited to 16 MiB, with one staging and
+one recovery copy; failed preparation preserves the previous completed output.
+Do not distribute
 `skills/` or package components as symlinks into neighboring workspace
 directories. Development workspace resolution is not proof that an isolated
 installation works. Reuse upstream packaging tools if an installable plugin
 becomes necessary.
 
 Use root `plugin.json`, `skills/`, and `mcp.json` according to
-[Agent Plugins 1.0](https://agent-plugins.org/specification). Client-specific
-adapters remain separate future work. Clients load the packaged skills from the
-plugin folders: Claude Code directly, for example with `--plugin-dir` or
-`CLAUDE_CODE_PLUGIN_DIRS`, and Codex and OMP through a local marketplace install,
-which copies each plugin, so edited plugins must be reinstalled there. The
+[Agent Plugins 1.0](https://agent-plugins.org/specification).
+Each prepared package retains this layout. Its generated Claude manifest points
+`mcpServers` at `./mcp.json`, so both clients consume one generated declaration
+derived from the canonical source. Claude Code loads these prepared folders
+with `--plugin-dir .local/plugin-clients/plugins/code` and corresponding Work
+and Chat paths, or `CLAUDE_CODE_PLUGIN_DIRS`. Codex uses the generated local
+marketplace: `codex plugin marketplace add .local/plugin-clients`, then
+`codex plugin add code@verbose-broccoli` and corresponding Work and Chat
+selectors. Codex copies the packages, so rerun preparation and `plugin add`
+after source changes; changing a saved client's settings needs user approval.
+These commands do not publish anything. The
 project keeps no `.agents/skills` or `.claude/skills` links, which would list
 every packaged skill twice. OMP does not offer a plugin skill that declares
 `argument-hint`, so OMP needs `ponytail` in its user skills folder,

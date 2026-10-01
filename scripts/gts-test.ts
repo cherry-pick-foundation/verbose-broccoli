@@ -108,6 +108,11 @@ void test('gts and Prettier configs enforce style, boundaries and vendor exclusi
     assert(!repositoryOwned.success);
     assertMatch(output(repositoryOwned), /prettier\/prettier/);
 
+    const generatedPath = '.local/plugin-clients/plugins/code/hooks/copied.js';
+    await write(generatedPath, sameSource);
+    const generated = gts(['lint', generatedPath], temp);
+    assert(generated.success, output(generated));
+
     await write('format.json', '{"value" : 1}\n');
     const jsonFormatting = prettier(['--check', 'format.json'], temp);
     assert(!jsonFormatting.success);

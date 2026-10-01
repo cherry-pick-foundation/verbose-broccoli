@@ -29,19 +29,21 @@ the environment once from the repository root:
 npm run backfire:install
 ```
 
-Both plugins declare the `backfire` stdio server in their `mcp.json` and
-start it from the repository's package, the work plugin with `--education`:
+The code plugin declares `backfire-code`; the work plugin declares
+`backfire-education`. Their canonical `mcp.json` declarations start the
+repository's package, with the work plugin adding `--education`:
 
 ```sh
 uv --directory "${PLUGIN_ROOT}/../../packages/backfire" run --frozen --offline --no-sync backfire serve-mcp
 uv --directory "${PLUGIN_ROOT}/../../packages/backfire" run --frozen --offline --no-sync backfire serve-mcp --education
 ```
 
-Serving uses the prepared environment and does not sync packages. The path
-reaches `packages/backfire` only while a client loads the plugin from the
-repository checkout, as Claude Code does with `--plugin-dir`; a client that
-copies the plugin elsewhere, such as a local marketplace install, cannot
-start it.
+Serving uses the prepared environment and does not sync packages.
+`npm run plugins:prepare` resolves the source checkout path before clients
+copy the plugin. Prepare from a permanent checkout such as `develop`; the
+client packages still need that checkout and its installed dependencies.
+See [Sharing and distribution](architecture.md#sharing-and-distribution)
+for client loading commands.
 
 ## Select a provider
 
