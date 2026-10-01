@@ -152,6 +152,15 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
   });
 });
 
+void test("turbo cache: Turborepo's own task logs are not inputs", async () => {
+  await fixture(async repo => {
+    const before = hashes(repo);
+    await write(repo, '.turbo/turbo-lint.log', 'Log.\n');
+    await write(repo, 'packages/backfire/.turbo/turbo-test.log', 'Log.\n');
+    assertChanged(before, hashes(repo), [], ['//#lint', 'backfire#test']);
+  });
+});
+
 void test('turbo cache: a changed installed environment reruns every cached task', async () => {
   await fixture(async repo => {
     let before = hashes(repo);
