@@ -7,24 +7,24 @@
 
 ## Summary
 
-`phone.yml`'s pattern now skips a number right after `://w` (a Slack link
-host) or after a Slack timestamp query key (`?thread_ts=`, `&ts=`, `latest=`,
-`oldest=`). Other phone numbers in text, link paths and code still match,
-including one glued to a letter, to `w` or to `ts=` outside a link.
+`phone.yml`'s pattern now skips a number only in a full Slack shape: a digit group
+of a host `w<digits>-iwc<digits>.slack.…`, or a `thread_ts`, `ts`, `latest` or
+`oldest` query value shaped `<10 digits>.<6 digits>` (or `%2E`). Other phone
+numbers in text, link paths and code still match.
 
 ## Changes
 
-| File                                                   | Change     | Notes                                                            |
-| ------------------------------------------------------ | ---------- | ---------------------------------------------------------------- |
-| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Lookbehinds `(?<!://w)` and a query-key lookbehind added.        |
-| `packages/wiki-consistency/tests/test_rules.py`        | added test | `test_phone_rule_skips_digits_in_a_link_host_but_not_page_text`. |
+| File                                                   | Change     | Notes                                                                   |
+| ------------------------------------------------------ | ---------- | ----------------------------------------------------------------------- |
+| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Three negative lookaheads (two host digit groups, one timestamp value). |
+| `packages/wiki-consistency/tests/test_rules.py`        | added test | `test_phone_rule_skips_slack_link_numbers_but_not_other_phones`.        |
 
 ## Tests Added or Updated
 
-- The new test writes a Slack-style link (host `w1012345678-iwc1…`, query
-  `thread_ts=1712345678.123456`), a `latest=1712345678%2E123456` link, and phone
-  numbers in plain text, glued to a letter, after `ts=` outside a link, in code
-  and in a `/w010-…` link path; it expects five phone findings, one per such line. With `phone.yml` from `3d4613f` it fails.
+- The new test writes four Slack links to skip (both host digit groups, a
+  `thread_ts` value, a `latest` value with `%2E`) and six cases that must be
+  reported: plain text, a number glued to a letter, `thread_ts` and `ts` values
+  that are not timestamps, code, and a `/w010-…` link path. With `phone.yml` from `3d4613f` it fails.
 
 ## Local Verification
 

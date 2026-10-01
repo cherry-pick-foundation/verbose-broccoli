@@ -13,19 +13,19 @@ work vault, the phone findings fall from 106 to 0.
 
 ## Checks Performed
 
-| Check                 | Command / Action                                                                                             | Result | Notes                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------- |
-| New test, old pattern | `uv run … pytest packages/wiki-consistency/tests/test_rules.py -k link_host` with `phone.yml` from `3d4613f` | fail   | Two phone findings instead of one.                                                                                         |
-| New test, new pattern | same, with the fix                                                                                           | pass   |                                                                                                                            |
-| Rule tests            | `pytest packages/wiki-consistency/tests/test_rules.py`                                                       | pass   | 103 passed; existing link-target and code phone cases still pass.                                                          |
-| Work vault, read only | `rules.check` on the work vault; counts by rule only                                                         | pass   | Phone findings 106 to 0. Two `date` findings remain (out of scope). No page was changed; no names or numbers were printed. |
-| Full check            | `npm run verify`                                                                                             | pass   |                                                                                                                            |
+| Check                 | Command / Action                                                                                              | Result | Notes                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| New test, old pattern | `uv run … pytest packages/wiki-consistency/tests/test_rules.py -k slack_link` with `phone.yml` from `3d4613f` | fail   | Slack link lines are reported.                                                                                             |
+| New test, new pattern | same, with the fix                                                                                            | pass   |                                                                                                                            |
+| Rule tests            | `pytest packages/wiki-consistency/tests/test_rules.py`                                                        | pass   | 103 passed; existing link-target and code phone cases still pass.                                                          |
+| Work vault, read only | `rules.check` on the work vault; counts by rule only                                                          | pass   | Phone findings 106 to 0. Two `date` findings remain (out of scope). No page was changed; no names or numbers were printed. |
+| Full check            | `npm run verify`                                                                                              | pass   |                                                                                                                            |
 
 ## Residual Risks
 
 - Not run: the full `wiki-consistency check` (link checks) on the work vault; its
   62 broken source links are a content problem, not part of this bug.
-- A phone right after `://w` or a Slack timestamp query key is no longer
+- A phone-shaped number that exactly fits a Slack host or timestamp shape is not
   reported.
 
 ## Recommendation

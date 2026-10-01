@@ -46,10 +46,12 @@ the work vault's 106 findings drop to 0 with the change below.
 
 ## Proposed Remediation
 
-**Preferred**: in `phone.yml`, add the lookbehinds `(?<!://w)` and
-`(?<![?&](?:thread_ts|ts|latest|oldest)=)`
-after the existing digit lookbehind. This keeps Vale's `scope: raw` and the
-existing decision that a phone in a link target is still a finding.
+**Preferred**: in `phone.yml`, add three negative lookaheads after the digit
+lookbehind. They skip a number only in a full Slack shape: either digit group of
+a host `w<digits>-iwc<digits>.slack.…`, or a `thread_ts`, `ts`, `latest` or
+`oldest` query value shaped `<10 digits>.<6 digits>` (or `%2E`). This keeps
+Vale's `scope: raw` and the existing decision that a phone in a link target is
+still a finding.
 
 **Alternatives**: a narrower Vale scope (e.g. `text & ~link`) would also stop
 `tel:` and `example.invalid/010-…` links being reported, which contradicts the
@@ -60,9 +62,8 @@ and a real phone in text; it fails without the change.
 
 ## Risks & Considerations
 
-- A phone number written directly after `://w` or after `?`/`&` plus `thread_ts=`,
-  `ts=`, `latest=` or `oldest=` is no longer reported. Other Slack query keys
-  that carry a number are not covered.
+- A phone-shaped number that exactly fits a Slack host or timestamp shape is
+  not reported. Other Slack query keys that carry a number are not covered.
 
 ## Open Questions
 
