@@ -29,8 +29,16 @@
 
 ## Phase 3: Import (User Story 3)
 
-- [ ] T005 [US3] Save the operator configuration, import the seven key files
+- [x] T005 [US3] Save the operator configuration, import the seven key files
   into the project, and show that a refresh reproduces identical hashes (SC-002).
+  - 2026-10-01: the token logs in on Bitwarden's United States cloud (the
+    default server; the EU server answers 401). `gemini.env` and `vercel.env`
+    first got a final line break. Eight `bws secret create` calls (cloudflare
+    two, one each for the other six files) put each value on bws's command line
+    for that one call (review F-01), with output discarded. `npm run
+    secrets:refresh` then rewrote the seven files; SHA-256 of every file equals
+    its hash before the refresh, and each file is mode 600 and owned by the
+    user. No value or token was printed.
 - [ ] T006 [US3] After the user switches the machine account to read only, show
   that refresh still works and a write is refused (SC-002).
 
