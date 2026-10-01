@@ -249,7 +249,7 @@ messages. Run files stay in the run folders and records in the work vault.
 
 ## Phase 5: Review and finish
 
-- [ ] T013 Measure the change against `develop`; move CHE-68 to In Review
+- [x] T013 Measure the change against `develop`; move CHE-68 to In Review
   and the board status to `in-review`; after CHE-67 merges, merge `develop`
   and run `npm run verify`.
   - 2026-10-01: develop `80a8e6e` (CHE-67 merged) is merged (4f97f75). Size
@@ -275,7 +275,7 @@ messages. Run files stay in the run folders and records in the work vault.
     stand: both still describe those paths, and `map` starts its own
     server. `doc-regions:audit` listed 20 MemoryLint findings, all on the
     constitution's layout, which this feature does not touch.
-- [ ] T014 Develop merge review by a fresh reviewer from another provider;
+- [x] T014 Develop merge review by a fresh reviewer from another provider;
   resolve findings; review-record commit; ask the develop session for the
   finish slot; check `develop` has not moved; `git flow feature finish`;
   CHE-68 Done with one completion comment; board status `completed`.
@@ -308,3 +308,7 @@ messages. Run files stay in the run folders and records in the work vault.
     comment, board `completed`, delete the run folders and `.local/che-68/`,
     and ask the user whether to delete stage 1's folder with the answer
     key.
+  - 2026-10-01: finished into `develop` as `c1a7c2a` (review record
+    `13b730f`); `npm run verify` VERIFIED on `develop` (37 of 37). The next
+    batches are CHE-71. Open for the user: deleting stage 1's folder with the
+    answer key, and the five low-confidence document verdicts in T013.
