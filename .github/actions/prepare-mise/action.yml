@@ -1,0 +1,23 @@
+name: Prepare mise
+description: Install the pinned mise release in paranoid mode and trust the repository's mise config
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare mise 2026.9.16
+      shell: sh
+      run: |
+        curl --fail --silent --show-error --location https://github.com/jdx/mise/releases/download/v2026.9.16/mise-v2026.9.16-linux-x64.tar.gz --output "$RUNNER_TEMP/mise.tar.gz"
+        echo "2e022482d62a3b9e6c0bc51d3e883401bfa7e4684b60f3b819b21eae4ebdb438  $RUNNER_TEMP/mise.tar.gz" | sha256sum --check --strict
+        tar -xzf "$RUNNER_TEMP/mise.tar.gz" -C "$RUNNER_TEMP"
+        echo "$RUNNER_TEMP/mise/bin" >> "$GITHUB_PATH"
+        {
+          echo MISE_PARANOID=true
+          echo MISE_LOCKED_VERIFY_PROVENANCE=true
+          echo MISE_USE_VERSIONS_HOST_TRACK=false
+          echo MISE_GITHUB_GH_CLI_TOKENS=false
+          echo MISE_EXEC_AUTO_INSTALL=false
+        } >> "$GITHUB_ENV"
+    - name: Trust the mise config
+      shell: sh
+      run: mise trust --yes "$GITHUB_WORKSPACE/.config/mise.toml"

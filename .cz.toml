@@ -1,7 +1,0 @@
-[tool.commitizen]
-name = "cz_conventional_commits"
-version = "2.6.0"
-version_scheme = "semver2"
-version_files = [".specify/memory/constitution.md:^\\*\\*Version\\*\\*:"]
-pre_bump_hooks = []
-post_bump_hooks = []

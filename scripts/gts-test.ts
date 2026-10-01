@@ -1,6 +1,13 @@
 import {spawnSync} from 'node:child_process';
 import {test} from 'node:test';
-import {copyFile, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import {assert, assertMatch} from '@std/assert';
 import {dirname, fromFileUrl, join} from '@std/path';
 
@@ -41,12 +48,17 @@ function output(result: ReturnType<typeof run>) {
 void test('gts and Prettier configs enforce style, boundaries and vendor exclusions', async () => {
   const temp = await mkdtemp('/tmp/gts-test-');
   try {
-    for (const config of [
-      'eslint.config.js',
-      'eslint.ignores.js',
-      '.prettierrc.js',
-    ])
+    for (const config of ['eslint.config.js', 'eslint.ignores.js'])
       await copyFile(join(root, config), join(temp, config));
+    // Prettier's configuration is the `prettier` key of the root package.json.
+    const {prettier: prettierConfig} = JSON.parse(
+      await readFile(join(root, 'package.json'), 'utf8'),
+    ) as {prettier?: unknown};
+    assert(prettierConfig !== undefined, 'package.json has no prettier key');
+    await writeFile(
+      join(temp, 'package.json'),
+      JSON.stringify({prettier: prettierConfig}),
+    );
     await writeFile(
       join(temp, 'tsconfig.json'),
       JSON.stringify(

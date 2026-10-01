@@ -24,7 +24,7 @@ goes only to `work`.
 it can be rebuilt from the original session files. Nothing in it goes into a
 repository, a Linear issue or an Orca message; reports there give counts only.
 
-The repository's `mise.toml` pins the two tools, and `mise.lock` holds their
+The repository's `.config/mise.toml` pins the two tools, and `.config/mise.lock` holds their
 reviewed checksums:
 
 - SpecStory's command-line tool 2.15.1 (Apache-2.0) renders sessions to
@@ -36,8 +36,8 @@ reviewed checksums:
   SpecStory's redaction missed. It makes no network requests in `dir` mode.
 
 Install them from the lock with `mise install --locked
-github:specstoryai/getspecstory@2.15.1 github:betterleaks/betterleaks@1.9.0`
-in a worktree whose `mise.toml` is trusted.
+github:specstoryai/getspecstory github:betterleaks/betterleaks` in a worktree
+whose `.config/mise.toml` is trusted; `mise run setup` installs them too.
 
 Run the commands from the repository root. `SELECT` stands for the line
 below; the script's path is absolute because `--directory` changes the

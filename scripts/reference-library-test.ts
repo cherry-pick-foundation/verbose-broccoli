@@ -93,7 +93,7 @@ void test('reference library: units start on demand, wait for the API and stop w
   );
 
   const pin = match(
-    await read('mise.toml'),
+    await read('.config/mise.toml'),
     /^"aqua:caddyserver\/caddy" = "([^"]+)"$/m,
     'Caddy pin',
   );
@@ -105,10 +105,10 @@ void test('reference library: units start on demand, wait for the API and stop w
     ),
   );
   assert(
-    (await read('mise.lock')).includes(
+    (await read('.config/mise.lock')).includes(
       `[[tools."aqua:caddyserver/caddy"]]\nversion = "${pin}"`,
     ),
-    'mise.lock must lock the pinned Caddy',
+    '.config/mise.lock must lock the pinned Caddy',
   );
 });
 

@@ -6,4 +6,3 @@ dependencies = ["check-jsonschema==0.38.2"]
 
 [tool.uv]
 package = false
-required-version = "==0.11.32"

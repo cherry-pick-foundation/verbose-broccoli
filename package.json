@@ -5,8 +5,10 @@
   "engines": {
     "node": ">=24.12.0"
   },
+  "prettier": "gts/.prettierrc.json",
   "workspaces": [
-    "tools/none"
+    "packages/*",
+    "!packages/wiki-consistency"
   ],
   "scripts": {
     "doctor": "mise doctor project",
@@ -33,7 +35,7 @@
     "test:lint-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/lint-names-test.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "plugins:validate": "uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/plugin.schema.json plugins/chat/plugin.json plugins/code/plugin.json plugins/work/plugin.json && uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/mcp.schema.json plugins/code/mcp.json plugins/work/mcp.json",
-    "clean-architecture": "env GIT_OPTIONAL_LOCKS=0 depcruise --config .dependency-cruiser.json --no-cache --no-progress --output-type err packages plugins scripts",
+    "clean-architecture": "env GIT_OPTIONAL_LOCKS=0 depcruise --config .config/dependency-cruiser.json --no-cache --no-progress --output-type err packages plugins scripts",
     "python:imports": "uv run --project packages/wiki-consistency --frozen --offline --no-sync lint-imports --config pyproject.toml --no-cache",
     "clean-code": "node --permission --allow-fs-read=* plugins/code/skills/clean-code/scripts/clean-code.ts",
     "clean-code:scope": "npm run clean-code -- --scope",
@@ -47,7 +49,7 @@
     "doc-regions:update": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions update scripts/doc-regions.toml",
     "doc-regions:prepare": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions prepare scripts/doc-regions.toml",
     "doc-regions:audit": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions audit scripts/doc-regions.toml",
-    "wiki-consistency:install": "uv sync --locked --all-packages --extra education --no-build-package grimp && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
+    "wiki-consistency:install": "npm run backfire:install && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
     "test:wiki-consistency": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest packages/wiki-consistency/tests",
     "test:grammatical-competence": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest -p no:cacheprovider plugins/work/skills/grammatical-competence/scripts/grammatical_competence_test.py",
     "test:doc-regions": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package doc-regions pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
@@ -63,7 +65,8 @@
     "test:clean-architecture": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/clean-architecture-test.ts",
     "test": "npm run turborepo -- run test",
     "test:wiki-raw-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/wiki-raw-import-test.ts",
-    "test:turbo-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/turbo-cache-test.ts"
+    "test:turbo-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/turbo-cache-test.ts",
+    "test:root-config": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/root-config-test.ts"
   },
   "devDependencies": {
     "@cliffy/command": "npm:@jsr/cliffy__command@1.2.1",

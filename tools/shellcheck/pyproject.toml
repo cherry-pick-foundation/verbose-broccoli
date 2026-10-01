@@ -6,4 +6,3 @@ dependencies = ["shellcheck-py==0.11.0.1"]
 
 [tool.uv]
 package = false
-required-version = "==0.11.32"

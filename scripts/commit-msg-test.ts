@@ -49,9 +49,10 @@ void test('lefthook commit-msg accepts conventional commits and rejects invalid 
   try {
     await mkdir(repo);
     await mkdir(join(repo, 'scripts'));
+    await mkdir(join(repo, '.config'));
     await copyFile(
-      join(repositoryRoot, 'lefthook.yml'),
-      join(repo, 'lefthook.yml'),
+      join(repositoryRoot, '.config/lefthook.yml'),
+      join(repo, '.config/lefthook.yml'),
     );
     await copyFile(
       join(repositoryRoot, 'scripts/commitlint.config.mjs'),
