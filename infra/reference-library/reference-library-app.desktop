@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Zotero
+Exec=sh -c "systemctl --user stop reference-library-app.service; exec /usr/lib/zotero/zotero \\"\\$@\\"" zotero --url %u
+Icon=/usr/lib/zotero/icons/icon128.png
+Type=Application
+Terminal=false
+Categories=Office;
+MimeType=x-scheme-handler/zotero;application/x-endnote-refer;application/x-research-info-systems;text/ris;text/x-research-info-systems;application/x-inst-for-Scientific-info;application/mods+xml;application/rdf+xml;application/x-bibtex;text/x-bibtex;application/marc;application/vnd.citationstyles.style+xml
+X-GNOME-SingleWindow=true
+Comment=Zotero is a free, easy-to-use tool to help you collect, organize, cite, and share research

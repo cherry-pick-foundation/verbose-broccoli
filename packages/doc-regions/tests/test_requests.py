@@ -139,6 +139,15 @@ def repository(tmp_path):
     return tmp_path
 
 
+def test_unchanged_ignores_git_files_but_not_the_work_tree(
+    repository, unchanged
+):
+    with unchanged(repository):
+        (repository / ".git" / "index").write_bytes(b"rewritten by git")
+    with pytest.raises(AssertionError), unchanged(repository):
+        (repository / "doc.md").write_text("changed\n")
+
+
 def test_prepare_root_diff_schema_determinism_and_read_only(
     repository, unchanged
 ):

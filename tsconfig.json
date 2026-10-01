@@ -21,6 +21,7 @@
     "scripts/mise-doctor-test.ts",
     "scripts/plugin-skills-test.ts",
     "scripts/plugins-validate-test.ts",
+    "scripts/reference-library-test.ts",
     "scripts/ruff-test.ts",
     "scripts/turbo-cache-test.ts",
     "scripts/wiki-raw-import-test.ts",

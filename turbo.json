@@ -99,6 +99,10 @@
       "description": "Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders",
       "cache": false
     },
+    "//#test:reference-library": {
+      "description": "Test the reference-library setup; uncached because it runs gio, a desktop program whose presence and version are not hashed",
+      "cache": false
+    },
     "//#test:clean-code": {},
     "//#test:clean-architecture": {},
     "//#test:workflow": {},
@@ -221,6 +225,7 @@
         "//#test:lint-names",
         "//#test:commit-msg",
         "//#test:plugin-skills",
+        "//#test:reference-library",
         "//#test:clean-code",
         "//#test:clean-architecture",
         "//#test:workflow",

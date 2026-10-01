@@ -1,0 +1,13 @@
+[Unit]
+Description=Reference library app: the open app, or a copy without a window
+StopWhenUnneeded=yes
+
+[Service]
+Type=exec
+# An open app that answers on its port means no second copy: hold one idle
+# connection to it, so this unit ends, and the proxy with it, when the app closes.
+ExecStart=/bin/sh -c 'curl --silent --fail --max-time 2 --output /dev/null http://127.0.0.1:23119/connector/ping && exec socat -u TCP:127.0.0.1:23119 /dev/null; exec /usr/bin/zotero --headless'
+# Hold back the proxy until the local API answers.
+ExecStartPost=/usr/bin/curl --silent --fail --max-time 3 --retry 30 --retry-delay 1 --retry-connrefused --output /dev/null http://127.0.0.1:23119/connector/ping
+TimeoutStartSec=60
+TimeoutStopSec=30
