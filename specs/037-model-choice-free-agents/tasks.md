@@ -62,11 +62,39 @@
   - 323d954, by main (Claude Code). The user chose develop merge reviews
     only; release and hotfix reviews keep Claude Code, Codex or Copilot.
     `npm run verify` printed VERIFIED (37 of 37 tasks).
-- [ ] T006 Run one model choice for a sample task across all agents and
+- [x] T006 Run one model choice for a sample task across all agents and
   record its evidence and answer (SC-001).
+  - The sample is this feature's develop merge reviewer, chosen in two
+    `jev_decide` steps through `serve-mcp --profile openrouter`; both answers
+    named provider `openrouter`, model `typesafe/jev-1.13`. The evidence gave
+    the difficulty from `npm run workflow -- --base develop` (difficult: 16
+    files, 511 changed lines, mostly prose) and every candidate's usage on
+    2026-10-01 at 15:55 KST: Codex weekly 67% used; Copilot Chat 2.1% (4 of
+    200 credits); Grok weekly 0%; Cursor monthly 0% (free plan, `auto`
+    only); Antigravity unknown. Claude Code, the implementer, was left out.
+  - Agent: Copilot (probability 0.44, confidence 0.36; Grok 0.22, Codex
+    0.20, Cursor 0.08, Antigravity 0.03). Tier: `fast` (probability 0.49,
+    confidence 0.40; balance 0.28, efficiency 0.21).
 
 ## Phase 4: Finish
 
 - [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish model-choice-free-agents`.
+  - `develop` 870cc81 merged in b1f6118 without conflicts. The first full
+    `npm run verify` failed only in the known `.git/index` race of
+    `packages/doc-regions/tests/test_requests.py::test_prepare_excludes_judged_documents_and_empty_evidence_has_no_verify`
+    (noted in feature 031); the rerun printed VERIFIED (37 of 37).
+  - `doc-regions:prepare --base develop --max-evidence-chars 12000` gave 4
+    `jev_verify` requests over 268 units and 1 `jev_classify`: none
+    contradicted, 40 verified, 228 unsupported within the evidence cap. The
+    units this feature changed were verified, except the constitution's long
+    git flow paragraph, which was unsupported. `doc-regions:audit` reports
+    19 warnings that constitution rules belong in `AGENTS.md` and one false
+    warning that `scripts/workflow.ts` does not exist, as for feature 031;
+    they are reported to the user without changing either file.
+  - Reviewer: Copilot `auto` at the `fast` tier (routed to `gpt-5.6-luna`),
+    started through the terminal path; it used 1.91 AI credits in about 90
+    seconds. It reviewed b1f6118 and found 2 medium findings: T006 was not
+    recorded, and the reference still offered Cursor's named models on the
+    free plan. Both are resolved after b1f6118.
