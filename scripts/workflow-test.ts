@@ -365,7 +365,7 @@ void test('workflow: per-task observations keep literal paths and independent le
       ]);
       assert(
         result.instructions.some(line =>
-          line.includes('Select models separately'),
+          line.includes('no level picks a model by itself'),
         ),
       );
     },
@@ -484,7 +484,7 @@ void test('workflow: review instructions time independent review at merge', () =
     lines.some(
       line =>
         line.includes(
-          "fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot)",
+          "fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot; for develop also Antigravity, Grok or Cursor)",
         ) &&
         line.includes('develop (favoring speed)') &&
         line.includes('main (favoring accuracy)') &&

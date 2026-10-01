@@ -47,6 +47,7 @@ def test_help_lists_serve_mcp(entry):
     )
     assert result.returncode == 0, result.stderr
     assert "serve-mcp" in result.stdout
+    assert "--profile" in result.stdout
 
 
 @pytest.mark.parametrize("entry", ENTRY_POINTS, ids=("console", "module"))

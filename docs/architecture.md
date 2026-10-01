@@ -128,10 +128,12 @@ not a standardized or calibrated measure of coding difficulty. They infer no
 runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
-or selects a model. Agents, models and efforts are chosen with the code
-plugin's `model-choice` skill.
+or selects a model by itself. Agents, models and efforts are chosen with the
+code plugin's `model-choice` skill, whose Jev judgment takes the level as
+evidence together with each candidate's remaining usage.
 CodexBar 0.69.0, a host tool at `~/.local/bin/codexbar` linking to
-`~/.local/opt/codexbar-0.69.0/`, gives that skill the usage limits. It is the
+`~/.local/opt/codexbar-0.69.0/`, gives that skill most usage limits; Orca's
+`orca account list` gives Grok's and Cursor's. It is the
 release's x86_64 Linux (glibc) archive, extracted whole after checking it
 against the release's checksum file.
 
@@ -527,9 +529,10 @@ flow rule.
   `git flow release` and `git flow hotfix` refuse to run; the constitution has
   releases and hotfixes finished by hand.
 - Before the finish, a fresh reviewer from a provider other than the
-  implementer's (Claude Code, Codex or Copilot), given only the scope and
-  requirements, reviews the feature tip, favoring speed. After its findings
-  are resolved, a content-free commit records the review:
+  implementer's (Claude Code, Codex, Copilot, Antigravity, Grok or Cursor),
+  given only the scope and requirements, reviews the feature tip, favoring
+  speed. After its findings are resolved, a content-free commit records the
+  review:
 
   ```sh
   git commit --allow-empty -m 'chore(review): record develop merge review' \
