@@ -372,6 +372,34 @@ def test_language_school_and_date_skip_link_targets(tmp_path):
     assert not has_rule(problems, "date", "wiki/overview.md")
 
 
+def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
+    instance = ready_vault(tmp_path)
+    write_roster(tmp_path)
+    skipped = (
+        "[a](https://w1012345678-iwc1.slack.invalid/archives/C1/p1)",
+        "[b](https://w1-iwc1012345678.slack.invalid/archives/C1/p1)",
+        "[c](https://slack.invalid/p?thread_ts=1712345678.123456)",
+        "[d](https://slack.invalid/p?a=1&latest=1712345678%2E123456)",
+        "[h](//w1012345678-iwc1.slack.invalid/archives/C1/p1)",
+        "[i](https://slack.invalid/p?ts=1712345678%2e123456)",
+    )
+    reported = (
+        "Call 010-1234-5678.",
+        "Call010-1234-5678.",
+        "[e](https://example.invalid/c?thread_ts=010-1234-5678)",
+        "[f](https://example.invalid/c?ts=010-1234-5678)",
+        "`contacts=01012345678`",
+        "[g](/w010-1234-5678)",
+    )
+    write_overview(instance, "\n".join(skipped) + "\n\n" + "\n".join(reported))
+
+    problems = checked(instance, tmp_path)
+
+    for line in range(9, 9 + len(reported)):
+        assert_rule(problems, "wiki/overview.md", line, "phone")
+    assert sum(has_rule([item], "phone") for item in problems) == len(reported)
+
+
 def test_hangul_link_text_still_fails_english(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
