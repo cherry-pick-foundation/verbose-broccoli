@@ -47,7 +47,8 @@ numbers below come from the reported successes and failures.
 claim above the character bound stops `prepare` with an error naming it, so
 nothing is dropped or sent too large.
 Evidence is the same in every request of a group, so it is not counted. Replace
-`--no-renames` with `-M` and read `--name-status`, so a renamed file is one
+`--no-renames` with `-B -M` and read `--name-status` and one full diff split per
+file (so renames onto a moved path stay renames), so a renamed file is one
 rename diff; a rename is left out only when both its paths are excluded.
 
 **Alternatives**: a `--max-claim-chars` option (more surface, no demand);
@@ -71,6 +72,10 @@ weekly 58%, Fable-only 8%.
 - 110 claims and 12,000 characters are measured successes, not a measured
   limit. A live probe was not made (0 paid calls), so the true limit may be
   higher; a smaller request only costs more calls.
+- The request size is bounded by claim count and claim characters only. Total
+  evidence stays under `--max-evidence-chars` per item and the 249-item cap; a
+  very large evidence set can still be refused. Not changed: evidence size has
+  its own option, and the reports name claim text as the cause.
 - Rename detection pairs files by similarity, so a rename with a heavy edit is
   shown as a delete plus an add, as before.
 

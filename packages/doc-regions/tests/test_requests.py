@@ -241,6 +241,25 @@ def test_prepare_keeps_a_rename_as_one_small_diff(repository, unchanged):
     assert len(evidence[0]["text"]) < len(body) // 4
 
 
+def test_prepare_keeps_a_rename_chain_as_renames(repository, unchanged):
+    for name, text in (("a.txt", "A\n"), ("b.txt", "B\n")):
+        (repository / name).write_text(text * 300)
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "add pair")
+    base = git(repository, "rev-parse", "HEAD").strip()
+    git(repository, "mv", "b.txt", "c.txt")
+    git(repository, "mv", "a.txt", "b.txt")
+    with unchanged(repository):
+        result = prepare(
+            repository, "config.toml", base=base, max_evidence_chars=1000
+        )
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
+    evidence = verify[0]["arguments"]["evidence"]
+    assert [e["id"] for e in evidence] == ["b.txt", "c.txt"]
+    assert "rename from a.txt" in evidence[0]["text"]
+    assert "rename from b.txt" in evidence[1]["text"]
+
+
 def test_prepare_keeps_a_rename_out_of_an_excluded_path(repository, unchanged):
     (repository / "src").mkdir()
     (repository / "src" / "impl.py").write_text("print('x')\n")

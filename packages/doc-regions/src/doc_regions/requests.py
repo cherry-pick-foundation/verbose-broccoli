@@ -158,26 +158,36 @@ def prepare(root, config_path, *, base, max_evidence_chars):
     # letters, in claims and evidence alike.
     sendable = [{**unit, "text": latin(unit["text"])} for unit in units]
 
+    # -B -M pairs a file moved onto another moved file as two renames, not as
+    # a whole deletion, modification and addition of each.
     diff_options = [
         "--no-ext-diff",
         "--no-textconv",
         "--no-color",
+        "-B",
         "-M",
     ]
     fields = git(
         root, "diff", *diff_options, merge_base, "--name-status", "-z", "--"
     ).split("\0")
+    # The full diff lists the same files in the same order: one segment per
+    # file, so a renamed file is one rename diff in the global pairing.
+    segments = re.split(
+        r"(?m)^(?=diff --git )",
+        git(root, "diff", *diff_options, merge_base, "--"),
+    )[1:]
     # Each entry is its status letter and one path, or two for a rename or
-    # copy, so a renamed file is evidence as one rename diff, not as a whole
-    # deletion plus a whole addition.
-    changed, index = {}, 0
+    # copy.
+    changed, index = [], 0
     while index < len(fields) - 1:
-        paths = 2 if fields[index][0] in "RC" else 1
-        old, new = fields[index + 1], fields[index + paths]
-        changed[new] = [old, new] if paths == 2 else [new]
-        index += 1 + paths
+        count = 2 if fields[index][0] in "RC" else 1
+        paths = fields[index + 1 : index + 1 + count]
+        changed.append((paths[-1], paths))
+        index += 1 + count
+    if len(changed) != len(segments):
+        raise ValueError("git diff listed a different number of files")
     evidence = []
-    for document, paths in sorted(changed.items()):
+    for (document, paths), segment in sorted(zip(changed, segments)):
         # A rename is skipped only when both its paths are, so moving a file
         # into an excluded path still shows the old file's removal.
         if all(
@@ -189,7 +199,7 @@ def prepare(root, config_path, *, base, max_evidence_chars):
             for path in paths
         ):
             continue
-        diff = latin(git(root, "diff", *diff_options, merge_base, "--", *paths))
+        diff = latin(segment)
         chunks = [
             diff[index : index + max_evidence_chars]
             for index in range(0, len(diff), max_evidence_chars)

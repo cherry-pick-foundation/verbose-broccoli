@@ -17,11 +17,12 @@ No live provider call was made (0 paid calls), so the 110-claim and
 | Check                 | Command / Action                                                                | Result | Notes                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | New tests, old code   | `pytest packages/doc-regions/tests/test_requests.py` with the old `requests.py` | fail   | 3 failed (claim bounds with 1 and 12 evidence items; rename diff). The rename-into-excluded-path test was added after the first review and fails against `c0b630b` the same way. |
-| New tests, fixed code | `npm run test:doc-regions`                                                      | pass   | 115 passed.                                                                                                                                                                      |
+| New tests, fixed code | `npm run test:doc-regions`                                                      | pass   | 116 passed.                                                                                                                                                                      |
 | Full check            | `npm run verify`                                                                | pass   | Summary: 47 of 47 tasks successful, 3 cached; exit 0.                                                                                                                            |
 
 ## Residual Risks
 
+- Total evidence is not bounded (see the assessment's risks).
 - The provider's true limit is unpublished. If a request of up to 110 claims
   and 12,000 characters is still refused, lower `MAX_CLAIMS` or
   `MAX_CLAIM_CHARS` in `requests.py`.
