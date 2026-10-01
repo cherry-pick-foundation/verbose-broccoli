@@ -565,6 +565,27 @@ def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
     )
 
 
+def test_privacy_rules_skip_unindented_sources_list(tmp_path):
+    instance = ready_vault(tmp_path)
+    page = instance / "wiki" / "overview.md"
+    # PyYAML writes a list under a key without indenting its items.
+    page.write_text(
+        "---\ntitle: Overview\nsources:\n- id: 010-0000-0000\n"
+        "summary: 010-0000-0000\n---\n# Overview\n",
+        encoding="utf-8",
+    )
+
+    problems = checked_rules(instance, tmp_path)
+
+    assert_rule(problems, "wiki/overview.md", 5, "phone", "010-0000-0000")
+    assert not any(
+        item["document"] == "wiki/overview.md"
+        and item["line"] == 4
+        and item["message"].startswith("page rule phone:")
+        for item in problems
+    )
+
+
 def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
     monkeypatch, tmp_path
 ):

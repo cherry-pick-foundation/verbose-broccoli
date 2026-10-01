@@ -170,18 +170,21 @@ one `wiki_consistency.sources` generator on named files of this instance. A
 source page may hold one `source_provenance` region for its source. Pages
 never quote the marker syntax.
 
-## Concept records
+## Inventory records
 
-- `wiki/catalogs/` holds catalog pages.
+- `wiki/inventories/` holds inventory pages.
 - `wiki/profiles/` holds profile pages, each with a same-name JSON Lines data
   file beside it. The data file is not a page.
 - `wiki/mappings/` holds mapping pages, each with a same-name JSON Lines data
   file beside it. The data file is not a page.
-- `wiki/references/` holds reference pages, each citing the reference book's
-  raw PDF, with the book's extracted text in a same-name `.markdown` file
-  beside it. The text file is not a page.
+- `wiki/references/` holds reference pages. A reference book's page cites the
+  book's raw PDF, with the book's extracted text in a same-name `.markdown`
+  file beside it; the text file is not a page. A lexicon's page cites its raw
+  WN-LMF file.
 
-Use the work plugin's `concept-profile` skill for their layouts.
+Use the work plugin's `grammatical-competence` skill for their layouts, and
+its `lexical-semantics` skill for lexicon pages and for mappings from a
+lexical inventory to a lexicon.
 
 ## Consistency
 
