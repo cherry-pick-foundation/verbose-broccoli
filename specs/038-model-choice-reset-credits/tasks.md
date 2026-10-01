@@ -29,7 +29,7 @@
 
 ## Phase 2: Finish
 
-- [ ] T003 Merge `develop`, run `npm run verify`, pass the develop merge
+- [x] T003 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish model-choice-reset-credits`.
   - 2026-10-01: `develop` b9ab0ae had not moved, so no merge was needed;
@@ -45,3 +45,5 @@
   - Follow-up reviewer: a second fresh Cursor session (`auto`), chosen with
     Jev (Cursor 0.43, confidence 0.34), reviewed a446f21 to fc2016e with no
     findings.
+  - 2026-10-01: finished into `develop` as `a8d8b6c` (review record `3307271`);
+    `npm run verify` VERIFIED on `develop` (37 of 37). Nothing blocked.
