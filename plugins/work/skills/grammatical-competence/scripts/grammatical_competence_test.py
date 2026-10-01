@@ -17,27 +17,30 @@ import yaml
 from wiki_consistency.instance import instance_path
 
 sys.path.insert(0, str(Path(__file__).parent))
-import concept_profile as profile
+import grammatical_competence as profile
 
 REVISION = "20260930T000000000000Z"
-CATALOG = "catalogs/catalog.md"
+INVENTORY = "inventories/inventory.md"
 ROWS = [
-    ("ID", "Label", "Type", "Level", "Statement", "Examples"),
-    ("keep", "Keep", "Group", " A1 ", "Shows support.", "One.\nTwo."),
-    ("drop", "Drop", "Group", "A1", "Shows contradiction.", "Drop."),
-    ("silent", "Silent", "Group", "A2", "Unsupported.", "Silent."),
-    ("accept", "Accept", "Group", "A2", "Needs review.", "Accept."),
-    ("reject", "Reject", "Group", "A2", "Also needs review.", "Reject."),
+    ("ID", "Label", "Type", "Level", "Statement", "Examples", "Tier"),
+    ("keep", "Keep", "Group", " A1 ", "Shows support.", "One.\nTwo.", "N/A"),
+    ("drop", "Drop", "Group", "A1", "Shows contradiction.", "Drop.", None),
+    ("silent", "Silent", "Group", "A2", "Unsupported.", "Silent.", None),
+    ("accept", "Accept", "Group", "A2", "Needs review.", "Accept.", None),
+    ("reject", "Reject", "Group", "A2", "Also needs review.", "Reject.", None),
+    ("wide", "Range", "Two  words", "B1", "Wide range.", "Wide.", "2"),
+    ("small", "Range", "Two words", "A2", "Small range.", "Small.", "1"),
+    ("alone", "Alone", "Group", "B2", "Only tier.", "Alone.", "1"),
 ]
 PAGE = {
-    "title": "Synthetic catalog",
-    "summary": "A catalog for tests.",
+    "title": "Synthetic inventory",
+    "summary": "An inventory for tests.",
     "topics": ["Teaching materials"],
-    "sources": [{"id": "catalog-source", "revision": REVISION}],
-    "catalog": {
-        "sheet": "Concepts",
+    "sources": [{"id": "inventory-source", "revision": REVISION}],
+    "inventory": {
+        "sheet": "Items",
         "columns": {"id": "ID", "label": ["Label", "Type"], "level": "Level"}
-        | {"statement": "Statement", "examples": "Examples"},
+        | {"statement": "Statement", "examples": "Examples", "family": "Tier"},
         "claim": "{text} shows {label}: {statement}",
     },
 }
@@ -54,8 +57,9 @@ REPLY = {
     ],
 }
 RECORD = (
-    f"record --catalog {CATALOG} --name sample --title 'Synthetic material' "
-    "--summary 'Synthetic profile.' --proposer 'test agent, test model, max'"
+    f"record --inventory {INVENTORY} --name sample "
+    "--title 'Synthetic material' --summary 'Synthetic profile.' "
+    "--proposer 'test agent, test model, max'"
 )
 
 
@@ -87,7 +91,7 @@ def _proposals(run, *rows):
             "source": "material-source",
             "part": "Unit 1",
             "text": t,
-            "concepts": k,
+            "items": k,
         }
         for t, k in rows
     ]
@@ -98,21 +102,21 @@ def _proposals(run, *rows):
 
 @pytest.fixture
 def vault(tmp_path, monkeypatch):
-    """Set up a synthetic vault with a catalog and a one-line material."""
+    """Set up a synthetic vault with an inventory and a one-line material."""
     for name in ("DATA", "STATE", "CACHE"):
         monkeypatch.setenv(f"XDG_{name}_HOME", str(tmp_path / name.lower()))
     root = instance_path("synthetic", os.environ)
-    (root / "wiki/catalogs").mkdir(parents=True)
+    (root / "wiki/inventories").mkdir(parents=True)
     book = Workbook()
-    book.active.title = "Concepts"
+    book.active.title = "Items"
     for row in ROWS:
         book.active.append(row)
-    book.save(tmp_path / "catalog.xlsx")
+    book.save(tmp_path / "inventory.xlsx")
     _bag(
         root,
-        "catalog-source",
-        "catalog.xlsx",
-        (tmp_path / "catalog.xlsx").read_bytes(),
+        "inventory-source",
+        "inventory.xlsx",
+        (tmp_path / "inventory.xlsx").read_bytes(),
     )
     _bag(
         root,
@@ -121,8 +125,8 @@ def vault(tmp_path, monkeypatch):
         b"First sentence. Second sentence.",
     )
     front = yaml.safe_dump(PAGE, sort_keys=False)
-    (root / "wiki" / CATALOG).write_text(
-        f"---\n{front}---\n\nSynthetic catalog."
+    (root / "wiki" / INVENTORY).write_text(
+        f"---\n{front}---\n\nSynthetic inventory."
     )
     return root
 
@@ -145,16 +149,16 @@ def backfire(monkeypatch):
     return stub
 
 
-def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
+def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
     before = _snapshot(vault)
-    assert _run(f"catalog --catalog {CATALOG}") == 0
+    assert _run(f"inventory --inventory {INVENTORY}") == 0
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
-    tsv = (run / "catalog.tsv").read_text().splitlines()
+    tsv = (run / "inventory.tsv").read_text().splitlines()
     assert tsv[0] == "1\tA1\tKeep / Group\tShows support."
     _proposals(run, ("First   sentence.", [5, 1, 2, 3, 4]))
     capsys.readouterr()
-    assert _run(f"check --catalog {CATALOG}") == 1  # One result is unknown.
+    assert _run(f"check --inventory {INVENTORY}") == 1  # One result is unknown.
     report = json.loads(capsys.readouterr().out)
     assert (report["calls"], report["tokens"], report["invalid"]) == (1, 5, 1)
     assert backfire.sessions == 1
@@ -170,14 +174,9 @@ def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
     assert outcomes == ["kept", "dropped", "dropped", "unclear", "unclear"]
     assert (check["provider"], check["model"]) == ("synthetic", "stub")
 
+    assert not (run / "review.md").exists()
+
     assert _run(RECORD) == 0
-    (row,) = _jsonl(vault / "wiki/profiles/sample.jsonl")
-    assert (row["concepts"], row["unclear"]) == (["keep"], ["accept", "reject"])
-    sheet = run / "review.md"
-    sheet.write_text(
-        sheet.read_text().replace('[ ] 1 "accept"', '[x] 1 "accept"')
-    )
-    assert _run(f"{RECORD} --reviewed") == 0
     (row,) = _jsonl(vault / "wiki/profiles/sample.jsonl")
     page = (vault / "wiki/profiles/sample.md").read_text()
     front = yaml.safe_load(page.split("---\n", 2)[1])
@@ -186,19 +185,19 @@ def test_check_sorts_and_record_applies_the_review(vault, backfire, capsys):
         "source": "material-source",
         "part": "Unit 1",
         "text": "First sentence.",
-        "concepts": ["keep", "accept"],
-        "unclear": [],
+        "items": ["keep"],
+        "unclear": ["accept", "reject"],
     }
     assert front["profile"] == {
-        "catalog": f"../{CATALOG}",
+        "inventory": f"../{INVENTORY}",
         "data": "sample.jsonl",
         "proposer": "test agent, test model, max",
         "checker": "synthetic stub",
-        "counts": {"sentences": 1, "kept": 2, "dropped": 3, "unclear": 0},
+        "counts": {"sentences": 1, "kept": 1, "dropped": 2, "unclear": 2},
     }
     assert front["sources"] == [
         {"id": "material-source", "revision": REVISION},
-        {"id": "catalog-source", "revision": REVISION},
+        {"id": "inventory-source", "revision": REVISION},
     ]
     assert _snapshot(vault) == before
 
@@ -215,11 +214,11 @@ def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
         ("\uccab \ubb38\uc7a5.", [1]),
     )
     _proposals(run, *rows)
-    assert _run(f"check --catalog {CATALOG}") == 1
+    assert _run(f"check --inventory {INVENTORY}") == 1
     assert not (run / "checks.jsonl").exists() and not backfire.calls
     err = capsys.readouterr().err
     assert "proposal 1: sentence is absent" in err
-    assert "proposal 2: concept key is not in the catalog" in err
+    assert "proposal 2: item key is not in the inventory" in err
     assert "proposal 3: backfire takes English only, no Hangul" in err
 
 
@@ -236,14 +235,14 @@ def test_failure_stops_the_run_and_a_rerun_resumes(backfire, capsys):
         return ok
 
     backfire.reply = failing
-    assert _run(f"check --catalog {CATALOG}") == 2
+    assert _run(f"check --inventory {INVENTORY}") == 2
     assert "row 2: provider failed" in capsys.readouterr().err
     checks = run / "checks.jsonl"
     assert [c["row"] for c in _jsonl(checks)] == [1]
     with checks.open("a") as stream:
         stream.write('{"row": 2')  # A torn line from a killed run.
     backfire.reply = lambda _: ok
-    assert _run(f"check --catalog {CATALOG}") == 0
+    assert _run(f"check --inventory {INVENTORY}") == 0
     sent = [c["evidence"].split("\n")[0][10:] for c in backfire.calls]
     assert sent == ["First sentence.", "Second sentence.", "Second sentence."]
     assert [c["row"] for c in _jsonl(checks)] == [1, 2]
@@ -252,8 +251,8 @@ def test_failure_stops_the_run_and_a_rerun_resumes(backfire, capsys):
 @pytest.mark.usefixtures("vault")
 def test_budget_refusal_happens_before_any_write(monkeypatch):
     monkeypatch.setattr(profile, "LIMIT", 1)
-    assert _run(f"catalog --catalog {CATALOG}") == 2
-    assert not (profile._run_dir("run") / "catalog.tsv").exists()
+    assert _run(f"inventory --inventory {INVENTORY}") == 2
+    assert not (profile._run_dir("run") / "inventory.tsv").exists()
 
 
 def test_verify_reads_real_tool_results():
@@ -286,13 +285,44 @@ def test_record_sorts_stored_results_again_at_a_threshold(backfire):
             {"verdict": "unsupported", "action": "review", "confidence": 0.7},
         ],
     }
-    assert _run(f"check --catalog {CATALOG}") == 0
+    assert _run(f"check --inventory {INVENTORY}") == 0
     assert _run(f"{RECORD} --auto-accept 0.5") == 0
     root = instance_path("synthetic", os.environ)
     (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
-    assert (row["concepts"], row["unclear"]) == (["keep"], ["drop"])
+    assert (row["items"], row["unclear"]) == (["keep"], ["drop"])
     page = (root / "wiki/profiles/sample.md").read_text()
     profile_block = yaml.safe_load(page.split("---\n")[1])["profile"]
     assert profile_block["auto_accept"] == 0.5
     counts = {"sentences": 1, "kept": 1, "dropped": 1, "unclear": 1}
     assert profile_block["counts"] == counts
+
+
+@pytest.mark.usefixtures("vault")
+def test_a_tier_family_is_one_item(backfire):
+    assert _run(f"inventory --inventory {INVENTORY}") == 0
+    assert _run("extract --source material-source") == 0
+    run = profile._run_dir("run")
+    tsv = (run / "inventory.tsv").read_text().splitlines()
+    assert [line.split("\t")[0] for line in tsv] == list("1234578")
+    assert tsv[5:] == [
+        "7\tA2/B1\tRange / Two words\tSmall range.; Wide range.",
+        "8\tB2\tAlone / Group\tOnly tier.",
+    ]
+    _proposals(run, ("First sentence.", [6]))
+    assert _run(f"check --inventory {INVENTORY}") == 1
+    _proposals(run, ("First sentence.", [7]))
+    backfire.reply = lambda _: {
+        "results": [{"verdict": "verified", "action": "auto"}]
+    }
+    assert _run(f"check --inventory {INVENTORY}") == 0
+    (call,) = backfire.calls
+    assert call["claims"] == [
+        "First sentence. shows Range / Two words: Small range.; Wide range."
+    ]
+    assert call["evidence"].endswith(
+        "small\nRange / Two words\nSmall range.; Wide range.\nSmall.\nWide."
+    )
+    assert _run(RECORD) == 0
+    root = instance_path("synthetic", os.environ)
+    (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
+    assert row["items"] == ["small"]

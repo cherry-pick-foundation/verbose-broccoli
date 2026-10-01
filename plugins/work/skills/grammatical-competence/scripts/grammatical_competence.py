@@ -1,4 +1,4 @@
-"""Profile the concepts of a material: catalog, extract, check, record."""
+"""Profile materials against an inventory and record their items."""
 
 import argparse
 import asyncio
@@ -26,7 +26,6 @@ from wiki_consistency.instance import roots
 LIMIT = 200 * 1024**2
 BACKFIRE = Path(__file__).resolve().parents[5] / "packages/backfire"
 HANGUL = re.compile("[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]")
-TICKED = re.compile(r'^- \[[xX]\] (\d+) ("(?:[^"\\]|\\.)*")', re.M)
 OUTCOMES = {
     ("auto", "verified"): "kept",
     ("auto", "contradicted"): "dropped",
@@ -36,7 +35,7 @@ OUTCOMES = {
 
 def _run_dir(name):
     state = os.environ.get("XDG_STATE_HOME") or Path.home() / ".local/state"
-    return Path(state) / "verbose-broccoli/concept-profile" / name
+    return Path(state) / "verbose-broccoli/grammatical-competence" / name
 
 
 def _budget(run, text):
@@ -62,11 +61,11 @@ def _norm(text):
     return " ".join(text.split())
 
 
-def _catalog(root, page):
-    """Return the catalog page's metadata and its concepts by key."""
+def _inventory(root, page):
+    """Return the inventory page's metadata and its items by key."""
     text = (root / "wiki" / page).read_text(encoding="utf-8")
     metadata = yaml.safe_load(text.split("---\n", 2)[1])
-    spec, source = metadata["catalog"], metadata["sources"][0]
+    spec, source = metadata["inventory"], metadata["sources"][0]
     item = next(
         item
         for item in revisions(root)[source["id"]]
@@ -75,6 +74,7 @@ def _catalog(root, page):
     book = load_workbook(_payload_path(root, item), read_only=True)
     rows = book[spec["sheet"]].iter_rows(values_only=True)
     header, columns = list(next(rows)), spec["columns"]
+    rows = list(enumerate(rows, 1))
 
     def cell(row, name):
         return str(row[header.index(name)] or "").strip()
@@ -87,19 +87,36 @@ def _catalog(root, page):
             "statement": cell(row, columns["statement"]),
             "examples": cell(row, columns["examples"]),
         }
-        for key, row in enumerate(rows, 1)
+        for key, row in rows
     }
+    # Rows whose family cell holds a tier number and whose labels match form
+    # one item: its lowest tier's key and ID, every tier's text in order.
+    tiers = (
+        (int(tier), key)
+        for key, row in rows
+        if "family" in columns
+        and (tier := cell(row, columns["family"])).isdigit()
+    )
+    heads = {}
+    for _, key in sorted(tiers):
+        entry = entries[key]
+        head = heads.setdefault(_norm(entry["label"]), entry)
+        if head is not entry:
+            for name, joint in (("level", "/"), ("statement", "; ")):
+                head[name] += joint + entry[name]
+            head["examples"] += "\n" + entry["examples"]
+            del entries[key]
     return metadata, entries
 
 
-def _catalog_command(args, root, run):
-    entries = _catalog(root, args.catalog)[1]
+def _inventory_command(args, root, run):
+    entries = _inventory(root, args.inventory)[1]
     fields = ("level", "label", "statement")
     lines = (
         "\t".join([str(key)] + [_norm(e[name]) for name in fields])
         for key, e in entries.items()
     )
-    _write(run / "catalog.tsv", "\n".join(lines) + "\n", run)
+    _write(run / "inventory.tsv", "\n".join(lines) + "\n", run)
 
 
 def _extract_command(args, root, run):
@@ -150,15 +167,15 @@ def _refusals(run, proposals, entries):
             yield f"proposal {n}: backfire takes English only, no Hangul"
         elif _norm(row["text"]) not in texts.get(row["source"], ""):
             yield f"proposal {n}: sentence is absent from the extracted text"
-        elif not set(row["concepts"]) <= entries.keys():
-            yield f"proposal {n}: concept key is not in the catalog"
+        elif not set(row["items"]) <= entries.keys():
+            yield f"proposal {n}: item key is not in the inventory"
 
 
 async def _send(run, todo, entries, claim, done):
     async with _backfire() as session:
         for n, row in todo:
             started = time.monotonic()
-            found = [entries[key] for key in sorted(set(row["concepts"]))]
+            found = [entries[key] for key in sorted(set(row["items"]))]
             text = _norm(row["text"])
             parts = ("id", "label", "statement", "examples")
             evidence = "\n\n".join(
@@ -181,7 +198,7 @@ async def _send(run, todo, entries, claim, done):
                 "results": [
                     {
                         **r,
-                        "concept": e["id"],
+                        "item": e["id"],
                         "outcome": OUTCOMES.get(
                             (r.get("action"), r.get("verdict")), "unclear"
                         ),
@@ -197,7 +214,7 @@ async def _send(run, todo, entries, claim, done):
 
 
 def _check_command(args, root, run):
-    metadata, entries = _catalog(root, args.catalog)
+    metadata, entries = _inventory(root, args.inventory)
     proposals = _jsonl(run / "proposals.jsonl")
     if refused := list(_refusals(run, proposals, entries)):
         print(*refused, sep="\n", file=sys.stderr)
@@ -209,7 +226,7 @@ def _check_command(args, root, run):
     done = [json.loads(line) for line in lines[:-1]]
     todo = [(n, r) for n, r in enumerate(proposals, 1) if n > len(done)]
     if todo:
-        claim = metadata["catalog"]["claim"]
+        claim = metadata["inventory"]["claim"]
         try:
             asyncio.run(_send(run, todo, entries, claim, done))
         except Exception as error:  # noqa: BLE001 - any backfire failure.
@@ -217,22 +234,6 @@ def _check_command(args, root, run):
                 error = error.exceptions[0]
             print(f"row {len(done) + 1}: {error}", file=sys.stderr)
             return 2
-    by_id = {e["id"]: e for e in entries.values()}
-    sheet = []
-    for check in done:
-        n = check["row"]
-        unclear = [
-            r["concept"] for r in check["results"] if r["outcome"] == "unclear"
-        ]
-        if unclear:
-            sheet.append(f"## {n}. {_norm(proposals[n - 1]['text'])}\n")
-            for i in unclear:
-                label, statement = by_id[i]["label"], by_id[i]["statement"]
-                sheet.append(
-                    f"- [ ] {n} {json.dumps(i)} — {label}: {statement}"
-                )
-            sheet.append("")
-    _write(run / "review.md", "\n".join(sheet), run)
     results = [r for c in done for r in c["results"]]
     report = {
         "sentences": len(proposals),
@@ -261,37 +262,33 @@ def _outcome(result, auto_accept):
 
 
 def _record_command(args, root, run):
-    metadata, entries = _catalog(root, args.catalog)
+    metadata, entries = _inventory(root, args.inventory)
     proposals = _jsonl(run / "proposals.jsonl")
     checks = _jsonl(run / "checks.jsonl")
     if [c["row"] for c in checks] != list(range(1, len(proposals) + 1)):
         raise LookupError("checks.jsonl does not cover every proposal")
     order = {e["id"]: key for key, e in entries.items()}
-    sheet = run / "review.md"
-    sheet = sheet.read_text(encoding="utf-8") if args.reviewed else ""
-    ticked = {(int(n), json.loads(i)) for n, i in TICKED.findall(sheet)}
     rows = []
     for n, (proposal, check) in enumerate(zip(proposals, checks), 1):
         by = {
             o: [
-                r["concept"]
+                r["item"]
                 for r in check["results"]
                 if _outcome(r, args.auto_accept) == o
             ]
             for o in ("kept", "unclear")
         }
-        accepted = [i for i in by["unclear"] if (n, i) in ticked]
         rows.append(
             {
                 "n": n,
                 "source": proposal["source"],
                 "part": proposal["part"],
                 "text": _norm(proposal["text"]),
-                "concepts": sorted(by["kept"] + accepted, key=order.get),
-                "unclear": [] if args.reviewed else by["unclear"],
+                "items": sorted(by["kept"], key=order.get),
+                "unclear": by["unclear"],
             }
         )
-    kept = sum(len(r["concepts"]) for r in rows)
+    kept = sum(len(r["items"]) for r in rows)
     unclear = sum(len(r["unclear"]) for r in rows)
     proposed = sum(len(c["results"]) for c in checks)
     sources = [
@@ -305,7 +302,7 @@ def _record_command(args, root, run):
         "topics": metadata["topics"],
         "sources": sources + metadata["sources"],
         "profile": {
-            "catalog": f"../{args.catalog}",
+            "inventory": f"../{args.inventory}",
             "data": f"{args.name}.jsonl",
             "proposer": args.proposer,
             "checker": "; ".join(sorted(checker)),
@@ -319,8 +316,8 @@ def _record_command(args, root, run):
         },
     }
     body = (
-        f"{args.title}: every sentence and its concepts, from the "
-        f"[catalog](../{args.catalog}); rows in "
+        f"{args.title}: every sentence and its items, from the "
+        f"[inventory](../{args.inventory}); rows in "
         f"[{args.name}.jsonl]({args.name}.jsonl).\n"
     )
     front = yaml.safe_dump(page, sort_keys=False, allow_unicode=True)
@@ -343,11 +340,10 @@ def main(argv=None):
             sub.add_argument(f"--{option}", required=True)
         return sub
 
-    command("catalog", _catalog_command, "catalog")
-    command("check", _check_command, "catalog")
-    names = ("catalog", "name", "title", "summary", "proposer")
+    command("inventory", _inventory_command, "inventory")
+    command("check", _check_command, "inventory")
+    names = ("inventory", "name", "title", "summary", "proposer")
     record = command("record", _record_command, *names)
-    record.add_argument("--reviewed", action="store_true")
     record.add_argument("--auto-accept", type=float)
     extract = command("extract", _extract_command)
     extract.add_argument("--source", nargs="+", required=True)
@@ -356,7 +352,7 @@ def main(argv=None):
         root = instance_path(args.wiki, os.environ)
         return args.function(args, root, _run_dir(args.run)) or 0
     except (OSError, ValueError, LookupError, subprocess.SubprocessError) as e:
-        print(f"concept-profile: {e}", file=sys.stderr)
+        print(f"grammatical-competence: {e}", file=sys.stderr)
         return 2
 
 

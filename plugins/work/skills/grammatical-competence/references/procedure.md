@@ -1,8 +1,8 @@
-# Concept Profile Procedure
+# Grammatical Competence Procedure
 
 ## Sources and extraction
 
-Admit the catalog spreadsheet, each material file, and each reference
+Admit the inventory spreadsheet, each material file, and each reference
 book's original PDF through the work plugin's `wiki-raw-import` skill. Check
 the raw revisions with that skill. Read only the admitted revisions; never
 edit or delete anything in `raw/`.
@@ -11,24 +11,31 @@ From this skill folder, the script runs in the Wiki consistency environment.
 `--wiki <vault>` (default `work`) and `--run <name>` come before the command:
 
 ```sh
-uv run --project ../../../../packages/wiki-consistency --frozen --offline --no-sync python scripts/concept_profile.py --run <name> <command>
+uv run --project ../../../../packages/wiki-consistency --frozen --offline --no-sync python scripts/grammatical_competence.py --run <name> <command>
 ```
 
 Use one run folder per material: `--run <name>` is
-`$XDG_STATE_HOME/verbose-broccoli/concept-profile/<name>/`, or `~/.local/state`
-when `XDG_STATE_HOME` is unset. Before each write, the script refuses to pass
-200 MB in the run folder. It writes a file under a temporary name and renames
-it, and appends `checks.jsonl` one line per sentence. Exit code 0 means
+`$XDG_STATE_HOME/verbose-broccoli/grammatical-competence/<name>/`, or
+`~/.local/state` when `XDG_STATE_HOME` is unset. Before each write, the
+script refuses to pass 200 MB in the run folder. It writes a file under a
+temporary name and renames it, and appends `checks.jsonl` one line per
+sentence. Exit code 0 means
 success, 1 means a proposal was refused or a backfire result was invalid, and
 2 means an error stopped the command, such as a backfire failure during
 `check`.
 
-- `catalog --catalog catalogs/<catalog>.md` writes `catalog.tsv` for the
-  proposer from the catalog page's first source, the spreadsheet, at the
-  revision the page cites. Each line has four tab-separated columns: the key,
-  the level, the label and the statement. The key is the concept's one-based
-  data-row number in the sheet. The catalog's own ID and the examples are not
-  in the file. Cell values are stripped of surrounding whitespace.
+- `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`
+  for the proposer from the inventory page's first source, the spreadsheet,
+  at the revision the page cites. Each line has four tab-separated columns:
+  the key, the level, the label and the statement. The key is the item's
+  one-based data-row number in the sheet. The inventory's own ID and the
+  examples are not in the file. Cell values are stripped of surrounding
+  whitespace. When the inventory block names a `family` column, rows whose
+  family cell holds a tier number and whose labels match (whitespace
+  collapsed) form one tier family, counted as one item everywhere: it keeps
+  its lowest tier's key and inventory ID, its levels are joined with `/`, its
+  statements with `; `, and its examples hold every tier's examples. Its
+  other rows' keys are not in the file.
 - `extract --source <source-id> ...` writes `text/<source-id>.txt` from each
   source's latest revision: PDF through `pdftotext -raw`, everything else
   through `wiki_consistency.evidence.convert` and `read`. `-raw` keeps the
@@ -44,34 +51,40 @@ read every extracted source in order and identify every English sentence in
 passages, dialogues and full-sentence English answer choices. Skip Korean
 text, headings, labels and phrase-only choices. Keep each sentence's text as
 it occurs in the extraction. Make one row for every sentence, including rows
-with no concepts, in text order, with repeated sentences as separate rows.
+with no items, in text order, with repeated sentences as separate rows.
 
 Write `proposals.jsonl` in the run folder, one JSON object per sentence:
 
 ```json
-{"source": "<source ID>", "part": "<lesson or section>", "text": "<sentence>", "concepts": [1, 4]}
+{"source": "<source ID>", "part": "<lesson or section>", "text": "<sentence>", "items": [1, 4]}
 ```
 
-`concepts` holds keys from `catalog.tsv`, not the catalog's own IDs. Use an
-empty list when the sentence shows no concept. Select every concept the
+`items` holds keys from `inventory.tsv`, not the inventory's own IDs. Use an
+empty list when the sentence shows no item. Select every item the
 sentence shows, not only the lesson target or the exam answer.
 
-## Check and review
+Tier rule, the same for every proposer: a line whose level holds `/` is a
+tier family, whose tiers differ only in how wide a range of words a learner
+uses. Name its key once when any word of the sentence fits the family,
+whatever the word's own level; never judge which tier a word belongs to.
 
-`check --catalog catalogs/<catalog>.md` first tests every row: its text must
-hold no Hangul, because everything sent to backfire is English; after
-whitespace is normalized, it must occur in the extracted text of its source;
-and every key must be in the catalog. If any row fails, the command names each on
-stderr as `proposal <n>: <reason>`, exits 1 and sends nothing.
+## Check
+
+`check --inventory inventories/<inventory>.md` first tests every row: its
+text must hold no Hangul, because everything sent to backfire is English;
+after whitespace is normalized, it must occur in the extracted text of its
+source; and every key must be in the inventory. If any row fails, the command
+names each on stderr as `proposal <n>: <reason>`, exits 1 and sends nothing.
 
 Then it opens one `backfire serve-mcp --education` session, started from
-`packages/backfire`, and sends every unchecked sentence with concepts as one
-`jev_verify` call. Each concept, once and in key order, gives one claim: the
-catalog page's `catalog.claim` template filled with `{text}` (the normalized
-sentence), `{label}` and `{statement}`. The evidence is one text: the line
-`Sentence: <sentence>`, then one block per concept with its catalog ID,
-label, statement and examples on separate lines. One text, not one item per
-concept, makes backfire ask one question per claim instead of two; on the
+`packages/backfire`, and sends every unchecked sentence with items as one
+`jev_verify` call. Each item, once and in key order, gives one claim: the
+inventory page's `inventory.claim` template filled with `{text}` (the
+normalized sentence), `{label}` and `{statement}`. The evidence is one text:
+the line `Sentence: <sentence>`, then one block per item with its inventory
+ID, label, statement and examples on separate lines. One text, not one
+evidence item per inventory item, makes backfire ask one question per claim
+instead of two; on the
 pilot it cut a 29-claim call from about 86,000 to 16,500 tokens and let a
 36-claim call pass the provider's size limit.
 
@@ -88,15 +101,9 @@ command resumes at the failed sentence.
 
 `checks.jsonl` gets one line per sentence: `row` (the proposal's line number),
 `provider`, `model`, `usage`, `seconds`, and `results`: each backfire result
-with the concept's catalog ID as `concept` and the `outcome` added. A run that stopped is
-rerun with the same command: sentences already in `checks.jsonl` are not sent
-again, and a torn last line is dropped first.
-
-`review.md` is rewritten from all results after every run. It has a heading
-`## <row>. <sentence>` for each sentence with unclear concepts, and one line
-`- [ ] <row> <JSON string of the catalog ID> — <label>: <statement>` for each
-of them. The user ticks the concepts the sentence shows. Do not rerun `check`
-after the user has started on the sheet.
+with the item's inventory ID as `item` and the `outcome` added. A run that
+stopped is rerun with the same command: sentences already in `checks.jsonl`
+are not sent again, and a torn last line is dropped first.
 
 The command prints one JSON object over all recorded results: `sentences`,
 `calls`, `invalid` (results without a verdict or with `unknown`), `tokens`
@@ -105,27 +112,24 @@ The command prints one JSON object over all recorded results: `sentences`,
 
 ## Record and finish
 
-`record --catalog catalogs/<catalog>.md --name <material> --title <title>
---summary <line> --proposer '<agent, model and effort>' [--auto-accept <t>]
-[--reviewed]` writes
-`wiki/profiles/<material>.md` and `<material>.jsonl`, and replaces both when
-they exist; the vault's Git keeps the earlier record. It stops with exit code
-2 unless `checks.jsonl` covers every proposal.
+`record --inventory inventories/<inventory>.md --name <material> --title
+<title> --summary <line> --proposer '<agent, model and effort>'
+[--auto-accept <t>]` writes `wiki/profiles/<material>.md` and
+`<material>.jsonl`, and replaces both when they exist; the vault's Git keeps
+the earlier record. It stops with exit code 2 unless `checks.jsonl` covers
+every proposal.
 
 `--auto-accept <t>` sorts the stored results again without new calls: a
 result counts as confident when its confidence is at least `t`, and the
 rule above then keeps, drops or leaves it unclear; the page records `t` as
 `profile.auto_accept`. Without it, the outcomes stay as `check` recorded
 them at backfire's default of 0.8. On the pilot, 0.8 kept only 28% of the
-true concepts at 99% precision and 0.5 kept 74% at 95%; the user chose 0.5.
-`review.md` lists what `check` left unclear, so use `--reviewed` only
-without `--auto-accept`.
+true items at 99% precision and 0.5 kept 74% at 95%; the user chose 0.5.
 
-Without `--reviewed`, every unclear concept stays in the row's `unclear` list.
-With it, the ticked ones of `review.md` become concepts and the unticked ones
-are dropped. The `checker` field lists the distinct provider and model pairs
-in `checks.jsonl`. `sources` lists each proposal source at its latest revision,
-then the catalog page's sources; `topics` come from the catalog page.
+Nobody reviews unclear items: each stays in its row's `unclear` list. The
+`checker` field lists the distinct provider and model pairs in
+`checks.jsonl`. `sources` lists each proposal source at its latest revision,
+then the inventory page's sources; `topics` come from the inventory page.
 
 After recording, use the work plugin's `wiki-consistency` skill: run `update`
 and `check`, fix failures, append the required entry to `wiki/log.md`, and
@@ -140,22 +144,22 @@ All records live in the work vault's `wiki/`, use the declared topic
 also requires `title`, `summary`, `topics` and `sources`. Paths in a block are
 relative to its page.
 
-### Catalog: `wiki/catalogs/<catalog>.md`
+### Inventory: `wiki/inventories/<inventory>.md`
 
 The spreadsheet stays in `raw/`; the page names it as its first source and
-describes the catalog. Its block records the spreadsheet's own headers and
+describes the inventory. Its block records the spreadsheet's own headers and
 claim wording.
 
 ```yaml
 ---
-title: <catalog name>
+title: <inventory name>
 summary: <one line>
 topics:
   - Teaching materials
 sources:
   - id: <spreadsheet source ID>
     revision: <revision>
-catalog:
+inventory:
   sheet: <sheet name>
   columns:
     id: <header of the ID column>
@@ -163,12 +167,13 @@ catalog:
     level: <header>
     statement: <header>
     examples: <header>          # one cell, one example per line
+    family: <header>            # optional: a tier number per row (see above)
   levels: [<lowest>, ..., <highest>]
   claim: <template with {text}, {label} and {statement}>
 ---
 ```
 
-The body says what the catalog is, its terms of use and its counts.
+The body says what the inventory is, its terms of use and its counts.
 
 ### Profile: `wiki/profiles/<material>.md` and `<material>.jsonl`
 
@@ -178,11 +183,11 @@ title: <material title>
 summary: <one line>
 topics:
   - Teaching materials
-sources:                        # every raw source of the material, then the catalog's
+sources:                        # the material's raw sources, then the inventory's
   - id: <source ID>
     revision: <revision>
 profile:
-  catalog: ../catalogs/<catalog>.md
+  inventory: ../inventories/<inventory>.md
   data: <material>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
@@ -192,16 +197,15 @@ profile:
 ```
 
 The body is one short paragraph written by the script: the material, the
-catalog link and the data link. Data rows, one per sentence, in order:
+inventory link and the data link. Data rows, one per sentence, in order:
 
 ```json
-{"n": 1, "source": "<source ID>", "part": "Lesson 1", "text": "<sentence>", "concepts": ["<id>"], "unclear": ["<id>"]}
+{"n": 1, "source": "<source ID>", "part": "Lesson 1", "text": "<sentence>", "items": ["<id>"], "unclear": ["<id>"]}
 ```
 
-`concepts` holds kept concepts and unclear ones the user ticked, in catalog
-order. `unclear` holds those the user has not decided. Dropped and unticked
-concepts are not recorded. In `counts`, `kept` counts the concepts of all rows,
-`unclear` the undecided ones, and `dropped` every other proposal.
+`items` holds kept items, in inventory order, and `unclear` the unclear
+ones. Dropped items are not recorded. In `counts`, `kept` counts the items of
+all rows, `unclear` the unclear ones, and `dropped` every other proposal.
 
 ### Reference: `wiki/references/<reference>.md` and `<reference>.markdown`
 
@@ -224,32 +228,32 @@ reference:
   text: <reference>.markdown
 ```
 
-### Mapping: `wiki/mappings/<catalog>--<reference>.md` and `.jsonl`
+### Mapping: `wiki/mappings/<inventory>--<reference>.md` and `.jsonl`
 
 The layout and method are designed here; a later feature builds the mappings.
 
 ```yaml
 mapping:
-  catalog: ../catalogs/<catalog>.md
+  inventory: ../inventories/<inventory>.md
   reference: ../references/<reference>.md
-  data: <catalog>--<reference>.jsonl
+  data: <inventory>--<reference>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
-  counts: {concepts: 0, kept: 0, dropped: 0, unclear: 0}
+  counts: {items: 0, kept: 0, dropped: 0, unclear: 0}
 ```
 
-`sources` cites the catalog spreadsheet and the reference's raw PDF. A
+`sources` cites the inventory spreadsheet and the reference's raw PDF. A
 section is addressed by its heading path in the reference's text file, such
-as `Unit 12 > 12A`. Data rows, one per concept, in catalog order:
+as `Unit 12 > 12A`. Data rows, one per item, in inventory order:
 
 ```json
-{"concept": "<id>", "sections": ["<heading path>"], "unclear": ["<heading path>"]}
+{"item": "<id>", "sections": ["<heading path>"], "unclear": ["<heading path>"]}
 ```
 
-The proposer may name at most three sections for each concept. A check sends
-one `jev_verify` call per concept, with one claim per proposed section:
+The proposer may name at most three sections for each item. A check sends
+one `jev_verify` call per item, with one claim per proposed section:
 `<reference> section <path> explains <label>: <statement>`. Evidence has the
-concept's statement and examples and each proposed section's text. Each run
+item's statement and examples and each proposed section's text. Each run
 reports its unclear share. Once the pilot sets a limit with the user, stop a
 run that exceeds it and change the method before continuing; keep unresolved
 items in the record instead of building a review queue.
