@@ -46,7 +46,12 @@ void test('plugin skills: isolated packages retain resources and executable help
         const mcp = JSON.parse(
           await readFile(join(target, 'mcp.json'), 'utf8'),
         );
-        assertEquals(Object.keys(mcp.mcpServers), ['backfire']);
+        assertEquals(
+          Object.keys(mcp.mcpServers),
+          pluginDirectory === 'work'
+            ? ['backfire', 'reference-library']
+            : ['backfire'],
+        );
       }
       for (const component of ['skills', 'hooks', 'tests']) {
         if (!existsSync(join(source, component))) continue;

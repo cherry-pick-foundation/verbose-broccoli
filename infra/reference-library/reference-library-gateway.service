@@ -1,0 +1,10 @@
+[Unit]
+Description=Reference library: give the local API the Host header it accepts
+After=reference-library-app.service
+StopWhenUnneeded=yes
+
+[Service]
+Type=notify
+RuntimeDirectory=reference-library-gateway
+Environment=XDG_DATA_HOME=%t/reference-library-gateway
+ExecStart=%h/.local/share/mise/installs/aqua-caddyserver-caddy/2.11.4/caddy run --config %E/reference-library/reference-library.caddyfile --adapter caddyfile

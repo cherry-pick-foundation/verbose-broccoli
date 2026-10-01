@@ -15,6 +15,15 @@
         "serve-mcp",
         "--education"
       ]
+    },
+    "reference-library": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/node_modules/zotero-native-mcp/build/index.js"],
+      "env": {
+        "ZOTERO_LOCAL_BASE_URL": "http://127.0.0.1:23190",
+        "ZOTERO_LOCAL_APP_NAME": "Agent reference library"
+      }
     }
   }
 }

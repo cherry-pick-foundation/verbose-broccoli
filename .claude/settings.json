@@ -1,5 +1,15 @@
 {
   "env": {
     "SPECKIT_PYTHON": "tools/spec-kit/.venv/bin/python"
+  },
+  "permissions": {
+    "deny": [
+      "mcp__plugin_work_reference-library__zotero_delete_items",
+      "mcp__plugin_work_reference-library__zotero_delete_collection",
+      "mcp__plugin_work_reference-library__zotero_empty_trash",
+      "mcp__reference-library__zotero_delete_items",
+      "mcp__reference-library__zotero_delete_collection",
+      "mcp__reference-library__zotero_empty_trash"
+    ]
   }
 }
