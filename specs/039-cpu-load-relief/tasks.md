@@ -113,3 +113,9 @@
     that `//#test:plugin-skills` checks for absent folders, which Turborepo
     cannot hash; it is now uncached (research.md D2, D4, D5). The new and
     extended tests fail without these declarations.
+  - Fourth reviewer: a fresh Copilot `auto` session at the `balance` tier,
+    chosen with Jev (0.56, confidence 0.50), reviewed 1eef330 to 9a948aa: 1
+    medium finding, 0 high, 0 low. `NODE_OPTIONS` reached tasks without
+    being hashed: Turborepo passes a built-in list of variables even in
+    strict mode. Fixed by hashing the ones that can change a result here
+    (research.md D3), with a test case that fails without it.

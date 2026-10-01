@@ -87,6 +87,18 @@ Facts were read from Turborepo 2.11.5 in this repository
   `node_modules/.bin`) and the programs it finds are in the fingerprint; the
   others place files or caches, and the per-user configuration they locate
   is either Git's, which is hashed, or isolated by the tests.
+- **Turborepo's own pass-through list**: even in strict mode, Turborepo
+  2.11.5 passes a built-in list of variables to every task without hashing
+  them (read from the binary's strings). Of those that can be set on this
+  machine and can change a result, `NODE_OPTIONS`, `COREPACK_*`,
+  `LD_PRELOAD`, `LD_LIBRARY_PATH`, `TZ` and `SHELL` are added to
+  `globalEnv`; the fourth develop merge review found `NODE_OPTIONS`. The
+  rest stay unhashed: `PWD` is the task's own folder and differs per
+  worktree; `XDG_DATA_*` and `XDG_RUNTIME_DIR` are covered by `XDG_*` above;
+  `XAUTHORITY`, `DBUS_SESSION_BUS_ADDRESS` and `COLORTERM` locate the
+  desktop session or colour output, which no check uses; `TURBO_*` are
+  Turborepo's own settings; the rest name Windows, macOS, Nix, Vercel,
+  JetBrains, Docker, pnpm or Electron settings that do not apply here.
 - **Cost**: about 0.1 s per Turborepo run.
 - **Limit**: only the `turborepo` npm script computes the fingerprint. Every
   repository entry point (`npm run check`, `npm run test`, `npm run verify`
@@ -230,8 +242,8 @@ installed records, and compares `--dry=json` hashes through the real
   environment, to a `.pth` file, to an entry-point script or to a tool's
   native program, a re-pointed launcher link and a changed permission each
   change every cached task;
-- a different `git --version`, a different global Git configuration and a
-  set `UV_PYTHON` each change every cached task.
+- a different `git --version`, a different global Git configuration, a set
+  `NODE_OPTIONS` and a set `UV_PYTHON` each change every cached task.
 
 Hashes stand in for reruns because Turborepo looks results up by hash. Each
 test fails when its declaration is removed (T004), and the log test fails

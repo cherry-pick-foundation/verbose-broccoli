@@ -18,7 +18,13 @@
     "UV_*",
     "MISE_*",
     "CI",
-    "VERBOSE_BROCCOLI_CONFIG"
+    "VERBOSE_BROCCOLI_CONFIG",
+    "NODE_OPTIONS",
+    "COREPACK_*",
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "TZ",
+    "SHELL"
   ],
   "globalPassThroughEnv": [
     "HOME",

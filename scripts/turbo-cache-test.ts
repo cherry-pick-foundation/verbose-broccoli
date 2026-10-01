@@ -226,6 +226,11 @@ void test('turbo cache: a changed program or its outside config reruns every cac
       '//#lint',
     ]);
 
+    assertChanged(before, hashes(repo, {NODE_OPTIONS: '--no-warnings'}), [
+      'backfire#test',
+      '//#lint',
+    ]);
+
     assertChanged(before, hashes(repo, {UV_PYTHON: '3.13'}), [
       'backfire#test',
       '//#lint',
