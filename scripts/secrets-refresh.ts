@@ -15,6 +15,7 @@ import {join} from 'node:path';
 // Operator configuration, outside the repository, is
 // `<config>/verbose-broccoli/secrets.json`:
 //   {"project": "<project id>", "files": {"hive.env": ["HIVE_API_KEY"], ...}}
+// plus an optional "server" (Bitwarden's server URL, by default the US cloud).
 // A secret's name is the variable in the file; the order of a file's list is
 // the order of its lines. The machine account's access token is
 // `BWS_ACCESS_TOKEN=...` in `<config>/verbose-broccoli/providers/bitwarden.env`.
@@ -46,8 +47,15 @@ const settings = JSON.parse(
   readFileSync(join(config, 'secrets.json'), 'utf8'),
 ) as {
   project: string;
+  server?: string;
   files: Record<string, string[]>;
 };
+// A file name, not a path: the files stay in the providers folder, and the
+// token file is never a target.
+const SAFE_FILE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+for (const file of Object.keys(settings.files))
+  if (!SAFE_FILE.test(file) || file === 'bitwarden.env')
+    fail(`${file} is not a usable key file name`);
 const token = readPrivate(join(providers, 'bitwarden.env'))
   .split('\n')
   .find(line => line.startsWith('BWS_ACCESS_TOKEN='))
@@ -59,6 +67,8 @@ if (!token) fail('bitwarden.env has no BWS_ACCESS_TOKEN line');
 // shows in the process list). Its own `--output env` quotes values and
 // comments out names that are not shell-safe, which key files cannot hold, so
 // the JSON output is read instead. umask 077 makes bws's state file private.
+// A server URL makes bws skip its config file, so no profile in
+// ~/.config/bws/config can send the token to another server.
 process.umask(0o077);
 const listed = spawnSync(
   'bws',
@@ -68,6 +78,7 @@ const listed = spawnSync(
       PATH: process.env.PATH,
       HOME: process.env.HOME,
       BWS_ACCESS_TOKEN: token,
+      BWS_SERVER_URL: settings.server ?? 'https://vault.bitwarden.com',
     },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'inherit'],

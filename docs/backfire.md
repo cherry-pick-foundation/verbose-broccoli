@@ -145,6 +145,10 @@ as a machine account and rewrites each key file listed in
 {"project": "<project id>", "files": {"hive.env": ["HIVE_API_KEY"]}}
 ```
 
+An optional `"server"` names Bitwarden's server (for example
+`https://vault.bitwarden.eu`); it defaults to `https://vault.bitwarden.com`.
+Each file name must be a plain name, not a path, and never `bitwarden.env`.
+
 A secret's name in the project is the variable in the file, and the list's
 order is the order of the file's lines. The machine account's access token is
 the line `BWS_ACCESS_TOKEN=...` in `providers/bitwarden.env` (a regular file,

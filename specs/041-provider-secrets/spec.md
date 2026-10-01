@@ -102,11 +102,16 @@ hash after; a `secret create` with the read-only token fails.
 - **FR-004**: The command MUST read the access token only from
   `providers/bitwarden.env` (mode 600, regular file, owned by the user), pass it
   to bws through the environment (never an argument) and start bws with an
-  environment of `PATH`, `HOME` and the token only.
+  environment of `PATH`, `HOME`, the token and the server URL only. The server
+  URL is the configuration's optional `server`, by default
+  `https://vault.bitwarden.com`, so no profile in bws's own config file can
+  redirect the token.
 - **FR-005**: The command MUST print file names and counts only, never a
   secret value or the token.
 - **FR-006**: The project ID and the secret-to-file mapping MUST come from
   `$XDG_CONFIG_HOME/verbose-broccoli/secrets.json`, outside the repository.
+  Each target is a plain file name in the providers folder, never a path and
+  never `bitwarden.env`.
 - **FR-007**: Backfire's documentation MUST describe the refresh and the
   operator configuration where it describes key files.
 

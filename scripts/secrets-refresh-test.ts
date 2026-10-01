@@ -64,7 +64,7 @@ async function setup(output: unknown, existing?: string) {
     await writeFile(join(providers, 'hive.env'), existing, {mode: 0o644});
     await chmod(join(providers, 'hive.env'), 0o644);
   }
-  return {root, bin, providers};
+  return {root, bin, config, providers};
 }
 
 function run(root: string, bin: string) {
@@ -135,6 +135,8 @@ void test('refresh passes the token in the environment, never in the arguments, 
         `BWS_ACCESS_TOKEN=${TOKEN}`,
       ),
     );
+    const env = await readFile(join(bin, 'env'), 'utf8');
+    assert(env.includes('BWS_SERVER_URL=https://vault.bitwarden.com\n'));
     for (const value of [TOKEN, KEY_A, KEY_B, KEY_C])
       assertFalse(result.output.includes(value));
   } finally {
@@ -219,3 +221,56 @@ async function assertRejectsMissing(path: string) {
   }
   assert(missing, `${path} exists`);
 }
+
+void test('refresh sends the configured server to bws', async () => {
+  const {root, bin, config} = await setup(secrets);
+  try {
+    const settings = JSON.parse(
+      await readFile(join(config, 'secrets.json'), 'utf8'),
+    );
+    await writeFile(
+      join(config, 'secrets.json'),
+      JSON.stringify({...settings, server: 'https://vault.example.test'}),
+    );
+    assertEquals(run(root, bin).code, 0);
+    assert(
+      (await readFile(join(bin, 'env'), 'utf8')).includes(
+        'BWS_SERVER_URL=https://vault.example.test\n',
+      ),
+    );
+  } finally {
+    await rm(root, {recursive: true});
+  }
+});
+
+void test('refresh refuses a key file name that is a path or the token file', async () => {
+  for (const file of [
+    '../escape.env',
+    'sub/x.env',
+    'bitwarden.env',
+    '.hidden',
+  ]) {
+    const {root, bin, config, providers} = await setup(secrets);
+    try {
+      await writeFile(
+        join(config, 'secrets.json'),
+        JSON.stringify({
+          project: 'fake-project',
+          files: {[file]: ['HIVE_API_KEY']},
+        }),
+      );
+      const result = run(root, bin);
+      assertEquals(result.code, 1, file);
+      assert(
+        result.output.includes('not a usable key file name'),
+        result.output,
+      );
+      assertEquals(
+        await readFile(join(providers, 'bitwarden.env'), 'utf8'),
+        `BWS_ACCESS_TOKEN=${TOKEN}\n`,
+      );
+    } finally {
+      await rm(root, {recursive: true});
+    }
+  }
+});

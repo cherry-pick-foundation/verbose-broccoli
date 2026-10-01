@@ -6,11 +6,12 @@
 
 - [x] T001 [US1] Review bws 2.1.0 read-only; report in
   [security/bws-2.1.0.md](security/bws-2.1.0.md) (FR-001).
-  - By main (Claude Code), 2026-10-01. Verdict: acceptable with four
+  - By main (Claude Code), 2026-10-01. Verdict: acceptable with five
     controls; 0 high, 2 medium (values on the command line for writes; state
-    file with default permissions), 2 low (values on standard output; checksum
-    without provenance). The Bitwarden SDK license is not open source; use here
-    is internal and nothing is redistributed.
+    file with default permissions), 3 low (values on standard output; checksum
+    without provenance; ambient config can redirect the token). The
+    Bitwarden SDK license is not open source; use here is internal and nothing
+    is redistributed.
 - [x] T002 [US1] Pin bws 2.1.0 in `mise.toml` and `mise.lock` (and `orca.yaml`'s
   install list) from the registry's `aqua:bitwarden/sdk-sm` (FR-001).
   - `mise lock` wrote seven platform checksums that equal the digests GitHub's

@@ -3,8 +3,8 @@
 - Version: `bws-v2.1.0` (Bitwarden Secrets Manager CLI, released 2026-05-21)
 - Commit: `0520690b9710af7a8b1e47aad776f002f369688f`
 - Review date: 2026-10-01
-- Verdict: **acceptable for the planned use with the four controls below**
-- Findings: **high 0, medium 2, low 2**
+- Verdict: **acceptable for the planned use with the five controls below**
+- Findings: **high 0, medium 2, low 3**
 - Difficulty: **medium**
 
 ## Scope and method
@@ -34,8 +34,8 @@ identity servers only, and keeps one encrypted state file. It has no
 telemetry, update check or other network path. The risks are about where a
 secret value can appear: on a command line (`secret create` and `secret
 edit`), on standard output (`secret list`, `secret get`), and in a state file
-written with the process's default permissions. The four controls keep keys
-off shared surfaces.
+written with the process's default permissions. The five controls keep keys
+off shared surfaces and keep the token on Bitwarden's servers.
 
 ## Findings
 
@@ -110,14 +110,32 @@ Control 4: keep every platform SHA-256 in `mise.lock`, install with
 a new review. The recorded digests equal the digests GitHub's release API
 reports for the assets.
 
+### F-05 — Low — Ambient bws settings can send the token to another server
+
+bws takes its server from `--server-url`/`BWS_SERVER_URL`, else from a profile
+in `~/.config/bws/config` (chosen by `BWS_PROFILE`, by the access token's ID,
+or named `default`). A profile there, written by `bws config` or by anything
+that can write the user's home, redirects the login and every call, so the
+access token and its identifiers go to that server. Giving a server URL makes
+bws skip its config file entirely.
+
+Evidence: `crates/bws/src/main.rs:340-363` (`get_config_profile`: a server URL
+returns `Profile::from_url` before `load_config` is called),
+`crates/bws/src/config.rs:152-174`.
+
+Control 5: `secrets:refresh` always sets `BWS_SERVER_URL` (the operator
+configuration's `server`, by default `https://vault.bitwarden.com`), so no
+ambient profile applies; it starts bws with a clean environment.
+
 ## What bws sends where
 
 - Servers: `https://identity.bitwarden.com` (login with the access token) and
   `https://api.bitwarden.com` (project and secret calls) by default
   (`bitwarden-core-3.0.0/src/client/client_settings.rs:53-57`). `BWS_SERVER_URL`
   or a config profile changes them (`crates/bws/src/cli.rs:66`,
-  `config.rs:152-174`); `secrets:refresh` sets neither and runs bws with an
-  environment of `PATH`, `HOME` and `BWS_ACCESS_TOKEN` only.
+  `config.rs:152-174`); `secrets:refresh` pins the server (F-05) and runs bws
+  with an environment of `PATH`, `HOME`, `BWS_ACCESS_TOKEN` and
+  `BWS_SERVER_URL` only.
 - Headers: `Device-Type`, `Bitwarden-Client-Name`, `Bitwarden-Client-Version`
   and a `Bitwarden Rust-SDK` user agent
   (`bitwarden-core-3.0.0/src/client/builder.rs:185-228`). No telemetry,
@@ -181,6 +199,8 @@ and re-read the agreement if a future use serves anyone else.
    `scripts/secrets-refresh.ts`).
 3. Run `secret list` and `secret get` only in a pipe, as the refresh does.
 4. Keep the `mise.lock` checksums and install with `--locked`.
+5. Give bws a server URL on every call, so no config-file profile applies
+   (done in `scripts/secrets-refresh.ts`).
 
 ## Verification record
 
