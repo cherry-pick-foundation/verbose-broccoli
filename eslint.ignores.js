@@ -2,6 +2,7 @@ module.exports = [
   'build/',
   '.agents/',
   '.codex/',
+  '.local/',
   '.specify/',
   'tools/',
   'specs/',
