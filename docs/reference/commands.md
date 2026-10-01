@@ -27,6 +27,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | lint:shell                  | npm run lint:shell                  |                                                                                                                                |
 | plugins:validate            | npm run plugins:validate            |                                                                                                                                |
 | python:imports              | npm run python:imports              |                                                                                                                                |
+| secrets:refresh             | npm run secrets:refresh             |                                                                                                                                |
 | test                        | npm run test                        |                                                                                                                                |
 | test:backfire               | npm run test:backfire               |                                                                                                                                |
 | test:backfire-regions       | npm run test:backfire-regions       |                                                                                                                                |
@@ -47,6 +48,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:plugins-validate       | npm run test:plugins-validate       |                                                                                                                                |
 | test:reference-library      | npm run test:reference-library      | Test the reference-library setup; uncached because it runs gio, a desktop program whose presence and version are not hashed    |
 | test:ruff                   | npm run test:ruff                   |                                                                                                                                |
+| test:secrets-refresh        | npm run test:secrets-refresh        |                                                                                                                                |
 | test:session-select         | npm run test:session-select         |                                                                                                                                |
 | test:turbo-cache            | npm run test:turbo-cache            |                                                                                                                                |
 | test:wiki-consistency       | npm run test:wiki-consistency       |                                                                                                                                |

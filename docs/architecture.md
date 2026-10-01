@@ -455,6 +455,11 @@ package two skills backed by two uv workspace packages.
   provider key through `uv run --env-file`; credit offers passes only the
   optional `github.env`. Backfire reads provider keys through its own shipped
   profiles' `credential_file` fields and follows its shared provider order.
+  `npm run secrets:refresh` rewrites these files from a Bitwarden Secrets
+  Manager project with `bws` (feature 041,
+  [spec](../specs/041-provider-secrets/spec.md)); the project ID and the
+  secret-to-file mapping live in `verbose-broccoli/secrets.json` outside the
+  repository.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
 - Not automated: live provider calls, which spend paid credit; catching up

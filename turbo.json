@@ -94,6 +94,7 @@
       "description": "Test the name check; uncached because it finds ls-lint through mise, whose version and global config are not hashed",
       "cache": false
     },
+    "//#test:secrets-refresh": {},
     "//#test:commit-msg": {},
     "//#test:plugin-skills": {
       "description": "Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders",
@@ -223,6 +224,7 @@
         "//#test:worktree-branch",
         "//#test:backfire-regions",
         "//#test:lint-names",
+        "//#test:secrets-refresh",
         "//#test:commit-msg",
         "//#test:plugin-skills",
         "//#test:reference-library",

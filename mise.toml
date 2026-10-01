@@ -1,5 +1,6 @@
 [tools]
 "aqua:astral-sh/uv" = "0.11.32"
+"aqua:bitwarden/sdk-sm" = "2.1.0"
 "aqua:caddyserver/caddy" = "2.11.4"
 "aqua:loeffel-io/ls-lint" = "2.3.1"
 "aqua:lycheeverse/lychee" = "0.24.2"
