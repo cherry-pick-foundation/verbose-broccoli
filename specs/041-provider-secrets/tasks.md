@@ -39,11 +39,25 @@
     secrets:refresh` then rewrote the seven files; SHA-256 of every file equals
     its hash before the refresh, and each file is mode 600 and owned by the
     user. No value or token was printed.
-- [ ] T006 [US3] After the user switches the machine account to read only, show
+- [x] T006 [US3] After the user switches the machine account to read only, show
   that refresh still works and a write is refused (SC-002).
+  - 2026-10-01: with the account read only, `npm run secrets:refresh` wrote the
+    seven files again with unchanged checksums, and `bws secret create` with a
+    fake value was refused by the server (404 "Resource not found"); the project
+    still holds 8 secrets.
 
 ## Phase 4: Finish
 
 - [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge review
   by a provider other than Claude Code, commit the review record and finish with
   `git flow feature finish provider-secrets`.
+  - 2026-10-01: merged `develop` da52d3a (conflicts only in `mise.toml`,
+    `mise.lock`, `orca.yaml`: both pins kept); `npm run verify` VERIFIED (39 of
+    39).
+  - Reviewer: a fresh Copilot session (`auto`, efficiency; routed to
+    gpt-6-luna), chosen with Jev (Copilot 0.65, confidence 0.58), reviewed
+    `ab02ad5..43115bf` read-only and found 2 medium findings: a configured file
+    name could leave the providers folder or overwrite the token file, and a
+    profile in bws's own config could redirect the token. Both fixed in
+    7cc5830 (plain file names only; a server URL on every call, review F-05) with
+    tests. The fixes are small, so no second review was run.
