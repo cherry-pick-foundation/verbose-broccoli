@@ -29,7 +29,7 @@ messages. Run files stay in the run folders and records in the work vault.
 
 ## Phase 1: Setup
 
-- [ ] T001 Write `spec.md`, `plan.md` and this file; record the user's
+- [x] T001 Write `spec.md`, `plan.md` and this file; record the user's
   answers in the spec's Clarifications.
 
 ---
@@ -83,8 +83,10 @@ messages. Run files stay in the run folders and records in the work vault.
 
 ## Phase 3: User Story 2 - Mappings to four reference books (P1)
 
-- [ ] T006 [US2] Add `map` and the mapping `record` to the script, with
+- [x] T006 [US2] Add `map` and the mapping `record` to the script, with
   tests; describe the section index and the map step in the procedure.
+  - 2026-10-01: main; 4697c8e, 7fcf07c (optional title column), 7795d55
+    (no education mode for references).
 - [x] T007 [P] [US2] Build a section index for each of the four reference
   texts.
   - Four Claude Code workers, `sonnet` at medium (backfire: 0.56,
@@ -125,7 +127,7 @@ messages. Run files stay in the run folders and records in the work vault.
 
 ## Phase 4: User Story 3 - Full run (P1)
 
-- [ ] T009 [P] [US3] Survey the local stores for textbook volumes and exam
+- [x] T009 [P] [US3] Survey the local stores for textbook volumes and exam
   papers and list the candidate materials.
   - Worker: Claude Code `sonnet` at medium (backfire: 0.71, confidence
     0.65); only Claude Code and Codex could run it, since the Documents
@@ -153,9 +155,95 @@ messages. Run files stay in the run folders and records in the work vault.
     folders; admitted 295, refused 0, failed 0; `verify` passed (447
     revisions); vault commit b6ad171. First batch: 63 materials, 55
     volumes and 8 exam papers, 308 sources.
-- [ ] T012 [US3] Profile every approved material: proposals, `check`,
+- [x] T012 [US3] Profile every approved material: proposals, `check`,
   `record`, `wiki-consistency`, vault commits; record counts per material
   here.
+  - 2026-10-01: 61 Codex workers, `gpt-6-astra` at medium, six at a time,
+    about 7 to 35 minutes each (middle school volumes 7 to 17, high school
+    volumes and exam papers 12 to 35); the 2 pilot materials kept their
+    rerun proposals. Every material recorded with `record --unchecked`:
+    63 records, 15,647 sentences, 337,598 items; 0 refused rows. Codex's
+    weekly window went from 43% to 67% during the batch, shared with
+    CHE-69. Two workers asked questions (lesson labels; one sentence with a
+    Korean quotation, kept as its English part). Vault commits 3fba692 and
+    88f8308; check: 0 problems on the records after the fix in dad95fe (the
+    check read an unindented sources list as page text, and one source ID
+    matched the phone pattern).
+  - The user's decision of 2026-10-01, for later batches: every proposal
+    runs on Codex `gpt-6.1-sol` at max effort, through the terminal path in
+    `~/.claude/rules/worker-dispatch.md`. The develop session's Codex guard
+    was lifted the same day: use the weekly limit fully; on a usage-limit
+    error, stop starting Codex work, keep the results and report to the
+    develop session; never use a usage-reset credit.
+  - Counts per material (Fable: Claude Code `fable` at medium; Astra: Codex
+    `gpt-6-astra` at medium):
+
+  | Material | Proposer | Sentences | Items |
+  | --- | --- | --- | --- |
+  | 2022-hs-common1-chunjae-gangsanggu-2025 | Astra | 235 | 5,990 |
+  | 2022-hs-common1-chunjae-josugyeong-2025 | Astra | 266 | 5,981 |
+  | 2022-hs-common1-donga-ibyeongmin-2025 | Astra | 250 | 5,444 |
+  | 2022-hs-common1-jihak-sinsanggeun-2025 | Astra | 236 | 6,014 |
+  | 2022-hs-common1-mirae-n-gimseongyeon-2025 | Astra | 217 | 5,248 |
+  | 2022-hs-common1-ne-minbyeongcheon-2025 | Astra | 282 | 6,088 |
+  | 2022-hs-common1-ne-oseonyeong-2025 | Astra | 291 | 6,852 |
+  | 2022-hs-common1-visang-hongminpyo-2025 | Astra | 269 | 6,886 |
+  | 2022-hs-common1-ybm-bakjuneon-2025 | Astra | 235 | 5,785 |
+  | 2022-hs-common1-ybm-gimeunhyeong-2025 | Astra | 287 | 6,321 |
+  | 2022-hs-common2-chunjae-gangsanggu-2025 | Astra | 247 | 5,919 |
+  | 2022-hs-common2-chunjae-josugyeong-2025 | Astra | 272 | 6,248 |
+  | 2022-hs-common2-donga-ibyeongmin-2025 | Astra | 240 | 5,637 |
+  | 2022-hs-common2-jihak-sinsanggeun-2025 | Astra | 267 | 6,593 |
+  | 2022-hs-common2-mirae-n-gimseongyeon-2025 | Astra | 208 | 5,596 |
+  | 2022-hs-common2-ne-minbyeongcheon-2025 | Astra | 281 | 6,656 |
+  | 2022-hs-common2-visang-hongminpyo-2025 | Astra | 225 | 5,971 |
+  | 2022-hs-common2-ybm-bakjuneon-2025 | Astra | 260 | 6,128 |
+  | 2022-hs-common2-ybm-gimeunhyeong-2025 | Astra | 290 | 7,167 |
+  | 2022-hs-yeongeo1-chunjae-gangsanggu-2026 | Astra | 400 | 10,078 |
+  | 2022-hs-yeongeo1-chunjae-josugyeong-2026 | Astra | 403 | 9,375 |
+  | 2022-hs-yeongeo1-donga-bakyongye-2026 | Astra | 326 | 8,420 |
+  | 2022-hs-yeongeo1-jihak-sinsanggeun-2026 | Astra | 366 | 8,067 |
+  | 2022-hs-yeongeo1-mirae-n-gimseongyeon-2026 | Astra | 299 | 7,132 |
+  | 2022-hs-yeongeo1-ne-oseonyeong-2026 | Astra | 361 | 8,712 |
+  | 2022-hs-yeongeo1-visang-hongminpyo-2026 | Astra | 282 | 7,701 |
+  | 2022-hs-yeongeo1-ybm-bakjuneon-2026 | Astra | 195 | 4,655 |
+  | 2022-hs-yeongeo2-chunjae-gangsanggu-2026 | Astra | 230 | 5,375 |
+  | 2022-hs-yeongeo2-chunjae-josugyeong-2026 | Astra | 198 | 5,331 |
+  | 2022-hs-yeongeo2-donga-bakyongye-2026 | Astra | 170 | 4,458 |
+  | 2022-hs-yeongeo2-jihak-sinsanggeun-2026 | Astra | 218 | 5,907 |
+  | 2022-hs-yeongeo2-mirae-n-gimseongyeon-2026 | Astra | 202 | 5,199 |
+  | 2022-hs-yeongeo2-ne-oseonyeong-2026 | Astra | 177 | 4,481 |
+  | 2022-hs-yeongeo2-visang-hongminpyo-2026 | Astra | 55 | 1,322 |
+  | 2022-ms-ms1-chunjae-isanggi-2025 | Astra | 313 | 4,219 |
+  | 2022-ms-ms1-chunjae-soyeongsun-2025 | Astra | 301 | 4,303 |
+  | 2022-ms-ms1-donga-ibyeongmin-2025 | Astra | 275 | 3,704 |
+  | 2022-ms-ms1-donga-yunjeongmi-2025 | Astra | 244 | 3,961 |
+  | 2022-ms-ms1-jihak-songmijeong-2025 | Astra | 186 | 3,075 |
+  | 2022-ms-ms1-mirae-n-munyeongin-2025 | Astra | 353 | 5,071 |
+  | 2022-ms-ms1-ne-gimgitaek-2025 | Astra | 296 | 4,074 |
+  | 2022-ms-ms1-visang-hwangjongbae-2025 | Astra | 220 | 3,150 |
+  | 2022-ms-ms1-ybm-bakjuneon-2025 | Astra | 279 | 4,031 |
+  | 2022-ms-ms1-ybm-gimeunhyeong-2025 | Astra | 316 | 4,020 |
+  | 2022-ms-ms2-chunjae-isanggi-2026 | Astra | 204 | 3,571 |
+  | 2022-ms-ms2-chunjae-soyeongsun-2026 | Astra | 214 | 3,662 |
+  | 2022-ms-ms2-donga-ibyeongmin-2026 | Astra | 249 | 4,280 |
+  | 2022-ms-ms2-donga-yunjeongmi-2026 | Astra | 174 | 3,416 |
+  | 2022-ms-ms2-jihak-songmijeong-2026 | Astra | 164 | 3,076 |
+  | 2022-ms-ms2-mirae-n-munyeongin-2026 | Astra | 188 | 3,362 |
+  | 2022-ms-ms2-ne-gimgitaek-2026 | Astra | 226 | 4,151 |
+  | 2022-ms-ms2-visang-hwangjongbae-2026 | Astra | 226 | 3,568 |
+  | 2022-ms-ms2-ybm-bakjuneon-2026 | Astra | 187 | 3,524 |
+  | 2022-ms-ms2-ybm-gimeunhyeong-2026 | Astra | 229 | 3,662 |
+  | common-english-2-ne-oh-2022 | Fable | 250 | 5,835 |
+  | 2026-09-grade-10-incheon | Fable | 280 | 5,660 |
+  | listening-test-2025-ms1-02 | Astra | 9 | 112 |
+  | office-busan-2025-06-g1 | Astra | 257 | 6,292 |
+  | office-busan-2026-06-g1 | Astra | 230 | 5,879 |
+  | office-busan-2026-06-g2 | Astra | 252 | 6,082 |
+  | office-gyeonggi-2025-10-g1 | Astra | 255 | 5,996 |
+  | office-incheon-2025-09-g1 | Astra | 274 | 6,898 |
+  | office-seoul-2026-03-g2 | Astra | 256 | 6,227 |
+  | All 63 | | 15,647 | 337,598 |
 
 ---
 
