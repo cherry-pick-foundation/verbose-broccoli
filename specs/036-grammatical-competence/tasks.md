@@ -49,13 +49,29 @@ messages. Run files stay in the run folders and records in the work vault.
   the review sheet.
   - 2026-10-01: main; 7 tests pass. The inventory page gained
     `family: <tier column>`: 1,119 items from 1,222 rows.
-- [ ] T004 [US1] Rerun the two pilot materials: `inventory` and `extract`,
+- [x] T004 [US1] Rerun the two pilot materials: `inventory` and `extract`,
   new proposals, `check`, `record --auto-accept 0.5`; score against the kept
   answer key with families collapsed.
   - 2026-10-01: stage 1's proposals scored at family level: precision 0.965
     (276 of 286), recall 0.945 (276 of 292).
   - Proposers: two Claude Code workers, `fable` at medium (backfire: 0.90,
     confidence 0.88), one per material.
+  - 2026-10-01 rerun: the volume 250 sentences, 5,835 proposed items, about
+    13 minutes; the exam 280 sentences, 5,660 items, about 12 minutes.
+    Proposer tokens: 252,000 and 341,000 output, 723,000 and 546,000 cache
+    writes, 4.4 and 4.6 million cache reads. Check: 524 calls, 7.2 million
+    tokens, about 7 minutes of calls, 9 invalid results; at the default
+    0.8, 3,006 kept, 3 dropped, 8,486 unclear.
+  - Scored on the 15 key sentences (292 true items, families collapsed):
+    proposer precision 0.936 (264 of 282), recall 0.904 (264 of 292);
+    kept at 0.5 precision 0.970 (224 of 231), recall 0.767; kept at 0.8
+    precision 0.966 (86 of 89), recall 0.295. Per material at 0.5: the
+    volume 0.970 and 0.810, the exam 0.970 and 0.716. The key came from
+    stage 1's proposals, so true items only the new proposer found count
+    as false.
+  - Records written at 0.5 (vault commit e05c0c0): the volume 4,651 kept,
+    18 dropped, 1,166 unclear; the exam 4,576 kept, 20 dropped, 1,064
+    unclear. Check: 0 problems on the record pages.
 - [ ] T005 [US1] Choose the full run's proposer with `model-choice` from the
   rerun's accuracy, time and quota.
 
@@ -65,14 +81,23 @@ messages. Run files stay in the run folders and records in the work vault.
 
 - [ ] T006 [US2] Add `map` and the mapping `record` to the script, with
   tests; describe the section index and the map step in the procedure.
-- [ ] T007 [P] [US2] Build a section index for each of the four reference
+- [x] T007 [P] [US2] Build a section index for each of the four reference
   texts.
   - Four Claude Code workers, `sonnet` at medium (backfire: 0.56,
     confidence 0.49), one per book; only Claude Code and Codex could read
     the book text.
+  - 2026-10-01 done: 152, 122 and 115 sections for the three practice
+    books (units, appendices and grammar reminders; none split), 772 for
+    the reference grammar (166 numbered sections split at subsections).
+    Main checked every index: unique labels, ordered, inside the text, at
+    most 19,654 characters a section. The 7 Hangul lines of one practice
+    book lie inside its sections, so `map` leaves them out of the evidence.
 - [ ] T008 [US2] Propose sections for every item per reference; run `map`
   and `record`; run `wiki-consistency`; commit the four mapping records in
   the vault.
+  - Proposers: four Claude Code workers, `fable` at medium (backfire: 0.66,
+    confidence 0.62 for the practice books; 0.64 and 0.59 for the reference
+    grammar).
 
 ---
 
