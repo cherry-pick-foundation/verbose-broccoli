@@ -48,7 +48,7 @@
 
 ## Phase 4: Finish
 
-- [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge review
+- [x] T007 Merge `develop`, run `npm run verify`, pass the develop merge review
   by a provider other than Claude Code, commit the review record and finish with
   `git flow feature finish provider-secrets`.
   - 2026-10-01: merged `develop` da52d3a (conflicts only in `mise.toml`,
@@ -61,3 +61,9 @@
     profile in bws's own config could redirect the token. Both fixed in
     7cc5830 (plain file names only; a server URL on every call, review F-05) with
     tests. The fixes are small, so no second review was run.
+  - Finished into `develop` as 279b29f; `develop` verified (39 of 39). At the
+    user's request a fresh Cursor session (`auto`, chosen with Jev, 0.88)
+    reviewed 7cc5830 read-only afterwards and found nothing: plain file names
+    only, writes inside the providers folder with mode 600, the server URL set
+    on every call, the token kept out of arguments and output, and tests for
+    each.
