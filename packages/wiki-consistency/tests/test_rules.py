@@ -380,6 +380,8 @@ def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
         "[b](https://w1-iwc1012345678.slack.invalid/archives/C1/p1)",
         "[c](https://slack.invalid/p?thread_ts=1712345678.123456)",
         "[d](https://slack.invalid/p?a=1&latest=1712345678%2E123456)",
+        "[h](//w1012345678-iwc1.slack.invalid/archives/C1/p1)",
+        "[i](https://slack.invalid/p?ts=1712345678%2e123456)",
     )
     reported = (
         "Call 010-1234-5678.",
@@ -393,7 +395,7 @@ def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
 
     problems = checked(instance, tmp_path)
 
-    for line in range(7, 7 + len(reported)):
+    for line in range(9, 9 + len(reported)):
         assert_rule(problems, "wiki/overview.md", line, "phone")
     assert sum(has_rule([item], "phone") for item in problems) == len(reported)
 
