@@ -21,9 +21,6 @@ wiki-consistency = "wiki_consistency.__main__:main"
 [dependency-groups]
 dev = ["import-linter==2.15", "jsonschema==4.26.0", "pytest==9.1.1"]
 
-[tool.uv]
-required-version = ">=0.11.32"
-
 [tool.uv.sources]
 backfire = { workspace = true }
 doc-regions = { workspace = true }
@@ -36,4 +33,4 @@ module-root = "src"
 addopts = ["-p", "no:cacheprovider"]
 
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../pyproject.toml"

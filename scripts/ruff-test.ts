@@ -6,7 +6,7 @@ import {fromFileUrl, join} from '@std/path';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
 const project = join(root, 'tools/ruff');
-const config = join(root, 'ruff.toml');
+const config = join(root, 'pyproject.toml');
 
 function ruff(args: string[], cwd = root) {
   const result = spawnSync(
@@ -158,7 +158,7 @@ void test('Ruff config enforces style, formatting, boundaries and vendor exclusi
     ]);
     assert(!formatBoundaryFail.success);
 
-    const isolatedConfig = join(temp, 'ruff.toml');
+    const isolatedConfig = join(temp, 'pyproject.toml');
     const vendor = join(temp, '.specify/extensions');
     const vendorFile = join(vendor, 'synthetic.py');
     const specifyScript = join(temp, '.specify/scripts/synthetic.py');

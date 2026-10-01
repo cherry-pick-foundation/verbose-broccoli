@@ -21,7 +21,6 @@ backfire = "backfire.__main__:main"
 dev = ["pytest==9.1.1"]
 
 [tool.uv]
-required-version = ">=0.11.32"
 constraint-dependencies = ["typesafe-sdk==0.7.1"]
 
 [tool.uv.build-backend]
@@ -32,4 +31,4 @@ module-root = "src"
 addopts = ["-p", "no:cacheprovider"]
 
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../pyproject.toml"

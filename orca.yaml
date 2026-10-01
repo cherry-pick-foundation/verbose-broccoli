@@ -6,20 +6,7 @@ scripts:
     cd "$project_root"
     sh scripts/worktree-branch.sh
 
-    mise trust --yes "$project_root/mise.toml"
-    mise install --locked aqua:astral-sh/uv@0.11.32 aqua:bitwarden/sdk-sm@2.1.0 aqua:caddyserver/caddy@2.11.4 aqua:loeffel-io/ls-lint@2.3.1 aqua:lycheeverse/lychee@0.24.2 aqua:vale-cli/vale@3.23.0 github:gittower/git-flow-next@2.1.0 github:googleworkspace/cli@0.22.5 github:betterleaks/betterleaks@1.9.0 github:specstoryai/getspecstory@2.15.1
-
-    npm ci --ignore-scripts --no-audit --no-fund
-    mise exec -- uv sync --locked --all-packages --extra education --no-build-package grimp
-    mise exec -- uv sync --locked --project tools/spec-kit
-    mise exec -- uv sync --locked --project tools/shellcheck
-    mise exec -- uv sync --locked --project tools/ruff
-    mise exec -- uv sync --locked --project tools/check-jsonschema
-    mise exec -- uv sync --locked --project tools/commitizen
-    npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
-    npm ci --ignore-scripts --no-audit --no-fund --prefix plugins/work
-    mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py
-    git config gitflow.shared.trustHooks true
-    mise exec -- git flow config sync
+    mise trust --yes "$project_root/.config/mise.toml"
+    mise run setup
     npm run doctor
 setupAgentStartupPolicy: wait-for-setup

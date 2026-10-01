@@ -113,138 +113,12 @@
     },
     "//#test:cli-contract": {},
     "//#test:session-select": {},
-    "backfire#test": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "backfire",
-        "pytest",
-        "packages/backfire/tests"
-      ]
-    },
-    "doc-regions#test": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "doc-regions",
-        "pytest",
-        "-p",
-        "no:cacheprovider",
-        "packages/doc-regions/tests",
-        "scripts/doc_sources_test.py"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "../../scripts/doc_sources.py",
-        "../../scripts/doc_sources_test.py"
-      ]
-    },
-    "jev-ultrafast#test": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "PYTHONPATH=packages/jev-ultrafast",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "jev-ultrafast",
-        "pytest",
-        "-p",
-        "no:cacheprovider",
-        "packages/jev-ultrafast/tests"
-      ]
-    },
-    "credit-offers#test": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "credit-offers",
-        "pytest",
-        "-p",
-        "no:cacheprovider",
-        "packages/credit-offers/tests"
-      ]
-    },
-    "wiki-consistency#test": {
-      "command": [
-        "env",
-        "PYTHONDONTWRITEBYTECODE=1",
-        "uv",
-        "--directory",
-        "../..",
-        "run",
-        "--frozen",
-        "--offline",
-        "--no-sync",
-        "--package",
-        "wiki-consistency",
-        "pytest",
-        "packages/wiki-consistency/tests"
-      ]
-    },
     "//#test:grammatical-competence": {},
     "//#test:wiki-raw-import": {},
     "//#test:turbo-cache": {},
-    "verbose-broccoli-python#test": {
-      "command": ["true"],
-      "dependsOn": [
-        "//#test:constitution-bump",
-        "//#test:ruff",
-        "//#test:gts",
-        "//#test:git-flow",
-        "//#test:worktree-branch",
-        "//#test:backfire-regions",
-        "//#test:lint-names",
-        "//#test:secrets-refresh",
-        "//#test:commit-msg",
-        "//#test:plugin-skills",
-        "//#test:reference-library",
-        "//#test:clean-code",
-        "//#test:clean-architecture",
-        "//#test:workflow",
-        "//#test:mise-doctor",
-        "//#test:cli-contract",
-        "//#test:plugins-validate",
-        "backfire#test",
-        "doc-regions#test",
-        "jev-ultrafast#test",
-        "credit-offers#test",
-        "wiki-consistency#test",
-        "//#test:grammatical-competence",
-        "//#test:session-select",
-        "//#test:wiki-raw-import",
-        "//#test:turbo-cache"
-      ],
-      "cache": false
+    "//#test:root-config": {
+      "description": "Test the root layout, the single source of tool pins, the setup task and the Python package tasks",
+      "inputs": ["$TURBO_DEFAULT$", "packages/*/pyproject.toml"]
     },
     "//#doc-regions:update": {
       "description": "Regenerate stale mechanical regions in the target documents",
@@ -258,7 +132,97 @@
       "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
       "cache": false
     },
+    "backfire#test": {
+      "command": ["npm", "--prefix", "../..", "run", "test:backfire"],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "backfire#check": {
+      "command": ["true"],
+      "dependsOn": ["backfire#test"],
+      "cache": false
+    },
+    "credit-offers#test": {
+      "command": ["npm", "--prefix", "../..", "run", "test:credit-offers"],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "credit-offers#check": {
+      "command": ["true"],
+      "dependsOn": ["credit-offers#test"],
+      "cache": false
+    },
+    "doc-regions#test": {
+      "command": ["npm", "--prefix", "../..", "run", "test:doc-regions"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../package.json",
+        "../../scripts/doc_sources.py",
+        "../../scripts/doc_sources_test.py"
+      ]
+    },
+    "doc-regions#check": {
+      "command": ["true"],
+      "dependsOn": ["doc-regions#test"],
+      "cache": false
+    },
+    "jev-ultrafast#test": {
+      "command": ["npm", "--prefix", "../..", "run", "test:jev-ultrafast"],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "jev-ultrafast#check": {
+      "command": ["true"],
+      "dependsOn": ["jev-ultrafast#test"],
+      "cache": false
+    },
+    "wiki-consistency#test": {
+      "command": ["npm", "--prefix", "../..", "run", "test:wiki-consistency"],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "wiki-consistency#check": {
+      "command": ["true"],
+      "dependsOn": ["wiki-consistency#test"],
+      "cache": false
+    },
     "verbose-broccoli-python#check": {
+      "description": "Check every Python package. Turborepo would otherwise run `uv check` here, which type-checks the workspace and replaces the editable installs with copies",
+      "command": ["true"],
+      "dependsOn": [
+        "backfire#check",
+        "credit-offers#check",
+        "doc-regions#check",
+        "jev-ultrafast#check",
+        "wiki-consistency#check"
+      ],
+      "cache": false
+    },
+    "//#test": {
+      "command": ["true"],
+      "dependsOn": [
+        "//#test:plugins-validate",
+        "//#test:backfire-regions",
+        "//#test:ruff",
+        "//#test:gts",
+        "//#test:git-flow",
+        "//#test:constitution-bump",
+        "//#test:worktree-branch",
+        "//#test:lint-names",
+        "//#test:secrets-refresh",
+        "//#test:commit-msg",
+        "//#test:plugin-skills",
+        "//#test:reference-library",
+        "//#test:clean-code",
+        "//#test:clean-architecture",
+        "//#test:workflow",
+        "//#test:mise-doctor",
+        "//#test:cli-contract",
+        "//#test:session-select",
+        "//#test:grammatical-competence",
+        "//#test:wiki-raw-import",
+        "//#test:turbo-cache",
+        "//#test:root-config"
+      ],
+      "cache": false
+    },
+    "//#check": {
       "command": ["true"],
       "dependsOn": [
         "//#doctor",
@@ -271,14 +235,12 @@
         "//#clean-code",
         "//#clean-architecture",
         "//#python:imports",
-        "verbose-broccoli-python#test",
         "//#doc-regions:check",
-        "//#backfire:regions:check"
+        "//#backfire:regions:check",
+        "//#test",
+        "verbose-broccoli-python#check"
       ],
       "cache": false
-    },
-    "backfire#check": {"command": ["true"], "cache": false},
-    "doc-regions#check": {"command": ["true"], "cache": false},
-    "wiki-consistency#check": {"command": ["true"], "cache": false}
+    }
   }
 }

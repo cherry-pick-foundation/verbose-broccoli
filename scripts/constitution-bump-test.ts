@@ -47,11 +47,17 @@ void test('constitution bump rewrites the version line in a temporary copy', asy
   const root = await mkdtemp(join(tmpdir(), 'constitution-bump-test-'));
   try {
     await mkdir(join(root, '.specify/memory'), {recursive: true});
-    await copyFile(join(repositoryRoot, '.cz.toml'), join(root, '.cz.toml'));
-    const current = /^version = "(\d+)\.(\d+)\.(\d+)"$/m.exec(
-      await readFile(join(root, '.cz.toml'), 'utf8'),
+    await copyFile(
+      join(repositoryRoot, 'pyproject.toml'),
+      join(root, 'pyproject.toml'),
     );
-    assert(current, 'the .cz.toml version is not major.minor.patch');
+    const current = /^version = "(\d+)\.(\d+)\.(\d+)"$/m.exec(
+      await readFile(join(root, 'pyproject.toml'), 'utf8'),
+    );
+    assert(
+      current,
+      'the [tool.commitizen] version in pyproject.toml is not major.minor.patch',
+    );
     const [, major, minor, patch] = current;
     const before = `${major}.${minor}.${patch}`;
     const after = `${major}.${minor}.${Number(patch) + 1}`;
@@ -97,7 +103,7 @@ void test('constitution bump rewrites the version line in a temporary copy', asy
       `Synthetic fixture mentions ${before} here.\n\n**Version**: ${after} | Ratified: test\n`,
     );
     assert(
-      (await readFile(join(root, '.cz.toml'), 'utf8')).includes(
+      (await readFile(join(root, 'pyproject.toml'), 'utf8')).includes(
         `version = "${after}"`,
       ),
     );

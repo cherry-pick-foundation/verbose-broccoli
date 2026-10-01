@@ -47,6 +47,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:plugin-skills          | npm run test:plugin-skills          | Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders |
 | test:plugins-validate       | npm run test:plugins-validate       |                                                                                                                                |
 | test:reference-library      | npm run test:reference-library      | Test the reference-library setup; uncached because it runs gio, a desktop program whose presence and version are not hashed    |
+| test:root-config            | npm run test:root-config            | Test the root layout, the single source of tool pins, the setup task and the Python package tasks                              |
 | test:ruff                   | npm run test:ruff                   |                                                                                                                                |
 | test:secrets-refresh        | npm run test:secrets-refresh        |                                                                                                                                |
 | test:session-select         | npm run test:session-select         |                                                                                                                                |

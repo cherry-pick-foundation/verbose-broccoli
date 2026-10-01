@@ -18,9 +18,6 @@ doc-regions = "doc_regions.__main__:main"
 [dependency-groups]
 dev = ["jsonschema==4.26.0", "pytest==9.1.1"]
 
-[tool.uv]
-required-version = ">=0.11.32"
-
 [tool.uv.build-backend]
 module-name = "doc_regions"
 module-root = "src"
@@ -29,4 +26,4 @@ module-root = "src"
 addopts = ["-p", "no:cacheprovider"]
 
 [tool.ruff]
-extend = "../../ruff.toml"
+extend = "../../pyproject.toml"

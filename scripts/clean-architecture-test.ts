@@ -81,7 +81,7 @@ void test('clean architecture: every configured rule fires on synthetic imports'
       depcruise,
       [
         '--config',
-        join(repository, '.dependency-cruiser.json'),
+        join(repository, '.config/dependency-cruiser.json'),
         '--no-cache',
         '--no-progress',
         '--output-type',

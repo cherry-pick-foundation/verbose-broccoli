@@ -6,7 +6,7 @@ import type {ICruiseResult} from 'dependency-cruiser';
 
 const exec = promisify(execFile);
 const configPath = fileURLToPath(
-  new URL('../.dependency-cruiser.json', import.meta.url),
+  new URL('../.config/dependency-cruiser.json', import.meta.url),
 );
 const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
   forbidden: {name: string; to?: {pathNot?: string | string[]}}[];
