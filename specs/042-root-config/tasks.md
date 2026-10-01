@@ -94,6 +94,10 @@
     872acea to 100f5fa read-only and found one medium finding: `mise run`
     installs the user's missing global tools before the setup task starts.
     Fixed with `[settings.task] run_auto_install = false` and a test that
-    fails without it (research.md D3).
+    fails without it (research.md D3). A second fresh review of that fix
+    (Codex `gpt-6.1-sol` at `high`, same choice) found one medium: the new
+    test runs `mise`, whose version is not hashed, yet its task was cached;
+    fixed with `cache: false` and the reason (research.md D7). That last
+    one-line change was not reviewed again.
 - [ ] T012 Merge `develop`, verify, finish into `develop` when the finish slot
   is granted.

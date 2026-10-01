@@ -144,7 +144,9 @@ fail: a `ruff.toml` at the root; a pin in `orca.yaml`; `npm ci` in
 `orca.yaml`; `required-version` in a package; a stale `extend` path; a
 `pytest` command in `turbo.json`; `tools/none` back in the workspaces.
 It also found a leftover `verbose-broccoli-python#test` that the dry run of
-`check` does not list.
+`check` does not list. The test of `mise run --dry-run setup` runs the external
+`mise`, whose version Turborepo does not hash, so `//#test:root-config` is
+uncached with that reason, like `//#test:mise-doctor` (found by the re-review).
 
 ## D8. Hosted acceptance not exercised
 

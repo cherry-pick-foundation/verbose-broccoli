@@ -117,8 +117,8 @@
     "//#test:wiki-raw-import": {},
     "//#test:turbo-cache": {},
     "//#test:root-config": {
-      "description": "Test the root layout, the single source of tool pins, the setup task and the Python package tasks",
-      "inputs": ["$TURBO_DEFAULT$", "packages/*/pyproject.toml"]
+      "description": "Test the root layout, the single source of tool pins, the setup task and the Python package tasks; uncached because it runs mise, whose version and global config are not hashed",
+      "cache": false
     },
     "//#doc-regions:update": {
       "description": "Regenerate stale mechanical regions in the target documents",
