@@ -26,14 +26,14 @@ were reopened.
 | code: model-choice-jev-dynamic | Code judgments and model-choice reference; Jev only, English minimal evidence, native eligibility |
 | code: judgment-models-free-api-first | General judgments may prefer fitting free routes; Google only through Antigravity, no general-model fallback for model-choice |
 | work: deliver-real-document-formats | Usable print format and conditional Google Workspace preference; no copied access snapshot |
-| work: backfire-for-education-work | Approved privacy gate retained; chronology-dependent additions pending user answer |
-| work: english-only-jev-and-wiki | Existing Backfire/schema language and privacy rules continue; migration pending education answer |
+| work: backfire-for-education-work | Approved privacy gate retained; later account boundary and residual-identifier judgment added after decision 2A |
+| work: english-only-jev-and-wiki | Translation planning added; explicit schema pointer retains current language, romanization, quote and private-resolution rules without copying their full procedures |
 | work: school-names-are-domain-ids | Actual homepage evidence, EduOK student facts, official homepage school facts and user review before roster changes |
-| work: wiki-minimal-personal-data | Existing schema allow-list governs; migration pending education chronology answer |
-| work: raw-documents-migration | Copy-only source ownership added; admission conflict pending user answer |
-| work: raw-only-original-sources | Original-status judgment added; explicit admission/extraction scope pending user answer |
-| work: grammar-profile-with-egp | Separate source/reference records and pilot evidence; terminology pending user answer, historical dataset names/counts omitted |
-| work: subject-neutral-names | Pending profile terminology answer; current names unchanged |
+| work: wiki-minimal-personal-data | Current schema allow-list governs through the explicit work-rule pointer; no historical name-page premise restored |
+| work: raw-documents-migration | Copy-only source ownership plus exactly the constitution's current conversation/session exceptions; student-bearing sessions work-only, no general derivative exception |
+| work: raw-only-original-sources | Original-status judgment and PDF/extraction provenance scope added; no new raw deletion permission |
+| work: grammar-profile-with-egp | Separate source/reference records and pilot evidence; later terminology applies, historical dataset names/counts omitted |
+| work: subject-neutral-names | Clear CEFR domain names with source-field precedence; historical records not globally renamed |
 | work: identify-passage-sources-locally | Search both local collections first; web needs user go-ahead, old paths not asserted current |
 | chat: chat-plugin-targets-web-apps + chat-plugin-targets-web-chat | One web-client scope and actual-account capability judgment; no copied dated account blocker |
 
@@ -47,7 +47,21 @@ with later English/romanized/minimized rules migrated or held. Naming options
 use clear CEFR domain terms with source-field precedence, or defer new wording.
 Constitution options retain user approval for future major amendments or defer
 additional wording; no scoped cleanup permission becomes a standing exception.
-Answers remain pending.
+Main relayed the user's delegation of these choices to Jev through local
+backfire's OpenRouter profile. Develop returned the following decisions on
+2026-10-02 through the original ask, without a duplicate question:
+
+| Decision | Choice | Probability | Confidence | Applied scope |
+| --- | --- | ---: | ---: | --- |
+| Raw eligibility | A | 0.67 (B 0.24) | 0.58 | Original-only judgment plus exactly current constitution exceptions; student sessions work-only and book extraction in Wiki |
+| Education chronology | A | 0.92 | 0.91 | Later privacy/account boundary, translation planning and current English/romanized/minimized schema rules; superseded history omitted |
+| Profile terminology | A | 0.99 | 0.98 | Clear CEFR domain names, dataset/site/language neutrality and source-field precedence; no global historical renaming |
+| Constitution approval | B | 0.75 (A 0.23) | 0.70 | No new approval wording; shared operations already holds it and the existing constitution governs |
+
+These are supplied decision results, not calls made by this feature. Priorities
+were judgment-only AGENTS.md rules, later decisions superseding earlier ones,
+no weaker privacy boundary and no duplicate rules. A probability does not prove
+correctness. The original major-amendment approval boundary remains unchanged.
 
 Superseded start gate: the current dispatch says the user resumed CHE-80.
 Current shared preferences fix the main/develop pair, native starts and effort
@@ -69,6 +83,8 @@ overrides. Codex project instructions continue to add to root rules. Active
 workflow output, the Linear preset and architecture ownership text use the
 develop orchestrator; old feature records remain historical.
 
-Static pointer checks do not prove that a fresh client loaded these rules.
+The document-rule consumer also includes plugin AGENTS.md in report-only inputs,
+matching root rules; tooling does not rewrite them. Static pointer checks do
+not prove that a fresh client loaded these rules.
 Client loading, native launch behavior and actual account capability checks
 performed by this feature will be recorded separately in verification results.

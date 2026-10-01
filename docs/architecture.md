@@ -759,7 +759,7 @@ or an agent region, written by agents. No part is human-written.
   to a missing local file or heading (lychee 0.24.2, offline). It writes
   nothing and uses no network. `npm run doc-regions:update` regenerates
   stale regions.
-- Before each `develop` merge review, the main agent runs the judgment step
+- Before each `develop` merge review, the feature orchestrator runs the judgment step
   that `npm run workflow` prints in REVIEW mode. `npm run
   doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints

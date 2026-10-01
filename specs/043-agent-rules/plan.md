@@ -14,7 +14,8 @@ checks, obtain a fresh review and ask develop for the finish slot.
 
 Writable scope: root and plugin rule files; model-choice's reference;
 `scripts/workflow.ts` and its ownership regression check;
-the active Linear preset and relevant architecture ownership text;
+the active Linear preset, document-rule report-only inputs and relevant
+architecture ownership text;
 this feature's records. Historical specs and the constitution remain unchanged.
 
 No worker implementation delegation is needed for these small overlapping

@@ -5,9 +5,9 @@
 **Branch**: `feature/agent-rules`
 
 Assumption: migrate only approved judgment rules that add to current HEAD.
-The sorting proposal is reference data, not authority to activate pending
-contradictions. The current constitution and education privacy rules govern
-while the user decides the four explicit conflicts.
+The sorting proposal is reference data, not authority to activate contradictions.
+The four delegated decisions in coverage.md set this migration's scope.
+The current constitution and education privacy rules govern.
 
 ## Purpose and scope
 
@@ -33,12 +33,14 @@ observed client configuration; changing it needs user approval. Unsupported
 Grok/OMP launch candidates are excluded, not routed through custom terminals.
 Google models use Antigravity only. Model-choice uses Jev-family models only.
 
-## Decisions pending
+## Decisions
 
-Ask develop to relay four explicit choices to the user: raw eligibility,
-education chronology, profile terminology and constitution approval. Resolved
-entries may proceed independently. Leave dependent clauses pending until each
-answer arrives. Record answers in this feature's coverage record.
+The four explicit choices cover raw eligibility, education chronology, profile
+terminology and constitution approval. The user delegated them to Jev through
+main and develop: raw A, education A, terminology A and approval B. The exact
+scope and supplied probabilities are recorded in coverage.md.
+Approval B adds no wording because the existing constitution and shared
+operations already hold the boundary. Apply no wider exception.
 
 ## Boundaries
 

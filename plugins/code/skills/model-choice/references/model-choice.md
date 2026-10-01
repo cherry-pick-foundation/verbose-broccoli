@@ -217,11 +217,11 @@ missing or rotated, so say so in the evidence. Other models have their own
 cap.
 
 Copilot's and Cursor's trackers show the same kind of window their plans
-cap (monthly), and no refusal that the tracker missed has been seen for
-them. Antigravity's weekly quota is unread (see above), so its candidates
+cap (monthly). A tracker reading does not override an observed limit
+refusal. Antigravity's weekly quota is unread (see above), so its candidates
 keep an unknown limit. When any agent refuses with a limit message, give
 that refusal and its time to backfire and leave the agent out until its
-window clears.
+window clears or fresh successful-use evidence shows it is available.
 
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
