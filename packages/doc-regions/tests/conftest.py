@@ -24,7 +24,11 @@ def offline(monkeypatch):
 
 @pytest.fixture
 def unchanged():
-    """Return a context manager that checks a tree's file hashes."""
+    """Return a context manager that checks a tree's file hashes.
+
+    Git's own files under .git/ are skipped: Git may rewrite its index during
+    a command such as git diff although no tracked file changed.
+    """
 
     def hashes(root):
         return {
@@ -32,7 +36,7 @@ def unchanged():
                 path.read_bytes()
             ).hexdigest()
             for path in root.rglob("*")
-            if path.is_file()
+            if path.is_file() and ".git" not in path.relative_to(root).parts
         }
 
     @contextmanager
