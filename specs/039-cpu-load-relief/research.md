@@ -20,10 +20,14 @@ Facts were read from Turborepo 2.11.5 in this repository
   `packages/backfire/` and `packages/doc-regions/`. Its
   `hashOfExternalDependencies` covers its part of `uv.lock`.
 - Turborepo hashes no folder, so an empty folder is invisible to it.
-- Turborepo caches only successful tasks, and the run summary counts a
-  replayed task as a success with `cache.status` `HIT`; `npm run verify`
-  still reads `execution.failed` and `execution.exitCode` from the same run's
-  summary (`scripts/workflow-verify.ts`).
+- Turborepo caches only successful tasks. The run summary counts replayed
+  tasks in `execution.cached` and executed ones in `execution.success` (a
+  warm run: 31 cached and 7 successful of 38 attempted, `failed` 0);
+  `npm run verify` still reads `execution.failed` and `execution.exitCode`
+  from the same run's summary (`scripts/workflow-verify.ts`).
+- With caching on, Turborepo writes each task's log next to its package:
+  `.turbo/turbo-<task>-root-<hash>.log` at the root and
+  `packages/<name>/.turbo/turbo-test.log` for package tasks.
 - In a linked worktree with no `cacheDir` set, Turborepo uses the main
   worktree's cache: `-vv` logs "Using shared worktree cache at:
   …/develop/.turbo/cache".
@@ -73,6 +77,10 @@ Facts were read from Turborepo 2.11.5 in this repository
   others place files or caches, and the per-user configuration they locate
   is either Git's, which is hashed, or isolated by the tests.
 - **Cost**: about 0.1 s per Turborepo run.
+- **Limit**: only the `turborepo` npm script computes the fingerprint. Every
+  repository entry point (`npm run check`, `npm run test`, `npm run verify`
+  and the hooks that call them) goes through it; a `turbo` run started
+  directly gets an empty value and so shares no hash with those runs.
 
 ## D4. Generated and installed files
 
@@ -143,14 +151,17 @@ Tests that compare dates inject the clock (`credit_offers._block(now=…)`,
 ## D7. Cache location and trust
 
 - **Decision**: Use Turborepo's default, shared worktree cache
-  (`develop/.turbo/cache`), and ignore `/.turbo/` instead of
+  (`develop/.turbo/cache`), and ignore `.turbo/` at any depth instead of
   `/.turbo/runs/`. Remote caching stays off (the `turborepo` script already
   unsets the remote-cache credentials and isolates Turborepo's config
   folders).
 - **Why**: Several worktrees verify nearly the same packages; sharing lets
   one worktree replay another's unchanged package tests. Without the ignore
-  rule, cache files would show as untracked in `develop` and enter the root
-  tasks' hashes there.
+  rule, cache files would show as untracked in `develop`, and task logs would
+  become inputs of every root task. The first measurement ignored only the
+  root `.turbo/`: the package logs from one run changed every root hash, so
+  the next run replayed nothing, and `npm run workflow` failed with "Code
+  snapshot changed while processing the workflow".
 - **Development runs**: until this feature merges, `develop` does not
   ignore `.turbo/cache/`, so runs in this worktree set `TURBO_CACHE_DIR` to
   the worktree's own `.turbo/cache`. The finish hook's verify writes to the
@@ -171,9 +182,43 @@ installed records, and compares `--dry=json` hashes through the real
 - a workspace dependency's source changes its dependents' hashes, not
   unrelated packages';
 - a new untracked file changes the root tasks;
+- Turborepo's own task logs, at the root or in a package's `.turbo/`, change
+  no hash;
 - each installed record changes every cached task;
 - a different `git --version`, a different global Git configuration and a
   set `UV_PYTHON` each change every cached task.
 
 Hashes stand in for reruns because Turborepo looks results up by hash. Each
-test fails when its declaration is removed (T004).
+test fails when its declaration is removed (T004), and the log test fails
+with the old `/.turbo/` rule. The tests take about 11 s of CPU per uncached
+run.
+
+## D9. Measurements
+
+`npm run verify` on this worktree, one verify at a time on the machine, each
+in `systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7`
+(the four efficiency cores), timed with `/usr/bin/time`; CPU is user plus
+system time of the whole process tree. Before: 1eef330's configuration and
+files with this feature's Markdown records added. After: 65d0ac9, with
+`TURBO_CACHE_DIR` set to the worktree's own `.turbo/cache` (D7), emptied
+before the cold run.
+
+| Run | Wall | CPU | Replayed tasks | Result |
+| --- | ---: | ---: | ---: | --- |
+| Before, a full run | 230.6 s | 541.5 s | 0 of 37 | VERIFIED |
+| Before, a repeat on the unchanged tree | 228.7 s | 545.1 s | 0 of 37 | VERIFIED |
+| After, cold cache | 273.4 s | 643.3 s | 0 of 38 | VERIFIED |
+| After, repeat on the unchanged tree (warm) | 4.6 s | 9.0 s | 31 of 38 | VERIFIED |
+
+A repeat verify on an unchanged tree now uses about 1.7% of the CPU time it
+used before (9.0 s against 545.1 s). The warm run's 7 executed tasks (D5's
+five and the two grouping tasks) took at most 1.1 s each. The cold run cost
+98 s more CPU than the base; the new tests explain about 11 s of it, and the
+rest was not separated from run-to-run noise in this single cold run. The
+summary credited 836 s of task time as saved. A worktree whose files differ
+from the cached run replays only the tasks whose inputs match: package tests
+across worktrees, every task after an unchanged repeat.
+
+One base repeat failed in `doc-regions#test`, unrelated to caching: the
+test's tree check counted a Git index refresh as a change (Linear CHE-75);
+the next run passed.

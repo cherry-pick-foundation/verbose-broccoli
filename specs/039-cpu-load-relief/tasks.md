@@ -13,7 +13,7 @@
   `doc-regions#test`'s outside files, name the installed records in
   `globalDependencies`, and hash the fingerprint and the behavior-changing
   variables in `globalEnv`; add `scripts/toolchain.sh`, pass its output from
-  the `turborepo` script, and ignore `/.turbo/` (FR-001 to FR-004, FR-007).
+  the `turborepo` script, and ignore `.turbo/` (FR-001 to FR-004, FR-007).
   - By main (Claude Code).
 - [x] T003 Add `scripts/turbo-cache-test.ts` (`npm run test:turbo-cache`,
   task `//#test:turbo-cache`) for each kind of input (FR-006, SC-002).
@@ -21,21 +21,30 @@
     the test failed: under the test's Node permission flags, `npm --version`
     printed a warning with its process ID. The fingerprint now hashes
     standard output only.
+  - The first measurement (T005) replayed nothing: Turborepo's package task
+    logs (`packages/<name>/.turbo/`) were not ignored, so they became inputs
+    of every root task. Fixed in 65d0ac9 (ignore `.turbo/` at any depth),
+    with a test that fails under the old rule.
 - [x] T004 Remove each declaration in turn and confirm a test fails
   (SC-002).
   - Without `doc-regions#test`'s inputs, the repository-file test failed;
     without `globalDependencies`, the installed-environment test; without
     `VERBOSE_BROCCOLI_TOOLCHAIN` or `UV_*` in `globalEnv`, the program and
     configuration test. The other tests passed each time.
-- [ ] T005 Measure the CPU time of a second `npm run verify` on an unchanged
+- [x] T005 Measure the CPU time of a second `npm run verify` on an unchanged
   tree before (at 1eef330's configuration) and after, on the efficiency
   cores, one verify at a time (SC-001, FR-005).
-- [ ] T006 Update the command reference and the architecture note for the
+  - By main. A repeat verify on an unchanged tree: 228.7 s wall and 545.1 s
+    CPU before; 4.6 s wall and 9.0 s CPU after, with 31 of 38 tasks replayed
+    and VERIFIED read from the same run's summary (research.md D9). Of
+    1eef330's 43 tasks, 30 are cached; with the new test, 31 of 44.
+- [x] T006 Update the command reference and the architecture note for the
   cache.
+  - By main, in 592012b (`npm run doc-regions:update` for the reference).
 
 ## Phase 2: Scheduler review (User Story 3)
 
-- [ ] T007 Review System76's scheduler and its GNOME Shell extension and
+- [x] T007 Review System76's scheduler and its GNOME Shell extension and
   record it in `security/` (FR-008).
   - Worker: Codex `gpt-6.1-sol` at `xhigh`, started with `worker-start
     --agent codex --model gpt-6.1-sol --effort xhigh`; its status line
@@ -43,11 +52,27 @@
     `openrouter`, model `typesafe/jev-1.13`) returned `invalid_response`, so
     the orchestrator asked the develop session, and the user chose the model
     without another judgment.
-- [ ] T008 Put the review's findings to the user and record the install
+  - Result: `security/system76-scheduler-8651bbf.md`, reviewing commit
+    8651bbf against release 2.0.2: not acceptable as shipped, 6 medium and 1
+    low findings; the small focus extension supports GNOME 40 to 44 only, and
+    only Pop Shell declares GNOME 50. No build, install or sudo command ran.
+- [x] T008 Put the review's findings to the user and record the install
   decision (SC-004).
+  - 2026-10-01, through the develop session: do not install; the scheduler
+    leaves scope, and the CPU rule stays the fix for load spikes. Whether
+    Turborepo stays is decided in CHE-74 from T005's figures.
 
 ## Phase 3: Finish
 
 - [ ] T009 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish cpu-load-relief`.
+  - Split review: the change against `develop` passes 1,000 lines, about 850
+    of them the scheduler record. Kept as one feature: the record is
+    Markdown that no code depends on, the user's brief and CHE-73 hold both
+    parts, and the code change is about 450 lines.
+  - Reviewer: Copilot `auto` at the `balance` tier, chosen with Jev
+    (`jev_decide`, provider `openrouter`, model `typesafe/jev-1.13`):
+    probability 0.69, confidence 0.65 (Copilot `intelligence` 0.25, Cursor
+    and Grok 0.02 each, Antigravity 0.01). Claude Code and Codex both
+    implemented parts, so neither was a candidate.

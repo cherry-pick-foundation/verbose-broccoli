@@ -33,6 +33,13 @@ The user decided the same day:
    user decides whether to install it. It runs as a root service built from
    source; the user runs any sudo command.
 
+After the review, the user decided the same day not to install the
+scheduler and dropped it from scope; the CPU rule in decision 2 stays the fix
+for load spikes. The review and the decision stay recorded here (User Story
+3). The user will decide in CHE-74 whether Turborepo stays, from this
+feature's count of cacheable tasks and its warm-cache measurements
+([research.md](research.md), D5 and D9).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - A repeat verify reuses unchanged results (Priority: P1)
@@ -101,6 +108,12 @@ decision.
 2. **Given** the review's findings, **When** they are put to the user,
    **Then** the user's decision is recorded in `tasks.md`.
 
+**Outcome**: the review
+([security/system76-scheduler-8651bbf.md](security/system76-scheduler-8651bbf.md))
+found the scheduler not acceptable as shipped (6 medium, 1 low findings), and
+its small GNOME extension supports GNOME 40 to 44 only. The user decided not
+to install it.
+
 ### Edge Cases
 
 - A task fails: Turborepo caches only successful tasks, so a failure is
@@ -112,6 +125,8 @@ decision.
 - Before this feature merges, `develop` does not ignore `.turbo/cache/`; runs
   during development use a worktree-local cache folder so `develop` gains no
   untracked files.
+- Turborepo writes task logs into each package's `.turbo/` folder; they must
+  be ignored, or they become inputs of every root task.
 
 ## Requirements *(mandatory)*
 
