@@ -141,6 +141,27 @@ only" in `usage.extraRateWindows`, and Copilot a monthly `Chat` window.
 Balances are `usage.details` rows: OpenRouter's "Credits" → "Remaining" and
 Vercel's "Team credits" → "Available balance".
 
+Codex also reports its usage-limit reset credits in `usage.codexResetCredits`:
+`availableCount` and `credits[]`, each with `title`, `reset_type`, `status`,
+`granted_at` and `expires_at`. Claude and the other providers report none; say
+"none reported" for them, and for Codex when the field is missing. Reset
+credits are evidence, not a rule. Give backfire
+the `availableCount` and the `expires_at` of each `available` credit, so that a
+provider with unused resets that expire is not steered away from early. Leave
+out the credits' descriptions and any credit IDs, for example with:
+
+```sh
+"${clean[@]}" CI=1 codexbar usage --provider codex --source oauth --format json |
+  jq '.[0].usage.codexResetCredits
+    | if . then {availableCount,
+        credits: [.credits[] | select(.status == "available")
+          | {title, reset_type, status, granted_at, expires_at}]}
+      else "none reported" end'
+```
+
+Only the user spends reset credits. An agent uses a limit fully, then stops
+and reports to the develop session; it never spends a credit.
+
 Read Grok's and Cursor's limits from Orca, which uses each CLI's own
 sign-in. Its output carries account identity, so keep only the rate windows:
 
@@ -158,11 +179,13 @@ installed, and `agy` reports none.
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
 prepaid balance of zero. Codex's extra-usage credit (`credits.remaining`) at
-zero does not drop Codex while its windows have room. Nothing reads the limits
+zero does not drop Codex while its windows have room. A reset credit drops
+nothing and keeps nothing: a full window still drops its candidate until its
+`resetsAt`, because only the user spends a credit. Nothing reads the limits
 of Hive, Tetrate, Cloudflare or Antigravity, so candidates there keep an
 unknown limit; say so in the evidence. When a call fails, give the failure as
 evidence and do not guess. Give the remaining limits and their reset times to
-`jev_decide` as evidence.
+`jev_decide` as evidence, with Codex's reset-credit count and expiry dates.
 
 ## The call
 
