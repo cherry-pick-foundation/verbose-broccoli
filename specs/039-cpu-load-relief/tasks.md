@@ -85,3 +85,10 @@
     unchanged first one was unsupported by that evidence, so the paragraph
     stands. `npm run doc-regions:audit` reported 20 warnings, all about the
     constitution's existing layout, which this feature does not change.
+  - Review (Copilot `auto`, `balance` tier, routed to `gpt-6-luna`), range
+    1eef330 to 4da153c: 1 medium finding, 0 high, 0 low. Edits inside an
+    installed environment left task hashes unchanged, because only npm's
+    hidden lockfiles and each distribution's `METADATA` were hashed. Fixed by
+    hashing the installed files themselves (research.md D4), with the
+    installed-environment test extended to package files and a native
+    program; that test fails with the previous declarations.

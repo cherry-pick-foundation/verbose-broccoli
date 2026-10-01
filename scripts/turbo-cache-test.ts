@@ -42,7 +42,16 @@ function run(
 }
 
 // The working tree's tracked and unignored files, plus stand-ins for the
-// ignored installed environments that turbo.json declares.
+// ignored installed environments: a package file in each npm tree and each
+// kind of uv environment, and a native program in a tool environment.
+const installed = [
+  'node_modules/x/index.js',
+  'packages/wiki-consistency/node_modules/x/index.js',
+  '.venv/lib/python3.14/site-packages/x/__init__.py',
+  'tools/ruff/.venv/lib/python3.14/site-packages/x/__init__.py',
+  'tools/ruff/.venv/bin/ruff',
+];
+
 async function fixture(check: (repo: string) => Promise<void>) {
   const repo = await mkdtemp(join(tmpdir(), 'turbo-cache-'));
   try {
@@ -57,17 +66,7 @@ async function fixture(check: (repo: string) => Promise<void>) {
       file => file !== '' && existsSync(join(root, file)),
     ))
       await cp(join(root, file), join(repo, file), {verbatimSymlinks: true});
-    for (const file of [
-      'node_modules/.package-lock.json',
-      'packages/wiki-consistency/node_modules/.package-lock.json',
-    ])
-      await cp(join(root, file), join(repo, file));
-    for (const venv of ['.venv', 'tools/ruff/.venv'])
-      await write(
-        repo,
-        `${venv}/lib/python3.14/site-packages/x-1.dist-info/METADATA`,
-        'Name: x\n',
-      );
+    for (const file of installed) await write(repo, file, 'x = 1\n');
     await mkdir(join(repo, 'node_modules/.bin'));
     await symlink(
       join(root, 'node_modules/turbo/bin/turbo'),
@@ -164,12 +163,7 @@ void test("turbo cache: Turborepo's own task logs are not inputs", async () => {
 void test('turbo cache: a changed installed environment reruns every cached task', async () => {
   await fixture(async repo => {
     let before = hashes(repo);
-    for (const file of [
-      'node_modules/.package-lock.json',
-      'packages/wiki-consistency/node_modules/.package-lock.json',
-      '.venv/lib/python3.14/site-packages/x-1.dist-info/METADATA',
-      'tools/ruff/.venv/lib/python3.14/site-packages/x-1.dist-info/METADATA',
-    ]) {
+    for (const file of installed) {
       await appendFile(join(repo, file), '\n');
       const after = hashes(repo);
       assertChanged(before, after, ['backfire#test', '//#typecheck'], []);

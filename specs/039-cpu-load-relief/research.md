@@ -51,9 +51,10 @@ Facts were read from Turborepo 2.11.5 in this repository
 
 - **Decision**: `scripts/toolchain.sh` prints one SHA-256 over the versions
   of `node`, `npm`, `uv`, `python3`, `git`, `git flow` and `vale`, the
-  resolved interpreters of `uv python find 3.14`, `.venv` and
-  `tools/*/.venv`, and the system and global Git configuration (with
-  includes). The `turborepo` npm script passes it to Turborepo as
+  resolved interpreters of `uv python find 3.14`, `.venv` and the three tool
+  environments the cached tasks use, the system and global Git
+  configuration (with includes), and the contents of the installed npm trees
+  (D4). The `turborepo` npm script passes it to Turborepo as
   `VERBOSE_BROCCOLI_TOOLCHAIN`, which `globalEnv` hashes for every task.
 - **Why**: These programs live outside the repository, so no file input can
   name them. They are what the cached tasks run: Node and npm for every npm
@@ -84,18 +85,32 @@ Facts were read from Turborepo 2.11.5 in this repository
 
 ## D4. Generated and installed files
 
-- **Decision**: `globalDependencies` names the installed environments'
-  records, all ignored by Git: `node_modules/.package-lock.json` and
-  `packages/wiki-consistency/node_modules/.package-lock.json` (npm's record
-  of each installed tree) and the `METADATA` of every installed
-  distribution in `.venv` and `tools/*/.venv`.
+- **Decision**: Hash the installed files themselves, all ignored by Git.
+  `globalDependencies` names every file under `lib/` of `.venv` and of the
+  tool environments the cached tasks use (`tools/ruff`, `tools/shellcheck`,
+  `tools/check-jsonschema`), and the native programs in their `bin/`
+  (`magika`, `ruff`, `shellcheck`). `scripts/toolchain.sh` hashes every file
+  of `node_modules` and `packages/wiki-consistency/node_modules`, because
+  Turborepo's globs skip `node_modules` (a `node_modules/**` glob hashed none
+  of its 18,530 files).
 - **Why**: Tasks run from these environments, not from the lock files (`uv
-  run --frozen --offline --no-sync`), so a stale environment must change the
-  hash by itself. The records hold no worktree path: the hidden npm lockfiles
-  of this worktree and `develop` are byte-identical, and `METADATA` holds a
-  distribution's name, version and dependencies. `pyvenv.cfg` and `RECORD`
-  were not used: they hold the worktree's folder name and absolute paths,
-  which would stop sharing across worktrees.
+  run --frozen --offline --no-sync`), so any change inside them, including a
+  hand edit to a package file, must change the hash. The develop merge
+  review found that the first version, which hashed only npm's hidden
+  lockfiles and each distribution's `METADATA`, missed such edits.
+- **Left out, and why**: files that uv writes with the worktree's absolute
+  path or name, which would stop sharing across worktrees: the scripts in
+  `bin/` (their first line names the worktree's interpreter), the workspace
+  packages' editable `.pth` files and their `direct_url.json` and
+  `uv_cache.json`, every `RECORD` (it lists hashes of the `bin/` scripts) and
+  `pyvenv.cfg`. The `.pth` files point at the packages' sources, which are
+  repository files; the `bin/` scripts only import and call a module under
+  `lib/`. Bytecode caches are left out too. `tools/commitizen` and
+  `tools/spec-kit` serve no cached task.
+- **Checked**: every one of the 10,639 hashed environment files is
+  byte-identical to `develop`'s copy, and the fingerprint is the same in both
+  worktrees. Hashing them adds about 0.5 s of CPU to Turborepo's run and
+  0.6 s to the fingerprint.
 - **Other generated files**: tracked generated files (for example
   `packages/backfire/src/backfire_education/regions.json`) are repository
   files. `__pycache__` folders are ignored and Python checks them against
@@ -184,7 +199,8 @@ installed records, and compares `--dry=json` hashes through the real
 - a new untracked file changes the root tasks;
 - Turborepo's own task logs, at the root or in a package's `.turbo/`, change
   no hash;
-- each installed record changes every cached task;
+- an edit to a package file in either npm tree, in `.venv` or in a tool
+  environment, or to a tool's native program, changes every cached task;
 - a different `git --version`, a different global Git configuration and a
   set `UV_PYTHON` each change every cached task.
 
