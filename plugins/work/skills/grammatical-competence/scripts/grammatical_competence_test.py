@@ -425,3 +425,24 @@ def test_map_checks_sections_without_hangul_and_records_them(
         {"id": "inventory-source", "revision": REVISION},
         {"id": "reference-source", "revision": REVISION},
     ]
+
+
+@pytest.mark.usefixtures("vault")
+def test_record_unchecked_keeps_every_valid_proposal(backfire, capsys):
+    assert _run("extract --source material-source") == 0
+    run = profile._run_dir("run")
+    _proposals(run, ("First sentence.", [2, 1, 1]), ("Not extracted.", [1]))
+    assert _run(f"{RECORD} --unchecked") == 1
+    assert "proposal 2: sentence is absent" in capsys.readouterr().err
+    root = instance_path("synthetic", os.environ)
+    assert not (root / "wiki/profiles").exists()
+    _proposals(run, ("First sentence.", [2, 1, 1]))
+    assert _run(f"{RECORD} --unchecked") == 0
+    assert not backfire.calls and not (run / "checks.jsonl").exists()
+    (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
+    assert (row["items"], row["unclear"]) == (["keep", "drop"], [])
+    page = (root / "wiki/profiles/sample.md").read_text()
+    block = yaml.safe_load(page.split("---\n")[1])["profile"]
+    assert block["checker"] == "none"
+    counts = {"sentences": 1, "kept": 2, "dropped": 0, "unclear": 0}
+    assert block["counts"] == counts

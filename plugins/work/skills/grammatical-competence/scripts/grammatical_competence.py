@@ -336,7 +336,22 @@ def _record_command(args, root, run):
     rows = _jsonl(
         run / ("mappings.jsonl" if args.reference else "proposals.jsonl")
     )
-    checks = _jsonl(run / "checks.jsonl")
+    if args.unchecked:  # Keep every proposed item, without backfire.
+        if refused := list(_refusals(run, rows, entries)):
+            return _refuse(refused)
+        checks = [
+            {
+                "row": n,
+                "provider": None,
+                "results": [
+                    {"item": entries[key]["id"], "outcome": "kept"}
+                    for key in sorted(set(row["items"]))
+                ],
+            }
+            for n, row in enumerate(rows, 1)
+        ]
+    else:
+        checks = _jsonl(run / "checks.jsonl")
     if [c["row"] for c in checks] != list(range(1, len(rows) + 1)):
         raise LookupError("checks.jsonl does not cover every row")
     field = "section" if args.reference else "item"
@@ -407,7 +422,7 @@ def _record_command(args, root, run):
             **links,
             "data": f"{args.name}.jsonl",
             "proposer": args.proposer,
-            "checker": "; ".join(sorted(checker)),
+            "checker": "; ".join(sorted(checker)) or "none",
             **({"auto_accept": args.auto_accept} if args.auto_accept else {}),
             "counts": {
                 unit: len(data),
@@ -447,6 +462,7 @@ def main(argv=None):
     record = command("record", _record_command, *names)
     record.add_argument("--auto-accept", type=float)
     record.add_argument("--reference")
+    record.add_argument("--unchecked", action="store_true")
     command("map", _map_command, "inventory", "reference")
     extract = command("extract", _extract_command)
     extract.add_argument("--source", nargs="+", required=True)

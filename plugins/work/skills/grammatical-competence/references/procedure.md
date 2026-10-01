@@ -114,10 +114,10 @@ The command prints one JSON object over all recorded results: `rows`,
 
 `record --inventory inventories/<inventory>.md --name <material> --title
 <title> --summary <line> --proposer '<agent, model and effort>'
-[--auto-accept <t>]` writes `wiki/profiles/<material>.md` and
+[--auto-accept <t> | --unchecked]` writes `wiki/profiles/<material>.md` and
 `<material>.jsonl`, and replaces both when they exist; the vault's Git keeps
 the earlier record. It stops with exit code 2 unless `checks.jsonl` covers
-every proposal.
+every proposal, unless `--unchecked` is given.
 
 `--auto-accept <t>` sorts the stored results again without new calls: a
 result counts as confident when its confidence is at least `t`, and the
@@ -125,6 +125,12 @@ rule above then keeps, drops or leaves it unclear; the page records `t` as
 `profile.auto_accept`. Without it, the outcomes stay as `check` recorded
 them at backfire's default of 0.8. On the pilot, 0.8 kept only 28% of the
 true items at 99% precision and 0.5 kept 74% at 95%; the user chose 0.5.
+
+`--unchecked` records a profile without `check`: it first refuses rows as
+`check` does, then keeps every proposed item, and `checker` is `none`. The
+user chose it for the first full run, so no backfire credit is spent; on the
+pilot rerun the proposer alone had precision 0.94 and recall 0.90, and the
+items kept at 0.5 had 0.97 and 0.77.
 
 Nobody reviews unclear items: each stays in its row's `unclear` list. The
 `checker` field lists the distinct provider and model pairs in
@@ -236,12 +242,12 @@ reference that explain it. Build it in its own run folder:
 1. `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`.
 2. A section index worker, chosen with `model-choice`, writes `sections.tsv`:
    one line per section of the reference's text file, with tab-separated
-   columns: the label, the first line and the last line (one-based,
-   inclusive), and optionally the section's title for the proposer. Sections are the book's own units or numbered
-   sections, labeled in English as the book labels them, such as `Unit 12`,
-   and each holds at most 20,000 characters; split a longer one at its
-   subsections. The extraction's heading levels are not reliable; its
-   `## PDF Page <n>` lines are.
+   columns: the label, the first line and the last line (one-based, inclusive),
+   and optionally the section's title for the proposer. Sections are the book's
+   own units or numbered sections, labeled in English as the book labels them,
+   such as `Unit 12`, and each holds at most 20,000 characters; split a longer
+   one at its subsections. The extraction's heading levels are not reliable;
+   its `## PDF Page <n>` lines are.
 3. A proposer, chosen the same way, writes `mappings.jsonl`: one row per
    line of `inventory.tsv`, in key order,
    `{"item": <key>, "sections": [<label>, ...]}`, with at most three labels

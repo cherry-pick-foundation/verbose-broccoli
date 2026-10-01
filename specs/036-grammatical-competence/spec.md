@@ -59,6 +59,18 @@ on one textbook volume and one exam paper
   `concept` becomes `item` in mapping rows. The kinds reference, mapping and
   profile keep their names. CHE-69's lexical inventory page follows into
   `wiki/inventories/`.
+- Q: After the rerun, which catalog, scope, check and admissions? → A: (1)
+  Keep the grammatical inventory, each tier family counted as one item. (2)
+  The first batch is the 2022 curriculum's materials: the 58 textbook
+  volumes, with exam papers that may belong to that curriculum listed
+  separately for the user; everything else waits for later batches. The
+  proposer is Codex `gpt-6-astra` (the user's fixed choice); only its effort
+  comes from `model-choice`. (3) Skip the check: record the proposer's items
+  without backfire, so no OpenRouter credit is spent. (4) Copy, never move,
+  only the chosen files from `~/data` into `~/Documents/20_reference/textbooks/`
+  (and `exams/` there only if exams are chosen), then admit them; leave out
+  the scanned PDFs without text and the photo sets that may carry student
+  marks, and show the exact file list and its size first.
 
 ## Terms
 
@@ -175,7 +187,8 @@ them.
   and `record`, as User Story 1 describes.
 - **FR-003**: The procedure MUST give every proposer one written tier rule.
 - **FR-004**: `check` MUST NOT write a review sheet and `record` MUST NOT
-  read one; unclear items stay listed as unclear.
+  read one; unclear items stay listed as unclear. `record --unchecked` MUST
+  record every valid proposal without a check.
 - **FR-005**: The two pilot materials MUST be profiled again and scored
   against the kept answer key with families collapsed; the scoring runs
   outside the repository.
@@ -189,9 +202,9 @@ them.
   stores, and new originals admitted only after the user approves them.
 - **FR-010**: The user's catalog choice MUST be recorded in this spec's
   Clarifications before the full run.
-- **FR-011**: The full run MUST profile every approved material and report
-  counts per material in `tasks.md`; its records MUST pass the vault's Wiki
-  check.
+- **FR-011**: The full run's first batch MUST profile every approved material
+  and report counts per material in `tasks.md`; its records MUST pass the
+  vault's Wiki check.
 - **FR-012**: No inventory text, material text, reference text or answer key
   MUST enter the repository, commits, or Orca or Linear messages; tests MUST
   use synthetic entries.
@@ -213,4 +226,6 @@ them.
 
 - Stage 1's accuracy is agreement with a Claude-made answer key that the user
   accepted, and so is the rerun's.
-- The checker stays backfire's `jev_verify` in education mode, as in stage 1.
+- Mappings are checked with backfire's `jev_verify` in education mode, as in
+  stage 1; the first batch's profiles are recorded unchecked, by the user's
+  choice.

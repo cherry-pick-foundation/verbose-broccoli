@@ -98,6 +98,11 @@ messages. Run files stay in the run folders and records in the work vault.
   - Proposers: four Claude Code workers, `fable` at medium (backfire: 0.66,
     confidence 0.62 for the practice books; 0.64 and 0.59 for the reference
     grammar).
+  - 2026-10-01 proposals, items with zero, one, two and three sections:
+    the elementary book 604, 345, 136, 34 (about 6 minutes); the
+    intermediate book 427, 495, 175, 22 (7); the advanced book 311, 378,
+    359, 71 (8); the reference grammar 4, 292, 612, 211 (10). Items with no
+    section are mostly above or below the book's level.
 
 ---
 
