@@ -22,6 +22,7 @@ No live provider call was made (0 paid calls), so the 110-claim and
 
 ## Residual Risks
 
+- The size limit is in characters, not provider tokens (review 3), and the tests also assert the refused sizes as literals.
 - Total evidence is not bounded (see the assessment's risks).
 - The provider's true limit is unpublished. If a request of up to 110 claims
   and 12,000 characters is still refused, lower `MAX_CLAIMS` or

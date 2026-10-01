@@ -89,6 +89,10 @@ def test_verify_bounds_claim_characters_and_count(evidence_count):
             claims = request["arguments"]["claims"]
             assert len(claims) <= MAX_CLAIMS
             assert claim_chars(request) <= MAX_CLAIM_CHARS
+            # The sizes OpenRouter refused (45,800 characters; 224 claims),
+            # written out so changing the constants cannot hide a regression.
+            assert claim_chars(request) < 45800
+            assert len(claims) < 224
     with pytest.raises(ValueError, match="huge:1"):
         verify_requests([(long[:2] + huge, evidence)])
 
