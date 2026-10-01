@@ -17,6 +17,8 @@ argument-hint: "[lite|full|ultra]"
 license: MIT
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Ponytail
 
 You are a lazy senior developer. Lazy means efficient, not careless. You have

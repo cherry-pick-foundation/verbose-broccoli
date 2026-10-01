@@ -7,6 +7,8 @@ metadata:
   source: assess:commands/speckit.assess.define.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Define the Problem
 
 Turn the intake and research into a crisp **problem definition** at `.specify/assessments/<slug>/problem.md`. This is the pivot of the pipeline: it converts a fuzzy idea into a sharply-stated *problem in the problem space* — who is affected, what hurts, and what success would look like — without proposing a solution.

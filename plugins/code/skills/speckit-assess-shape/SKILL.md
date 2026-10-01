@@ -7,6 +7,8 @@ metadata:
   source: assess:commands/speckit.assess.shape.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Shape a Concept
 
 Take the defined problem and shape a **concept** at `.specify/assessments/<slug>/concept.md`: the rough solution options, the scope/appetite, and the trade-offs between them. This is where the assessment crosses from problem space into solution space — but only at the *concept* level. Detailed design (architecture, data models, APIs, tasks) stays with `$speckit-specify` and the rest of the SDD lifecycle.

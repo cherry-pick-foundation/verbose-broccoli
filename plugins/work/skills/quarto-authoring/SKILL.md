@@ -7,6 +7,8 @@ metadata:
 license: MIT
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Quarto Authoring
 
 > This skill is based on Quarto CLI v1.9.36 (2026-03-24).

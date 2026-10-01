@@ -3,6 +3,8 @@ name: wiki-raw-import
 description: Copy original documents the user confirms into a verbose-broccoli Wiki instance's raw/ layer, one BagIt revision per file with its source recorded, and check raw/ integrity. Use when the user wants to admit documents as raw evidence, including ChatGPT exports and local Claude Code or Codex sessions, re-import changed originals, or verify raw/; not for writing Wiki pages.
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Wiki Raw Import
 
 Admit the user's original documents into a Wiki instance's `raw/` by copying

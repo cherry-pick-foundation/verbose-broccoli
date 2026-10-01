@@ -7,9 +7,12 @@
 - License: MIT; upstream LICENSE is retained in each skill folder.
 - Removed 2026-09-25: `ponytail-help` (a reference card that repeated this
   record and the `ponytail` skill) and `ponytail-gain` (a display of upstream
-  benchmark figures). The other four imported skills are unchanged.
+  benchmark figures). The four retained skills add only the plugin-rule pointer.
 - Upstream's six JavaScript hook modules and `tests/hooks.test.js` are retained
-  byte-for-byte under `plugins/code/hooks` and `plugins/code/tests`.
+  under `plugins/code/hooks` and `plugins/code/tests`. The instruction loader
+  resolves the plugin-rule pointer to the installed package's absolute path
+  before injecting the skill text; the other modules and upstream tests
+  remain byte-for-byte unchanged.
   The hook license is retained at `plugins/code/hooks/LICENSE`. The original
   instruction loader reads `../skills/ponytail/SKILL.md` inside the same package.
 - `.agents/ponytail` links to `../plugins/code`, preserving existing hook

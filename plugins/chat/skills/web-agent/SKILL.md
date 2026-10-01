@@ -3,6 +3,8 @@ name: web-agent
 description: Reach a narrow goal on a web page with the Jev Ultrafast browser agent, in a tab of Orca's built-in browser or in Chrome. Use when a task needs clicks, typing or selections on a live page that no API or plain download can do; not for reading pages that plain HTTP can fetch.
 ---
 
+Read [the chat plugin rules](../../AGENTS.md) before using this skill.
+
 # Web Agent
 
 Jev Ultrafast, from Browser Use, reads the page's visible controls, lets Jev
