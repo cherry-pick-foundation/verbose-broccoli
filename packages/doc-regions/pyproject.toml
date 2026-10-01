@@ -7,6 +7,7 @@ name = "doc-regions"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+  "anyascii==0.3.3",
   "cogapp==3.6.0",
   "markdown-it-py==4.2.0",
 ]

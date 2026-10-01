@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -353,3 +354,24 @@ def test_cli_check_update_and_failures(repository, unchanged):
     assert result.returncode == 1
     assert "doc.md" in result.stderr and "missing.md" in result.stderr
     assert not result.stdout
+
+
+def test_prepare_sends_hangul_in_latin_letters(repository, unchanged):
+    (repository / "doc.md").write_text(
+        (repository / "doc.md").read_text() + "\nName `가라온은` ㄴ.\n"
+    )
+    (repository / "한글.txt").write_text("Added `묵호`\n")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "hangul")
+    with unchanged(repository):
+        result = prepare(
+            repository, "config.toml", base="develop", max_evidence_chars=50
+        )
+    assert any("가라온은" in u["text"] for u in result["units"])
+    valid(result["requests"])
+    sent = json.dumps(
+        [r["arguments"] for r in result["requests"]], ensure_ascii=False
+    )
+    assert not re.search(r"[ᄀ-ᇿ㄰-㆏가-퟿]", sent)
+    assert "Name `galaoneun` n." in sent
+    assert "mugho" in sent
