@@ -48,9 +48,11 @@
 
 - [x] T008 Compare commitlint, `cz check` and the pull-request pattern with
   measured results (research.md D9).
-- [ ] T008a The user's decision on who owns the commit-message rules; apply it
-  (FR-010). Asked of the develop session on 2026-10-02; no commit tool changes
-  before the answer.
+- [x] T008a The user's decision on who owns the commit-message rules; apply it
+  (FR-010).
+  - On 2026-10-02 the user chose option A: commitlint owns the commit-message
+    rules, commitizen only bumps the constitution version, and the
+    pull-request title pattern stays. No commit-message tool changed.
 
 ## Phase 5: Close
 
@@ -76,11 +78,18 @@
     files); the estimate before the work was difficult.
 - [ ] T011 Develop merge review by a provider other than Claude Code; resolve
   findings; the review-record commit last.
-  - Reviewer chosen with Jev (`typesafe/jev-1.13` through OpenRouter, no
-    escape): Cursor `auto`, probability 0.55, confidence 0.49; the other
-    candidates were Codex `gpt-6.1-sol` and `gpt-6-luna` at `xhigh`, Copilot
-    `auto` at the intelligence and balance tiers (0.01 and 0.38) and
-    Antigravity `gemini-3.8-flash-high`; Grok was left out for its free cap.
-    A probability is not evidence of correctness.
+  - First reviewer, chosen with Jev (`typesafe/jev-1.13` through OpenRouter, no
+    escape): Cursor `auto`, probability 0.55, confidence 0.49 (Codex
+    `gpt-6.1-sol` and `gpt-6-luna`, Copilot `auto` at two tiers and
+    Antigravity `gemini-3.8-flash-high` were the others; Grok was out for its
+    free cap). It read the diff, then its free requests were refused ("You've
+    hit your usage limit", reset 2026-10-16, while Orca's tracker still showed
+    0% used) before it wrote a report; the dispatch was stopped, and its
+    review does not count.
+  - Replacement, chosen with Jev after the user limited starts to Orca's
+    native worker start (Cursor, Copilot and Grok out): Codex `gpt-6.1-sol` at
+    `high`, probability 0.66, confidence 0.62 (Codex `gpt-6.1-sol` at
+    `xhigh` 0.07, `gpt-6-luna` at `xhigh` 0.14, two Antigravity models 0.02
+    and 0). A probability is not evidence of correctness.
 - [ ] T012 Merge `develop`, verify, finish into `develop` when the finish slot
   is granted.

@@ -136,6 +136,10 @@ the commit-message rules.
 2. **Given** the user's decision, **When** it arrives, **Then** it is recorded
    in `tasks.md`; until then no commit-message tool changes.
 
+**Outcome**: on 2026-10-02 the user chose to keep commitlint for commit
+messages, commitizen only for the constitution version bump and the current
+pull-request title pattern; no tool changed (research.md, D9).
+
 ### Edge Cases
 
 - A tool finds a stale config at its old place: no old file stays.

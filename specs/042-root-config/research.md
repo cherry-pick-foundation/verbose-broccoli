@@ -219,5 +219,9 @@ What a replacement would do:
 
 Recommendation: commitlint owns the commit-message rules (no other tool has
 its rules); commitizen keeps only the version bump. For the title, either keep
-the pattern (status quo) or run commitlint on it. No tool changes until the
-user decides; the question went to the develop session.
+the pattern (status quo) or run commitlint on it.
+
+Decision (2026-10-02, the user, through the develop session): option A.
+commitlint keeps the commit-message rules, commitizen keeps only the
+constitution version bump, and the pull-request title pattern stays as it is.
+No commit-message tool changed in this feature.
