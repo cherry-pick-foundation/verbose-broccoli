@@ -6,7 +6,15 @@
 // fails here.
 import {spawnSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {readFile} from 'node:fs/promises';
+import {
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {assert, assertEquals} from '@std/assert';
 import {fromFileUrl, join} from '@std/path';
@@ -238,4 +246,51 @@ void test('Turborepo plans each package test and check, and the root check depen
       .get('//#check')
       ?.dependencies.includes('verbose-broccoli-python#check'),
   );
+});
+
+// `mise run` installs the tools of every config it loads, the user's global
+// ones included, before a task starts, unless the project turns that off. A
+// fake global config with a tool that is not installed shows it.
+void test("mise setup does not install the user's global tools", async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'mise-setup-'));
+  try {
+    await mkdir(join(dir, 'project/.config'), {recursive: true});
+    await mkdir(join(dir, 'project/packages/backfire'), {recursive: true});
+    await copyFile(
+      join(root, '.config/mise.toml'),
+      join(dir, 'project/.config/mise.toml'),
+    );
+    await copyFile(
+      join(root, '.config/mise.lock'),
+      join(dir, 'project/.config/mise.lock'),
+    );
+    await copyFile(
+      join(root, 'packages/backfire/.python-version'),
+      join(dir, 'project/packages/backfire/.python-version'),
+    );
+    await writeFile(join(dir, 'global.toml'), '[tools]\nbun = "1.3.0"\n');
+    const result = spawnSync('mise', ['run', '--dry-run', 'setup'], {
+      cwd: join(dir, 'project'),
+      env: {
+        ...process.env,
+        MISE_GLOBAL_CONFIG_FILE: join(dir, 'global.toml'),
+        MISE_DATA_DIR: join(dir, 'data'),
+        MISE_CACHE_DIR: join(dir, 'cache'),
+        MISE_STATE_DIR: join(dir, 'state'),
+        MISE_TRUSTED_CONFIG_PATHS: dir,
+        MISE_OFFLINE: 'true',
+        MISE_YES: 'true',
+      },
+      encoding: 'utf8',
+    });
+    const output = `${result.stdout}${result.stderr}`;
+    assertEquals(result.status, 0, output);
+    assert(!output.includes('bun@1.3.0'), output);
+    assert(
+      output.trimStart().startsWith('[setup] $ mise install --locked'),
+      output,
+    );
+  } finally {
+    await rm(dir, {recursive: true, force: true});
+  }
 });

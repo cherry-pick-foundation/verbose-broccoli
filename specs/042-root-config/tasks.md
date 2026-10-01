@@ -90,6 +90,10 @@
     native worker start (Cursor, Copilot and Grok out): Codex `gpt-6.1-sol` at
     `high`, probability 0.66, confidence 0.62 (Codex `gpt-6.1-sol` at
     `xhigh` 0.07, `gpt-6-luna` at `xhigh` 0.14, two Antigravity models 0.02
-    and 0). A probability is not evidence of correctness.
+    and 0). A probability is not evidence of correctness. It reviewed
+    872acea to 100f5fa read-only and found one medium finding: `mise run`
+    installs the user's missing global tools before the setup task starts.
+    Fixed with `[settings.task] run_auto_install = false` and a test that
+    fails without it (research.md D3).
 - [ ] T012 Merge `develop`, verify, finish into `develop` when the finish slot
   is granted.

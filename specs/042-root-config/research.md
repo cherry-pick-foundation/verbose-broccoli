@@ -53,6 +53,16 @@ stay a separate step: they are installed once into the shared hooks folder
 `uv python install --no-bin` is in the task because the sync would download
 the same interpreter; `--no-bin` adds no program to the user's `PATH`.
 
+`mise run` also installs the missing tools of every config it loads before a
+task starts, the user's global ones included, and `MISE_EXEC_AUTO_INSTALL=false`
+does not stop that (the develop merge review found it with a global `bun`
+that was not installed; a dry run printed `would install` for it before the
+task's first command). `[settings.task] run_auto_install = false` in the
+project file stops it, with no deprecation warning; the older name
+`task_run_auto_install` warns. `scripts/root-config-test.ts` runs
+`mise run --dry-run setup` against a fake global config and fails without the
+setting.
+
 ## D4. Turborepo: what the placeholder and the umbrellas did
 
 - `"workspaces": ["tools/none"]` puts Turborepo in multi-package mode.
