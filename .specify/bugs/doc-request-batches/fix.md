@@ -8,7 +8,8 @@
 ## Summary
 
 `verify_requests` now closes a request at 110 claims or 12,000 claim characters
-(or the cell rule, whichever is first). `prepare` lists changes with `-M
+(or the cell rule, whichever is first) and fails on a claim over 12,000
+characters. `prepare` lists changes with `-M
 --name-status`, so a rename is one rename diff.
 
 ## Changes
@@ -24,6 +25,9 @@
 - `test_verify_bounds_claim_characters_and_count` (106 long claims, 224 short
   claims, oversized claims, with 1 and 12 evidence items).
 - `test_prepare_keeps_a_rename_as_one_small_diff`.
+- `test_prepare_keeps_a_rename_out_of_an_excluded_path`.
+- The first review (Codex) found an oversized claim passing and a rename into an
+  excluded path losing its evidence; both are fixed and covered.
 
 ## Local Verification
 

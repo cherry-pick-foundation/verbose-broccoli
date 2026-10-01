@@ -44,17 +44,19 @@ numbers below come from the reported successes and failures.
 **Preferred**: add two bounds to each `jev_verify` request: at most 110 claims
 (the largest request known to be answered) and at most 12,000 claim characters
 (the four hand-split requests of about 11,500 characters were answered). A
-claim above the character bound gets its own request, so nothing is dropped.
+claim above the character bound stops `prepare` with an error naming it, so
+nothing is dropped or sent too large.
 Evidence is the same in every request of a group, so it is not counted. Replace
 `--no-renames` with `-M` and read `--name-status`, so a renamed file is one
-rename diff.
+rename diff; a rename is left out only when both its paths are excluded.
 
 **Alternatives**: a `--max-claim-chars` option (more surface, no demand);
 splitting evidence per request (changes the judgment).
 
 **Tests**: claim sets of 106 long claims, 224 short claims and one oversized
 claim must give requests within both bounds, in order, with no claim lost; a
-renamed file must give one small rename diff. Both fail at `c0b630b`.
+renamed file must give one small rename diff, also when it moves into an
+excluded path. Both fail at `c0b630b`.
 
 ## Model choice
 

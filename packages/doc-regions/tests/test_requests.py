@@ -74,9 +74,9 @@ def test_verify_bounds_claim_characters_and_count(evidence_count):
     # 106 claims of 470 characters, about the size of docs/architecture.md.
     long = [dict(id=f"long:{i}", text="x" * 470) for i in range(106)]
     short = [dict(id=f"short:{i}", text="y") for i in range(224)]
-    huge = [dict(id="huge:1", text="z" * (MAX_CLAIM_CHARS * 2))]
+    huge = [dict(id="huge:1", text="z" * (MAX_CLAIM_CHARS + 1))]
     evidence = [dict(id=f"e{i}", text="E") for i in range(evidence_count)]
-    for source in (long, short, huge + long[:3], long[:2] + huge + long[:2]):
+    for source in (long, short, long[:2]):
         requests = verify_requests([(source, evidence)])
         valid(requests)
         assert [i for r in requests for i in r["units"]] == [
@@ -88,11 +88,9 @@ def test_verify_bounds_claim_characters_and_count(evidence_count):
         for request in requests:
             claims = request["arguments"]["claims"]
             assert len(claims) <= MAX_CLAIMS
-            assert len(claims) == 1 or claim_chars(request) <= MAX_CLAIM_CHARS
-    assert max(map(claim_chars, verify_requests([(long, evidence)]))) <= (
-        MAX_CLAIM_CHARS
-    )
-    assert len(verify_requests([(huge, evidence)])) == 1
+            assert claim_chars(request) <= MAX_CLAIM_CHARS
+    with pytest.raises(ValueError, match="huge:1"):
+        verify_requests([(long[:2] + huge, evidence)])
 
 
 def test_verify_groups_keep_input_order_and_evidence():
@@ -241,6 +239,33 @@ def test_prepare_keeps_a_rename_as_one_small_diff(repository, unchanged):
     assert "rename from source.txt" in evidence[0]["text"]
     assert "+One more line." in evidence[0]["text"]
     assert len(evidence[0]["text"]) < len(body) // 4
+
+
+def test_prepare_keeps_a_rename_out_of_an_excluded_path(repository, unchanged):
+    (repository / "src").mkdir()
+    (repository / "src" / "impl.py").write_text("print('x')\n")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "add impl")
+    base = git(repository, "rev-parse", "HEAD").strip()
+    (repository / "tests").mkdir()
+    git(repository, "mv", "src/impl.py", "tests/impl.py")
+    config = repository / "excluding.toml"
+    config.write_text(
+        (repository / "config.toml").read_text()
+        + 'evidence_exclude = ["tests/**"]\n'
+    )
+    with unchanged(repository):
+        result = prepare(
+            repository, "excluding.toml", base=base, max_evidence_chars=1000
+        )
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
+    assert [e["id"] for e in verify[0]["arguments"]["evidence"]] == [
+        "tests/impl.py"
+    ]
+    assert (
+        "rename from src/impl.py"
+        in verify[0]["arguments"]["evidence"][0]["text"]
+    )
 
 
 def test_prepare_classifies_only_target_units(repository, unchanged):

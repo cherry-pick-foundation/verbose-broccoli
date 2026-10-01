@@ -52,13 +52,15 @@ MAX_CLAIM_CHARS = 12000
 
 
 def claim_batches(units, claims_per_request):
-    """Split units in order; a batch stays within both claim limits.
-
-    A unit longer than the character limit still gets a batch of its own.
-    """
+    """Split units in order; a batch stays within both claim limits."""
     batch, chars = [], 0
     for unit in units:
         size = len(unit["text"])
+        if size > MAX_CLAIM_CHARS:
+            raise ValueError(
+                f"claim {unit['id']} has {size} characters; the jev_verify "
+                f"claim limit is {MAX_CLAIM_CHARS}"
+            )
         if batch and (
             len(batch) == claims_per_request or chars + size > MAX_CLAIM_CHARS
         ):
@@ -176,9 +178,15 @@ def prepare(root, config_path, *, base, max_evidence_chars):
         index += 1 + paths
     evidence = []
     for document, paths in sorted(changed.items()):
-        if document in documents or any(
-            PurePosixPath(document).full_match(pattern)
-            for pattern in config["evidence_exclude"]
+        # A rename is skipped only when both its paths are, so moving a file
+        # into an excluded path still shows the old file's removal.
+        if all(
+            path in documents
+            or any(
+                PurePosixPath(path).full_match(pattern)
+                for pattern in config["evidence_exclude"]
+            )
+            for path in paths
         ):
             continue
         diff = latin(git(root, "diff", *diff_options, merge_base, "--", *paths))

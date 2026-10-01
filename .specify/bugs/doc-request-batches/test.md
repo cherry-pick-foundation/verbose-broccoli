@@ -14,11 +14,11 @@ No live provider call was made (0 paid calls), so the 110-claim and
 
 ## Checks Performed
 
-| Check                 | Command / Action                                                                | Result | Notes                                                              |
-| --------------------- | ------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------ |
-| New tests, old code   | `pytest packages/doc-regions/tests/test_requests.py` with the old `requests.py` | fail   | 3 failed (claim bounds with 1 and 12 evidence items; rename diff). |
-| New tests, fixed code | `npm run test:doc-regions`                                                      | pass   | 114 passed.                                                        |
-| Full check            | `npm run verify`                                                                | pass   | Summary: 47 of 47 tasks successful, 3 cached; exit 0.              |
+| Check                 | Command / Action                                                                | Result | Notes                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New tests, old code   | `pytest packages/doc-regions/tests/test_requests.py` with the old `requests.py` | fail   | 3 failed (claim bounds with 1 and 12 evidence items; rename diff). The rename-into-excluded-path test was added after the first review and fails against `c0b630b` the same way. |
+| New tests, fixed code | `npm run test:doc-regions`                                                      | pass   | 115 passed.                                                                                                                                                                      |
+| Full check            | `npm run verify`                                                                | pass   | Summary: 47 of 47 tasks successful, 3 cached; exit 0.                                                                                                                            |
 
 ## Residual Risks
 
