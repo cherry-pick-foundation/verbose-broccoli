@@ -85,7 +85,8 @@ function getPonytailInstructions(mode) {
 
   try {
     return 'PONYTAIL MODE ACTIVE — level: ' + effectiveMode + '\n\n' +
-      filterSkillBodyForMode(fs.readFileSync(SKILL_PATH, 'utf8'), effectiveMode);
+      filterSkillBodyForMode(fs.readFileSync(SKILL_PATH, 'utf8'), effectiveMode)
+        .replace('(../../AGENTS.md)', '(' + path.join(__dirname, '..', 'AGENTS.md') + ')');
   } catch (e) {
     return getFallbackInstructions(effectiveMode);
   }

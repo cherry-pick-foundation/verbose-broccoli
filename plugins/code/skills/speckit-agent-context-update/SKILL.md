@@ -7,6 +7,8 @@ metadata:
   source: agent-context:commands/speckit.agent-context.update.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Update Coding Agent Context
 
 Refresh the managed Spec Kit section inside the active coding agent's context/instruction file (e.g. `CLAUDE.md`, `.github/copilot-instructions.md`, `AGENTS.md`).

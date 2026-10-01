@@ -3,6 +3,8 @@ name: session-migrate
 description: Produce a copyable prompt that continues the current work in a new chat, or resume a selected task by checking its saved context against current sources. Use when the user asks to pause, migrate a session to a new chat, or continue identified work; not for transferring work to another running agent or for general questions about memory.
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Session Migrate
 
 Create a handoff prompt for a new chat. Output it directly in chat as a copyable Markdown block. Do not write a document unless the user explicitly asks.

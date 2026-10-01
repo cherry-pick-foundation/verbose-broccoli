@@ -3,6 +3,8 @@ name: backfire
 description: Conventions for the Backfire judgment tools. Use when screening fetched or pasted content, verifying claims against evidence, ranking or classifying items by meaning, comparing passages, extracting fields, reviewing a patch, gating completion, or judging how likely a proposition is — and when choosing between Backfire and rg, curl, or plain reading.
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Backfire
 
 Eleven tools built on TypeSafe's Jev. They return typed judgments and probabilities. The tools advise. You enforce policy.

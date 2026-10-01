@@ -1,5 +1,7 @@
 # Model choice in Verbose Broccoli
 
+Read [the code plugin rules](../../../AGENTS.md) before making a choice.
+
 Every worker, reviewer and orchestrator started through Orca gets its agent
 (Codex, Claude Code, Copilot, OMP, Antigravity, Grok or Cursor), model and
 reasoning effort from a backfire judgment made for that task on a Jev model.
@@ -9,6 +11,12 @@ task's difficulty and every candidate's remaining usage. One rule stays
 fixed: a change's final review comes from a provider other than the
 implementer's (`AGENTS.md`, "Review").
 
+The user's main Opus session and develop Codex orchestrator are fixed roles,
+not dynamic candidates. Only the develop orchestrator is the hand-started
+gpt-6.1-sol max exception. Every other worker, reviewer and orchestrator uses
+native `worker-start`, effort xhigh or below, and never Opus. Apply these
+boundaries before asking Jev to choose.
+
 ## Candidates
 
 A candidate is one agent, model and effort, with its catalog description and
@@ -17,23 +25,20 @@ from a written model list:
 
 - Codex: `~/.codex/models_cache.json`. Each `models[]` entry has `slug`,
   `description`, `supported_reasoning_levels[].effort` and `visibility`.
-- Claude Code: `claude --help` documents `--model` (an alias such as `fable`,
-  `opus` or `sonnet`, or a full model name) and `--effort`.
+- Claude Code: `claude --help` documents `--model` and `--effort`. Use a
+  full model ID for native starts; aliases can fall through to the client's
+  default model and are not eligible launch candidates.
 - OMP: `omp models` lists each provider's models; `~/.omp/agent/models.yml`
   defines the providers.
-- Copilot: the `/model` picker in a Copilot session lists the models the
-  plan allows. `copilot help config` lists every model the CLI knows, and
-  `--model` with one the plan lacks falls back to Auto with only a warning.
-  The Free plan allows only `auto`, which picks the model for each task;
-  `--auto-tier` sets its routing profile (`efficiency`, `balance`,
-  `intelligence` or `fast`). The Free plan's allowance is small (200 AI
-  credits a month, about 50 requests), so Copilot suits small tasks and
-  reviews; give backfire that fact.
+- Copilot: inspect the current session's `/model` picker, plan access and
+  configured model and routing tier. Native `worker-start` rejects
+  `--model` for Copilot and uses its current configuration. Only that
+  observed configuration is a candidate; do not substitute a requested CLI
+  model or tier. Changing saved client settings needs the user's approval.
 - Antigravity: `agy models` lists the models; each id carries a thinking
-  level, for example `gemini-3.8-flash-low`. `agy --effort` takes `low`,
-  `medium`, `high` or `max`. The account uses Google's free tier, whose
-  quota refreshes weekly (Gemini 3.1 Pro and 3.8 Flash); give backfire that
-  fact.
+  level. Intersect its live catalog with native `worker-start` model and
+  effort support. Google's models may be used only through Antigravity,
+  never through Gemini's own API, key or a separate Gemini launch route.
 - Grok: `grok models` lists the models, and `~/.grok/models_cache.json`
   lists each model's efforts. The free tier also caps each model at
   1,000,000 tokens over a rolling 24-hour window, which no tracker shows;
@@ -44,14 +49,24 @@ from a written model list:
   at the first prompt. Its monthly quota has two buckets, "Cursor Models"
   and "Other Models".
 
-Orca's `worker-start` accepts only the efforts in its own model catalog and
-fails with `invalid_argument` otherwise. The user's current list of those gaps
-and the terminal-path steps are in `~/.claude/rules/worker-dispatch.md`. An
-effort outside Orca's catalog is still a candidate; it launches through the
-terminal path. Orca's catalog does not cover Copilot, so Copilot always
-launches through the terminal path. `worker-start --model` takes Antigravity
-and Cursor models but not Grok's, so Grok launches through the terminal path
-too.
+Read the version-matched Orca orchestration guide and
+`orca orchestration worker-start --help` at choice time. Include only
+candidates the native launcher can honor, using supported explicit model
+and effort values where those flags exist. An effort outside Orca's catalog
+is ineligible. Do not create a terminal and attach it with
+`worker-start --terminal` to bypass a launch gap.
+
+Orca can start Claude Code and Codex natively in structured chat; its user
+setting chooses the mode. Antigravity and Copilot also start natively;
+Orca chooses terminal mode because those agents lack chat mode. That mode
+still belongs to `worker-start`.
+
+Grok's model and effort launch route has not been tested. Current
+`worker-start --help` supports explicit model IDs for Claude, Codex,
+Cursor, Antigravity and Muse, with effort requiring a model; Grok is absent.
+Exclude Grok's requested model/effort candidates until current help and
+launch evidence establish a supported native route. Apply the same check
+to OMP instead of assuming its old terminal route is supported.
 
 MiniMax Code (`mcode`) is not a candidate for workers, reviewers or
 orchestrators, because Orca does not supervise it. Use it only in scripted
@@ -83,10 +98,8 @@ Give backfire facts:
 - The other-provider rule for final reviews: name the implementer's provider
   and state the rule in `priorities`.
 
-Never put credentials into the evidence. Never send student data or other
-personal records through this plugin's backfire, and write the evidence in
-English: backfire refuses any request that contains Hangul. Keep the evidence
-minimal.
+Follow [the code plugin's judgment rules](../../../AGENTS.md) for evidence
+privacy and language. Keep the evidence minimal.
 
 ### Usage limits
 
@@ -175,8 +188,9 @@ orca account list --json | jq '.result.rateLimits
 
 Grok reports a `weekly` window and Cursor a `monthly` window, with one window
 per bucket in `buckets` (`usedPercent`, `resetsAt` in milliseconds). Orca
-shows Antigravity's usage only through a Gemini CLI sign-in, which is not
-installed, and `agy` reports none.
+has no verified Antigravity-only usage route here. Keep that limit unknown
+when Antigravity reports none. Do not install or sign in to a separate
+Gemini client to fill the evidence gap.
 
 #### Grok's free cap
 
@@ -202,11 +216,11 @@ missing or rotated, so say so in the evidence. Other models have their own
 cap.
 
 Copilot's and Cursor's trackers show the same kind of window their plans
-cap (monthly), and no refusal that the tracker missed has been seen for
-them. Antigravity's weekly quota is unread (see above), so its candidates
+cap (monthly). A tracker reading does not override an observed limit
+refusal. Antigravity's weekly quota is unread (see above), so its candidates
 keep an unknown limit. When any agent refuses with a limit message, give
 that refusal and its time to backfire and leave the agent out until its
-window clears.
+window clears or fresh successful-use evidence shows it is available.
 
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
@@ -229,26 +243,32 @@ every candidate the same, it cannot narrow; decide in steps. Read the
 [`jev_rerank`](../../backfire/reference/tools.md#jev_rerank) blocks before the
 first call.
 
-The judgment runs on a Jev model only, never on a general model such as
-DeepSeek. Backfire's shipped order tries the `openrouter` profile (Jev), then
+The code plugin's Jev-only rule requires the explicit route below. Backfire's
+shipped order tries the `openrouter` profile (Jev), then
 `hive` (DeepSeek), and the plugin's backfire MCP tools follow that order. So
 call backfire with the snippet below, which starts `serve-mcp --profile
 openrouter`: an empty OpenRouter balance then fails instead of switching.
 Check that each answer names `provider` `openrouter` and a Jev `model`, for
-example `typesafe/jev-1.13`. When the Jev profile cannot answer, ask the user;
-do not fall back.
+example `typesafe/jev-1.13`. Follow the code plugin's escalation rule if that
+profile cannot answer.
 
 ## Acting on the answer
 
-- Pass the chosen agent, model and effort explicitly, never a default:
+- Start every new worker through native `orca orchestration worker-start`.
+  For supported flags, pass the chosen model and effort explicitly:
   `orca orchestration worker-start --agent <agent> --model <model> --effort <effort>`.
-  Use the terminal path when the effort is outside Orca's catalog,
-  `omp --model <provider>/<model-id>` for OMP, `copilot --model auto
-  --auto-tier <tier>` for Copilot (`--reasoning-effort <effort>` with a
-  named model), and `grok -m <model> --reasoning-effort <effort>` for Grok.
-  Cursor takes `--model` only, since its model id carries the effort.
+  Cursor's model ID carries its effort, so use `--model` only. Copilot
+  receives `--agent copilot` without unsupported model/effort flags and
+  must match the configuration observed before the judgment.
 - Compare `launch.requested` with `launch.effective` in the launch result, and
-  check the worker's status line.
+  check the worker's status line. For Claude, also verify the actual assistant
+  `message.model` against the selected full model ID; the launch receipt alone
+  does not prove which model answered. That response field does not prove
+  reasoning effort, so report effort evidence separately.
+- If a native start fails, report the full failure, including failed stage
+  and residual resources. Read the current Orca recovery reference. Do not
+  repeat the unchanged start, use a terminal workaround, or infer that
+  missing observations prove process exit.
 - Create extra worktrees as children of your own
   (`orca worktree create --parent-worktree path:<worktree>`). Keep each
   worktree's Orca board status in step with its Linear issue:

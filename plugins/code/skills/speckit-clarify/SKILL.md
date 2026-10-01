@@ -6,6 +6,8 @@ metadata:
   source: "templates/commands/clarify.md"
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 
 ## User Input
 

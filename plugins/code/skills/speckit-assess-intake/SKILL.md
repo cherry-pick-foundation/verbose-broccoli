@@ -7,6 +7,8 @@ metadata:
   source: assess:commands/speckit.assess.intake.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Intake an Idea
 
 Capture a raw idea — however rough — and normalize it into a single **intake note** at `.specify/assessments/<slug>/intake.md`. This is the front door of the assessment pipeline: it records *what the idea is and where it came from* without judging it yet. Later stages (`$speckit-assess-research`, `$speckit-assess-define`, `$speckit-assess-shape`, `$speckit-assess-decide`) build on it, and only survivors reach `$speckit-specify`.

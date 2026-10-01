@@ -8,6 +8,8 @@ description: >
   ledger", or "what did we mark to do later". One-shot report, changes nothing.
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 Every deliberate ponytail shortcut is marked with a `ponytail:` comment naming
 its ceiling and upgrade path. This collects them into one ledger so a deferral
 can't quietly become permanent.

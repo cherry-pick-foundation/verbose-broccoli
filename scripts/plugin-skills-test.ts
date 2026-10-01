@@ -45,6 +45,7 @@ void test('plugin skills: isolated packages retain resources and executable help
       );
       assertEquals(manifest.name, pluginDirectory);
       assertEquals(manifest.version, '0.1.0');
+      await cp(join(source, 'AGENTS.md'), join(target, 'AGENTS.md'));
       if (pluginDirectory !== 'chat') {
         await cp(join(source, 'mcp.json'), join(target, 'mcp.json'));
         const mcp = JSON.parse(
@@ -80,12 +81,26 @@ void test('plugin skills: isolated packages retain resources and executable help
           recursive: true,
         });
       }
+      for (const skill of await readdir(join(target, 'skills'))) {
+        const skillDirectory = join(target, 'skills', skill);
+        const text = await readFile(join(skillDirectory, 'SKILL.md'), 'utf8');
+        assert(
+          text.includes(
+            `Read [the ${pluginDirectory} plugin rules](../../AGENTS.md) before using this skill.`,
+          ),
+          `Missing plugin rules pointer: ${pluginDirectory}/${skill}`,
+        );
+        assertEquals(
+          await realpath(join(skillDirectory, '../../AGENTS.md')),
+          join(target, 'AGENTS.md'),
+        );
+      }
       if (pluginDirectory !== 'code') continue;
       for (const args of [
         [`${pluginDirectory}/tests/hooks.test.js`],
         [
           '-e',
-          `require('assert').match(require('./${pluginDirectory}/hooks/ponytail-instructions').getPonytailInstructions('full'), /## Intensity/)`,
+          `const assert = require('assert'); const path = require('path'); const text = require('./${pluginDirectory}/hooks/ponytail-instructions').getPonytailInstructions('full'); assert.match(text, /## Intensity/); const rules = path.resolve('${pluginDirectory}/AGENTS.md'); assert(text.includes('(' + rules + ')')); assert(require('fs').readFileSync(rules, 'utf8').includes('# Code plugin'));`,
         ],
       ]) {
         const result = spawnSync(process.execPath, args, {

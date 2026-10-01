@@ -4,5 +4,7 @@
   "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
   "path": "skills/gws-sheets-append",
   "skill_sha256": "20611381c4ee91f4eeb6491185e0780207bfc08fff66d0c1d1c22c2c75c68657",
-  "local_modifications": []
+  "local_modifications": [
+    "Added a relative pointer after the front matter to read the work plugin AGENTS.md before using the skill."
+  ]
 }

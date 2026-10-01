@@ -7,6 +7,8 @@ metadata:
   source: bug:commands/speckit.bug.assess.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Assess Bug
 
 Triage a bug report against the current codebase: understand the symptom, locate the suspected root cause, judge severity, and propose a remediation. The output is a single assessment file at `.specify/bugs/<slug>/assessment.md` that downstream commands (`$speckit-bug-fix`, `$speckit-bug-test`) consume.

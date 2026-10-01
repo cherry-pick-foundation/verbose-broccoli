@@ -6,6 +6,8 @@ metadata:
   source: "templates/commands/checklist.md"
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 
 ## Checklist Purpose: "Unit Tests for English"
 

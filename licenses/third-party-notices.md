@@ -1,5 +1,9 @@
 # Third-party notices
 
+Every packaged skill entrypoint has a local pointer after its front matter to
+read its plugin AGENTS.md. Original revisions, licenses and upstream hashes
+below remain the source provenance; the pointer is a local patch.
+
 ## wondelai/skills — clean-code
 
 - Source:
@@ -64,7 +68,7 @@ with the already approved Ajv dependency. Sources:
   optional. The ten skills
   generated from their commands, `speckit-agent-context-update`,
   `speckit-assess-*`, `speckit-bug-*` and `speckit-git-validate`, are reused
-  unchanged in `plugins/code/skills/`.
+  in `plugins/code/skills/` with the plugin-rule pointer.
 - Copyright GitHub, Inc. [MIT license](github-spec-kit.txt).
 
 ## github/awesome-copilot — git-commit
@@ -72,7 +76,7 @@ with the already approved Ajv dependency. Sources:
 - Source:
   <https://github.com/github/awesome-copilot/tree/e24be77e6f203409cf99ab7d5a67e1540cb386d3/skills/git-commit>
 - Revision: `e24be77e6f203409cf99ab7d5a67e1540cb386d3`.
-- Reused unchanged: `plugins/code/skills/git-commit/SKILL.md`.
+- Reused: `plugins/code/skills/git-commit/SKILL.md`, with the plugin-rule pointer.
 - Copyright GitHub, Inc. [MIT license](github-awesome-copilot.txt).
 
 ## posit-dev/skills — quarto-authoring
@@ -80,8 +84,8 @@ with the already approved Ajv dependency. Sources:
 - Source:
   <https://github.com/posit-dev/skills/tree/6ef6595abcb940756032b0fda6ca8ff3c69aed06/quarto/quarto-authoring>
 - Revision: `6ef6595abcb940756032b0fda6ca8ff3c69aed06`.
-- Reused unchanged: `plugins/work/skills/quarto-authoring/`; provenance in its
-  `UPSTREAM.md`.
+- Reused: `plugins/work/skills/quarto-authoring/`, with the plugin-rule pointer;
+  provenance in its `upstream.md`.
 - Copyright (c) 2025 Posit PBC.
   [MIT license](../plugins/work/skills/quarto-authoring/LICENSE).
 
@@ -91,7 +95,7 @@ with the already approved Ajv dependency. Sources:
   <https://github.com/vyctorbrzezowski/skills/tree/b9937f768d7a85e6e5f3c4b6988a3244828e6a28/skills/session-migrate>
 - Revision: `b9937f768d7a85e6e5f3c4b6988a3244828e6a28`.
 - Reused: `plugins/work/skills/session-migrate/`, with the adaptations recorded
-  in its `UPSTREAM.md`.
+  in its `upstream.md`.
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
 
@@ -152,9 +156,9 @@ with the already approved Ajv dependency. Sources:
   `gws-forms`, `gws-drive-upload` and `gws-calendar-insert`, copied into
   `plugins/work/skills/`. Each copy's `upstream.json` records the original
   `SKILL.md`'s SHA-256.
-- Adaptations: `gws-shared` only. Its "Community & Feedback Etiquette"
-  section is removed, and a note after the title sends the reader to the
-  local `google-workspace` skill first. The other nine are unchanged.
+- Adaptations: all ten have the plugin-rule pointer. In `gws-shared`, the
+  "Community & Feedback Etiquette" section is also removed, and a note after
+  the title sends the reader to the local `google-workspace` skill first.
 - Copyright 2026 Google LLC. Used under the Apache License 2.0, the same
   license as this repository ([LICENSE](../LICENSE)).
 

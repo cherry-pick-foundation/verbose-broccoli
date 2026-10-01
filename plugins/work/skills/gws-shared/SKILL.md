@@ -10,6 +10,8 @@ metadata:
         - gws
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # gws — Shared Reference
 
 > **In this repository:** Read `../google-workspace/SKILL.md` first. Its rules take precedence over this file and the other `gws-*` skills.

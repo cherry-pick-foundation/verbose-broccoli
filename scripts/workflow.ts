@@ -43,16 +43,16 @@ const diffOptions = [
 ];
 
 const actions = {
-  DIRECT: ['Main implements the change.'],
+  DIRECT: ['The task coordinator implements the change.'],
   DELEGATE: [
-    'Use Orca orchestration to assign the listed task to one supervised worker while main prepares integration and review.',
+    'Use Orca orchestration to assign the listed task to one supervised worker while the task coordinator prepares integration and review.',
   ],
   PARALLEL: [
     'Use Orca orchestration to launch one supervised worker per listed task concurrently, within available agent slots.',
   ],
   REVIEW: [
-    "Main coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot; for develop also Antigravity, Grok or Cursor) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.",
-    'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`. Send each printed request to the `jev_` tool it names. Fix target document units marked contradicted or flagged for review, or record why they stand. Report AGENTS.md and constitution findings to the user without changing those files.',
+    "The task coordinator coordinates implementation and resolves the listed review reasons. Before each commit, the implementer or the orchestrator reviews the diff. An independent review by a fresh reviewer from a provider other than the implementer's (Claude Code, Codex or Copilot; for develop also Antigravity, Grok or Cursor) happens when the branch merges into develop (favoring speed) or main (favoring accuracy), not for each change; no extra user approval is needed.",
+    'Before the develop merge review, run `npm run doc-regions:prepare -- --base develop --max-evidence-chars <n>` and `npm run doc-regions:audit`. Send each printed request to the `jev_` tool it names. Fix target document units marked contradicted or flagged for review, or record why they stand. Report root and plugin AGENTS.md and constitution findings to the user without changing those files.',
   ],
 };
 
@@ -64,7 +64,7 @@ export function buildWorkModeInstructions(
     ...actions[mode],
     ...(mode === 'DELEGATE' || mode === 'PARALLEL'
       ? [
-          'Give each worker its objective, exact writable files from tasks, and acceptance checks. Workers must stop and report scope growth; main owns shared files, installs, Git operations, and integration.',
+          'Give each worker its objective, exact writable files from tasks, and acceptance checks. Workers must stop and report scope growth; the task coordinator owns shared files, installs, Git operations, and integration.',
           'Wait for workers and inspect their changes. If Orca orchestration is unavailable, report that limit and execute sequentially.',
         ]
       : []),
@@ -75,7 +75,7 @@ export function buildWorkModeInstructions(
       : []),
     'Rerun npm run workflow -- with the same --base/--plan arguments after scope changes and before completion; follow the new result. The initial result is provisional, and import-graph checks do not provide runtime resource isolation.',
     'Run npm run verify on the combined result and follow its repair instructions until the current code is verified. This runs npm run check and reads the same Turbo run summary.',
-    "Linear, main agent only: before the develop merge review, commit the feature's record and move its Linear issue to In Review; after git flow feature finish, move the issue to Done with one completion comment giving the merge commit and the record location instead of a PR link. Ask the user to do in Linear's UI what Orca cannot (archive, delete, labels, projects, documents, cycles, milestones); add no other Linear integration.",
+    "Before the develop merge review, the feature orchestrator commits the feature's record on its branch. Linear, develop orchestrator only: move its issue to In Review; after git flow feature finish, move the issue to Done with one completion comment giving the merge commit and the record location instead of a PR link. Ask the user to do in Linear's UI what Orca cannot (archive, delete, labels, projects, documents, cycles, milestones); add no other Linear integration.",
     'Difficulty is advisory and independent of execution mode and verification. Use per-task difficulty with --plan; workspace difficulty includes unrelated changes. Null means insufficient evidence, not an extra level. The model-choice skill gives the level to its judgment as evidence, with the task requirements, remaining usage and observed performance; no level picks a model by itself.',
     'The comparison includes staged, unstaged, and untracked changes. Default baseline is HEAD; use --base <commit-or-ref> to compare against another commit.',
   ];

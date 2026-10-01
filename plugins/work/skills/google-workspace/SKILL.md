@@ -3,6 +3,8 @@ name: google-workspace
 description: How gws, the Google Workspace CLI, is set up and may be used in this repository (approved scopes, credential location, safe invocation, confirmation rules). Use before running gws for Google Docs, Sheets, Slides, Forms, Drive or Calendar work in this repository; not for Gmail or for files the user made by hand.
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Google Workspace through gws
 
 Agents reach the user's Google Workspace only through `gws`, the Google
