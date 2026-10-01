@@ -112,6 +112,11 @@ the top of the order only when the client session restarts. In the work
 plugin every profile receives only text with its identifiers replaced; the
 user accepted on 2026-09-30 that it may reach OpenRouter and TypeSafe.
 
+`serve-mcp --profile <name>` keeps only that profile of the order, so a
+session meant for one provider fails with `no_credit` instead of switching;
+an unknown name is `backend_not_configured`. The code plugin's model choice
+starts backfire with `--profile openrouter`, so its judgments stay on Jev.
+
 ## Set the credential
 
 The key file has one `<variable>=<key>` line, must be a regular file owned

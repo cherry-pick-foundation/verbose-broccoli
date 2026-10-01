@@ -1,11 +1,13 @@
 # Model choice in Verbose Broccoli
 
 Every worker, reviewer and orchestrator started through Orca gets its agent
-(Codex, Claude Code, Copilot or OMP), model and reasoning effort from a
-backfire judgment made for that task. There is no default model and no table
-from task difficulty or risk to a model, agent or effort; backfire weighs the
-facts each time. One rule stays fixed: a change's final review comes from a
-provider other than the implementer's (`AGENTS.md`, "Review").
+(Codex, Claude Code, Copilot, OMP, Antigravity, Grok or Cursor), model and
+reasoning effort from a backfire judgment made for that task on a Jev model.
+There is no default model and no table from task difficulty or risk to a
+model, agent or effort; backfire weighs the facts each time, including the
+task's difficulty and every candidate's remaining usage. One rule stays
+fixed: a change's final review comes from a provider other than the
+implementer's (`AGENTS.md`, "Review").
 
 ## Candidates
 
@@ -27,31 +29,54 @@ from a written model list:
   `intelligence` or `fast`). The Free plan's allowance is small (200 AI
   credits a month, about 50 requests), so Copilot suits small tasks and
   reviews; give backfire that fact.
+- Antigravity: `agy models` lists the models; each id carries a thinking
+  level, for example `gemini-3.8-flash-low`. `agy --effort` takes `low`,
+  `medium`, `high` or `max`. The account uses Google's free tier, whose
+  quota refreshes weekly (Gemini 3.1 Pro and 3.8 Flash); give backfire that
+  fact.
+- Grok: `grok models` lists the models, and `~/.grok/models_cache.json`
+  lists each model's efforts. The account draws on a weekly credit pool.
+- Cursor: `cursor-agent models` lists the models; a named model carries its
+  effort in its id. The free plan allows only `auto`, which picks the model
+  for each request; a named model fails at the first prompt. Its monthly
+  quota has two buckets, "Cursor Models" and "Other Models".
 
 Orca's `worker-start` accepts only the efforts in its own model catalog and
 fails with `invalid_argument` otherwise. The user's current list of those gaps
 and the terminal-path steps are in `~/.claude/rules/worker-dispatch.md`. An
 effort outside Orca's catalog is still a candidate; it launches through the
 terminal path. Orca's catalog does not cover Copilot, so Copilot always
-launches through the terminal path.
+launches through the terminal path. `worker-start --model` takes Antigravity
+and Cursor models but not Grok's, so Grok launches through the terminal path
+too.
+
+MiniMax Code (`mcode`) is not a candidate for workers, reviewers or
+orchestrators, because Orca does not supervise it. Use it only in scripted
+runs (`mcode exec`).
 
 A task that reads student data (the work vault's student pages, backfire's
 roster or raw student sources) takes only Claude Code and Codex candidates,
-which run on the user's own Claude and ChatGPT accounts; never Copilot or
-OMP.
+which run on the user's own Claude and ChatGPT accounts; never another
+agent.
 
 ## Evidence
 
 Give backfire facts:
 
 - The task spec: scope, files, kind of work, and whether it is read-only.
+- The task's difficulty on the user's five-level scale: very easy, easy,
+  medium, difficult or very difficult. `npm run workflow` reports a level for
+  observed changes (`difficulty[].level`, policy `coding-difficulty/1`; per
+  task with `--plan`). When no change exists yet or the level is null, give
+  your own estimate and say that it is one.
 - Track records in this repository: the `Reviewed-by` trailers of the develop
   merge review records
   (`git log --grep='record develop merge review' --format='%h %(trailers:key=Reviewed-by,valueonly)'`)
   and the workers named in each feature's `tasks.md`.
 - The user's standing priorities, taken from the user's instructions and
-  `AGENTS.md`, for example review speed before `develop` and accuracy before
-  `main`. Never invent a priority.
+  `AGENTS.md`, for example review speed before `develop`, accuracy before
+  `main`, and using the free quotas of the locally installed agents where a
+  task allows. Never invent a priority.
 - The other-provider rule for final reviews: name the implementer's provider
   and state the rule in `priorities`.
 
@@ -115,14 +140,28 @@ only" in `usage.extraRateWindows`, and Copilot a monthly `Chat` window.
 Balances are `usage.details` rows: OpenRouter's "Credits" → "Remaining" and
 Vercel's "Team credits" → "Available balance".
 
+Read Grok's and Cursor's limits from Orca, which uses each CLI's own
+sign-in. Its output carries account identity, so keep only the rate windows:
+
+```sh
+orca account list --json | jq '.result.rateLimits
+  | {grok: (.grok | {weekly, status, error}),
+     cursor: (.cursor | {monthly, buckets, planType, status, error})}'
+```
+
+Grok reports a `weekly` window and Cursor a `monthly` window, with one window
+per bucket in `buckets` (`usedPercent`, `resetsAt` in milliseconds). Orca
+shows Antigravity's usage only through a Gemini CLI sign-in, which is not
+installed, and `agy` reports none.
+
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
 prepaid balance of zero. Codex's extra-usage credit (`credits.remaining`) at
-zero does not drop Codex while its windows have room. CodexBar does not cover
-Hive, Tetrate or Cloudflare, so candidates there keep an unknown limit; say so
-in the evidence. When a call fails, give the failure as evidence and do not
-guess. Give the remaining limits and their reset times to `jev_decide` as
-evidence.
+zero does not drop Codex while its windows have room. Nothing reads the limits
+of Hive, Tetrate, Cloudflare or Antigravity, so candidates there keep an
+unknown limit; say so in the evidence. When a call fails, give the failure as
+evidence and do not guess. Give the remaining limits and their reset times to
+`jev_decide` as evidence.
 
 ## The call
 
@@ -134,14 +173,24 @@ every candidate the same, it cannot narrow; decide in steps. Read the
 [`jev_rerank`](../../backfire/reference/tools.md#jev_rerank) blocks before the
 first call.
 
+The judgment runs on a Jev model only, never on a general model such as
+DeepSeek. Backfire's shipped order tries the `openrouter` profile (Jev), then
+`hive` (DeepSeek), and the plugin's backfire MCP tools follow that order. So
+call backfire with the snippet below, which starts `serve-mcp --profile
+openrouter`: an empty OpenRouter balance then fails instead of switching.
+Check that each answer names `provider` `openrouter` and a Jev `model`, for
+example `typesafe/jev-1.13`. When the Jev profile cannot answer, ask the user;
+do not fall back.
+
 ## Acting on the answer
 
 - Pass the chosen agent, model and effort explicitly, never a default:
   `orca orchestration worker-start --agent <agent> --model <model> --effort <effort>`.
   Use the terminal path when the effort is outside Orca's catalog,
-  `omp --model <provider>/<model-id>` for OMP, and `copilot --model auto
+  `omp --model <provider>/<model-id>` for OMP, `copilot --model auto
   --auto-tier <tier>` for Copilot (`--reasoning-effort <effort>` with a
-  named model).
+  named model), and `grok -m <model> --reasoning-effort <effort>` for Grok.
+  Cursor takes `--model` only, since its model id carries the effort.
 - Compare `launch.requested` with `launch.effective` in the launch result, and
   check the worker's status line.
 - Create extra worktrees as children of your own
@@ -157,13 +206,13 @@ first call.
 - Report the pick with its probability and confidence, and name it under its
   task in the feature's `tasks.md`.
 
-## Calling backfire without its MCP tools
+## Calling backfire
 
-When the session has no backfire MCP tools, call backfire from the repository
-package, never through a marketplace or client installation. Save this
-snippet in your session scratch space, not in the repository. It starts
-`backfire serve-mcp` over stdio with the command in the code plugin's
-`mcp.json`, through the locked `mcp` client library:
+Call backfire from the repository package, never through a marketplace or
+client installation. Save this snippet in your session scratch space, not in
+the repository. It starts `backfire serve-mcp` over stdio with the command in
+the code plugin's `mcp.json` plus `--profile openrouter`, through the locked
+`mcp` client library:
 
 ```python
 """Call one backfire tool: python backfire_call.py <tool> <args.json>."""
@@ -180,7 +229,7 @@ root = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                       capture_output=True, text=True, check=True).stdout.strip()
 server = StdioServerParameters(command="uv", args=[
     "--directory", f"{root}/packages/backfire", "run", "--frozen", "--offline",
-    "--no-sync", "backfire", "serve-mcp"])
+    "--no-sync", "backfire", "serve-mcp", "--profile", "openrouter"])
 
 
 async def main(tool, path):
