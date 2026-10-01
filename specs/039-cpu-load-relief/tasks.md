@@ -68,7 +68,7 @@
 
 ## Phase 3: Finish
 
-- [ ] T009 Merge `develop`, run `npm run verify`, pass the develop merge
+- [x] T009 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish cpu-load-relief`.
   - Split review: the change against `develop` passes 1,000 lines, about 850
