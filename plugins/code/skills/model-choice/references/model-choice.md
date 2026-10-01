@@ -25,8 +25,9 @@ from a written model list:
 
 - Codex: `~/.codex/models_cache.json`. Each `models[]` entry has `slug`,
   `description`, `supported_reasoning_levels[].effort` and `visibility`.
-- Claude Code: `claude --help` documents `--model` (an alias such as `fable`,
-  `opus` or `sonnet`, or a full model name) and `--effort`.
+- Claude Code: `claude --help` documents `--model` and `--effort`. Use a
+  full model ID for native starts; aliases can fall through to the client's
+  default model and are not eligible launch candidates.
 - OMP: `omp models` lists each provider's models; `~/.omp/agent/models.yml`
   defines the providers.
 - Copilot: inspect the current session's `/model` picker, plan access and
@@ -262,7 +263,10 @@ do not fall back.
   receives `--agent copilot` without unsupported model/effort flags and
   must match the configuration observed before the judgment.
 - Compare `launch.requested` with `launch.effective` in the launch result, and
-  check the worker's status line.
+  check the worker's status line. For Claude, also verify the actual assistant
+  `message.model` against the selected full model ID; the launch receipt alone
+  does not prove which model answered. That response field does not prove
+  reasoning effort, so report effort evidence separately.
 - If a native start fails, report the full failure, including failed stage
   and residual resources. Read the current Orca recovery reference. Do not
   repeat the unchanged start, use a terminal workaround, or infer that

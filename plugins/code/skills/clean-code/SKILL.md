@@ -7,6 +7,8 @@ metadata:
   version: "1.4.0"
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Clean Code Framework
 
 A disciplined approach to writing code that communicates intent, minimizes surprises, and welcomes change. Apply these principles when writing new code, reviewing pull requests, refactoring legacy systems, or advising on code quality.

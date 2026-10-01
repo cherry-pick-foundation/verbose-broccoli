@@ -7,6 +7,8 @@ metadata:
   source: bug:commands/speckit.bug.test.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Test Bug Fix
 
 Validate that the fix recorded by `$speckit-bug-fix` actually resolves the bug described by `$speckit-bug-assess`. The output is a verification report at `.specify/bugs/<slug>/test.md`.

@@ -77,7 +77,10 @@ the dispatch are preserved as supplied evidence, not tests run by this feature.
 ## Consumers
 
 Root rules explicitly point readers to each plugin's rules before plugin work
-or skill use from another directory. Model-choice explicitly reads code rules.
+or skill use from another directory. Each of the 48 packaged skill entrypoints
+also explicitly reads its own plugin's rules by a relative link, so it does not
+depend on encountering this repository's root rules. Model-choice's reference
+retains its explicit code-rule read.
 Claude-only rules preserve AGENTS.md loading by forbidding repository CLAUDE.md
 overrides. Codex project instructions continue to add to root rules. Active
 workflow output, the Linear preset and architecture ownership text use the

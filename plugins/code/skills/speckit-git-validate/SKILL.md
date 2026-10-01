@@ -7,6 +7,8 @@ metadata:
   source: git:commands/speckit.git.validate.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Validate Feature Branch
 
 Validate that the current Git branch follows the expected feature branch naming conventions.

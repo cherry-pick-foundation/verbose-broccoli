@@ -3,6 +3,8 @@ name: wiki-consistency
 description: Keep a verbose-broccoli Wiki instance's pages consistent with their raw evidence and with each other. Use after changing Wiki pages or admitting raw revisions, before committing the instance, and when the user asks for a lint of the Wiki; not for admitting raw documents or for writing pages from them.
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # Wiki Consistency
 
 A Wiki page is made of mechanical regions, which a generator rebuilds from

@@ -5,6 +5,8 @@ license: MIT
 allowed-tools: Bash
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Git Commit with Conventional Commits
 
 ## Overview
