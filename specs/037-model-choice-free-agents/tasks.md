@@ -71,7 +71,9 @@
     files, 511 changed lines, mostly prose) and every candidate's usage on
     2026-10-01 at 15:55 KST: Codex weekly 67% used; Copilot Chat 2.1% (4 of
     200 credits); Grok weekly 0%; Cursor monthly 0% (free plan, `auto`
-    only); Antigravity unknown. Claude Code, the implementer, was left out.
+    only); Antigravity unknown. Claude Code implemented the feature, so the
+    other-provider rule (`AGENTS.md`, "Review") kept it out of the
+    candidates; its usage (session 8%, weekly 47%) was read but not given.
   - Agent: Copilot (probability 0.44, confidence 0.36; Grok 0.22, Codex
     0.20, Cursor 0.08, Antigravity 0.03). Tier: `fast` (probability 0.49,
     confidence 0.40; balance 0.28, efficiency 0.21).
@@ -98,3 +100,12 @@
     seconds. It reviewed b1f6118 and found 2 medium findings: T006 was not
     recorded, and the reference still offered Cursor's named models on the
     free plan. Both are resolved after b1f6118.
+  - Follow-up reviewer: a fresh Copilot `auto` session at the `fast` tier
+    (routed to `gpt-5.6-luna`), chosen with Jev (agent: Copilot, probability
+    0.48, confidence 0.40; tier: `fast`, 0.80, 0.76) for the easy fix range
+    b1f6118 to f23a4e0; it used 1.44 AI credits. When it asked to read the
+    worktrees' parent folder, the request was declined and it was told to
+    stay in the worktree. It found 1 medium finding: T006 said every
+    candidate's usage was given and that Claude Code was left out, which
+    read as missing evidence. T006 now says why Claude Code was not a
+    candidate; the change touches only this file.
