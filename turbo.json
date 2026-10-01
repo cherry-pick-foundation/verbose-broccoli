@@ -8,17 +8,10 @@
     "tools/shellcheck/.venv/lib/**",
     "tools/check-jsonschema/.venv/lib/**",
     "!**/__pycache__/**",
-    "!**/*.dist-info/RECORD",
+    "!**/*.pth",
     "!**/*.dist-info/direct_url.json",
-    "!**/*.dist-info/uv_cache.json",
-    "!.venv/lib/*/site-packages/backfire.pth",
-    "!.venv/lib/*/site-packages/credit_offers.pth",
-    "!.venv/lib/*/site-packages/doc_regions.pth",
-    "!.venv/lib/*/site-packages/jev_ultrafast.pth",
-    "!.venv/lib/*/site-packages/wiki_consistency.pth",
-    ".venv/bin/magika",
-    "tools/ruff/.venv/bin/ruff",
-    "tools/shellcheck/.venv/bin/shellcheck"
+    "!**/*.dist-info/RECORD",
+    "!**/*.dist-info/uv_cache.json"
   ],
   "globalEnv": [
     "VERBOSE_BROCCOLI_TOOLCHAIN",

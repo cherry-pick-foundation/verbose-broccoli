@@ -88,29 +88,35 @@ Facts were read from Turborepo 2.11.5 in this repository
 - **Decision**: Hash the installed files themselves, all ignored by Git.
   `globalDependencies` names every file under `lib/` of `.venv` and of the
   tool environments the cached tasks use (`tools/ruff`, `tools/shellcheck`,
-  `tools/check-jsonschema`), and the native programs in their `bin/`
-  (`magika`, `ruff`, `shellcheck`). `scripts/toolchain.sh` hashes every file
-  of `node_modules` and `packages/wiki-consistency/node_modules`, because
+  `tools/check-jsonschema`). `scripts/toolchain.sh` hashes every file of
+  `node_modules` and `packages/wiki-consistency/node_modules`, because
   Turborepo's globs skip `node_modules` (a `node_modules/**` glob hashed none
-  of its 18,530 files).
+  of its 18,530 files). It also hashes the uv files that embed the
+  worktree's path or name, which Turborepo would see as different in every
+  worktree: each environment's `bin/` (entry-point scripts and native
+  programs such as `ruff`, `shellcheck` and `magika`), its `.pth` files,
+  `direct_url.json` and `pyvenv.cfg`. It reads them with the worktree's path
+  replaced by `.`, an entry point's interpreter line reduced to `python`
+  (uv writes `python` or `python3`, both links to the interpreter that D3
+  resolves) and `pyvenv.cfg`'s `prompt` line removed.
 - **Why**: Tasks run from these environments, not from the lock files (`uv
   run --frozen --offline --no-sync`), so any change inside them, including a
-  hand edit to a package file, must change the hash. The develop merge
-  review found that the first version, which hashed only npm's hidden
-  lockfiles and each distribution's `METADATA`, missed such edits.
-- **Left out, and why**: files that uv writes with the worktree's absolute
-  path or name, which would stop sharing across worktrees: the scripts in
-  `bin/` (their first line names the worktree's interpreter), the workspace
-  packages' editable `.pth` files and their `direct_url.json` and
-  `uv_cache.json`, every `RECORD` (it lists hashes of the `bin/` scripts) and
-  `pyvenv.cfg`. The `.pth` files point at the packages' sources, which are
-  repository files; the `bin/` scripts only import and call a module under
-  `lib/`. Bytecode caches are left out too. `tools/commitizen` and
-  `tools/spec-kit` serve no cached task.
-- **Checked**: every one of the 10,639 hashed environment files is
-  byte-identical to `develop`'s copy, and the fingerprint is the same in both
-  worktrees. Hashing them adds about 0.5 s of CPU to Turborepo's run and
-  0.6 s to the fingerprint.
+  hand edit to a package file or to the `pytest` launcher, must change the
+  hash. The develop merge review found two gaps in turn: the first version
+  hashed only npm's hidden lockfiles and each distribution's `METADATA`, and
+  the second left out the `bin/` scripts and `.pth` files.
+- **Left out, and why**: every `RECORD` (install metadata listing hashes of
+  the `bin/` scripts, read only by uninstallers) and uv's `uv_cache.json`
+  (timestamps for its own freshness check, not read by `uv run --no-sync`);
+  the shell activation scripts (`activate*`, `deactivate*`), which hold the
+  worktree's name and which no task runs; and bytecode caches, which Python
+  checks against their sources. `tools/commitizen` and `tools/spec-kit`
+  serve no cached task.
+- **Checked**: every one of the 10,632 environment files that Turborepo
+  hashes is byte-identical to `develop`'s copy, and the fingerprint is the
+  same in both worktrees. The other two worktrees' fingerprints differ, as
+  their environments do. Hashing adds about 0.5 s of CPU to Turborepo's run
+  and 0.8 s to the fingerprint.
 - **Other generated files**: tracked generated files (for example
   `packages/backfire/src/backfire_education/regions.json`) are repository
   files. `__pycache__` folders are ignored and Python checks them against
@@ -200,7 +206,8 @@ installed records, and compares `--dry=json` hashes through the real
 - Turborepo's own task logs, at the root or in a package's `.turbo/`, change
   no hash;
 - an edit to a package file in either npm tree, in `.venv` or in a tool
-  environment, or to a tool's native program, changes every cached task;
+  environment, to a `.pth` file, to an entry-point script or to a tool's
+  native program changes every cached task;
 - a different `git --version`, a different global Git configuration and a
   set `UV_PYTHON` each change every cached task.
 

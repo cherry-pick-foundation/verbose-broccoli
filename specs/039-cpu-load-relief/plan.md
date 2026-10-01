@@ -16,7 +16,7 @@ install decision.
 | --- | --- | --- |
 | Cache results, share them across worktrees | Turborepo 2.11.5 local cache (default shared worktree cache) | none |
 | Hash repository files and workspace dependencies | Turborepo's default inputs and Python workspace support | `inputs` for `doc-regions#test` |
-| Hash installed environments | `globalDependencies` over the uv environments' files; Turborepo's globs skip `node_modules` | config lines; the npm trees' hash in `scripts/toolchain.sh` |
+| Hash installed environments | `globalDependencies` over the uv environments' files; Turborepo's globs skip `node_modules` | config lines; in `scripts/toolchain.sh`, the npm trees' hash and the uv files that embed the worktree's path |
 | Hash programs outside the repository | `globalEnv` | `scripts/toolchain.sh` (one hash over version commands) |
 | Prove invalidation | `turbo run --dry=json`, Node's test runner | `scripts/turbo-cache-test.ts` |
 | Keep batch work off the performance cores | `systemd-run --user --scope`, `nice`, `taskset` (develop session's rule) | none |

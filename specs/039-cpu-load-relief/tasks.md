@@ -93,3 +93,13 @@
     hashing the installed files themselves (research.md D4), with the
     installed-environment test extended to package files and a native
     program; that test fails with the previous declarations.
+  - Follow-up reviewer: a second fresh Copilot `auto` session at the
+    `balance` tier (routed to `gpt-6-luna`), chosen with Jev (0.71,
+    confidence 0.65), reviewed 1eef330 to 74e18aa: 1 medium finding, 0 high,
+    0 low. The entry-point scripts in the uv environments' `bin/`, such as
+    the `pytest` launcher, were left out of the hash. Fixed by hashing them,
+    with `.pth` files, `direct_url.json` and `pyvenv.cfg`, in
+    `scripts/toolchain.sh` with the worktree's path replaced (research.md
+    D4); the extended test fails with the previous script. The reviewer
+    asked twice for access outside the worktree: to search the parent folder
+    (declined) and to resolve the interpreters' links (allowed once).

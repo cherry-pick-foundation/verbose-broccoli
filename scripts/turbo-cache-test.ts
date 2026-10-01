@@ -43,12 +43,15 @@ function run(
 
 // The working tree's tracked and unignored files, plus stand-ins for the
 // ignored installed environments: a package file in each npm tree and each
-// kind of uv environment, and a native program in a tool environment.
+// kind of uv environment, a `.pth` file, an entry-point script, and a native
+// program in a tool environment.
 const installed = [
   'node_modules/x/index.js',
   'packages/wiki-consistency/node_modules/x/index.js',
   '.venv/lib/python3.14/site-packages/x/__init__.py',
   'tools/ruff/.venv/lib/python3.14/site-packages/x/__init__.py',
+  '.venv/lib/python3.14/site-packages/x.pth',
+  '.venv/bin/pytest',
   'tools/ruff/.venv/bin/ruff',
 ];
 
