@@ -132,6 +132,30 @@ the path follows `XDG_CONFIG_HOME`. An operator profile without
 `credential_file` still reads `<profile>.env` beside the operator file. Keep
 keys out of `config.toml`, plugin files and client environment entries.
 
+### Refresh the key files from Bitwarden Secrets Manager
+
+The key files can be rewritten from a Bitwarden Secrets Manager project, so
+one place holds the keys ([spec](../specs/041-provider-secrets/spec.md)).
+`npm run secrets:refresh` runs `bws` (pinned by mise, reviewed in
+[`security/bws-2.1.0.md`](../specs/041-provider-secrets/security/bws-2.1.0.md))
+as a machine account and rewrites each key file listed in
+`$XDG_CONFIG_HOME/verbose-broccoli/secrets.json`:
+
+```json
+{"project": "<project id>", "files": {"hive.env": ["HIVE_API_KEY"]}}
+```
+
+A secret's name in the project is the variable in the file, and the list's
+order is the order of the file's lines. The machine account's access token is
+the line `BWS_ACCESS_TOKEN=...` in `providers/bitwarden.env` (a regular file,
+mode `0600`, yours), which the command refuses to read otherwise. The command
+passes the token to `bws` in the environment, never as an argument, writes each
+file with mode `0600` through a temporary file and a rename, and prints file
+names only. It changes nothing when a mapped secret is missing, empty,
+duplicated or holds a line break, or when `bws` fails. Agents may run it at any
+time; backfire reads the new key when it first uses a profile. Do not run `bws secret
+list` or `bws secret get` in a terminal: they print values.
+
 ## Work plugin
 
 `serve-mcp --education` uses the shared order and replaces identifiers in
