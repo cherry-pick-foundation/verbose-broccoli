@@ -252,6 +252,15 @@ messages. Run files stay in the run folders and records in the work vault.
 - [ ] T013 Measure the change against `develop`; move CHE-68 to In Review
   and the board status to `in-review`; after CHE-67 merges, merge `develop`
   and run `npm run verify`.
+  - 2026-10-01: develop `80a8e6e` (CHE-67 merged) is merged (4f97f75). Size
+    against the merge base: 1,669 lines added and 733 deleted, about 1,840
+    by the repository's count (3 whole files deleted count as one line
+    each). Git does not pair the renamed procedure and test file with
+    their old names, so about 500 added lines are moved text; 609 are
+    these Spec Kit records and 53 a regenerated docs table. Not split: the
+    rename, tier families, the map step and `--unchecked` are one skill's
+    change, and the 3-line check fix with its test is what lets this
+    feature's records pass the vault check.
 - [ ] T014 Develop merge review by a fresh reviewer from another provider;
   resolve findings; review-record commit; ask the develop session for the
   finish slot; check `develop` has not moved; `git flow feature finish`;
