@@ -133,11 +133,11 @@ def vault(tmp_path, monkeypatch):
 
 @pytest.fixture
 def backfire(monkeypatch):
-    stub = SimpleNamespace(sessions=0, calls=[], reply=lambda _: REPLY)
+    stub = SimpleNamespace(modes=[], calls=[], reply=lambda _: REPLY)
 
     @asynccontextmanager
-    async def server():
-        stub.sessions += 1
+    async def server(*mode):
+        stub.modes.append(mode)
         yield None
 
     async def verify(_, arguments):
@@ -161,7 +161,7 @@ def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
     assert _run(f"check --inventory {INVENTORY}") == 1  # One result is unknown.
     report = json.loads(capsys.readouterr().out)
     assert (report["calls"], report["tokens"], report["invalid"]) == (1, 5, 1)
-    assert backfire.sessions == 1
+    assert backfire.modes == [("--education",)]
     (call,) = backfire.calls
     assert (
         call["claims"][0]
@@ -391,6 +391,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
     }
     assert _run(mapping) == 0
     (call,) = backfire.calls
+    assert backfire.modes == [()]
     assert call["claims"][0] == (
         "Synthetic reference, section Unit 1, explains Keep / Group: "
         "Shows support."

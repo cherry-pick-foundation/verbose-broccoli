@@ -254,15 +254,17 @@ reference that explain it. Build it in its own run folder:
    and an empty list when no section explains the item.
 4. `map --inventory inventories/<inventory>.md --reference
    references/<reference>.md` first refuses rows whose key is not in the
-   inventory, that name more than three sections, a label not in the index
-   or with Hangul, lines outside the text, or a section over 20,000
-   characters, as `mapping <n>: <reason>` with exit code 1. Then it sends
-   each row with sections as one `jev_verify` call: one claim per section,
-   `<reference title>, section <label>, explains <item label>: <statement>`,
-   and one evidence text with the item's ID, label, statement and examples,
-   then each section's lines, leaving out every line with Hangul. Results,
-   resumption and the printed counts work as in `check`, with `section` in
-   place of `item`.
+   inventory, that name more than three sections, a label not in the index or
+   with Hangul, lines outside the text, or a section over 20,000 characters, as
+   `mapping <n>: <reason>` with exit code 1. Then it sends each row with
+   sections as one `jev_verify` call: one claim per section, `<reference
+   title>, section <label>, explains <item label>: <statement>`, and one
+   evidence text with the item's ID, label, statement and examples, then each
+   section's lines, leaving out every line with Hangul. It uses backfire
+   without education mode, because a reference holds no student data; education
+   mode refused a practice book's example that looked like an identifier.
+   Results, resumption and the printed counts work as in `check`, with
+   `section` in place of `item`.
 5. `record` with `--reference references/<reference>.md` and `--name
    <inventory>--<reference>` writes the mapping record instead of a profile.
 

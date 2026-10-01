@@ -143,11 +143,11 @@ def _extract_command(args, root, run):
 
 
 @asynccontextmanager
-async def _backfire():
+async def _backfire(*mode):
     server = StdioServerParameters(
         command="uv",
         args=["--directory", str(BACKFIRE), "run", "--frozen", "--offline"]
-        + ["--no-sync", "backfire", "serve-mcp", "--education"],
+        + ["--no-sync", "backfire", "serve-mcp", *mode],
     )
     async with stdio_client(server) as (read, write):
         async with ClientSession(read, write) as session:
@@ -203,8 +203,8 @@ def _map_refusals(rows, entries, lines, index):
             yield f"mapping {n}: section is over {SECTION} characters"
 
 
-async def _send(run, todo, field, done):
-    async with _backfire() as session:
+async def _send(run, todo, field, done, mode):
+    async with _backfire(*mode) as session:
         for n, names, claims, evidence in todo:
             started = time.monotonic()
             arguments = {"claims": claims, "evidence": evidence}
@@ -237,7 +237,7 @@ async def _send(run, todo, field, done):
             done.append(check)
 
 
-def _checks(run, rows, prepare, field):
+def _checks(run, rows, prepare, field, *mode):
     """Check rows not yet in checks.jsonl, print counts, return exit code."""
     path = run / "checks.jsonl"
     lines = path.read_bytes().split(b"\n") if path.exists() else [b""]
@@ -247,7 +247,7 @@ def _checks(run, rows, prepare, field):
     todo = [(n, *prepare(r)) for n, r in enumerate(rows, 1) if n > len(done)]
     if todo:
         try:
-            asyncio.run(_send(run, todo, field, done))
+            asyncio.run(_send(run, todo, field, done, mode))
         except Exception as error:  # noqa: BLE001 - any backfire failure.
             while getattr(error, "exceptions", None):  # A task group.
                 error = error.exceptions[0]
@@ -294,7 +294,7 @@ def _check_command(args, root, run):
         claims = [claim.format(text=text, **e) for e in found]
         return [e["id"] for e in found], claims, evidence
 
-    return _checks(run, proposals, prepare, "item")
+    return _checks(run, proposals, prepare, "item", "--education")
 
 
 def _map_command(args, root, run):
@@ -319,6 +319,7 @@ def _map_command(args, root, run):
             )
         return row["sections"], claims, "\n\n".join(texts)
 
+    # A reference holds no student data, so education mode is not needed.
     return _checks(run, rows, prepare, "section")
 
 
