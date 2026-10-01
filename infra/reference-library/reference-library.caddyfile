@@ -1,0 +1,14 @@
+{
+	admin off
+	persist_config off
+	auto_https off
+}
+
+# Zotero's web server accepts only a Host header with its own port, so the
+# proxy in front of it cannot pass the socket's port through.
+http://127.0.0.1:23191 {
+	bind 127.0.0.1
+	reverse_proxy 127.0.0.1:23119 {
+		header_up Host {upstream_hostport}
+	}
+}

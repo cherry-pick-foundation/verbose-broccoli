@@ -1,5 +1,6 @@
 [tools]
 "aqua:astral-sh/uv" = "0.11.32"
+"aqua:caddyserver/caddy" = "2.11.4"
 "aqua:loeffel-io/ls-lint" = "2.3.1"
 "aqua:lycheeverse/lychee" = "0.24.2"
 "aqua:vale-cli/vale" = "3.23.0"
@@ -72,6 +73,13 @@ description = "The wiki-consistency npm dependency tree matches its lock"
 run = "npm ls --all"
 dir = "packages/wiki-consistency"
 hint = "Run `npm run wiki-consistency:install`."
+timeout = "30s"
+
+[doctor.checks.npm-work-plugin]
+description = "The work plugin's npm dependency tree matches its lock"
+run = "npm ls --all"
+dir = "plugins/work"
+hint = "Run `npm ci --ignore-scripts --no-audit --no-fund --prefix plugins/work`."
 timeout = "30s"
 
 [doctor.checks.git-flow]
