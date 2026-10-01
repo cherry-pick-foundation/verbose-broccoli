@@ -31,10 +31,10 @@ work vault, the phone findings fall from 106 to 0.
 - Known limits from the latest review, not fixed because Vale's regex sees only
   the line, not link context: a first host group over 20 digits, a Slack host
   written inside another link's path, and a `ts=<10 digits>.<6 digits>` shape in
-  plain text or a code span are not reported. A scheme-less `//w…-iwc….slack.…`
+  plain text or a code span are not reported, and a scheme-less host without `//` (a bare relative link) is reported. A scheme-less `//w…-iwc….slack.…`
   host and a lowercase `%2e` timestamp are now skipped (cases `[h]` and `[i]` in
   the test).
 
 ## Recommendation
 
-Close the bug: `npm run verify` passed (exit 0) at `e1ce91b`, which holds the rule and test (later commits change records only).
+Close the bug: `npm run verify` passed (exit 0) at `fc8b21e`, which holds the final rule and test (later commits change records only).

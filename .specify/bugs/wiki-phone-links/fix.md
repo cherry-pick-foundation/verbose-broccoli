@@ -21,8 +21,9 @@ numbers in text, link paths and code still match.
 
 ## Tests Added or Updated
 
-- The new test writes four Slack links to skip (both host digit groups, a
-  `thread_ts` value, a `latest` value with `%2E`) and six cases that must be
+- The new test writes six Slack links to skip (both host digit groups, a
+  scheme-less host, a `thread_ts` value, a `latest` value with `%2E`, a `ts`
+  value with `%2e`) and six cases that must be
   reported: plain text, a number glued to a letter, `thread_ts` and `ts` values
   that are not timestamps, code, and a `/w010-…` link path. With `phone.yml` from `3d4613f` it fails.
 
