@@ -126,12 +126,31 @@ Waits for T005. One block per approved batch.
     the copy script and again by `sha256sum -c`; all 324 originals still
     exist. `admit`: 324 admitted, 0 already admitted, 0 refused, 0 failed.
     `verify`: 771 revisions, 0 invalid. Vault commit `50312ca`.
-- [ ] T007 [US3] Per material: `inventory`, `extract`, one native Orca worker
+- [ ] T007 [US3] (batch 1 wave 1 done, wave 2 next) Per material: `inventory`, `extract`, one native Orca worker
   (Codex `gpt-6.1-sol`, `xhigh`), `record --unchecked`; counts per material
   in this file.
-- [ ] T008 [US3] `wiki-consistency` `update` and `check`, the log entry, a
+- [ ] T008 [US3] (wave 1 done) `wiki-consistency` `update` and `check`, the log entry, a
   vault commit per batch, and the run folders deleted after their record
   commits.
+
+  - Batch 1, wave 1 (first 12 of 46 volumes), 2026-10-02: 12 profiles recorded
+    unchecked, 7,563 sentences, 189,998 items, 0 dropped, 0 unclear
+    (432, 565, 665, 357, 404, 888, 1,057, 814, 562, 769, 486 and 564
+    sentences per volume). Proposers: Codex `gpt-6.1-sol` at `xhigh`, native
+    Orca workers; 6 of the 12 were restarted from their partial files after
+    Orca closed (the old sessions ended). Local checks of each proposer: 0
+    failures; `record` refused no row. Wiki check on the changed pages: 0
+    problems (108 problems on earlier pages remain, CHE-58); judgment step: 0
+    requests, 12 units unverifiable because they describe the records;
+    semantic search was not ready (keyword search ran). Vault commits
+    `50312ca` (admission) and `730b168` (profiles); the 12 run folders were
+    deleted.
+  - Codex use: the weekly window went from 68% to 73% used (CodexBar, read
+    2026-10-02 05:03 KST), with every Codex session counted, so at most 5
+    points for this wave, about 0.66 points per 1,000 sentences. The rest of
+    batch 1 (34 volumes, about 17,000 sentences at the survey's letter
+    counts) would take about 11 points, the three exam batches (about 70,000
+    sentences) about 46 more. The window resets 2026-10-03T17:28:48Z.
 
 ---
 
