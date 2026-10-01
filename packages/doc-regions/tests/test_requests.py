@@ -93,6 +93,7 @@ def test_verify_bounds_claim_characters_and_count(evidence_count):
             # written out so changing the constants cannot hide a regression.
             assert claim_chars(request) < 45800
             assert len(claims) < 224
+    assert (MAX_CLAIMS, MAX_CLAIM_CHARS) == (110, 12000)
     with pytest.raises(ValueError, match="huge:1"):
         verify_requests([(long[:2] + huge, evidence)])
 
