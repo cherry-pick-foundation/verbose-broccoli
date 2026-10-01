@@ -25,7 +25,8 @@ work vault, the phone findings fall from 106 to 0.
 
 - Not run: the full `wiki-consistency check` (link checks) on the work vault; its
   62 broken source links are a content problem, not part of this bug.
-- A phone right after a lone `w` or after `ts=` is no longer reported.
+- A phone right after `://w` or a Slack timestamp query key is no longer
+  reported.
 
 ## Recommendation
 

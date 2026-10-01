@@ -7,23 +7,24 @@
 
 ## Summary
 
-`phone.yml`'s pattern now skips a number right after a lone `w` (a Slack link
-host) or after `ts=` (a Slack `thread_ts` value). Other phone numbers in text,
-link paths and code still match, including one glued to a letter.
+`phone.yml`'s pattern now skips a number right after `://w` (a Slack link
+host) or after a Slack timestamp query key (`?thread_ts=`, `&ts=`, `latest=`,
+`oldest=`). Other phone numbers in text, link paths and code still match,
+including one glued to a letter, to `w` or to `ts=` outside a link.
 
 ## Changes
 
 | File                                                   | Change     | Notes                                                            |
 | ------------------------------------------------------ | ---------- | ---------------------------------------------------------------- |
-| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Lookbehinds `(?<!\bw)` and `(?<!ts=)` added.                     |
+| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Lookbehinds `(?<!://w)` and a query-key lookbehind added.        |
 | `packages/wiki-consistency/tests/test_rules.py`        | added test | `test_phone_rule_skips_digits_in_a_link_host_but_not_page_text`. |
 
 ## Tests Added or Updated
 
 - The new test writes a Slack-style link (host `w1012345678-iwc1…`, query
-  `thread_ts=1712345678.123456`), a `thread_ts=1712345678%2E123456` link, and the
-  texts `Call 010-1234-5678.` and `Call010-1234-5678.`; it expects two phone
-  findings, one per text line. With `phone.yml` from `3d4613f` it fails.
+  `thread_ts=1712345678.123456`), a `latest=1712345678%2E123456` link, and phone
+  numbers in plain text, glued to a letter, after `ts=` outside a link, in code
+  and in a `/w010-…` link path; it expects five phone findings, one per such line. With `phone.yml` from `3d4613f` it fails.
 
 ## Local Verification
 
