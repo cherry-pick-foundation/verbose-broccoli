@@ -501,7 +501,7 @@ void test('workflow: every mode prints the Linear completion order', () => {
     assert(
       lines.some(
         line =>
-          line.includes('main agent only') &&
+          line.includes('develop orchestrator only') &&
           line.includes('In Review') &&
           line.indexOf('In Review') < line.indexOf('Done') &&
           line.includes('merge commit') &&

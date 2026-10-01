@@ -682,7 +682,7 @@ Linear extension is used. The design and its reasons are in
   detailed task record. There are no sub-issues. Each issue has one type label
   (Feature, Bug or Improvement) and a plugin label (`code`, `work`, `chat`) for
   each plugin the work concerns; repository-wide tooling has none.
-- Only the main agent writes to Linear, after searching for similar issues,
+- Only the develop orchestrator writes to Linear, after searching for similar issues,
   including archived ones (`orca linear list-issues --team CHE --query <words>
   --include-archived`). Workers report out-of-scope bugs to it through Orca
   messages. Linear is an external service, so issues and comments never hold
@@ -693,7 +693,7 @@ Linear extension is used. The design and its reasons are in
   The Spec Kit preset `linear-issue` in `.specify/presets/` appends that line,
   with instructions, to the spec template. Commits and branch names carry no
   issue ID; a bug's `assessment.md` keeps the issue URL.
-- Merging into `develop` completes the issue. The main agent commits the
+- Merging into `develop` completes the issue. The develop orchestrator commits the
   record on the feature branch, moves the issue to In Review, runs the merge
   review and finish described under [Git flow](#git-flow--2026-09-27), then
   moves the issue to Done with one completion comment giving the merge commit
@@ -704,7 +704,7 @@ Linear extension is used. The design and its reasons are in
   issues toward its limit of 250, and Linear archives closed issues one month
   after they close (Team Settings > Issue statuses & automations); archived
   issues stay readable with `--include-archived`. Nothing monitors the count:
-  a failed creation at the limit is the signal, and the main agent reports it
+  a failed creation at the limit is the signal, and the develop orchestrator reports it
   to the user.
 - Orca cannot archive or delete issues or create labels, projects, documents,
   cycles or milestones. Label, project and team-setting changes happen in
