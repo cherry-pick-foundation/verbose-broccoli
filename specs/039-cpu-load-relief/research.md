@@ -22,7 +22,7 @@ Facts were read from Turborepo 2.11.5 in this repository
 - Turborepo hashes no folder, so an empty folder is invisible to it.
 - Turborepo caches only successful tasks. The run summary counts replayed
   tasks in `execution.cached` and executed ones in `execution.success` (a
-  warm run: 31 cached and 7 successful of 38 attempted, `failed` 0);
+  warm run: 30 cached and 8 successful of 38 attempted, `failed` 0);
   `npm run verify` still reads `execution.failed` and `execution.exitCode`
   from the same run's summary (`scripts/workflow-verify.ts`).
 - With caching on, Turborepo writes each task's log next to its package:
@@ -244,7 +244,7 @@ run.
 in `systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7`
 (the four efficiency cores), timed with `/usr/bin/time`; CPU is user plus
 system time of the whole process tree. Before: 1eef330's configuration and
-files with this feature's Markdown records added. After: d7387f7, with
+files with this feature's Markdown records added. After: 1dfd2fb, with
 `TURBO_CACHE_DIR` set to the worktree's own `.turbo/cache` (D7), emptied
 before the cold run.
 
@@ -252,17 +252,18 @@ before the cold run.
 | --- | ---: | ---: | ---: | --- |
 | Before, a full run | 230.6 s | 541.5 s | 0 of 37 | VERIFIED |
 | Before, a repeat on the unchanged tree | 228.7 s | 545.1 s | 0 of 37 | VERIFIED |
-| After, cold cache | 241.8 s | 568.1 s | 0 of 38 | VERIFIED |
-| After, a repeat on the unchanged tree (warm) | 4.2 s | 8.3 s | 31 of 38 | VERIFIED |
+| After, cold cache | 270.8 s | 583.7 s | 0 of 38 | VERIFIED |
+| After, a repeat on the unchanged tree (warm) | 5.2 s | 10.0 s | 30 of 38 | VERIFIED |
 | After a commit that changed only Markdown records (at 4da153c) | 49.6 s | 186.4 s | 5 of 38 | VERIFIED |
 
-- A repeat verify on an unchanged tree now uses about 1.5% of the CPU time
-  it used before (8.3 s against 545.1 s). Its 7 executed tasks (D5's five
-  and the two grouping tasks) took at most 1.1 s each.
-- A cold run costs about 23 s more CPU than before (4%); the new tests take
-  about 11 s, and the fingerprint and environment hashing about 1.3 s per
-  Turborepo run. Cold runs at earlier commits measured 643.3 s (65d0ac9) and
-  557.5 s (75c60d1); the spread was not analyzed.
+- A repeat verify on an unchanged tree now uses about 2% of the CPU time it
+  used before (10.0 s against 545.1 s). Its 8 executed tasks are D5's six
+  and the two grouping tasks.
+- A cold run costs more CPU than before: 583.7 s here, against 545.1 s.
+  The new tests take about 11 s, and the fingerprint and environment hashing
+  about 1.3 s per Turborepo run. Cold runs at earlier commits of this feature
+  measured 643.3 s (65d0ac9), 557.5 s (75c60d1) and 568.1 s (d7387f7); the
+  spread was not analyzed.
 - After an edit to files that only root tasks read, the five Python package
   tests replay and the root tasks rerun: in the last row, about a third of
   the CPU of a full run. Other worktrees replay the package tests whose

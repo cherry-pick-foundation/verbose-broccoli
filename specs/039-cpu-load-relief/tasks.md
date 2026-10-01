@@ -35,10 +35,10 @@
   tree before (at 1eef330's configuration) and after, on the efficiency
   cores, one verify at a time (SC-001, FR-005).
   - By main. A repeat verify on an unchanged tree: 228.7 s wall and 545.1 s
-    CPU before; 4.2 s wall and 8.3 s CPU after (at d7387f7), with 31 of 38
+    CPU before; 5.2 s wall and 10.0 s CPU after (at 1dfd2fb), with 30 of 38
     tasks replayed and VERIFIED read from the same run's summary
-    (research.md D9). Of 1eef330's 43 tasks, 30 are cached; with the new
-    test, 31 of 44.
+    (research.md D9). Of 1eef330's 43 tasks, 29 are cached; with the new
+    test, 30 of 44.
 - [x] T006 Update the command reference and the architecture note for the
   cache.
   - By main, in 592012b (`npm run doc-regions:update` for the reference).
