@@ -146,3 +146,63 @@ Waits for T005. One block per approved batch.
 
 Unperformed at the time of writing: every Phase 3 to 5 task; no original has
 been copied or admitted.
+
+---
+
+## Handoff (2026-10-02, pause before Orca closes)
+
+Written for a restart of this orchestrator from the files. Nothing below is
+committed except what `git log` shows; this section itself is uncommitted.
+
+- **Orchestrator**: Claude Code, Sonnet 5.5, high effort, session ID
+  `7aaee383-1ce0-4932-9e82-056a0e824bbf`; branch
+  `feature/grammatical-competence-batches` (its own folder); its Orca
+  dispatch `ctx_a181488bb17e` under develop's run `run_8b222073b123`; its own
+  child run for proposers `run_af91f417141f`.
+- **Step**: batch 1 (2015 textbooks), first profiling wave of 12 volumes, in
+  the order of the first 12 rows of the private list
+  `lists-2026-10-02/textbooks-2015.tsv` (called v1 to v12 here; run folder =
+  the row's material ID). Copy, admission and raw `verify` are done (T006).
+- **Recorded unchecked in the work vault, not yet Wiki-checked or committed
+  there** (profile page and data file each, vault Git shows them untracked):
+  v1 432 sentences, v2 565, v3 665, v4 357, v6 888. Helper scripts (rec.py, finish.sh, brief.txt, copyfiles.py, prep.py) are in
+  `/tmp/claude-1000/che71/`, not in the repository, and may be gone after a reboot:
+  `record --inventory inventories/english-grammar-profile.md --name <ID>
+  --title <title> --summary <line> --proposer 'Codex, gpt-6.1-sol, xhigh'
+  --unchecked`, run from the skill folder with `--run <ID>`.
+- **Proposers in progress** (Codex `gpt-6.1-sol`, `xhigh`, native Orca
+  workers, one per volume; partial `proposals.jsonl` in each run folder under
+  `~/.local/state/verbose-broccoli/grammatical-competence/`): v5 403 rows
+  (dispatch `ctx_651cbe10a1f3`), v7 no file yet (`ctx_4fe7d152ad9a`), v8 813
+  rows (`ctx_41f487f24681`), v9 no file yet (`ctx_394ef8707874`), v10 768 rows
+  (`ctx_8d8e0c189bb1`), v11 486 rows (`ctx_9f565081fb5b`). A proposer is an
+  agent-chat session that ends when Orca closes; restart it natively with the
+  same brief, and tell it to keep and re-read its partial file (a worker can
+  rewrite the whole file, so check that rows stay in text order and every
+  sentence is covered before `record`).
+- **Not started**: v12. Run folders for v1 to v12 already hold
+  `inventory.tsv` and `text/` from `inventory` and `extract`.
+- **Brief used for every proposer**: the procedure's "Proposals" section and
+  tier rule, the run folder's `inventory.tsv` and `text/*.txt`, output
+  `proposals.jsonl`, own checks (JSON, keys, text in extraction, no Hangul),
+  then `worker_done` with counts only.
+- **Next steps**: restart v5 and v7 to v11 and start v12 (six at a time,
+  `worker-start --agent codex --model gpt-6.1-sol --effort xhigh --worktree
+  current`); on each `worker_done` run `record --unchecked` for that volume
+  and release the worker; then `wiki-consistency` `update` and `check`, the
+  vault `wiki/log.md` entry, one vault commit; measure Codex weekly use before
+  and after the wave and report it; ask develop whether to continue with the
+  other 34 volumes; the exam batches need their own list approvals. Then T009
+  and T010.
+- **Open questions**: none for the user; the exam batches' lists and per-paper
+  layout await approval after batch 1.
+- **Codex use**: no usage-limit error so far.
+- **2026-10-02 after Orca restarted** (Resume all received): the six Codex
+  proposers had exited; each was fenced (`worker-stop`, then `worker-abandon`
+  after Orca showed it exited) and released. Six replacement workers (Codex
+  `gpt-6.1-sol`, `xhigh`, new tasks with a resume note: re-read the partial
+  file, keep it if valid, append the missing rows) now run for v5 and v7 to
+  v11: dispatches `ctx_03ef9fa3ca93`, `ctx_22174ec9a6dd`, `ctx_946ff2582e52`, `ctx_8e76edce2981`, `ctx_c53473b5a90b`, `ctx_1992e9b728b5`. v12 is not started.
+  The old dispatches `ctx_651cbe10a1f3`, `ctx_4fe7d152ad9a`,
+  `ctx_41f487f24681`, `ctx_394ef8707874`, `ctx_8d8e0c189bb1` and
+  `ctx_9f565081fb5b` are abandoned.
