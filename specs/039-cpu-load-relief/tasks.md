@@ -131,3 +131,8 @@
     doctor check), ran `mise trust --yes mise.toml` and `npm ci
     --ignore-scripts --no-audit --no-fund --prefix plugins/work`; the
     project's tools, Caddy included, were already installed.
+  - Handoff, 2026-10-01 before a reboot: caching is done, reviewed four
+    times and VERIFIED at 3fa1020 (39 of 39); a repeat verify takes 5.0 s and
+    9.9 s CPU against 228.7 s and 545.1 s before. Next: merge `develop` again
+    after CHE-77's finish, verify, commit the develop merge review record,
+    ask the develop session for the finish slot, finish, and close CHE-73.
