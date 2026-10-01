@@ -215,7 +215,7 @@ run.
 in `systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7`
 (the four efficiency cores), timed with `/usr/bin/time`; CPU is user plus
 system time of the whole process tree. Before: 1eef330's configuration and
-files with this feature's Markdown records added. After: 65d0ac9, with
+files with this feature's Markdown records added. After: 75c60d1, with
 `TURBO_CACHE_DIR` set to the worktree's own `.turbo/cache` (D7), emptied
 before the cold run.
 
@@ -223,17 +223,20 @@ before the cold run.
 | --- | ---: | ---: | ---: | --- |
 | Before, a full run | 230.6 s | 541.5 s | 0 of 37 | VERIFIED |
 | Before, a repeat on the unchanged tree | 228.7 s | 545.1 s | 0 of 37 | VERIFIED |
-| After, cold cache | 273.4 s | 643.3 s | 0 of 38 | VERIFIED |
-| After, repeat on the unchanged tree (warm) | 4.6 s | 9.0 s | 31 of 38 | VERIFIED |
+| After, cold cache | 233.8 s | 557.5 s | 0 of 38 | VERIFIED |
+| After, a repeat on the unchanged tree (warm) | 4.2 s | 8.2 s | 31 of 38 | VERIFIED |
+| After a commit that changed only Markdown records (at 4da153c) | 49.6 s | 186.4 s | 5 of 38 | VERIFIED |
 
-A repeat verify on an unchanged tree now uses about 1.7% of the CPU time it
-used before (9.0 s against 545.1 s). The warm run's 7 executed tasks (D5's
-five and the two grouping tasks) took at most 1.1 s each. The cold run cost
-98 s more CPU than the base; the new tests explain about 11 s of it, and the
-rest was not separated from run-to-run noise in this single cold run. The
-summary credited 836 s of task time as saved. A worktree whose files differ
-from the cached run replays only the tasks whose inputs match: package tests
-across worktrees, every task after an unchanged repeat.
+- A repeat verify on an unchanged tree now uses about 1.5% of the CPU time
+  it used before (8.2 s against 545.1 s). Its 7 executed tasks (D5's five
+  and the two grouping tasks) took at most 1.1 s each.
+- A cold run costs about 12 s more CPU than before (2%); the new tests take
+  about 11 s. An earlier cold run at 65d0ac9 measured 643.3 s, which this
+  run did not reproduce; the difference was not analyzed.
+- After an edit to files that only root tasks read, the five Python package
+  tests replay and the root tasks rerun: in the last row, about a third of
+  the CPU of a full run. Other worktrees replay the package tests whose
+  packages they have not changed.
 
 One base repeat failed in `doc-regions#test`, unrelated to caching: the
 test's tree check counted a Git index refresh as a change (Linear CHE-75);
