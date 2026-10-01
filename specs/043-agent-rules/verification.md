@@ -289,9 +289,27 @@ Committed-tip full verification, fresh integrated-tree review and the serialized
 finish slot remain pending at this checkpoint.
 
 
-The integrated source diff is 84 files, 1234 insertions and 98
+The integrated source diff is 84 files, 1254 insertions and 98
 deletions against develop. The split review retains one feature: the judgment
 rules, 48 identical pointers, provenance and consumer checks share one
 acceptance boundary; most added lines are feature records. Develop accepted
 this split decision. The larger provenance scope corrects records for the same
 pointer patch; it adds no capability or dependency.
+
+
+## Complete committed-tip check
+
+Commit `b6d2f57f2be525f1e9a9ec0fbc49e76786e21ef0` passed the exclusive
+CPU-wrapped `npm run verify -- --task CHE-80 --base develop` with exit 0.
+The same-run summary `3K6iDv6NesWMMU3B7R2eOzMxpBH` records its exact Git SHA,
+43 successful, four cached, 47 attempted, zero failed and exit 0. Every one of
+its 47 task execution exit codes is zero. The log has no cancelled or
+force-killed task. This is an integrated committed-tip check, not the excluded
+interrupted run. Its log is `.local/che-80-integrated-exclusive-verify.log`.
+
+This result is recorded before the fresh final review. A second complete check
+of the committed record tip will be provided to the reviewer. Static package
+reachability and hook injection are verified; fresh client loading from another
+directory, Copilot/Grok/Cursor/Antigravity launches and operational account
+capabilities were not exercised by this feature. No private source or student
+data, credential contents, external settings, push or release was involved.

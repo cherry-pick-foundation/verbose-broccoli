@@ -12,6 +12,8 @@ work in progress; the coverage and verification records carry the evidence.
 - [ ] T002 Migrate resolved root and plugin judgment rules and apply user decisions.
 - [ ] T003 Correct native launch guidance, deleted pointers and active ownership consumers.
 - [ ] T004 Verify source coverage, consumers and the integrated latest-develop tree.
+  2026-10-02: latest develop `c0b630b` is integrated; `b6d2f57` passed 47/47
+  full-check tasks. Final integrated review and the finish slot remain.
 - [ ] T005 Obtain a fresh other-provider final review and request the serialized finish slot.
   Review choice: OpenRouter typesafe/jev-1.13 selected Claude Code
   0.95/confidence 0.94, the live fable alias 0.54/0.42 and high effort

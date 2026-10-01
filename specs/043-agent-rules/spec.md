@@ -21,7 +21,7 @@ required count of paragraphs.
 Add only judgments needed every time. Keep mechanical procedures with existing
 tools, and dated history out unless it explains a boundary. Preserve existing
 reuse, review and split rules instead of repeating them. The develop
-orchestrator owns Linear and task-ledger writes; the main Opus session relays
+orchestrator owns Linear and final task-ledger ticks; the main Opus session relays
 user decisions. Update necessary active consumers without rewriting historical
 Spec Kit records.
 
