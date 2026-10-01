@@ -56,8 +56,31 @@
 
 - [x] T009 Update `docs/architecture.md`, the generated command reference and
   the other consumers' prose.
-- [ ] T010 `npm run verify` on the result; commit the feature record.
+- [x] T010 `npm run verify` on the result; commit the feature record.
+  - At 3ec4d54 (the implementation), `npm run verify` exited 0 and printed
+    VERIFIED from the same run's Turbo summary: 47 tasks successful, 6 cached,
+    3 min 55 s. A first run failed on `//#doctor`: editing the packages'
+    `pyproject.toml` made uv rebuild the editable installs, so `uv-workspace`
+    reported an outdated environment until `mise run setup` (here `npm run
+    backfire:install`) ran again. After the merge, run `mise run setup` in each
+    other worktree.
+  - Diff against the base 872acea: 47 files, 1,461 lines added and 658
+    removed, 2,119 in all; counting each of the four whole-file deletions as
+    one line, 1,735. About 560 lines are these records. It is over 1,000, so
+    splitting was considered and not done: the moves, their consumers, the
+    setup task and the graph edit the same files (`package.json`,
+    `turbo.json`, the tests) and none of the parts passes verification alone;
+    the largest block, the 282 lines of Ruff rules, is moved text that counts
+    twice (removed and added).
+  - Observed difficulty by `npm run workflow`: very difficult (51 changed
+    files); the estimate before the work was difficult.
 - [ ] T011 Develop merge review by a provider other than Claude Code; resolve
   findings; the review-record commit last.
+  - Reviewer chosen with Jev (`typesafe/jev-1.13` through OpenRouter, no
+    escape): Cursor `auto`, probability 0.55, confidence 0.49; the other
+    candidates were Codex `gpt-6.1-sol` and `gpt-6-luna` at `xhigh`, Copilot
+    `auto` at the intelligence and balance tiers (0.01 and 0.38) and
+    Antigravity `gemini-3.8-flash-high`; Grok was left out for its free cap.
+    A probability is not evidence of correctness.
 - [ ] T012 Merge `develop`, verify, finish into `develop` when the finish slot
   is granted.
