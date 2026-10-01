@@ -95,14 +95,21 @@ exact file lists and checks are in the private survey folder
 
 ## Phase 3: User Story 2 - The user's decision (P1)
 
-- [ ] T005 [US2] Ask the develop session for the user's batch order and the
+- [x] T005 [US2] Ask the develop session for the user's batch order and the
   first batch's exact-list approval.
   - 2026-10-02: asked with counts and the recommendation 1 (2015 textbooks)
     then 2, 3, 4, because the 2015 textbooks use the same worksheet format
     as the profiled 2022 ones, have no unreadable file, and the 2024 to 2026
     grade-3 school exams belong to the 2015 curriculum, so their link to a
     textbook needs batch 1. A first wave of 12 volumes measures real Codex
-    `xhigh` use before the rest. Answer pending.
+    `xhigh` use before the rest.
+  - 2026-10-02: the user approved the order (2015 textbooks, education-office
+    papers, national papers, school exams) and the exact first list: 46
+    volumes, 324 files, 59.1 MB, copied (never moved) into
+    `~/Documents/20_reference/textbooks/`, then a first profiling wave of 12
+    volumes, then a measurement of Codex use before the rest. The exam
+    batches' lists and the per-paper folder layout need their own approval
+    before any copy.
 
 ---
 
@@ -110,9 +117,15 @@ exact file lists and checks are in the private survey folder
 
 Waits for T005. One block per approved batch.
 
-- [ ] T006 [US3] Copy the approved files; read each destination's SHA-256 back
+- [x] T006 [US3] Copy the approved files; read each destination's SHA-256 back
   and compare with the list; write the selection; `raw_import.py admit` and
   `verify`.
+  - Batch 1 (2015 textbooks), 2026-10-02: 324 files copied, never moved, into
+    `~/Documents/20_reference/textbooks/` (the folder went from 294 to 618
+    files); the SHA-256 of all 324 copies read back equal to the list's, by
+    the copy script and again by `sha256sum -c`; all 324 originals still
+    exist. `admit`: 324 admitted, 0 already admitted, 0 refused, 0 failed.
+    `verify`: 771 revisions, 0 invalid. Vault commit `50312ca`.
 - [ ] T007 [US3] Per material: `inventory`, `extract`, one native Orca worker
   (Codex `gpt-6.1-sol`, `xhigh`), `record --unchecked`; counts per material
   in this file.
