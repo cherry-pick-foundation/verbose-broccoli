@@ -39,15 +39,15 @@ a link host `w1012345678-iwc1.slack.com` and a link to
 
 ## Root Cause Hypothesis
 
-The pattern's `0?1[016789]` start can begin right after a letter, and its end
-accepts a `.` before more digits. Slack hosts (`w<digits>-iwc…`) and the
-`thread_ts=<10 digits>.<6 digits>` query value both match. Confidence: high;
+The pattern's `0?1[016789]` start can begin right after the `w` of a Slack
+host (`w<digits>-iwc…`) or after the `ts=` of a `thread_ts=<10 digits>.<6
+digits>` query value, so both match. Confidence: high;
 the work vault's 106 findings drop to 0 with the change below.
 
 ## Proposed Remediation
 
-**Preferred**: in `phone.yml`, change the lookbehind to `(?<![0-9A-Za-z])` and
-the lookahead to `(?![0-9]|\.[0-9])`. This keeps Vale's `scope: raw` and the
+**Preferred**: in `phone.yml`, add the lookbehinds `(?<!\bw)` and `(?<!ts=)`
+after the existing digit lookbehind. This keeps Vale's `scope: raw` and the
 existing decision that a phone in a link target is still a finding.
 
 **Alternatives**: a narrower Vale scope (e.g. `text & ~link`) would also stop
@@ -59,9 +59,8 @@ and a real phone in text; it fails without the change.
 
 ## Risks & Considerations
 
-- A phone number written directly after an ASCII letter (`ID010-1234-5678`) or
-  directly before `.<digit>` is no longer reported. Hangul before the number
-  still counts as a boundary.
+- A phone number written directly after a lone `w` or after `ts=` is no longer
+  reported. A letter before the number (`Call010-1234-5678`) still is.
 
 ## Open Questions
 

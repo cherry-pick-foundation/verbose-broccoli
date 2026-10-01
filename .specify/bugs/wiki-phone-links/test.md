@@ -25,8 +25,8 @@ work vault, the phone findings fall from 106 to 0.
 
 - Not run: the full `wiki-consistency check` (link checks) on the work vault; its
   62 broken source links are a content problem, not part of this bug.
-- A phone glued to a preceding ASCII letter is no longer reported.
+- A phone right after a lone `w` or after `ts=` is no longer reported.
 
 ## Recommendation
 
-Close the bug: `npm run verify` passed (exit 0) at `74c7192`, the merge of develop `965afb9` into the feature.
+Close the bug: `npm run verify` passed (exit 0) at the final tip (see the finish record).

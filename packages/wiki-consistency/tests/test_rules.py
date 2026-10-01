@@ -378,14 +378,16 @@ def test_phone_rule_skips_digits_in_a_link_host_but_not_page_text(tmp_path):
     write_overview(
         instance,
         "[Message](https://w1012345678-iwc1.slack.invalid/archives/C1/p1"
-        "?thread_ts=1712345678.123456)\n\n"
-        "Call 010-1234-5678.",
+        "?thread_ts=1712345678.123456)\n"
+        "[Message](https://example.invalid/p?thread_ts=1712345678%2E123456)\n\n"
+        "Call 010-1234-5678.\n\nCall010-1234-5678.",
     )
 
     problems = checked(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 4, "phone", "010-1234-5678")
-    assert sum(has_rule([item], "phone") for item in problems) == 1
+    assert_rule(problems, "wiki/overview.md", 5, "phone", "010-1234-5678")
+    assert_rule(problems, "wiki/overview.md", 7, "phone", "010-1234-5678")
+    assert sum(has_rule([item], "phone") for item in problems) == 2
 
 
 def test_hangul_link_text_still_fails_english(tmp_path):

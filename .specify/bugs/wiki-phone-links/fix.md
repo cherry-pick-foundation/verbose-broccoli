@@ -7,22 +7,23 @@
 
 ## Summary
 
-`phone.yml`'s pattern now needs no ASCII letter before the number and no
-`.<digit>` after it. Slack link hosts and `thread_ts` values stop matching; real
-phone numbers in text, link paths and code still match.
+`phone.yml`'s pattern now skips a number right after a lone `w` (a Slack link
+host) or after `ts=` (a Slack `thread_ts` value). Other phone numbers in text,
+link paths and code still match, including one glued to a letter.
 
 ## Changes
 
 | File                                                   | Change     | Notes                                                            |
 | ------------------------------------------------------ | ---------- | ---------------------------------------------------------------- |
-| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Lookbehind `(?<![0-9A-Za-z])`; lookahead `(?![0-9]\|\.[0-9])`.   |
+| `packages/wiki-consistency/vale/styles/wiki/phone.yml` | modified   | Lookbehinds `(?<!\bw)` and `(?<!ts=)` added.                     |
 | `packages/wiki-consistency/tests/test_rules.py`        | added test | `test_phone_rule_skips_digits_in_a_link_host_but_not_page_text`. |
 
 ## Tests Added or Updated
 
 - The new test writes a Slack-style link (host `w1012345678-iwc1…`, query
-  `thread_ts=1712345678.123456`) and the text `Call 010-1234-5678.`; it expects
-  one phone finding, on the text line. With `phone.yml` from `3d4613f` it fails.
+  `thread_ts=1712345678.123456`), a `thread_ts=1712345678%2E123456` link, and the
+  texts `Call 010-1234-5678.` and `Call010-1234-5678.`; it expects two phone
+  findings, one per text line. With `phone.yml` from `3d4613f` it fails.
 
 ## Local Verification
 
