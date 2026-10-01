@@ -354,7 +354,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
     (root / "wiki/references/reference.markdown").write_text("\n".join(lines))
     run = profile._run_dir("run")
     run.mkdir(parents=True)
-    index = "Unit 1\t1\t3\nUnit 2\t4\t5\nPast the end\t4\t9\n"
+    index = "Unit 1\t1\t3\tTitle\nUnit 2\t4\t5\nPast the end\t4\t9\n"
     (run / "sections.tsv").write_text(index)
     mapping = "map --inventory inventories/inventory.md "
     mapping += "--reference references/reference.md"

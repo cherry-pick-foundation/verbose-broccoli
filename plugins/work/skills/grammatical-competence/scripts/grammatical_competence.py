@@ -183,7 +183,7 @@ def _sections(root, args, run):
     lines = (root / "wiki" / text).read_text(encoding="utf-8").splitlines()
     index = {}
     for line in (run / "sections.tsv").read_text(encoding="utf-8").splitlines():
-        label, first, last = line.split("\t")
+        label, first, last, *_ = line.split("\t")  # A title may follow.
         index[label] = (int(first), int(last))
     return page, lines, index
 

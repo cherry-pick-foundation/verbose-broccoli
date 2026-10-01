@@ -235,9 +235,9 @@ reference that explain it. Build it in its own run folder:
 
 1. `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`.
 2. A section index worker, chosen with `model-choice`, writes `sections.tsv`:
-   one line per section of the reference's text file, with three
-   tab-separated columns: the label, the first line and the last line
-   (one-based, inclusive). Sections are the book's own units or numbered
+   one line per section of the reference's text file, with tab-separated
+   columns: the label, the first line and the last line (one-based,
+   inclusive), and optionally the section's title for the proposer. Sections are the book's own units or numbered
    sections, labeled in English as the book labels them, such as `Unit 12`,
    and each holds at most 20,000 characters; split a longer one at its
    subsections. The extraction's heading levels are not reliable; its

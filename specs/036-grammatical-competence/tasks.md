@@ -67,6 +67,9 @@ messages. Run files stay in the run folders and records in the work vault.
   tests; describe the section index and the map step in the procedure.
 - [ ] T007 [P] [US2] Build a section index for each of the four reference
   texts.
+  - Four Claude Code workers, `sonnet` at medium (backfire: 0.56,
+    confidence 0.49), one per book; only Claude Code and Codex could read
+    the book text.
 - [ ] T008 [US2] Propose sections for every item per reference; run `map`
   and `record`; run `wiki-consistency`; commit the four mapping records in
   the vault.
@@ -80,6 +83,13 @@ messages. Run files stay in the run folders and records in the work vault.
   - Worker: Claude Code `sonnet` at medium (backfire: 0.71, confidence
     0.65); only Claude Code and Codex could run it, since the Documents
     folders may hold student files.
+  - 2026-10-01 done: 512 candidate materials: 104 textbook volumes (46 of
+    the 2015 curriculum, 58 of 2022; 101 from 673 HWP or HWPX main-text
+    files, 3 from PDFs) and 408 exam papers (85 national CSAT and mock
+    papers, 140 education-office assessments, 174 middle-school exams, 7
+    photo sets, 2 others). Already admitted: 6 fully, 5 partly. 15 scanned
+    PDFs have no text layer. The list and summary stay in the
+    coordinator's scratch space.
 - [ ] T010 [US3] Ask the user the catalog choice, with the rerun's numbers,
   and the material list with its admissions and check cost; record the
   answers in the spec.
