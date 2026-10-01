@@ -80,7 +80,7 @@
 
 ## Phase 4: Finish
 
-- [ ] T007 Merge `develop`, run `npm run verify`, pass the develop merge
+- [x] T007 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish model-choice-free-agents`.
   - `develop` 870cc81 merged in b1f6118 without conflicts. The first full
@@ -108,4 +108,10 @@
     stay in the worktree. It found 1 medium finding: T006 said every
     candidate's usage was given and that Claude Code was left out, which
     read as missing evidence. T006 now says why Claude Code was not a
-    candidate; the change touches only this file.
+    candidate; the change touches only this file. A third fresh Copilot
+    session (`auto`, `fast`; Jev 0.42 and 0.90; routed to `gpt-6-luna`)
+    reviewed f23a4e0 to 5b83364 with no findings, using 0.93 AI credits.
+  - 2026-10-01: review record 71167e4; `git flow feature finish` merged it
+    into `develop` as f7bb824, whose tree is the tree verified at 5b83364
+    (VERIFIED, 37 of 37). Nothing is left; CHE-69 brings its own copy of
+    the cherry-picked backfire commit (93c5f5d, here 7544e42).
