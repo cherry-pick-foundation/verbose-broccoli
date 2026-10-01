@@ -88,6 +88,8 @@ exact file lists and checks are in the private survey folder
     batch's rates about 25,000, 33,000, 21,000 and 16,000 sentences (the
     first batch had about 15,600).
   - Exam destinations are per-paper folders because 17 file names collide.
+  - Dry run, nothing copied: the SHA-256 of all 711 listed files, read
+    again from the originals (zip members included), equals the lists'.
 
 ---
 
