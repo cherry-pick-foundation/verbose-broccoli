@@ -28,6 +28,12 @@ work vault, the phone findings fall from 106 to 0.
 - A phone-shaped number that exactly fits a Slack host or timestamp shape is not
   reported.
 
+- Known limits from the last review, not fixed because Vale's regex cannot see
+  link structure: a scheme-less `//w…-iwc….slack.…` host, a first host group over
+  20 digits, a Slack host written inside another link's path, and a code span
+  holding a full `ts=<10 digits>.<6 digits>` shape are not reported or are
+  reported wrongly. A fix would need Markdown link parsing, not a rule change.
+
 ## Recommendation
 
-Close the bug: `npm run verify` passed (exit 0) at the final tip (see the finish record).
+Close the bug: `npm run verify` passed (exit 0) at `e1ce91b`, which holds the rule and test (later commits change records only).
