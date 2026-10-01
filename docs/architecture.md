@@ -57,30 +57,48 @@ explicit `-z` or `-n` tests, and `[[ … ]]` in Bash or Ksh scripts. The scripts
 POSIX `sh`, so the guide's Bash-only rule is not applied; neither are its
 formatting rules, which ShellCheck does not check. `tools/shellcheck/` is a uv
 project whose `uv.lock` pins `shellcheck-py` 0.11.0.1, the PyPI wheels of the
-official binary; Orca's setup script syncs it. ls-lint 2.3.1 checks that
+official binary; `mise run setup` syncs it. ls-lint 2.3.1 checks that
 every file and folder name is kebab-case: `npm run lint:names` runs it with
-a 60-second limit and the root `.ls-lint.yml`, which gives the reason for
+a 60-second limit and `.config/ls-lint.yml`, which gives the reason for
 each name a language, tool or standard fixes (Python files and packages,
 `AGENTS.md`, `SKILL.md`, `README.md` and `LICENSE`). ls-lint has no
 `.gitignore` support, so `scripts/lint-names.sh` passes it the paths that Git
 ignores, such as `.venv`, as literal `ignore` entries; untracked files that Git
 does not ignore are checked, and `npm run test:lint-names` covers both.
 
-mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-Caddy 2.11.4, ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
-1.9.0 and SpecStory's command-line tool 2.15.1, and `mise.lock` records
-each download's URL, checksum and provenance. Node.js stays on the user's
-mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
-1.10.18 stays a separately installed converter. `npm run doctor` runs `mise
-doctor project`, whose `[doctor.checks]` entries in `mise.toml` check Quarto's
-and CodexBar's versions, the locked uv environments, the npm trees, the git-flow configuration
-and lefthook's hooks, and name the repair command for each failure. The user's
-machine runs mise in paranoid mode, so each worktree trusts its `mise.toml` by
-content; Orca's setup script trusts it and installs the eight tools with
-`mise install --locked`. The user's shell pins mise's and rustup's folders
-(`MISE_*`, `RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks,
-so tests that use a temporary `HOME` still find mise's configuration and do
-not download toolchains.
+mise owns the environment. `.config/mise.toml` pins every development tool
+the repository needs (uv, Caddy, ls-lint, lychee, Vale, git-flow-next, gws,
+betterleaks, Bitwarden's `bws` and SpecStory's command-line tool) and
+`.config/mise.lock` records each download's URL, checksum and provenance; no
+other file repeats a version, and `scripts/root-config-test.ts` fails when
+one does. Node.js stays on the user's mise Node 24 (the root `package.json`
+requires 24.12 or later), and Quarto stays a separately installed converter
+whose version and installer checksum sit in the same file's `[env]`. The
+`setup` task, `mise run setup`, installs those tools from the lock (and only
+those, never the user's global tools) and then every dependency tree; Orca's
+setup script and the hosted check workflow call it after `mise trust`, and
+the doctor hints name it. `npm run doctor` runs `mise doctor project`, whose
+`[doctor.checks]` entries in `.config/mise.toml` check Quarto's and CodexBar's
+versions, that the pinned tools are installed and that the uv on `PATH` has
+the pinned version, the locked uv environments, the npm trees, the git-flow
+configuration and lefthook's hooks, and name the repair command for each
+failure. The user's machine runs mise in paranoid mode, so each worktree
+trusts its `.config/mise.toml` by content; Orca's setup script does that
+first. The user's shell pins mise's and rustup's folders (`MISE_*`,
+`RUSTUP_HOME`, `CARGO_HOME`), and Turborepo passes them to tasks, so tests
+that use a temporary `HOME` still find mise's configuration and do not
+download toolchains.
+
+The repository root holds only the files that a tool or editor reads there
+(`package.json`, `pyproject.toml`, `turbo.json`, `tsconfig.json`, the ESLint
+files, `.editorconfig`, `.shellcheckrc` and the like). Ruff's and
+commitizen's settings are the `[tool.ruff]` and `[tool.commitizen]` tables of
+`pyproject.toml`, Prettier's the `prettier` key of `package.json`, and the
+mise, lefthook, ls-lint and dependency-cruiser configuration lives in
+`.config/`. `package.json` holds each command once and `turbo.json` holds
+only the check graph: every task of it runs a `package.json` script, and each
+Python package has its own `test` and `check` tasks (a Python package's test
+runs its root script through `npm --prefix ../.. run`).
 
 `workflow` supplies execution mode, graph queries and three additive skill
 triggers. `verify` runs `npm run check` through Turborepo with a run summary
@@ -95,7 +113,7 @@ installed npm trees and of the programs and Git configuration outside the
 repository; the checks that read
 anything else stay uncached and say why in their description
 ([research](../specs/039-cpu-load-relief/research.md)). dependency-cruiser 18.2.0 answers the graph queries and checks
-TypeScript and JavaScript imports with the rules in `.dependency-cruiser.json`
+TypeScript and JavaScript imports with the rules in `.config/dependency-cruiser.json`
 (`npm run clean-architecture`); a new package's public entries need a line
 there. import-linter 2.15 checks the Python packages' layers and cycles with
 the contracts in the root `pyproject.toml` (`npm run python:imports`). In
@@ -323,7 +341,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
   backfire's with its `education` extra, which `wiki-consistency` uses as a
-  library; Orca's setup script runs the same installs, and `npm run
+  library; `mise run setup` runs the same installs, and `npm run
   doctor` checks them. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
@@ -565,8 +583,7 @@ use live in `plugins/code/skills` instead.
   Python with PyYAML from `SPECKIT_PYTHON`, which `.claude/settings.json` and
   `.codex/config.toml` set to `tools/spec-kit/.venv/bin/python`.
 - `tools/spec-kit/` is a uv project whose `uv.lock` pins the Spec Kit CLI
-  1.0.12 (commit `e77daa9`), PyYAML and Python 3.14; `pyproject.toml` requires
-  uv 0.11.32. Orca's setup script runs `uv sync --locked --project
+  1.0.12 (commit `e77daa9`), PyYAML and Python 3.14. `mise run setup` runs `uv sync --locked --project
   tools/spec-kit` in each worktree to create the gitignored `.venv`, and
   `npm run doctor` fails when that environment is missing or differs from the
   lock. Run Spec Kit from the repository root as
@@ -581,7 +598,7 @@ flow rule.
 
 - git-flow-next is pinned through mise (see the mise paragraph under
   [Current skeleton](#current-skeleton)); the mise copy is byte-identical to
-  the earlier host copy in `~/.local/bin`. Orca's setup script trusts the
+  the earlier host copy in `~/.local/bin`. `mise run setup` trusts the
   committed hook path and runs `git flow config sync`, and `npm run doctor`
   checks that the local Git config matches `.gitflow`.
 - `.gitflow` configures only `main`, `develop` and `feature/`. Features merge
@@ -632,7 +649,7 @@ flow rule.
 
 Every commit in a set-up worktree passes the `commit-msg` hook that lefthook
 2.1.15 (<https://github.com/evilmartians/lefthook>, MIT) installs from the
-root `lefthook.yml`. It runs commitlint 21.2.3
+`.config/lefthook.yml`. It runs commitlint 21.2.3
 (<https://github.com/conventional-changelog/commitlint>, MIT) with
 `@commitlint/config-conventional` and the Conventional Commits parser preset
 from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
@@ -649,7 +666,7 @@ from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
   checked by a hook. The author writes the new version with commitizen 4.19.0
   (<https://github.com/commitizen-tools/commitizen>, MIT): `npm run
   constitution:bump -- PATCH`, `MINOR` or `MAJOR` rewrites the `**Version**:`
-  line and the version in `.cz.toml`, with no commit, tag, changelog or hooks.
+  line and the version in `[tool.commitizen]` of `pyproject.toml`, with no commit, tag, changelog or hooks.
   Reviewers check that the step matches the commit type. `tools/commitizen/`
   is a uv project whose `uv.lock` pins it.
 - The configuration is `scripts/commitlint.config.mjs`. commitlint loads a
@@ -658,7 +675,7 @@ from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
   which needs `node_modules`; so the configuration is plain JavaScript and
   passes the preset's parser options directly.
 - lefthook installs its hooks into the Git hooks folder that all worktrees
-  share, and each hook reads the running worktree's `lefthook.yml` and runs
+  share, and each hook reads the running worktree's `.config/lefthook.yml` and runs
   its `node_modules/lefthook`. When a worktree lacks that binary, the hook
   refuses the commit (`assert_lefthook_installed`) instead of skipping the
   check, and lefthook never installs itself (`no_auto_install`). Because the
@@ -759,7 +776,7 @@ or an agent region, written by agents. No part is human-written.
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
   Findings for these two files, from the audit or from backfire, are only
   reported to the user; the tooling never changes them.
-- The engine is the uv project `packages/doc-regions/`. Orca's setup script
+- The engine is the uv project `packages/doc-regions/`. `mise run setup`
   syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.

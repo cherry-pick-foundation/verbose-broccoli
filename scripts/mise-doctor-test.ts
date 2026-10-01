@@ -1,5 +1,5 @@
 import {spawnSync} from 'node:child_process';
-import {copyFileSync, mkdtempSync, rmSync} from 'node:fs';
+import {copyFileSync, mkdirSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import assert from 'node:assert/strict';
@@ -8,9 +8,10 @@ import {test} from 'node:test';
 void test('mise doctor reports failing project checks', () => {
   const project = mkdtempSync(join(tmpdir(), 'mise-doctor-'));
   try {
+    mkdirSync(join(project, '.config'));
     copyFileSync(
-      new URL('../mise.toml', import.meta.url),
-      join(project, 'mise.toml'),
+      new URL('../.config/mise.toml', import.meta.url),
+      join(project, '.config/mise.toml'),
     );
     const result = spawnSync('mise', ['doctor', 'project'], {
       cwd: project,

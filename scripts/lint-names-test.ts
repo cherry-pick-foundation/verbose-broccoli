@@ -49,9 +49,10 @@ async function repository() {
   const root = await mkdtemp(join(tmpdir(), 'lint-names-'));
   run(root, 'git', 'init', '--quiet');
   await writeFile(join(root, '.gitignore'), 'cache/\n한글/\n');
+  await mkdir(join(root, '.config'));
   await writeFile(
-    join(root, '.ls-lint.yml'),
-    'ls:\n  .dir: kebab-case\n  ".": kebab-case\n  .*: kebab-case\nignore:\n  - .git\n',
+    join(root, '.config/ls-lint.yml'),
+    'ls:\n  .dir: kebab-case | regex:\\.[a-z0-9-]+\n  ".": kebab-case\n  .*: kebab-case\nignore:\n  - .git\n',
   );
   await mkdir(join(root, 'cache', 'Bad_Folder'), {recursive: true});
   await writeFile(join(root, 'cache', 'Bad_File.txt'), '');

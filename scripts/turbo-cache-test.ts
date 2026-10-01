@@ -143,6 +143,19 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
       ['jev-ultrafast#test', 'doc-regions#test'],
     );
 
+    // The Python test commands live in package.json, so editing it reruns
+    // every package's tests.
+    before = after;
+    await appendFile(join(repo, 'package.json'), '\n');
+    after = hashes(repo);
+    assertChanged(before, after, [
+      'backfire#test',
+      'credit-offers#test',
+      'doc-regions#test',
+      'jev-ultrafast#test',
+      'wiki-consistency#test',
+    ]);
+
     before = after;
     await write(repo, 'docs/untracked-note.md', 'New.\n');
     after = hashes(repo);

@@ -1,5 +1,4 @@
 [tool.uv]
-required-version = ">=0.11.32"
 constraint-dependencies = [
   # Backfire's test_package_dependency_versions rejects 0.7.2; uv applies this pin only from the workspace root.
   "typesafe-sdk==0.7.1",
@@ -44,6 +43,292 @@ ancestors = [
   "jev_ultrafast",
   "wiki_consistency",
 ]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "2.6.0"
+version_scheme = "semver2"
+version_files = [".specify/memory/constitution.md:^\\*\\*Version\\*\\*:"]
+pre_bump_hooks = []
+post_bump_hooks = []
+
+[tool.ruff]
+line-length = 80
+indent-width = 4
+preview = false
+# The Spec Kit extensions keep their upstream form, and so do the files
+# copied from Jev Ultrafast.
+extend-exclude = [
+  ".specify/extensions/",
+  "packages/jev-ultrafast/src/jev_ultrafast/*.py",
+  "packages/jev-ultrafast/tests/test_agent.py",
+  "packages/jev-ultrafast/examples/*.py",
+  "packages/jev-ultrafast/scripts/check_guards.py",
+]
+src = ["packages/*/src"]
+
+[tool.ruff.format]
+# Markdown is not Python source.
+exclude = [
+  "*.md",
+]
+
+[tool.ruff.per-file-target-version]
+# scripts/doc_sources.py runs in the doc-regions Python 3.13 environment.
+"scripts/doc_sources.py" = "py313"
+# Its test runs in the same doc-regions Python 3.13 environment.
+"scripts/doc_sources_test.py" = "py313"
+# The script header declares Python 3.14; Ruff does not infer PEP 723 metadata.
+"plugins/work/skills/wiki-raw-import/scripts/raw_import.py" = "py314"
+
+[tool.ruff.lint]
+# Google pylintrc [BASIC] and [MESSAGES CONTROL], mapped to stable Ruff rules.
+# Google pylintrc [VARIABLES] dummy-variables-rgx, without Pylint's * prefix.
+dummy-variable-rgx = "^(?:_$|unused_|dummy_)"
+select = [
+  # Pylint builtin-name checks, including lambda arguments.
+  "A001",
+  "A002",
+  "A004",
+  "A006",
+  # Pylint unused-argument checks by function kind.
+  "ARG001",
+  "ARG002",
+  "ARG003",
+  "ARG004",
+  "ARG005",
+  # Pylint bug checks and Ruff's stable equivalents.
+  "B002",
+  "B006",
+  "B007",
+  "B012",
+  "B014",
+  "B018",
+  "B019",
+  "B023",
+  "B025",
+  "B026",
+  "B030",
+  "B033",
+  "B904",
+  # Pylint's broad-exception-caught message.
+  "BLE001",
+  # Google §3.8; use the guide's Google docstring convention.
+  "D",
+  # Stable Google guide style rules and enabled Pylint equivalents.
+  "E401",
+  # Pylintrc's wrong-import-position message maps to Ruff E402.
+  "E402",
+  # Ruff removed E999; syntax errors are reported without selecting a rule.
+  # Google §3.2 permits some overlong lines that Ruff cannot exempt by syntax.
+  "E501",
+  "E701",
+  "E702",
+  "E703",
+  "E711",
+  "E712",
+  "E713",
+  "E714",
+  "E721",
+  "E722",
+  "E731",
+  # Pylint's stable pyflakes equivalents.
+  "F401",
+  "F403",
+  "F404",
+  "F501",
+  "F502",
+  "F504",
+  "F506",
+  "F507",
+  "F521",
+  "F522",
+  "F524",
+  "F525",
+  "F541",
+  "F601",
+  "F622",
+  "F631",
+  "F701",
+  "F702",
+  "F704",
+  "F706",
+  "F811",
+  "F821",
+  "F822",
+  "F823",
+  "F841",
+  "F842",
+  "F901",
+  # Pylint [LOGGING] messages mapped to stable Ruff rules.
+  "G001",
+  "G002",
+  "G004",
+  # Google §3.13 requires ordered imports; Pylint rules are mapped.
+  "I001",
+  # Google §3.16 naming and Pylint's stable naming equivalents.
+  "N",
+  # Stable Pylint convention rules.
+  "PLC0105",
+  "PLC0131",
+  "PLC0132",
+  "PLC0205",
+  "PLC0206",
+  "PLC0207",
+  "PLC0208",
+  "PLC0414",
+  "PLC0415",
+  "PLC1802",
+  "PLC2401",
+  "PLC2403",
+  "PLC3002",
+  # Stable Pylint error rules.
+  "PLE0100",
+  "PLE0101",
+  "PLE0115",
+  "PLE0116",
+  "PLE0117",
+  "PLE0118",
+  "PLE0237",
+  "PLE0241",
+  "PLE0302",
+  "PLE0303",
+  "PLE0304",
+  "PLE0305",
+  "PLE0307",
+  "PLE0308",
+  "PLE0309",
+  "PLE0604",
+  "PLE0605",
+  "PLE0643",
+  "PLE0704",
+  "PLE1132",
+  "PLE1142",
+  "PLE1205",
+  "PLE1206",
+  "PLE1300",
+  "PLE1307",
+  "PLE1310",
+  "PLE1507",
+  "PLE1519",
+  "PLE1520",
+  "PLE1700",
+  "PLE2502",
+  "PLE2510",
+  "PLE2512",
+  "PLE2513",
+  "PLE2514",
+  "PLE2515",
+  # Stable Pylint warning rules.
+  "PLW0108",
+  "PLW0127",
+  "PLW0128",
+  "PLW0129",
+  "PLW0131",
+  "PLW0133",
+  "PLW0177",
+  "PLW0211",
+  "PLW0245",
+  "PLW0602",
+  "PLW0604",
+  "PLW0642",
+  "PLW0711",
+  "PLW1501",
+  "PLW1507",
+  "PLW1508",
+  "PLW1509",
+  "PLW1510",
+  "PLW2101",
+  "PLW3301",
+  # Pylint unused-variable equivalent for unpacked values.
+  "RUF059",
+  # Pylint's security rules.
+  "S102",
+  "S113",
+  "S307",
+  # Pylint's return-in-finally message.
+  "SIM107",
+  # Pylint dictionary-iteration guidance.
+  "SIM118",
+  # Stable equivalents for Pylint's unnecessary-negation message.
+  "SIM201",
+  "SIM202",
+  "SIM208",
+  # Pylint protected-access; tests may inspect protected state below.
+  "SLF001",
+  # Pylint's forgotten-debug-statement message.
+  "T100",
+  # Google §2.2.4 prohibits relative imports.
+  "TID252",
+  # Pylint's broad-exception-raised rule.
+  "TRY002",
+  # Pylint's try-except-raise message.
+  "TRY203",
+  # Pylint's redundant-u-string-prefix rule.
+  "UP025",
+  # Pylint's consider-using-f-string message.
+  "UP031",
+  "UP032",
+  # Pylint's superfluous-parens message.
+  "UP034",
+  # Pylint whitespace and string-escape rules.
+  "W291",
+  "W292",
+  "W605",
+]
+# Google's pylintrc disables Pylint's full R/refactor category; Ruff PLR stays off.
+# Ruff 0.16.9 marks PLC2801, PLE1141, PLE4703, PLW0244, PLW1514 and E111 as preview.
+# Other enabled Pylint messages without stable Ruff equivalents are listed in research.md.
+# Pylintrc no-docstring-rgx exempts main and test names; see research.md for D103 limits.
+# Pylintrc no-docstring-rgx exempts magic methods and __init__; D105 and D107 stay off.
+ignore = ["D105", "D107"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Google §2.2.4 forbids all relative imports.
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+# Google §3.13 requires one imported name per line; typing modules are exempt.
+force-single-line = true
+force-sort-within-sections = true
+single-line-exclusions = ["typing", "collections.abc", "typing_extensions"]
+section-order = ["future", "standard-library", "third-party", "first-party"]
+known-third-party = ["absl", "enchant"]
+known-first-party = [
+  "backfire",
+  "backfire_education",
+  "doc_regions",
+  "wiki_consistency",
+]
+
+[tool.ruff.lint.pep8-naming]
+# Pylintrc BASIC and CLASSES exemptions retained where Ruff has a name setting.
+extend-ignore-names = [
+  "_",
+  "main",
+  "class_",
+  "mcs",
+  "runTest",
+  "setupSelf",
+  "next",
+  "setUpTestCase",
+  "tearDownTestCase",
+  "test_*",
+  "test[A-Z0-9]*",
+  "assert_*",
+  "assert[A-Z0-9]*",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Google §3.8.2.1 exempts test docstrings; tests may inspect protected state.
+"*_test.py" = ["D1", "SLF001"]
+"test_*.py" = ["D1", "SLF001"]
+# Pylintrc VARIABLES init-import=no exempts package initializer imports from F401.
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.pydocstyle]
+# Google §3.8; Ruff has no setting for pylintrc's 12-character minimum.
+convention = "google"
 
 [tool.turbo]
 name = "verbose-broccoli-python"

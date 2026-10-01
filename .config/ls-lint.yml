@@ -6,10 +6,10 @@
 # Exceptions, only where a language, tool or standard fixes the name:
 # - Python files and packages (.py, the folders under each package's src):
 #   they are imported by name and a hyphen is not valid in one; the Google
-#   Python style guide that ruff.toml follows says Python file names "must not
-#   contain dashes" (section 3.16.3). Python names its bytecode caches
-#   (`__pycache__/<module>.cpython-314.pyc`, PEP 3147), and uv names a
-#   script's lock `<script>.py.lock`.
+#   Python style guide that [tool.ruff] in pyproject.toml follows says Python
+#   file names "must not contain dashes" (section 3.16.3). Python names its
+#   bytecode caches (`__pycache__/<module>.cpython-314.pyc`, PEP 3147), and uv
+#   names a script's lock `<script>.py.lock`.
 # - AGENTS.md: the AGENTS.md convention; Codex and Claude Code read it by name.
 # - SKILL.md: the Agent Skills format's entry file.
 # - README.md: the file that code hosts render for a folder.
