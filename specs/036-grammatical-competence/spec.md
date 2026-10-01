@@ -77,8 +77,8 @@ on one textbook volume and one exam paper
 Stage 1's terms hold, with these names:
 
 - **Inventory**: a level list of items for one competence. The first
-  grammatical inventory is the stage 1 catalog. Its vault page is a catalog
-  record.
+  grammatical inventory is the stage 1 catalog. Its vault page is an
+  inventory record.
 - **Item**: one entry of an inventory; stage 1 called it a concept.
 - **Tier family**: inventory rows that share a label and differ only in a
   numbered tier of how wide a range of words they cover. A family counts as
@@ -91,7 +91,7 @@ Stage 1's terms hold, with these names:
 ### User Story 1 - Tier families and a pilot rerun (Priority: P1)
 
 An agent profiles a material with tier families counted as one item: the
-catalog record names the family column, `catalog.tsv` lists each family
+inventory record names the family column, `inventory.tsv` lists each family
 once, every proposer follows one written tier rule, and the check and the
 record use the family's item. The two pilot materials are profiled again and
 scored against the kept answer key.
@@ -99,8 +99,8 @@ scored against the kept answer key.
 **Why this priority**: Tiers caused 43 of the pilot's 52 false proposals; the
 user made the rerun a precondition of the full run.
 
-**Independent Test**: With a synthetic catalog whose rows include a tier
-family, `catalog.tsv` lists the family once under its lowest tier's key, a
+**Independent Test**: With a synthetic inventory whose rows include a tier
+family, `inventory.tsv` lists the family once under its lowest tier's key, a
 proposal naming another member's key is refused, the check's claim and
 evidence carry every tier's statement and examples, and the record names the
 family by its lowest tier's ID.
@@ -108,7 +108,7 @@ family by its lowest tier's ID.
 **Acceptance Scenarios**:
 
 1. **Given** rows with a tier number in the family column and the same label
-   after whitespace is collapsed, **When** `catalog` runs, **Then** one line
+   after whitespace is collapsed, **When** `inventory` runs, **Then** one line
    lists them with their levels joined by `/` and their statements by `; `.
 2. **Given** the rerun's proposals and checks, **When** they are scored
    against the answer key with families collapsed, **Then** the proposer's
@@ -123,17 +123,19 @@ family by its lowest tier's ID.
 
 An agent maps every item of the inventory to the sections of each reference
 book that explain it: one mapping record per book, built with a section
-index, proposals of at most three sections per item, and one check per item
-whose evidence never contains Hangul.
+index, proposals of at most three sections per item, and one check for each
+item with proposed sections, whose evidence never contains Hangul. An item
+with no proposed section gets an empty row and no check.
 
 **Why this priority**: The user listed the mappings among the issues to
 resolve before the full run, and the catalog choice depends on them.
 
 **Independent Test**: With a synthetic reference text, section index,
-catalog and mapping proposals, `map` refuses unknown sections and keys,
-sends one call per item with every proposed section's text minus its Hangul
-lines, resumes after a failure, and `record` writes the mapping page and data
-file.
+inventory and mapping proposals, `map` and `record` refuse unknown sections
+and keys and a mappings file that misses or repeats an item; `map` sends one
+call per item with sections, with every proposed section's text minus its
+Hangul lines, and resumes after a failure; `record` writes the mapping page
+and data file.
 
 **Acceptance Scenarios**:
 
@@ -182,9 +184,9 @@ them.
 
 - **FR-001**: The skill, its script, tests, task wiring, docs and the vault
   schema template's pointer MUST use the name `grammatical-competence`.
-- **FR-002**: The catalog record's block MAY name a `family` column; the
-  script MUST then count each tier family as one item in `catalog`, `check`
-  and `record`, as User Story 1 describes.
+- **FR-002**: The inventory record's block MAY name a `family` column; the
+  script MUST then count each tier family as one item in `inventory`,
+  `check` and `record`, as User Story 1 describes.
 - **FR-003**: The procedure MUST give every proposer one written tier rule.
 - **FR-004**: `check` MUST NOT write a review sheet and `record` MUST NOT
   read one; unclear items stay listed as unclear. `record --unchecked` MUST
@@ -195,8 +197,9 @@ them.
 - **FR-006**: The proposer for the full run MUST be chosen with the code
   plugin's `model-choice` skill from the rerun's accuracy, time and quota.
 - **FR-007**: The script MUST map an inventory to a reference with a section
-  index, mapping proposals, one `jev_verify` call per item with Hangul lines
-  left out of the evidence, resume after a failure, and a mapping record.
+  index, mapping proposals that list every inventory item exactly once, one
+  `jev_verify` call per item with sections and with Hangul lines left out of
+  the evidence, resume after a failure, and a mapping record.
 - **FR-008**: The four mapping records MUST be built in the work vault.
 - **FR-009**: The list of materials MUST be surveyed from the user's local
   stores, and new originals admitted only after the user approves them.
@@ -226,6 +229,7 @@ them.
 
 - Stage 1's accuracy is agreement with a Claude-made answer key that the user
   accepted, and so is the rerun's.
-- Mappings are checked with backfire's `jev_verify` in education mode, as in
-  stage 1; the first batch's profiles are recorded unchecked, by the user's
-  choice.
+- Mappings are checked with backfire's `jev_verify` without education mode,
+  because a reference holds no student data; profile checks keep education
+  mode, as in stage 1. The first batch's profiles are recorded unchecked, by
+  the user's choice.

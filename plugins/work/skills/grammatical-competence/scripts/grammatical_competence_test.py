@@ -372,6 +372,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
     assert "mapping 2: more than three sections" in err
     assert "mapping 3: section is not in the index or has Hangul" in err
     assert "mapping 4: section lines are outside the text" in err
+    assert "must list every inventory key exactly once" in err
     limit = profile.SECTION
     monkeypatch.setattr(profile, "SECTION", 5)
     rows((1, ["Unit 2"]))
@@ -380,7 +381,11 @@ def test_map_checks_sections_without_hangul_and_records_them(
     monkeypatch.setattr(profile, "SECTION", limit)
     assert not backfire.calls
 
-    rows((2, []), (1, ["Unit 1", "Unit 2"]))
+    others = [(key, []) for key in (2, 3, 4, 5, 7, 8)]
+    rows((2, []), (1, ["Unit 1", "Unit 2"]), (2, []), *others[2:])
+    assert _run(mapping) == 1  # Key 2 twice, key 3 missing.
+    assert "exactly once" in capsys.readouterr().err
+    rows((1, ["Unit 1", "Unit 2"]), *others)
     backfire.reply = lambda _: {
         "provider": "synthetic",
         "model": "stub",
@@ -402,7 +407,12 @@ def test_map_checks_sections_without_hangul_and_records_them(
         "Section Unit 2:\n# Unit 2\nElse."
     )
     record = RECORD.replace("--name sample", "--name inventory--reference")
-    assert _run(f"{record} --reference references/reference.md") == 0
+    record += " --reference references/reference.md"
+    rows((1, ["Unit 1", "Unit 2"]), *others[:-1])
+    assert _run(record) == 1
+    assert "exactly once" in capsys.readouterr().err
+    rows((1, ["Unit 1", "Unit 2"]), *others)
+    assert _run(record) == 0
     data = _jsonl(root / "wiki/mappings/inventory--reference.jsonl")
     assert data == [
         {
@@ -410,7 +420,9 @@ def test_map_checks_sections_without_hangul_and_records_them(
             "sections": [{"label": "Unit 1", "lines": [1, 3]}],
             "unclear": [{"label": "Unit 2", "lines": [4, 5]}],
         },
-        {"item": "drop", "sections": [], "unclear": []},
+    ] + [
+        {"item": item, "sections": [], "unclear": []}
+        for item in ("drop", "silent", "accept", "reject", "small", "alone")
     ]
     page = (root / "wiki/mappings/inventory--reference.md").read_text()
     front = yaml.safe_load(page.split("---\n")[1])
@@ -420,7 +432,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
         "data": "inventory--reference.jsonl",
         "proposer": "test agent, test model, max",
         "checker": "synthetic stub",
-        "counts": {"items": 2, "kept": 1, "dropped": 0, "unclear": 1},
+        "counts": {"items": 7, "kept": 1, "dropped": 0, "unclear": 1},
     }
     assert front["sources"] == [
         {"id": "inventory-source", "revision": REVISION},

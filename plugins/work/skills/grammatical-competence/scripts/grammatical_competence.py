@@ -189,6 +189,9 @@ def _sections(root, args, run):
 
 
 def _map_refusals(rows, entries, lines, index):
+    keys = [row["item"] for row in rows]
+    if len(keys) != len(entries) or set(keys) != entries.keys():
+        yield "mappings.jsonl must list every inventory key exactly once"
     for n, row in enumerate(rows, 1):
         spans = [index.get(label) for label in row["sections"]]
         if row["item"] not in entries:
@@ -337,6 +340,10 @@ def _record_command(args, root, run):
     rows = _jsonl(
         run / ("mappings.jsonl" if args.reference else "proposals.jsonl")
     )
+    if args.reference:
+        reference, lines, index = _sections(root, args, run)
+        if refused := list(_map_refusals(rows, entries, lines, index)):
+            return _refuse(refused)
     if args.unchecked:  # Keep every proposed item, without backfire.
         if refused := list(_refusals(run, rows, entries)):
             return _refuse(refused)
@@ -369,7 +376,6 @@ def _record_command(args, root, run):
     )
     inventory = f"[inventory](../{args.inventory})"
     if args.reference:
-        reference, _, index = _sections(root, args, run)
 
         def spans(labels):
             return [{"label": s, "lines": list(index[s])} for s in labels]

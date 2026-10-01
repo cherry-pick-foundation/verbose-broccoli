@@ -13,7 +13,8 @@ mappings; survey the materials; and, after the user's catalog choice and
 approval of the list, profile every listed material in the work vault.
 
 Stage 1's tools stay: `wiki-raw-import`, python-hwpx, markitdown and
-pdftotext, backfire's `jev_verify` in education mode, and `wiki-consistency`.
+pdftotext, backfire's `jev_verify` (in education mode for profiles), and
+`wiki-consistency`.
 Proposers and section indexes are Orca workers whose agent, model and effort
 come from the code plugin's `model-choice` skill.
 
@@ -73,13 +74,16 @@ with the materials list.
   worker's output, `sections.tsv` in the run folder (label, first line, last
   line).
 - `map --inventory <page> --reference <page>` validates `mappings.jsonl`
-  (one row per item: `{"item": <key>, "sections": [<label>, ...]}`, at most
-  three labels), sends one `jev_verify` per item with a claim per section and
-  the item's text plus each section's lines, minus lines with Hangul, as one
-  evidence text, and appends `checks.jsonl`; it resumes like `check`.
-- `record --reference <page>` writes the mapping record instead of a profile
-  record: `wiki/mappings/<inventory>--<reference>.md` and `.jsonl`, one row
-  per item `{"item": <id>, "sections": [{"label", "lines"}], "unclear": [...]}`.
+  (one row for each inventory key, exactly once:
+  `{"item": <key>, "sections": [<label>, ...]}`, at most three labels), sends
+  one `jev_verify` per item with sections, without education mode, with a
+  claim per section and the item's text plus each section's lines, minus
+  lines with Hangul, as one evidence text, and appends `checks.jsonl`; it
+  resumes like `check`. An item with no section sends no call.
+- `record --reference <page>` validates `mappings.jsonl` the same way and
+  writes the mapping record instead of a profile record:
+  `wiki/mappings/<inventory>--<reference>.md` and `.jsonl`, one row per item
+  `{"item": <id>, "sections": [{"label", "lines"}], "unclear": [...]}`.
 
 ## Run folders
 
