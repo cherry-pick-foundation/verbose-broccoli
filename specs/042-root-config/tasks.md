@@ -76,7 +76,7 @@
     twice (removed and added).
   - Observed difficulty by `npm run workflow`: very difficult (51 changed
     files); the estimate before the work was difficult.
-- [ ] T011 Develop merge review by a provider other than Claude Code; resolve
+- [x] T011 Develop merge review by a provider other than Claude Code; resolve
   findings; the review-record commit last.
   - First reviewer, chosen with Jev (`typesafe/jev-1.13` through OpenRouter, no
     escape): Cursor `auto`, probability 0.55, confidence 0.49 (Codex
@@ -98,6 +98,11 @@
     (Codex `gpt-6.1-sol` at `high`, same choice) found one medium: the new
     test runs `mise`, whose version is not hashed, yet its task was cached;
     fixed with `cache: false` and the reason (research.md D7). That last
-    one-line change was not reviewed again.
-- [ ] T012 Merge `develop`, verify, finish into `develop` when the finish slot
+    one-line change was then reviewed read-only by a third fresh Codex
+    `gpt-6.1-sol` session at `high`: no findings on `6100ec6`.
+- [x] T012 Merge `develop`, verify, finish into `develop` when the finish slot
   is granted.
+  - 2026-10-02: finished into develop as `3d4613f`, review record `035d99f`
+    on reviewed parent `6100ec6`; post-merge `npm run verify` exited 0 and
+    printed VERIFIED (47 of 47, 0 cached, 3m26.338s). Next: CHE-80; hosted
+    workflow runs and setup with missing tools remain unperformed.
