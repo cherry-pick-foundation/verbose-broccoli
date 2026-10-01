@@ -261,6 +261,20 @@ messages. Run files stay in the run folders and records in the work vault.
     rename, tier families, the map step and `--unchecked` are one skill's
     change, and the 3-line check fix with its test is what lets this
     feature's records pass the vault check.
+  - 2026-10-01 document judgment step from develop `80a8e6e`: 267 units in
+    10 `jev_verify` requests (evidence at most 8,000 characters; two
+    requests over the provider's input limit were sent in batches of 4
+    claims). No unit of a document this feature changed was contradicted.
+    Five units got `contradicted` with action `review` at confidence 0.16
+    to 0.47: two in `AGENTS.md` (the reuse order's glue-code and
+    no-reimplementation rules) and one in the constitution (retaining
+    storage roots), reported
+    to the user without changes; one in `docs/architecture.md` (the Wiki
+    judgment step sends through the work plugin's education-mode backfire)
+    and one in `docs/backfire.md` (the plugins' `mcp.json` servers), which
+    stand: both still describe those paths, and `map` starts its own
+    server. `doc-regions:audit` listed 20 MemoryLint findings, all on the
+    constitution's layout, which this feature does not touch.
 - [ ] T014 Develop merge review by a fresh reviewer from another provider;
   resolve findings; review-record commit; ask the develop session for the
   finish slot; check `develop` has not moved; `git flow feature finish`;
