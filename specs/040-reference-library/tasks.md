@@ -64,3 +64,9 @@
     Copilot `auto` with the balance tier (probability 0.38, confidence 0.28;
     Grok 0.28, Cursor 0.15, Codex 0.13, Antigravity 0.00). Claude Code
     implemented the feature, so it was not a candidate.
+  - Reviewer: a fresh Copilot CLI session (`auto`, balance tier; the status line
+    showed `Auto · Balance → gpt-5.6-luna`), started through Orca's terminal
+    path, read-only, given the scope `ab02ad5..c3b678f` and the spec. It found
+    no findings (high 0, medium 0, low 0) in about 11 minutes and used 2.16 AI
+    credits of the Free plan's 200 a month. One path-access prompt for the
+    Caddy binary was allowed once.
