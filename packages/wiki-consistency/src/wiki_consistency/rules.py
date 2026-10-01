@@ -73,7 +73,8 @@ def _ignored_lines(document, text):
     if end is not None:
         in_sources = False
         for number, line in enumerate(lines[1 : end - 1], 2):
-            if line.strip() and not line[0].isspace():
+            # A list item at column 0 still belongs to the key above it.
+            if line.strip() and not line[0].isspace() and line[0] != "-":
                 in_sources = bool(re.match(r"^sources\s*:", line))
             if in_sources:
                 ignored.add(number)
