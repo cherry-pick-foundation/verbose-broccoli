@@ -22,6 +22,7 @@
     "scripts/plugin-skills-test.ts",
     "scripts/plugins-validate-test.ts",
     "scripts/ruff-test.ts",
+    "scripts/turbo-cache-test.ts",
     "scripts/wiki-raw-import-test.ts",
     "scripts/workflow-graph-test.ts",
     "scripts/workflow-plan-test.ts",

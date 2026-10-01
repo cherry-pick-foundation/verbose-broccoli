@@ -84,7 +84,13 @@ triggers. `verify` runs `npm run check` through Turborepo with a run summary
 and passes only when the checks exit 0 and the same run's summary under
 `.turbo/runs/` (ignored by Git) reports no failure; it prints VERIFIED. The
 Turborepo runs turn telemetry and update notices off and ignore remote-cache
-credentials. dependency-cruiser 18.2.0 answers the graph queries and checks
+credentials. Turborepo replays a check from its local cache when none of the
+check's inputs changed, and linked worktrees share the main worktree's
+`.turbo/cache`. Besides the repository's files, `turbo.json` hashes the
+installed npm and uv environments' records and `scripts/toolchain.sh`'s hash of
+the programs and Git configuration outside the repository; the checks that read
+anything else stay uncached and say why in their description
+([research](../specs/039-cpu-load-relief/research.md)). dependency-cruiser 18.2.0 answers the graph queries and checks
 TypeScript and JavaScript imports with the rules in `.dependency-cruiser.json`
 (`npm run clean-architecture`); a new package's public entries need a line
 there. import-linter 2.15 checks the Python packages' layers and cycles with

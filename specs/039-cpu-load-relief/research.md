@@ -1,0 +1,179 @@
+# Research: CPU Load Relief
+
+Facts were read from Turborepo 2.11.5 in this repository
+(`node_modules/@turbo/linux-64/bin/turbo`), its `--dry=json` plans and
+`-vv` logs, and the task commands and tests at `develop` 1eef330.
+
+## D1. What Turborepo hashes by default
+
+- A root task (`//#name`) hashes every file of the root package. The root
+  package holds the whole repository: the dry plan at 1eef330 listed 813
+  input files for `//#lint`, equal to `git ls-files | wc -l`. An untracked,
+  unignored file is hashed too (a probe file raised the count to 814); an
+  ignored file is not, unless a task or `globalDependencies` names it, which
+  Turborepo then hashes (probes in `.local/` and `node_modules/`).
+- A uv workspace package's task hashes its own files, the root Python
+  configuration (`../../pyproject.toml`, `../../.python-version`,
+  `../../ruff.toml` and the other names Turborepo's Python support adds) and
+  every workspace package it depends on: `credit-offers#test` lists 37 files
+  under `packages/backfire/`, and `wiki-consistency#test` 54 under
+  `packages/backfire/` and `packages/doc-regions/`. Its
+  `hashOfExternalDependencies` covers its part of `uv.lock`.
+- Turborepo hashes no folder, so an empty folder is invisible to it.
+- Turborepo caches only successful tasks, and the run summary counts a
+  replayed task as a success with `cache.status` `HIT`; `npm run verify`
+  still reads `execution.failed` and `execution.exitCode` from the same run's
+  summary (`scripts/workflow-verify.ts`).
+- In a linked worktree with no `cacheDir` set, Turborepo uses the main
+  worktree's cache: `-vv` logs "Using shared worktree cache at:
+  …/develop/.turbo/cache".
+
+## D2. Repository files
+
+- **Decision**: Keep the root tasks' default inputs (the whole repository,
+  tracked and untracked). For package tasks, keep the defaults and declare
+  the files outside the package that a task reads: `doc-regions#test` runs
+  `scripts/doc_sources_test.py`, which imports `scripts/doc_sources.py`.
+- **Why**: The whole repository over-approximates every root task, so a
+  missed reader is impossible; narrower inputs would need a proof per task
+  for a saving only across worktrees with different code. Turborepo's Python
+  support already adds imported workspace packages, so declaring them again
+  would add nothing.
+- **Checked**: the Python tests read outside their package only through
+  `scripts/doc_sources*.py` (doc-regions) and the root `pyproject.toml`
+  (wiki-consistency's import-boundary test, a default input).
+
+## D3. Programs outside the repository
+
+- **Decision**: `scripts/toolchain.sh` prints one SHA-256 over the versions
+  of `node`, `npm`, `uv`, `python3`, `git`, `git flow` and `vale`, the
+  resolved interpreters of `uv python find 3.14`, `.venv` and
+  `tools/*/.venv`, and the system and global Git configuration (with
+  includes). The `turborepo` npm script passes it to Turborepo as
+  `VERBOSE_BROCCOLI_TOOLCHAIN`, which `globalEnv` hashes for every task.
+- **Why**: These programs live outside the repository, so no file input can
+  name them. They are what the cached tasks run: Node and npm for every npm
+  script, uv and the interpreters for the Python tasks and tools, `python3`
+  for the raw-import test's fixtures, Git and git-flow-next for the Git and
+  workflow tests, Vale for wiki-consistency. Several are not pinned by any
+  repository file (`uv` resolves to `~/.local/bin/uv`, `git flow` to
+  `~/.local/bin/git-flow`, the tool environments to a floating
+  `cpython-3.14` link). Some Python tests run Git without isolating its
+  configuration, so the configuration outside the repository is hashed too.
+- **Only standard output is hashed**: a test run under Node's permission
+  flags made `npm --version` print a warning with its process ID, which
+  changed the hash on every run.
+- **Hashed environment variables**: `UV_*`, `MISE_*`, `CI` and
+  `VERBOSE_BROCCOLI_CONFIG` move from `globalPassThroughEnv` to `globalEnv`,
+  because they can change how uv, mise or a tool behaves; their values are
+  the same in every worktree here. `HOME`, `PATH`, `XDG_*`, `TMPDIR`,
+  `RUSTUP_HOME`, `CARGO_HOME` and `PYTHONDONTWRITEBYTECODE` stay
+  pass-through: `PATH` differs per worktree (npm adds the worktree's
+  `node_modules/.bin`) and the programs it finds are in the fingerprint; the
+  others place files or caches, and the per-user configuration they locate
+  is either Git's, which is hashed, or isolated by the tests.
+- **Cost**: about 0.1 s per Turborepo run.
+
+## D4. Generated and installed files
+
+- **Decision**: `globalDependencies` names the installed environments'
+  records, all ignored by Git: `node_modules/.package-lock.json` and
+  `packages/wiki-consistency/node_modules/.package-lock.json` (npm's record
+  of each installed tree) and the `METADATA` of every installed
+  distribution in `.venv` and `tools/*/.venv`.
+- **Why**: Tasks run from these environments, not from the lock files (`uv
+  run --frozen --offline --no-sync`), so a stale environment must change the
+  hash by itself. The records hold no worktree path: the hidden npm lockfiles
+  of this worktree and `develop` are byte-identical, and `METADATA` holds a
+  distribution's name, version and dependencies. `pyvenv.cfg` and `RECORD`
+  were not used: they hold the worktree's folder name and absolute paths,
+  which would stop sharing across worktrees.
+- **Other generated files**: tracked generated files (for example
+  `packages/backfire/src/backfire_education/regions.json`) are repository
+  files. `__pycache__` folders are ignored and Python checks them against
+  their sources; the Python tasks run with `PYTHONDONTWRITEBYTECODE=1`.
+
+## D5. Tasks that stay uncached
+
+| Task | Reason |
+| --- | --- |
+| `//#doctor` | It checks the installed tools and environments against their pins; it must run every time. |
+| `//#lint:names` | ls-lint checks folder names, and Turborepo does not hash empty folders. |
+| `//#test:lint-names` | It finds ls-lint with `mise which`; mise's version and global configuration are not hashed. |
+| `//#test:mise-doctor` | It runs `mise doctor`; mise's version and global configuration are not hashed. |
+| `//#test:constitution-bump` | It runs `mise exec`; mise's version and global configuration are not hashed. |
+| `verbose-broccoli-python#check`, `#test` and the packages' `#check` | They run `true` to group other tasks; caching saves nothing. |
+
+These five took about 10 s together in `develop`'s last full run. The tasks
+outside `npm run verify` (`doc-regions:update`, `prepare`, `audit`) keep
+`cache: false`; they write files or call a model.
+
+## D6. Cached tasks and what they run
+
+Every cached task also hashes D3's fingerprint and variables and D4's
+records. Root tasks hash the whole repository (D2).
+
+| Task | Programs it runs | Outside reads |
+| --- | --- | --- |
+| `//#format:check` | Prettier (root npm tree), ruff (`tools/ruff`), `git ls-files` | none |
+| `//#lint` | gts and ESLint (root npm tree), ruff | none |
+| `//#lint:shell` | `git ls-files`, shellcheck (`tools/shellcheck`) | none |
+| `//#typecheck` | tsc | none |
+| `//#plugins:validate`, `//#test:plugins-validate` | check-jsonschema (`tools/check-jsonschema`), npm | none |
+| `//#clean-code`, `//#test:clean-code` | Node | none |
+| `//#clean-architecture`, `//#test:clean-architecture` | dependency-cruiser | none |
+| `//#python:imports` | import-linter (`.venv`) | none |
+| `//#doc-regions:check` | doc-regions (`.venv`), Node for command help | none |
+| `//#backfire:regions:check`, `//#test:backfire-regions` | Node | none |
+| `//#test:ruff`, `//#test:gts` | ruff; gts and Prettier | none |
+| `//#test:git-flow`, `//#test:worktree-branch`, `//#test:commit-msg` | Git, git-flow-next, commitlint | Git configuration isolated by each test |
+| `//#test:plugin-skills` | Node | temporary `XDG_CONFIG_HOME` |
+| `//#test:workflow` | Git, dependency-cruiser | fixture repositories; some run Git with the outside configuration, which D3 hashes |
+| `//#test:cli-contract` | Node, npm (`npm ci --prefer-offline` from the clean-code skill's lock) | npm's cache, integrity-checked against the lock |
+| `//#test:session-select`, `//#test:grammatical-competence` | pytest (`.venv`) | temporary homes |
+| `//#test:wiki-raw-import` | uv (`--locked --offline --script` from `raw_import.py.lock`), `python3`, Git | uv's cache, hash-checked against the lock; temporary home |
+| `//#test:turbo-cache` | npm, Turborepo, Git | a temporary copy of the repository |
+| `backfire#test`, `jev-ultrafast#test`, `credit-offers#test` | pytest (`.venv`), uv | none; temporary configuration folders |
+| `doc-regions#test` | pytest, Git | `scripts/doc_sources.py`, `scripts/doc_sources_test.py` (declared) |
+| `wiki-consistency#test` | pytest, Git, Vale, qmd (its npm tree) | root `pyproject.toml` (default input) |
+
+Tests that compare dates inject the clock (`credit_offers._block(now=…)`,
+`session_select.render(now=…)`).
+
+## D7. Cache location and trust
+
+- **Decision**: Use Turborepo's default, shared worktree cache
+  (`develop/.turbo/cache`), and ignore `/.turbo/` instead of
+  `/.turbo/runs/`. Remote caching stays off (the `turborepo` script already
+  unsets the remote-cache credentials and isolates Turborepo's config
+  folders).
+- **Why**: Several worktrees verify nearly the same packages; sharing lets
+  one worktree replay another's unchanged package tests. Without the ignore
+  rule, cache files would show as untracked in `develop` and enter the root
+  tasks' hashes there.
+- **Development runs**: until this feature merges, `develop` does not
+  ignore `.turbo/cache/`, so runs in this worktree set `TURBO_CACHE_DIR` to
+  the worktree's own `.turbo/cache`. The finish hook's verify writes to the
+  shared folder moments before the merge brings the ignore rule.
+- **Trust**: the local cache is not signed. Any process of the user can
+  write to it, as it can to any worktree; a shared cache adds no writer that
+  could not already change the code being verified.
+
+## D8. Tests
+
+`scripts/turbo-cache-test.ts` copies the working tree's tracked and
+untracked files into a temporary Git repository, adds stand-ins for the
+installed records, and compares `--dry=json` hashes through the real
+`npm run turborepo` script before and after a change:
+
+- a file outside a package (`scripts/doc_sources.py`) changes
+  `doc-regions#test` and `//#lint`, not `backfire#test`;
+- a workspace dependency's source changes its dependents' hashes, not
+  unrelated packages';
+- a new untracked file changes the root tasks;
+- each installed record changes every cached task;
+- a different `git --version`, a different global Git configuration and a
+  set `UV_PYTHON` each change every cached task.
+
+Hashes stand in for reruns because Turborepo looks results up by hash. Each
+test fails when its declaration is removed (T004).
