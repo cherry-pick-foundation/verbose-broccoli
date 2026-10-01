@@ -2,18 +2,38 @@
   "$schema": "https://turborepo.dev/schema.json",
   "agentGuidance": false,
   "noUpdateNotifier": true,
+  "globalDependencies": [
+    ".venv/lib/**",
+    "tools/ruff/.venv/lib/**",
+    "tools/shellcheck/.venv/lib/**",
+    "tools/check-jsonschema/.venv/lib/**",
+    "!**/__pycache__/**",
+    "!**/*.pth",
+    "!**/*.dist-info/direct_url.json",
+    "!**/*.dist-info/RECORD",
+    "!**/*.dist-info/uv_cache.json"
+  ],
+  "globalEnv": [
+    "VERBOSE_BROCCOLI_TOOLCHAIN",
+    "UV_*",
+    "MISE_*",
+    "CI",
+    "VERBOSE_BROCCOLI_CONFIG",
+    "NODE_OPTIONS",
+    "COREPACK_*",
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "TZ",
+    "SHELL"
+  ],
   "globalPassThroughEnv": [
     "HOME",
     "PATH",
     "XDG_*",
-    "UV_*",
-    "MISE_*",
     "RUSTUP_HOME",
     "CARGO_HOME",
     "PYTHONDONTWRITEBYTECODE",
-    "TMPDIR",
-    "CI",
-    "VERBOSE_BROCCOLI_CONFIG"
+    "TMPDIR"
   ],
   "futureFlags": {
     "experimentalPythonWorkspaces": true,
@@ -21,44 +41,78 @@
   },
   "tasks": {
     "//#doctor": {
-      "description": "Run mise's project checks",
+      "description": "Run mise's project checks; uncached because it checks the installed tools and environments",
       "cache": false
     },
-    "//#format:check": {"cache": false},
-    "//#lint": {"cache": false},
-    "//#lint:shell": {"cache": false},
-    "//#lint:names": {"cache": false},
-    "//#typecheck": {"cache": false},
-    "//#plugins:validate": {"cache": false},
-    "//#test:plugins-validate": {"cache": false},
-    "//#clean-code": {"cache": false},
-    "//#clean-architecture": {"cache": false},
-    "//#python:imports": {"cache": false},
-    "//#doc-regions:check": {
-      "description": "Check mechanical regions and local links in the target documents, offline and without writing",
+    "//#format:check": {},
+    "//#lint": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+        "!**/node_modules/**"
+      ]
+    },
+    "//#lint:shell": {},
+    "//#lint:names": {
+      "description": "Check file and folder names with ls-lint; uncached because Turborepo does not hash empty folders",
       "cache": false
+    },
+    "//#typecheck": {},
+    "//#plugins:validate": {},
+    "//#test:plugins-validate": {},
+    "//#clean-code": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "{plugins,packages,scripts}/**/*.{ts,tsx,mts,cts}",
+        "!**/node_modules/**"
+      ]
+    },
+    "//#clean-architecture": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "{packages,plugins,scripts}/**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+        "!**/node_modules/**"
+      ]
+    },
+    "//#python:imports": {},
+    "//#doc-regions:check": {
+      "description": "Check mechanical regions and local links in the target documents, offline and without writing"
     },
     "//#backfire:regions:check": {
-      "description": "Check that backfire's generated region list matches the vendored legal-district codes, offline and without writing",
+      "description": "Check that backfire's generated region list matches the vendored legal-district codes, offline and without writing"
+    },
+    "//#test:backfire-regions": {},
+    "//#test:ruff": {},
+    "//#test:gts": {},
+    "//#test:git-flow": {},
+    "//#test:constitution-bump": {
+      "description": "Test the constitution version bump; uncached because it runs mise exec, whose version and global config are not hashed",
       "cache": false
     },
-    "//#test:backfire-regions": {"cache": false},
-    "//#test:ruff": {"cache": false},
-    "//#test:gts": {"cache": false},
-    "//#test:git-flow": {"cache": false},
-    "//#test:constitution-bump": {"cache": false},
-    "//#test:worktree-branch": {"cache": false},
-    "//#test:lint-names": {"cache": false},
-    "//#test:secrets-refresh": {"cache": false},
-    "//#test:commit-msg": {"cache": false},
-    "//#test:plugin-skills": {"cache": false},
-    "//#test:reference-library": {"cache": false},
-    "//#test:clean-code": {"cache": false},
-    "//#test:clean-architecture": {"cache": false},
-    "//#test:workflow": {"cache": false},
-    "//#test:mise-doctor": {"cache": false},
-    "//#test:cli-contract": {"cache": false},
-    "//#test:session-select": {"cache": false},
+    "//#test:worktree-branch": {},
+    "//#test:lint-names": {
+      "description": "Test the name check; uncached because it finds ls-lint through mise, whose version and global config are not hashed",
+      "cache": false
+    },
+    "//#test:secrets-refresh": {},
+    "//#test:commit-msg": {},
+    "//#test:plugin-skills": {
+      "description": "Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders",
+      "cache": false
+    },
+    "//#test:reference-library": {
+      "description": "Test the reference-library setup; uncached because it runs gio, a desktop program whose presence and version are not hashed",
+      "cache": false
+    },
+    "//#test:clean-code": {},
+    "//#test:clean-architecture": {},
+    "//#test:workflow": {},
+    "//#test:mise-doctor": {
+      "description": "Test mise's project checks; uncached because it runs mise, whose version and global config are not hashed",
+      "cache": false
+    },
+    "//#test:cli-contract": {},
+    "//#test:session-select": {},
     "backfire#test": {
       "command": [
         "env",
@@ -74,8 +128,7 @@
         "backfire",
         "pytest",
         "packages/backfire/tests"
-      ],
-      "cache": false
+      ]
     },
     "doc-regions#test": {
       "command": [
@@ -96,7 +149,11 @@
         "packages/doc-regions/tests",
         "scripts/doc_sources_test.py"
       ],
-      "cache": false
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../../scripts/doc_sources.py",
+        "../../scripts/doc_sources_test.py"
+      ]
     },
     "jev-ultrafast#test": {
       "command": [
@@ -116,8 +173,7 @@
         "-p",
         "no:cacheprovider",
         "packages/jev-ultrafast/tests"
-      ],
-      "cache": false
+      ]
     },
     "credit-offers#test": {
       "command": [
@@ -136,8 +192,7 @@
         "-p",
         "no:cacheprovider",
         "packages/credit-offers/tests"
-      ],
-      "cache": false
+      ]
     },
     "wiki-consistency#test": {
       "command": [
@@ -154,11 +209,11 @@
         "wiki-consistency",
         "pytest",
         "packages/wiki-consistency/tests"
-      ],
-      "cache": false
+      ]
     },
-    "//#test:grammatical-competence": {"cache": false},
-    "//#test:wiki-raw-import": {"cache": false},
+    "//#test:grammatical-competence": {},
+    "//#test:wiki-raw-import": {},
+    "//#test:turbo-cache": {},
     "verbose-broccoli-python#test": {
       "command": ["true"],
       "dependsOn": [
@@ -186,7 +241,8 @@
         "wiki-consistency#test",
         "//#test:grammatical-competence",
         "//#test:session-select",
-        "//#test:wiki-raw-import"
+        "//#test:wiki-raw-import",
+        "//#test:turbo-cache"
       ],
       "cache": false
     },
