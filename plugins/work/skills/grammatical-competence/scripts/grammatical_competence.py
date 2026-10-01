@@ -24,6 +24,7 @@ from wiki_consistency.instance import revisions
 from wiki_consistency.instance import roots
 
 LIMIT = 200 * 1024**2
+SECTION = 20_000  # Characters of one reference section sent as evidence.
 BACKFIRE = Path(__file__).resolve().parents[5] / "packages/backfire"
 HANGUL = re.compile("[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]")
 OUTCOMES = {
@@ -61,10 +62,14 @@ def _norm(text):
     return " ".join(text.split())
 
 
+def _page(root, page):
+    text = (root / "wiki" / page).read_text(encoding="utf-8")
+    return yaml.safe_load(text.split("---\n", 2)[1])
+
+
 def _inventory(root, page):
     """Return the inventory page's metadata and its items by key."""
-    text = (root / "wiki" / page).read_text(encoding="utf-8")
-    metadata = yaml.safe_load(text.split("---\n", 2)[1])
+    metadata = _page(root, page)
     spec, source = metadata["inventory"], metadata["sources"][0]
     item = next(
         item
@@ -171,24 +176,43 @@ def _refusals(run, proposals, entries):
             yield f"proposal {n}: item key is not in the inventory"
 
 
-async def _send(run, todo, entries, claim, done):
+def _sections(root, args, run):
+    """Return the reference page, its text's lines and the section index."""
+    page = _page(root, args.reference)
+    text = Path(args.reference).parent / page["reference"]["text"]
+    lines = (root / "wiki" / text).read_text(encoding="utf-8").splitlines()
+    index = {}
+    for line in (run / "sections.tsv").read_text(encoding="utf-8").splitlines():
+        label, first, last = line.split("\t")
+        index[label] = (int(first), int(last))
+    return page, lines, index
+
+
+def _map_refusals(rows, entries, lines, index):
+    for n, row in enumerate(rows, 1):
+        spans = [index.get(label) for label in row["sections"]]
+        if row["item"] not in entries:
+            yield f"mapping {n}: item key is not in the inventory"
+        elif len(spans) > 3:
+            yield f"mapping {n}: more than three sections"
+        elif None in spans or any(map(HANGUL.search, row["sections"])):
+            yield f"mapping {n}: section is not in the index or has Hangul"
+        elif not all(1 <= a <= b <= len(lines) for a, b in spans):
+            yield f"mapping {n}: section lines are outside the text"
+        elif any(len("\n".join(lines[a - 1 : b])) > SECTION for a, b in spans):
+            yield f"mapping {n}: section is over {SECTION} characters"
+
+
+async def _send(run, todo, field, done):
     async with _backfire() as session:
-        for n, row in todo:
+        for n, names, claims, evidence in todo:
             started = time.monotonic()
-            found = [entries[key] for key in sorted(set(row["items"]))]
-            text = _norm(row["text"])
-            parts = ("id", "label", "statement", "examples")
-            evidence = "\n\n".join(
-                [f"Sentence: {text}"]
-                + ["\n".join(e[p] for p in parts) for e in found]
-            )
-            claims = [claim.format(text=text, **e) for e in found]
             arguments = {"claims": claims, "evidence": evidence}
-            response = await _verify(session, arguments) if found else {}
+            response = await _verify(session, arguments) if claims else {}
             results = response.get("results", [])
-            if len(results) != len(found):
+            if len(results) != len(claims):
                 raise ValueError(
-                    f"{len(results)} results for {len(found)} claims"
+                    f"{len(results)} results for {len(claims)} claims"
                 )
             check = {
                 "row": n,
@@ -198,12 +222,12 @@ async def _send(run, todo, entries, claim, done):
                 "results": [
                     {
                         **r,
-                        "item": e["id"],
+                        field: name,
                         "outcome": OUTCOMES.get(
                             (r.get("action"), r.get("verdict")), "unclear"
                         ),
                     }
-                    for e, r in zip(found, results)
+                    for name, r in zip(names, results)
                 ],
             }
             line = json.dumps(check) + "\n"
@@ -213,22 +237,17 @@ async def _send(run, todo, entries, claim, done):
             done.append(check)
 
 
-def _check_command(args, root, run):
-    metadata, entries = _inventory(root, args.inventory)
-    proposals = _jsonl(run / "proposals.jsonl")
-    if refused := list(_refusals(run, proposals, entries)):
-        print(*refused, sep="\n", file=sys.stderr)
-        return 1
+def _checks(run, rows, prepare, field):
+    """Check rows not yet in checks.jsonl, print counts, return exit code."""
     path = run / "checks.jsonl"
     lines = path.read_bytes().split(b"\n") if path.exists() else [b""]
     if lines[-1]:  # A torn last line has no newline: drop it.
         path.write_bytes(b"".join(line + b"\n" for line in lines[:-1]))
     done = [json.loads(line) for line in lines[:-1]]
-    todo = [(n, r) for n, r in enumerate(proposals, 1) if n > len(done)]
+    todo = [(n, *prepare(r)) for n, r in enumerate(rows, 1) if n > len(done)]
     if todo:
-        claim = metadata["inventory"]["claim"]
         try:
-            asyncio.run(_send(run, todo, entries, claim, done))
+            asyncio.run(_send(run, todo, field, done))
         except Exception as error:  # noqa: BLE001 - any backfire failure.
             while getattr(error, "exceptions", None):  # A task group.
                 error = error.exceptions[0]
@@ -236,7 +255,7 @@ def _check_command(args, root, run):
             return 2
     results = [r for c in done for r in c["results"]]
     report = {
-        "sentences": len(proposals),
+        "rows": len(rows),
         "calls": sum(bool(c["results"]) for c in done),
         "invalid": sum(r.get("verdict") in (None, "unknown") for r in results),
         "tokens": sum(
@@ -252,6 +271,57 @@ def _check_command(args, root, run):
     return int(report["invalid"] > 0)
 
 
+def _refuse(refused):
+    print(*refused, sep="\n", file=sys.stderr)
+    return 1
+
+
+def _check_command(args, root, run):
+    metadata, entries = _inventory(root, args.inventory)
+    proposals = _jsonl(run / "proposals.jsonl")
+    if refused := list(_refusals(run, proposals, entries)):
+        return _refuse(refused)
+    claim = metadata["inventory"]["claim"]
+
+    def prepare(row):
+        found = [entries[key] for key in sorted(set(row["items"]))]
+        text = _norm(row["text"])
+        parts = ("id", "label", "statement", "examples")
+        evidence = "\n\n".join(
+            [f"Sentence: {text}"]
+            + ["\n".join(e[p] for p in parts) for e in found]
+        )
+        claims = [claim.format(text=text, **e) for e in found]
+        return [e["id"] for e in found], claims, evidence
+
+    return _checks(run, proposals, prepare, "item")
+
+
+def _map_command(args, root, run):
+    entries = _inventory(root, args.inventory)[1]
+    page, lines, index = _sections(root, args, run)
+    rows = _jsonl(run / "mappings.jsonl")
+    if refused := list(_map_refusals(rows, entries, lines, index)):
+        return _refuse(refused)
+
+    def prepare(row):
+        e = entries[row["item"]]
+        texts = [f"Item {e['id']}: {e['label']}\n{e['statement']}"]
+        texts[0] += f"\n{e['examples']}"
+        claims = []
+        for label in row["sections"]:
+            first, last = index[label]
+            kept = [s for s in lines[first - 1 : last] if not HANGUL.search(s)]
+            texts.append(f"Section {label}:\n" + "\n".join(kept))
+            claims.append(
+                f"{page['title']}, section {label}, explains "
+                f"{e['label']}: {e['statement']}"
+            )
+        return row["sections"], claims, "\n\n".join(texts)
+
+    return _checks(run, rows, prepare, "section")
+
+
 def _outcome(result, auto_accept):
     """Return a stored result's outcome, re-sorted at a threshold if given."""
     if auto_accept is None:
@@ -263,52 +333,84 @@ def _outcome(result, auto_accept):
 
 def _record_command(args, root, run):
     metadata, entries = _inventory(root, args.inventory)
-    proposals = _jsonl(run / "proposals.jsonl")
+    rows = _jsonl(
+        run / ("mappings.jsonl" if args.reference else "proposals.jsonl")
+    )
     checks = _jsonl(run / "checks.jsonl")
-    if [c["row"] for c in checks] != list(range(1, len(proposals) + 1)):
-        raise LookupError("checks.jsonl does not cover every proposal")
-    order = {e["id"]: key for key, e in entries.items()}
-    rows = []
-    for n, (proposal, check) in enumerate(zip(proposals, checks), 1):
-        by = {
-            o: [
-                r["item"]
-                for r in check["results"]
+    if [c["row"] for c in checks] != list(range(1, len(rows) + 1)):
+        raise LookupError("checks.jsonl does not cover every row")
+    field = "section" if args.reference else "item"
+    kept, unclear = (
+        [
+            [
+                r[field]
+                for r in c["results"]
                 if _outcome(r, args.auto_accept) == o
             ]
-            for o in ("kept", "unclear")
-        }
-        rows.append(
+            for c in checks
+        ]
+        for o in ("kept", "unclear")
+    )
+    inventory = f"[inventory](../{args.inventory})"
+    if args.reference:
+        reference, _, index = _sections(root, args, run)
+
+        def spans(labels):
+            return [{"label": s, "lines": list(index[s])} for s in labels]
+
+        data = [
+            {
+                "item": entries[k]["id"],
+                "sections": spans(s),
+                "unclear": spans(u),
+            }
+            for k, s, u in sorted(zip((r["item"] for r in rows), kept, unclear))
+        ]
+        kind, folder, unit = "mapping", "mappings", "items"
+        sources = metadata["sources"] + reference["sources"]
+        links = {"reference": f"../{args.reference}"}
+        body = (
+            f"the sections of the [reference](../{args.reference}) that "
+            f"explain each item of the {inventory}"
+        )
+    else:
+        order = {e["id"]: key for key, e in entries.items()}
+        data = [
             {
                 "n": n,
                 "source": proposal["source"],
                 "part": proposal["part"],
                 "text": _norm(proposal["text"]),
-                "items": sorted(by["kept"], key=order.get),
-                "unclear": by["unclear"],
+                "items": sorted(k, key=order.get),
+                "unclear": u,
             }
-        )
-    kept = sum(len(r["items"]) for r in rows)
-    unclear = sum(len(r["unclear"]) for r in rows)
+            for n, (proposal, k, u) in enumerate(zip(rows, kept, unclear), 1)
+        ]
+        kind, folder, unit = "profile", "profiles", "sentences"
+        sources = [
+            {"id": s, "revision": revisions(root)[s][-1]["revision"]}
+            for s in dict.fromkeys(p["source"] for p in rows)
+        ]
+        sources += metadata["sources"]
+        links = {}
+        body = f"every sentence and its items, from the {inventory}"
+    kept, unclear = sum(map(len, kept)), sum(map(len, unclear))
     proposed = sum(len(c["results"]) for c in checks)
-    sources = [
-        {"id": s, "revision": revisions(root)[s][-1]["revision"]}
-        for s in dict.fromkeys(p["source"] for p in proposals)
-    ]
     checker = {f"{c['provider']} {c['model']}" for c in checks if c["provider"]}
     page = {
         "title": args.title,
         "summary": args.summary,
         "topics": metadata["topics"],
-        "sources": sources + metadata["sources"],
-        "profile": {
+        "sources": sources,
+        kind: {
             "inventory": f"../{args.inventory}",
+            **links,
             "data": f"{args.name}.jsonl",
             "proposer": args.proposer,
             "checker": "; ".join(sorted(checker)),
             **({"auto_accept": args.auto_accept} if args.auto_accept else {}),
             "counts": {
-                "sentences": len(rows),
+                unit: len(data),
                 "kept": kept,
                 "dropped": proposed - kept - unclear,
                 "unclear": unclear,
@@ -316,14 +418,13 @@ def _record_command(args, root, run):
         },
     }
     body = (
-        f"{args.title}: every sentence and its items, from the "
-        f"[inventory](../{args.inventory}); rows in "
+        f"{args.title}: {body}; rows in "
         f"[{args.name}.jsonl]({args.name}.jsonl).\n"
     )
     front = yaml.safe_dump(page, sort_keys=False, allow_unicode=True)
-    data = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows)
-    _write(root / f"wiki/profiles/{args.name}.jsonl", data)
-    _write(root / f"wiki/profiles/{args.name}.md", f"---\n{front}---\n\n{body}")
+    data = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in data)
+    _write(root / f"wiki/{folder}/{args.name}.jsonl", data)
+    _write(root / f"wiki/{folder}/{args.name}.md", f"---\n{front}---\n\n{body}")
 
 
 def main(argv=None):
@@ -345,6 +446,8 @@ def main(argv=None):
     names = ("inventory", "name", "title", "summary", "proposer")
     record = command("record", _record_command, *names)
     record.add_argument("--auto-accept", type=float)
+    record.add_argument("--reference")
+    command("map", _map_command, "inventory", "reference")
     extract = command("extract", _extract_command)
     extract.add_argument("--source", nargs="+", required=True)
     args = parser.parse_args(argv)

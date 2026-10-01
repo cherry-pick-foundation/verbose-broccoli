@@ -105,7 +105,7 @@ with the item's inventory ID as `item` and the `outcome` added. A run that
 stopped is rerun with the same command: sentences already in `checks.jsonl`
 are not sent again, and a torn last line is dropped first.
 
-The command prints one JSON object over all recorded results: `sentences`,
+The command prints one JSON object over all recorded results: `rows`,
 `calls`, `invalid` (results without a verdict or with `unknown`), `tokens`
 (usage `input_tokens` plus `output_tokens`), `seconds`, and the counts `kept`,
 `dropped` and `unclear`. Exit code 1 means `invalid` is above zero.
@@ -230,7 +230,35 @@ reference:
 
 ### Mapping: `wiki/mappings/<inventory>--<reference>.md` and `.jsonl`
 
-The layout and method are designed here; a later feature builds the mappings.
+A mapping links each item of an inventory to at most three sections of one
+reference that explain it. Build it in its own run folder:
+
+1. `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`.
+2. A section index worker, chosen with `model-choice`, writes `sections.tsv`:
+   one line per section of the reference's text file, with three
+   tab-separated columns: the label, the first line and the last line
+   (one-based, inclusive). Sections are the book's own units or numbered
+   sections, labeled in English as the book labels them, such as `Unit 12`,
+   and each holds at most 20,000 characters; split a longer one at its
+   subsections. The extraction's heading levels are not reliable; its
+   `## PDF Page <n>` lines are.
+3. A proposer, chosen the same way, writes `mappings.jsonl`: one row per
+   line of `inventory.tsv`, in key order,
+   `{"item": <key>, "sections": [<label>, ...]}`, with at most three labels
+   and an empty list when no section explains the item.
+4. `map --inventory inventories/<inventory>.md --reference
+   references/<reference>.md` first refuses rows whose key is not in the
+   inventory, that name more than three sections, a label not in the index
+   or with Hangul, lines outside the text, or a section over 20,000
+   characters, as `mapping <n>: <reason>` with exit code 1. Then it sends
+   each row with sections as one `jev_verify` call: one claim per section,
+   `<reference title>, section <label>, explains <item label>: <statement>`,
+   and one evidence text with the item's ID, label, statement and examples,
+   then each section's lines, leaving out every line with Hangul. Results,
+   resumption and the printed counts work as in `check`, with `section` in
+   place of `item`.
+5. `record` with `--reference references/<reference>.md` and `--name
+   <inventory>--<reference>` writes the mapping record instead of a profile.
 
 ```yaml
 mapping:
@@ -239,21 +267,16 @@ mapping:
   data: <inventory>--<reference>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
+  auto_accept: <t, when record was given one>
   counts: {items: 0, kept: 0, dropped: 0, unclear: 0}
 ```
 
-`sources` cites the inventory spreadsheet and the reference's raw PDF. A
-section is addressed by its heading path in the reference's text file, such
-as `Unit 12 > 12A`. Data rows, one per item, in inventory order:
+`sources` cites the inventory's sources, then the reference page's. Data
+rows, one per item, in inventory order:
 
 ```json
-{"item": "<id>", "sections": ["<heading path>"], "unclear": ["<heading path>"]}
+{"item": "<id>", "sections": [{"label": "Unit 12", "lines": [100, 180]}], "unclear": []}
 ```
 
-The proposer may name at most three sections for each item. A check sends
-one `jev_verify` call per item, with one claim per proposed section:
-`<reference> section <path> explains <label>: <statement>`. Evidence has the
-item's statement and examples and each proposed section's text. Each run
-reports its unclear share. Once the pilot sets a limit with the user, stop a
-run that exceeds it and change the method before continuing; keep unresolved
-items in the record instead of building a review queue.
+Each run reports its unclear share. Keep unclear sections in the record
+instead of building a review queue.

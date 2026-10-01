@@ -326,3 +326,102 @@ def test_a_tier_family_is_one_item(backfire):
     root = instance_path("synthetic", os.environ)
     (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
     assert row["items"] == ["small"]
+
+
+@pytest.mark.usefixtures("vault")
+def test_map_checks_sections_without_hangul_and_records_them(
+    backfire, capsys, monkeypatch
+):
+    root = instance_path("synthetic", os.environ)
+    reference = {
+        "title": "Synthetic reference",
+        "summary": "A reference for tests.",
+        "topics": ["Teaching materials"],
+        "sources": [{"id": "reference-source", "revision": REVISION}],
+        "reference": {"text": "reference.markdown"},
+    }
+    (root / "wiki/references").mkdir()
+    front = yaml.safe_dump(reference, sort_keys=False)
+    (root / "wiki/references/reference.md").write_text(f"---\n{front}---\n")
+    # The third line is Korean, escaped, so this file holds no Hangul.
+    lines = (
+        "# Unit 1",
+        "Support here.",
+        "\ud55c\uad6d\uc5b4",
+        "# Unit 2",
+        "Else.",
+    )
+    (root / "wiki/references/reference.markdown").write_text("\n".join(lines))
+    run = profile._run_dir("run")
+    run.mkdir(parents=True)
+    index = "Unit 1\t1\t3\nUnit 2\t4\t5\nPast the end\t4\t9\n"
+    (run / "sections.tsv").write_text(index)
+    mapping = "map --inventory inventories/inventory.md "
+    mapping += "--reference references/reference.md"
+
+    def rows(*found):
+        text = "".join(
+            json.dumps({"item": k, "sections": s}) + "\n" for k, s in found
+        )
+        (run / "mappings.jsonl").write_text(text)
+
+    rows((6, []), (1, ["Unit 1"] * 4), (1, ["Unit 3"]), (1, ["Past the end"]))
+    assert _run(mapping) == 1
+    err = capsys.readouterr().err
+    assert "mapping 1: item key is not in the inventory" in err
+    assert "mapping 2: more than three sections" in err
+    assert "mapping 3: section is not in the index or has Hangul" in err
+    assert "mapping 4: section lines are outside the text" in err
+    limit = profile.SECTION
+    monkeypatch.setattr(profile, "SECTION", 5)
+    rows((1, ["Unit 2"]))
+    assert _run(mapping) == 1
+    assert "mapping 1: section is over 5 characters" in capsys.readouterr().err
+    monkeypatch.setattr(profile, "SECTION", limit)
+    assert not backfire.calls
+
+    rows((2, []), (1, ["Unit 1", "Unit 2"]))
+    backfire.reply = lambda _: {
+        "provider": "synthetic",
+        "model": "stub",
+        "results": [
+            {"verdict": "verified", "action": "auto"},
+            {"verdict": "verified", "action": "review"},
+        ],
+    }
+    assert _run(mapping) == 0
+    (call,) = backfire.calls
+    assert call["claims"][0] == (
+        "Synthetic reference, section Unit 1, explains Keep / Group: "
+        "Shows support."
+    )
+    assert call["evidence"] == (
+        "Item keep: Keep / Group\nShows support.\nOne.\nTwo.\n\n"
+        "Section Unit 1:\n# Unit 1\nSupport here.\n\n"
+        "Section Unit 2:\n# Unit 2\nElse."
+    )
+    record = RECORD.replace("--name sample", "--name inventory--reference")
+    assert _run(f"{record} --reference references/reference.md") == 0
+    data = _jsonl(root / "wiki/mappings/inventory--reference.jsonl")
+    assert data == [
+        {
+            "item": "keep",
+            "sections": [{"label": "Unit 1", "lines": [1, 3]}],
+            "unclear": [{"label": "Unit 2", "lines": [4, 5]}],
+        },
+        {"item": "drop", "sections": [], "unclear": []},
+    ]
+    page = (root / "wiki/mappings/inventory--reference.md").read_text()
+    front = yaml.safe_load(page.split("---\n")[1])
+    assert front["mapping"] == {
+        "inventory": f"../{INVENTORY}",
+        "reference": "../references/reference.md",
+        "data": "inventory--reference.jsonl",
+        "proposer": "test agent, test model, max",
+        "checker": "synthetic stub",
+        "counts": {"items": 2, "kept": 1, "dropped": 0, "unclear": 1},
+    }
+    assert front["sources"] == [
+        {"id": "inventory-source", "revision": REVISION},
+        {"id": "reference-source", "revision": REVISION},
+    ]
