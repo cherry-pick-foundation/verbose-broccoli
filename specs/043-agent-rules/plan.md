@@ -14,7 +14,8 @@ checks, obtain a fresh review and ask develop for the finish slot.
 
 Writable scope: root and plugin rule files; model-choice's reference;
 all three plugins' skill entrypoints; `scripts/workflow.ts` and its ownership
-regression check, plus the existing isolated-plugin test;
+regression check, plus the existing isolated-plugin test and the narrow
+Ponytail pointer-resolution patch; upstream provenance records and notices;
 the active Linear preset, document-rule report-only inputs and relevant
 architecture ownership text;
 this feature's records. Historical specs and the constitution remain unchanged.

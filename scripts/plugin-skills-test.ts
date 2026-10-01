@@ -100,7 +100,7 @@ void test('plugin skills: isolated packages retain resources and executable help
         [`${pluginDirectory}/tests/hooks.test.js`],
         [
           '-e',
-          `require('assert').match(require('./${pluginDirectory}/hooks/ponytail-instructions').getPonytailInstructions('full'), /## Intensity/)`,
+          `const assert = require('assert'); const path = require('path'); const text = require('./${pluginDirectory}/hooks/ponytail-instructions').getPonytailInstructions('full'); assert.match(text, /## Intensity/); const rules = path.resolve('${pluginDirectory}/AGENTS.md'); assert(text.includes('(' + rules + ')')); assert(require('fs').readFileSync(rules, 'utf8').includes('# Code plugin'));`,
         ],
       ]) {
         const result = spawnSync(process.execPath, args, {

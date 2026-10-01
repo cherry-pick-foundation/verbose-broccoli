@@ -469,7 +469,7 @@ void test('workflow: review instructions time independent review at merge', () =
           'Fix target document units marked contradicted or flagged for review',
         ) &&
         line.includes(
-          'Report AGENTS.md and constitution findings to the user without changing those files',
+          'Report root and plugin AGENTS.md and constitution findings to the user without changing those files',
         ),
     ),
   );
@@ -501,6 +501,9 @@ void test('workflow: every mode prints the Linear completion order', () => {
     assert(
       lines.some(
         line =>
+          line.includes(
+            "the feature orchestrator commits the feature's record on its branch",
+          ) &&
           line.includes('develop orchestrator only') &&
           line.includes('In Review') &&
           line.indexOf('In Review') < line.indexOf('Done') &&

@@ -36,12 +36,12 @@ Read the current vault schema before writing pages or resolving a Korean name
 to a page. The [schema template](skills/wiki-raw-import/assets/AGENTS.md) holds
 the existing English prose, romanized names, school domains and limits on
 personal details, including permitted source quotes and private name resolution.
-Do not revive the earlier Korean stand-ins or name-based page paths. A page
+Use the schema's current romanized names and page identifiers. A page
 identifier is not a Jev stand-in: the gate hides both.
 
 ## School and student facts
 
-Student facts follow EduOK first. Official school names and domains follow the
+Student facts follow the user's EduOK records first. Official school names and domains follow the
 school's actual homepage first; search snippets alone are insufficient. Before
 changing the roster, check every school's homepage, including schools with an
 existing folder. Show the roster spelling, official spelling, domain ID and

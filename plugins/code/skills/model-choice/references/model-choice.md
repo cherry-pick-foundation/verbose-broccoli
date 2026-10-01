@@ -98,10 +98,8 @@ Give backfire facts:
 - The other-provider rule for final reviews: name the implementer's provider
   and state the rule in `priorities`.
 
-Never put credentials into the evidence. Never send student data or other
-personal records through this plugin's backfire, and write the evidence in
-English: backfire refuses any request that contains Hangul. Keep the evidence
-minimal.
+Follow [the code plugin's judgment rules](../../../AGENTS.md) for evidence
+privacy and language. Keep the evidence minimal.
 
 ### Usage limits
 
@@ -245,14 +243,14 @@ every candidate the same, it cannot narrow; decide in steps. Read the
 [`jev_rerank`](../../backfire/reference/tools.md#jev_rerank) blocks before the
 first call.
 
-The judgment runs on a Jev model only, never on a general model such as
-DeepSeek. Backfire's shipped order tries the `openrouter` profile (Jev), then
+The code plugin's Jev-only rule requires the explicit route below. Backfire's
+shipped order tries the `openrouter` profile (Jev), then
 `hive` (DeepSeek), and the plugin's backfire MCP tools follow that order. So
 call backfire with the snippet below, which starts `serve-mcp --profile
 openrouter`: an empty OpenRouter balance then fails instead of switching.
 Check that each answer names `provider` `openrouter` and a Jev `model`, for
-example `typesafe/jev-1.13`. When the Jev profile cannot answer, ask the user;
-do not fall back.
+example `typesafe/jev-1.13`. Follow the code plugin's escalation rule if that
+profile cannot answer.
 
 ## Acting on the answer
 

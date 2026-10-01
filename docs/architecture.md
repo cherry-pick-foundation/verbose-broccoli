@@ -722,10 +722,11 @@ Linear extension is used. The design and its reasons are in
   The Spec Kit preset `linear-issue` in `.specify/presets/` appends that line,
   with instructions, to the spec template. Commits and branch names carry no
   issue ID; a bug's `assessment.md` keeps the issue URL.
-- Merging into `develop` completes the issue. The develop orchestrator commits the
-  record on the feature branch, moves the issue to In Review, runs the merge
-  review and finish described under [Git flow](#git-flow--2026-09-27), then
-  moves the issue to Done with one completion comment giving the merge commit
+- Merging into `develop` completes the issue. The feature orchestrator commits
+  its record on the feature branch and obtains the merge review. The develop
+  orchestrator moves the issue to In Review and grants the serialized finish
+  slot; the feature orchestrator runs the finish described under
+  [Git flow](#git-flow--2026-09-27). Develop then moves the issue to Done with one completion comment giving the merge commit
   and the record location instead of a PR link. `npm run workflow` prints
   this order in every mode. The commands are in
   [the life-cycle contract](../specs/007-linear-usage/contracts/linear-lifecycle.md).
@@ -756,9 +757,9 @@ or an agent region, written by agents. No part is human-written.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
 - `scripts/doc-regions.toml` lists the targets, including the generated
-  `docs/reference/` pages, and `AGENTS.md` and the constitution as
-  report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
-  target when the project writes one.
+  `docs/reference/` pages, and root and plugin `AGENTS.md` files and the
+  constitution as report-only documents. `specs/` and vendored skills are not
+  listed. Other plugin documents become targets when explicitly configured.
 - To add a mechanical region, add a function to `scripts/doc_sources.py` and a
   test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
   and a missing source that raises. The function reads only its named sources
@@ -784,14 +785,14 @@ or an agent region, written by agents. No part is human-written.
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.
 - `npm run doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
-  on `AGENTS.md` and the constitution. It downloads the pinned archive once
+  on root and plugin `AGENTS.md` files and the constitution. It downloads the pinned archive once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
-  Findings for these two files, from the audit or from backfire, are only
+  Findings for these rule files, from the audit or from backfire, are only
   reported to the user; the tooling never changes them.
 - The engine is the uv project `packages/doc-regions/`. `mise run setup`
   syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
 - Not automated: sending the backfire requests and acting on the results,
-  reporting drift in `AGENTS.md` and the constitution to the user, and
+  reporting drift in root and plugin `AGENTS.md` files and the constitution, and
   choosing which candidates become mechanical regions.

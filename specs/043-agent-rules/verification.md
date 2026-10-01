@@ -234,3 +234,64 @@ the pointer/model-ID source and current judgment records. The record of this
 result is committed with the diff; verification of that committed tip is the
 reviewer's acceptance artifact. The code diff review found no unnecessary
 abstraction or dependency; Clean Code scope still selects no files.
+
+
+## Integrated review corrections, 2026-10-02
+
+Latest develop `c0b630b` was merged cleanly in `5abb75d`. The renewed read-only
+Claude Sonnet review of `b687dea` found no privacy, source-fidelity or approval
+boundary defect. Its actionable provenance, ownership, report-only and record
+findings were corrected: all 14 upstream JSON records describe the pointer
+patch without changing source hashes; notices and three provenance documents
+agree; model-choice links to canonical code judgment rules; chat links its
+current decision record; work rules omit obsolete naming history.
+
+Develop explicitly approved task-coordinator wording in workflow, feature
+record commits by the feature orchestrator, and Linear, final ledger ticks and
+finish-slot grants by develop. The constitution's main-ownership clause at
+lines 167-170 and the shared operations file's old Main gloss remain stale,
+outside this writable scope. They were reported to develop. This does not
+change standing main/develop model roles.
+
+The Ponytail loader resolves the plugin-rule pointer before injecting it into
+session text. Its absolute-link assertion failed before the fix and the
+isolated-package check passes afterwards: four packaging tests and 45 workflow
+tests passed; document checks report no problems. A formatting check caught
+one long test expression and the existing formatter corrected only that file.
+The focused complexity review found no added abstraction or dependency.
+New local implementation is one string replacement plus the existing test's
+reachability assertion; source provenance updates are records, not new runtime.
+
+Four bounded Jev calls rejudged the final 331 units: 45 verified, 285 unsupported,
+one contradicted, 142 review. The contradiction is the unchanged constitution's
+main-ownership wording, reported without rewriting it. Three new consumer
+claims are verified automatically. All review flags, exact hashes and pointer
+byte comparisons are in document-judgments.md. All evidence changed, so none
+of the earlier responses qualified for reuse. Successful feature calls total
+25, with one earlier refusal; no general-model fallback occurred.
+
+The interrupted committed-tip run `3K6e9JLE4nsse3kvmWCs1EOPi54` is excluded:
+33 successful plus five cached did not cover 45 attempted tasks, despite its
+exit 0 and VERIFIED message. Develop filed the pre-existing gate gap as CHE-81.
+Final acceptance requires success plus cached equal attempted, all task exit
+codes zero and no cancelled or force-killed tasks. The current audit reports
+20 constitution warnings (19 boundary, one false file-absence claim); these
+remain report-only and are not acted on here.
+
+Fresh Claude usage at 19:42 UTC is session 12%, weekly 59%, Fable-only 9%.
+The selected full Sonnet ID and native xhigh route remain eligible; the final
+review will use a fresh native worker. Client loading from another directory
+and other native providers remain unperformed. The earlier Sonnet source
+review's actual assistant model matched `claude-sonnet-5-5`; effort was shown
+only by the launch receipt. Its terminal was released after settlement.
+
+Committed-tip full verification, fresh integrated-tree review and the serialized
+finish slot remain pending at this checkpoint.
+
+
+The integrated source diff is 84 files, 1234 insertions and 98
+deletions against develop. The split review retains one feature: the judgment
+rules, 48 identical pointers, provenance and consumer checks share one
+acceptance boundary; most added lines are feature records. Develop accepted
+this split decision. The larger provenance scope corrects records for the same
+pointer patch; it adds no capability or dependency.

@@ -3,7 +3,7 @@
 ## Model-choice judgments
 
 Choose within the user's session roles and native Orca launch limits. Give
-backfire English task facts, the task's difficulty and each eligible candidate's
+backfire task facts, the task's difficulty and each eligible candidate's
 live catalog and remaining usage. Probabilities do not prove correctness.
 
 Model-choice judgments use Jev-family models only. Check the answer's provider
@@ -16,7 +16,7 @@ judgments. Requests to backfire must be English.
 
 ## Judgment routes
 
-For general System One judgments, prefer a maker's free API when it fits the
+For general judgments, prefer a maker's free API when it fits the
 task. Test official subscription command-line routes only when a free API is
 uncertain, using existing adapter support. Never call an internal service
 endpoint with a command line's sign-in token.

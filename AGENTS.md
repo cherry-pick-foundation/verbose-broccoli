@@ -140,9 +140,10 @@ that removes the copy or replaces it with an installed dependency.
   separate memory system or development wiki. The code plugin's `code` vault
   holds coding knowledge for work in any project (libraries, patterns,
   decisions); it is not this repository's development memory.
-- When a session ends or a task moves to another provider, the coordinator adds
-  one or two lines under that task in `tasks.md`: what was done, what blocked,
-  and what comes next. The develop orchestrator owns task-ledger updates.
+- When a session ends or a task moves to another provider, the task coordinator
+  adds one or two lines under that task in `tasks.md`: what was done, what
+  blocked, and what comes next. The develop orchestrator owns final task-ledger
+  ticks.
 - Commit with Conventional Commits and one `Spec-Kit-Task: Txxx` trailer per
   covered implementation task.
 - Lessons that hold across features belong in this file or in
