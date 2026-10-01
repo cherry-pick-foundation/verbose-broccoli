@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "backfire": {
+    "backfire-education": {
       "type": "stdio",
       "command": "uv",
       "args": [
