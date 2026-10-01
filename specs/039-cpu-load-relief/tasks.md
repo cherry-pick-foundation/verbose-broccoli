@@ -76,3 +76,12 @@
     probability 0.69, confidence 0.65 (Copilot `intelligence` 0.25, Cursor
     and Grok 0.02 each, Antigravity 0.01). Claude Code and Codex both
     implemented parts, so neither was a candidate.
+  - `npm run doc-regions:prepare -- --base develop --max-evidence-chars
+    12000` printed four `jev_verify` requests (Jev, `openrouter`). One claim
+    came back contradicted: the `docs/architecture.md` paragraph on `verify`
+    and the cache, judged on truncated evidence (`needs_diff`). Rechecked
+    against the full `turbo.json`, `scripts/toolchain.sh`, `.gitignore` and
+    the `turborepo` script, its three new sentences were verified and the
+    unchanged first one was unsupported by that evidence, so the paragraph
+    stands. `npm run doc-regions:audit` reported 20 warnings, all about the
+    constitution's existing layout, which this feature does not change.
