@@ -44,7 +44,7 @@
 
 ## Phase 4: Finish
 
-- [ ] T009 Merge `develop`, run `npm run verify`, pass the develop merge review
+- [x] T009 Merge `develop`, run `npm run verify`, pass the develop merge review
   by a provider other than Claude Code, commit the review record and finish
   with `git flow feature finish reference-library`.
   - 2026-10-01: `develop` stayed at ab02ad5, so no merge was needed;
@@ -70,3 +70,11 @@
     no findings (high 0, medium 0, low 0) in about 11 minutes and used 2.16 AI
     credits of the Free plan's 200 a month. One path-access prompt for the
     Caddy binary was allowed once.
+  - 2026-10-01: finished into `develop` as `caf9ba4` (review record `794b535`);
+    the finish hook's `npm run verify` passed in the feature worktree. The
+    change is 2,536 lines against develop (1,217 are the generated lock file,
+    about 825 are records, about 490 are units, config, test and docs): one
+    capability, no split. After the finish `npm ci --ignore-scripts --prefix
+    plugins/work` was run in the develop worktree. Nothing blocked. Follow-ups
+    reported to the develop session: Claude Code reads `.mcp.json`, not
+    `mcp.json`, so no plugin server loads there from this repository today.
