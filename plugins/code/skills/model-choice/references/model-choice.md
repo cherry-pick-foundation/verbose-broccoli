@@ -35,7 +35,9 @@ from a written model list:
   quota refreshes weekly (Gemini 3.1 Pro and 3.8 Flash); give backfire that
   fact.
 - Grok: `grok models` lists the models, and `~/.grok/models_cache.json`
-  lists each model's efforts. The account draws on a weekly credit pool.
+  lists each model's efforts. The free tier also caps each model at
+  1,000,000 tokens over a rolling 24-hour window, which no tracker shows;
+  read it from Grok's own log (see "Grok's free cap" under Usage limits).
 - Cursor: `cursor-agent models` lists the models; a named model carries its
   effort in its id. On the free plan the only candidate is `auto`, which
   picks the model for each request; leave out the named models, which fail
@@ -175,6 +177,36 @@ Grok reports a `weekly` window and Cursor a `monthly` window, with one window
 per bucket in `buckets` (`usedPercent`, `resetsAt` in milliseconds). Orca
 shows Antigravity's usage only through a Gemini CLI sign-in, which is not
 installed, and `agy` reports none.
+
+#### Grok's free cap
+
+Grok's free tier caps each model at 1,000,000 tokens over a rolling 24-hour
+window. Neither CodexBar (source `grok-web`) nor Orca (source `oauth`) reads
+it: both show only the weekly window, which stayed at 0% used on 2026-10-01
+while Grok refused every request. The cap appears only in the API's 429
+error, which Grok logs. Read the latest such entry and nothing else from
+`~/.grok`; `auth.json` there holds credentials.
+
+```sh
+grep -h 'subscription:free-usage-exhausted' ~/.grok/logs/unified.jsonl | tail -1 |
+  jq -r '(.ctx.message // .ctx.reason) as $m | "\(.ts) \($m | capture("model (?<m>[^ ]+) for now").m) \($m | capture("actual/limit\\): (?<n>[0-9]+/[0-9]+)").n)"'
+```
+
+It prints the entry's time, model and `actual/limit`. On 2026-10-01
+the last entry read `2026-10-01T13:11:58.698Z grok-4.7 1012248/1000000`.
+Give that line to backfire as evidence. Grok counts as unavailable for that
+model until about 24 hours after the heavy use that hit the cap, so about
+24 hours after the entry's time at the earliest. No entry, or one older than
+24 hours, shows no known cap, not that Grok is free of one: the log may be
+missing or rotated, so say so in the evidence. Other models have their own
+cap.
+
+Copilot's and Cursor's trackers show the same kind of window their plans
+cap (monthly), and no refusal that the tracker missed has been seen for
+them. Antigravity's weekly quota is unread (see above), so its candidates
+keep an unknown limit. When any agent refuses with a limit message, give
+that refusal and its time to backfire and leave the agent out until its
+window clears.
 
 Dropping candidates is a fact check, not a threshold table. Drop the
 candidates that draw on a window at 100% used, until its `resetsAt`, or on a
