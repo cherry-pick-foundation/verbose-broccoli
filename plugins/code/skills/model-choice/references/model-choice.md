@@ -37,9 +37,10 @@ from a written model list:
 - Grok: `grok models` lists the models, and `~/.grok/models_cache.json`
   lists each model's efforts. The account draws on a weekly credit pool.
 - Cursor: `cursor-agent models` lists the models; a named model carries its
-  effort in its id. The free plan allows only `auto`, which picks the model
-  for each request; a named model fails at the first prompt. Its monthly
-  quota has two buckets, "Cursor Models" and "Other Models".
+  effort in its id. On the free plan the only candidate is `auto`, which
+  picks the model for each request; leave out the named models, which fail
+  at the first prompt. Its monthly quota has two buckets, "Cursor Models"
+  and "Other Models".
 
 Orca's `worker-start` accepts only the efforts in its own model catalog and
 fails with `invalid_argument` otherwise. The user's current list of those gaps
