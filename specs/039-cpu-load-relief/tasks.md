@@ -39,7 +39,9 @@
     tasks replayed and VERIFIED read from the same run's summary
     (research.md D9). Of 1eef330's 43 tasks, 29 are cached; with the new
     test, 30 of 44, and after the merge of `develop` da52d3a, which added
-    the uncached `//#test:reference-library`, 30 of 45.
+    the uncached `//#test:reference-library`, 30 of 45; after the merge of
+    `develop` 279b29f, whose new `//#test:secrets-refresh` is cached, 31 of
+    46.
 - [x] T006 Update the command reference and the architecture note for the
   cache.
   - By main, in 592012b (`npm run doc-regions:update` for the reference).
@@ -136,3 +138,12 @@
     9.9 s CPU against 228.7 s and 545.1 s before. Next: merge `develop` again
     after CHE-77's finish, verify, commit the develop merge review record,
     ask the develop session for the finish slot, finish, and close CHE-73.
+  - Resumed after the reboot: `develop` moved to 279b29f (CHE-77, provider
+    secrets); merged. Conflicts in `turbo.json`, `tsconfig.json` and the
+    generated command reference. CHE-77's `//#test:secrets-refresh` is
+    cached: it runs Node with a fake `bws` and a temporary home and passes
+    only `PATH`, `HOME` and `XDG_CONFIG_HOME` (research.md D6). After
+    reviewing CHE-77's `mise.toml` change (the pinned `bws` 2.1.0), ran
+    `mise trust --yes mise.toml`, `mise install --locked` for the project's
+    tools (all already installed) and `npm ci --ignore-scripts --no-audit
+    --no-fund --prefix plugins/work`.

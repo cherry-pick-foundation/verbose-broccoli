@@ -194,6 +194,7 @@ records. Root tasks hash the whole repository (D2).
 | `//#test:workflow` | Git, dependency-cruiser | fixture repositories; some run Git with the outside configuration, which D3 hashes |
 | `//#test:cli-contract` | Node, npm (`npm ci --prefer-offline` from the clean-code skill's lock) | npm's cache, integrity-checked against the lock |
 | `//#test:session-select`, `//#test:grammatical-competence` | pytest (`.venv`) | temporary homes |
+| `//#test:secrets-refresh` | Node, a fake `bws` the test writes first on `PATH` | a temporary home; the test passes only `PATH`, `HOME` and `XDG_CONFIG_HOME` (from `develop`, CHE-77) |
 | `//#test:wiki-raw-import` | uv (`--locked --offline --script` from `raw_import.py.lock`), `python3`, Git | uv's cache, hash-checked against the lock; temporary home |
 | `//#test:turbo-cache` | npm, Turborepo, Git | a temporary copy of the repository |
 | `backfire#test`, `jev-ultrafast#test`, `credit-offers#test` | pytest (`.venv`), uv | none; temporary configuration folders |
