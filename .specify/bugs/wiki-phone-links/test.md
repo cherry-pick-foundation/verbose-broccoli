@@ -13,13 +13,13 @@ work vault, the phone findings fall from 106 to 0.
 
 ## Checks Performed
 
-| Check                 | Command / Action                                                                                             | Result                | Notes                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| New test, old pattern | `uv run … pytest packages/wiki-consistency/tests/test_rules.py -k link_host` with `phone.yml` from `3d4613f` | fail                  | Two phone findings instead of one.                                                                                         |
-| New test, new pattern | same, with the fix                                                                                           | pass                  |                                                                                                                            |
-| Rule tests            | `pytest packages/wiki-consistency/tests/test_rules.py`                                                       | pass                  | 103 passed; existing link-target and code phone cases still pass.                                                          |
-| Work vault, read only | `rules.check` on the work vault; counts by rule only                                                         | pass                  | Phone findings 106 to 0. Two `date` findings remain (out of scope). No page was changed; no names or numbers were printed. |
-| Full check            | `npm run verify`                                                                                             | see the finish record |                                                                                                                            |
+| Check                 | Command / Action                                                                                             | Result | Notes                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------- |
+| New test, old pattern | `uv run … pytest packages/wiki-consistency/tests/test_rules.py -k link_host` with `phone.yml` from `3d4613f` | fail   | Two phone findings instead of one.                                                                                         |
+| New test, new pattern | same, with the fix                                                                                           | pass   |                                                                                                                            |
+| Rule tests            | `pytest packages/wiki-consistency/tests/test_rules.py`                                                       | pass   | 103 passed; existing link-target and code phone cases still pass.                                                          |
+| Work vault, read only | `rules.check` on the work vault; counts by rule only                                                         | pass   | Phone findings 106 to 0. Two `date` findings remain (out of scope). No page was changed; no names or numbers were printed. |
+| Full check            | `npm run verify`                                                                                             | pass   |                                                                                                                            |
 
 ## Residual Risks
 
@@ -29,4 +29,4 @@ work vault, the phone findings fall from 106 to 0.
 
 ## Recommendation
 
-Close the bug once `npm run verify` passes.
+Close the bug: `npm run verify` passed (exit 0) at `74c7192`, the merge of develop `965afb9` into the feature.
