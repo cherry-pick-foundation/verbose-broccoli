@@ -103,3 +103,13 @@
     D4); the extended test fails with the previous script. The reviewer
     asked twice for access outside the worktree: to search the parent folder
     (declined) and to resolve the interpreters' links (allowed once).
+  - Third reviewer: a fresh Copilot `auto` session at the `balance` tier,
+    chosen with Jev (0.62, confidence 0.56), reviewed 1eef330 to c2137d3: 1
+    medium finding, 0 high, 0 low. Links in `node_modules`, such as the
+    `.bin/tsc` launcher, were not hashed. Fixed by listing every entry of the
+    installed environments with its type, permissions and link target. The
+    same sweep found that ESLint, clean-code and dependency-cruiser walk
+    folders and so read Git-ignored files, now declared as their inputs, and
+    that `//#test:plugin-skills` checks for absent folders, which Turborepo
+    cannot hash; it is now uncached (research.md D2, D4, D5). The new and
+    extended tests fail without these declarations.

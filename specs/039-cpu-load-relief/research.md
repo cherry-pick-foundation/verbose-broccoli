@@ -43,9 +43,19 @@ Facts were read from Turborepo 2.11.5 in this repository
   for a saving only across worktrees with different code. Turborepo's Python
   support already adds imported workspace packages, so declaring them again
   would add nothing.
+- **Ignored files that a check walks**: ESLint (`//#lint`), clean-code and
+  dependency-cruiser (`//#clean-architecture`) find their files by walking
+  folders, not through Git, so they also read JavaScript and TypeScript
+  files that Git ignores, for example under `.local/`, `generated/` or a
+  `coverage/` folder. Each declares those files as inputs (`**/*.{js,…}`
+  or the folders it walks), with `node_modules` left to D4. The third
+  develop merge review found this class through a related gap (D4).
 - **Checked**: the Python tests read outside their package only through
   `scripts/doc_sources*.py` (doc-regions) and the root `pyproject.toml`
-  (wiki-consistency's import-boundary test, a default input).
+  (wiki-consistency's import-boundary test, a default input). Other cached
+  checks list their files through Git (`format:check`, `lint:shell`), name
+  them (`typecheck`, `plugins:validate`), respect `.gitignore` (ruff) or
+  work in temporary fixtures (the tests).
 
 ## D3. Programs outside the repository
 
@@ -85,7 +95,10 @@ Facts were read from Turborepo 2.11.5 in this repository
 
 ## D4. Generated and installed files
 
-- **Decision**: Hash the installed files themselves, all ignored by Git.
+- **Decision**: Hash the installed files themselves, all ignored by Git, and
+  list every entry of each environment with its type, permissions and link
+  target, so that a re-pointed launcher link such as
+  `node_modules/.bin/tsc` or a changed permission also changes the hash.
   `globalDependencies` names every file under `lib/` of `.venv` and of the
   tool environments the cached tasks use (`tools/ruff`, `tools/shellcheck`,
   `tools/check-jsonschema`). `scripts/toolchain.sh` hashes every file of
@@ -102,9 +115,15 @@ Facts were read from Turborepo 2.11.5 in this repository
 - **Why**: Tasks run from these environments, not from the lock files (`uv
   run --frozen --offline --no-sync`), so any change inside them, including a
   hand edit to a package file or to the `pytest` launcher, must change the
-  hash. The develop merge review found two gaps in turn: the first version
-  hashed only npm's hidden lockfiles and each distribution's `METADATA`, and
-  the second left out the `bin/` scripts and `.pth` files.
+  hash. The develop merge reviews found three gaps in turn: the first
+  version hashed only npm's hidden lockfiles and each distribution's
+  `METADATA`, the second left out the `bin/` scripts and `.pth` files, and
+  the third hashed regular files only, not links.
+- **Boundary**: what the repository installs from its own locks is hashed
+  by content; programs installed outside it (Node.js, npm, uv and the
+  interpreters it manages, Git, git-flow-next, Vale) are declared by version
+  and resolved path (D3), as the user's decision allows ("external programs
+  or versions").
 - **Left out, and why**: every `RECORD` (install metadata listing hashes of
   the `bin/` scripts, read only by uninstallers) and uv's `uv_cache.json`
   (timestamps for its own freshness check, not read by `uv run --no-sync`);
@@ -131,9 +150,10 @@ Facts were read from Turborepo 2.11.5 in this repository
 | `//#test:lint-names` | It finds ls-lint with `mise which`; mise's version and global configuration are not hashed. |
 | `//#test:mise-doctor` | It runs `mise doctor`; mise's version and global configuration are not hashed. |
 | `//#test:constitution-bump` | It runs `mise exec`; mise's version and global configuration are not hashed. |
+| `//#test:plugin-skills` | It checks that `.agents/skills` and `.claude/skills` are absent, and Turborepo does not hash folders, so an empty one would go unseen. |
 | `verbose-broccoli-python#check`, `#test` and the packages' `#check` | They run `true` to group other tasks; caching saves nothing. |
 
-These five took about 10 s together in `develop`'s last full run. The tasks
+These six took about 16 s together in `develop`'s last full run. The tasks
 outside `npm run verify` (`doc-regions:update`, `prepare`, `audit`) keep
 `cache: false`; they write files or call a model.
 
@@ -145,18 +165,17 @@ records. Root tasks hash the whole repository (D2).
 | Task | Programs it runs | Outside reads |
 | --- | --- | --- |
 | `//#format:check` | Prettier (root npm tree), ruff (`tools/ruff`), `git ls-files` | none |
-| `//#lint` | gts and ESLint (root npm tree), ruff | none |
+| `//#lint` | gts and ESLint (root npm tree), ruff | ignored JavaScript and TypeScript files (declared, D2) |
 | `//#lint:shell` | `git ls-files`, shellcheck (`tools/shellcheck`) | none |
 | `//#typecheck` | tsc | none |
 | `//#plugins:validate`, `//#test:plugins-validate` | check-jsonschema (`tools/check-jsonschema`), npm | none |
-| `//#clean-code`, `//#test:clean-code` | Node | none |
-| `//#clean-architecture`, `//#test:clean-architecture` | dependency-cruiser | none |
+| `//#clean-code`, `//#test:clean-code` | Node | ignored TypeScript files under `plugins/`, `packages/`, `scripts/` (declared, D2) |
+| `//#clean-architecture`, `//#test:clean-architecture` | dependency-cruiser | ignored JavaScript and TypeScript files under `packages/`, `plugins/`, `scripts/` (declared, D2) |
 | `//#python:imports` | import-linter (`.venv`) | none |
 | `//#doc-regions:check` | doc-regions (`.venv`), Node for command help | none |
 | `//#backfire:regions:check`, `//#test:backfire-regions` | Node | none |
 | `//#test:ruff`, `//#test:gts` | ruff; gts and Prettier | none |
 | `//#test:git-flow`, `//#test:worktree-branch`, `//#test:commit-msg` | Git, git-flow-next, commitlint | Git configuration isolated by each test |
-| `//#test:plugin-skills` | Node | temporary `XDG_CONFIG_HOME` |
 | `//#test:workflow` | Git, dependency-cruiser | fixture repositories; some run Git with the outside configuration, which D3 hashes |
 | `//#test:cli-contract` | Node, npm (`npm ci --prefer-offline` from the clean-code skill's lock) | npm's cache, integrity-checked against the lock |
 | `//#test:session-select`, `//#test:grammatical-competence` | pytest (`.venv`) | temporary homes |
@@ -203,11 +222,14 @@ installed records, and compares `--dry=json` hashes through the real
 - a workspace dependency's source changes its dependents' hashes, not
   unrelated packages';
 - a new untracked file changes the root tasks;
+- an ignored TypeScript file under `.local/` or a `coverage/` folder changes
+  the checks that walk there, not `//#typecheck`;
 - Turborepo's own task logs, at the root or in a package's `.turbo/`, change
   no hash;
 - an edit to a package file in either npm tree, in `.venv` or in a tool
   environment, to a `.pth` file, to an entry-point script or to a tool's
-  native program changes every cached task;
+  native program, a re-pointed launcher link and a changed permission each
+  change every cached task;
 - a different `git --version`, a different global Git configuration and a
   set `UV_PYTHON` each change every cached task.
 

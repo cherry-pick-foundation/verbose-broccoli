@@ -75,6 +75,7 @@ async function fixture(check: (repo: string) => Promise<void>) {
       join(root, 'node_modules/turbo/bin/turbo'),
       join(repo, 'node_modules/.bin/turbo'),
     );
+    await symlink('../x/index.js', join(repo, 'node_modules/.bin/x'));
     run(repo, 'git', ['init', '--quiet']);
     run(repo, 'git', ['add', '--all']);
     await check(repo);
@@ -154,6 +155,25 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
   });
 });
 
+void test('turbo cache: an ignored file that a check walks reruns that check', async () => {
+  await fixture(async repo => {
+    let before = hashes(repo);
+    await write(repo, '.local/x.ts', 'export const x = 1;\n');
+    let after = hashes(repo);
+    assertChanged(before, after, ['//#lint'], ['//#typecheck']);
+
+    before = after;
+    await write(repo, 'scripts/coverage/x.ts', 'export const x = 1;\n');
+    after = hashes(repo);
+    assertChanged(
+      before,
+      after,
+      ['//#lint', '//#clean-code', '//#clean-architecture'],
+      ['//#typecheck'],
+    );
+  });
+});
+
 void test("turbo cache: Turborepo's own task logs are not inputs", async () => {
   await fixture(async repo => {
     const before = hashes(repo);
@@ -166,8 +186,16 @@ void test("turbo cache: Turborepo's own task logs are not inputs", async () => {
 void test('turbo cache: a changed installed environment reruns every cached task', async () => {
   await fixture(async repo => {
     let before = hashes(repo);
-    for (const file of installed) {
-      await appendFile(join(repo, file), '\n');
+    const changes = [
+      ...installed.map(file => () => appendFile(join(repo, file), '\n')),
+      async () => {
+        await rm(join(repo, 'node_modules/.bin/x'));
+        await symlink('../x/other.js', join(repo, 'node_modules/.bin/x'));
+      },
+      () => chmod(join(repo, '.venv/bin/pytest'), 0o755),
+    ];
+    for (const change of changes) {
+      await change();
       const after = hashes(repo);
       assertChanged(before, after, ['backfire#test', '//#typecheck'], []);
       before = after;

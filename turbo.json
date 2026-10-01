@@ -39,7 +39,13 @@
       "cache": false
     },
     "//#format:check": {},
-    "//#lint": {},
+    "//#lint": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+        "!**/node_modules/**"
+      ]
+    },
     "//#lint:shell": {},
     "//#lint:names": {
       "description": "Check file and folder names with ls-lint; uncached because Turborepo does not hash empty folders",
@@ -48,8 +54,20 @@
     "//#typecheck": {},
     "//#plugins:validate": {},
     "//#test:plugins-validate": {},
-    "//#clean-code": {},
-    "//#clean-architecture": {},
+    "//#clean-code": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "{plugins,packages,scripts}/**/*.{ts,tsx,mts,cts}",
+        "!**/node_modules/**"
+      ]
+    },
+    "//#clean-architecture": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "{packages,plugins,scripts}/**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+        "!**/node_modules/**"
+      ]
+    },
     "//#python:imports": {},
     "//#doc-regions:check": {
       "description": "Check mechanical regions and local links in the target documents, offline and without writing"
@@ -71,7 +89,10 @@
       "cache": false
     },
     "//#test:commit-msg": {},
-    "//#test:plugin-skills": {},
+    "//#test:plugin-skills": {
+      "description": "Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders",
+      "cache": false
+    },
     "//#test:clean-code": {},
     "//#test:clean-architecture": {},
     "//#test:workflow": {},
