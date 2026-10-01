@@ -144,16 +144,19 @@ Vercel's "Team credits" → "Available balance".
 Codex also reports its usage-limit reset credits in `usage.codexResetCredits`:
 `availableCount` and `credits[]`, each with `title`, `reset_type`, `status`,
 `granted_at` and `expires_at`. Claude and the other providers report none; say
-"none reported" for them. Reset credits are evidence, not a rule. Give backfire
+"none reported" for them, and for Codex when the field is missing. Reset
+credits are evidence, not a rule. Give backfire
 the `availableCount` and the `expires_at` of each `available` credit, so that a
 provider with unused resets that expire is not steered away from early. Leave
 out the credits' descriptions and any credit IDs, for example with:
 
 ```sh
 "${clean[@]}" CI=1 codexbar usage --provider codex --source oauth --format json |
-  jq '.[0].usage.codexResetCredits | {availableCount,
-    credits: [.credits[] | select(.status == "available")
-      | {title, reset_type, status, granted_at, expires_at}]}'
+  jq '.[0].usage.codexResetCredits
+    | if . then {availableCount,
+        credits: [.credits[] | select(.status == "available")
+          | {title, reset_type, status, granted_at, expires_at}]}
+      else "none reported" end'
 ```
 
 Only the user spends reset credits. An agent uses a limit fully, then stops
