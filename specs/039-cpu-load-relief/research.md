@@ -142,7 +142,9 @@ Facts were read from Turborepo 2.11.5 in this repository
   the shell activation scripts (`activate*`, `deactivate*`), which hold the
   worktree's name and which no task runs; and bytecode caches, which Python
   checks against their sources. `tools/commitizen` and `tools/spec-kit`
-  serve no cached task.
+  serve no cached task, and neither does `plugins/work/node_modules` (from
+  CHE-76): it serves the reference-library MCP server at run time and two
+  uncached tests.
 - **Checked**: every one of the 10,632 environment files that Turborepo
   hashes is byte-identical to `develop`'s copy, and the fingerprint is the
   same in both worktrees. The other two worktrees' fingerprints differ, as
@@ -163,9 +165,10 @@ Facts were read from Turborepo 2.11.5 in this repository
 | `//#test:mise-doctor` | It runs `mise doctor`; mise's version and global configuration are not hashed. |
 | `//#test:constitution-bump` | It runs `mise exec`; mise's version and global configuration are not hashed. |
 | `//#test:plugin-skills` | It checks that `.agents/skills` and `.claude/skills` are absent, and Turborepo does not hash folders, so an empty one would go unseen. |
+| `//#test:reference-library` | It runs `gio`, a desktop program whose presence decides whether part of the test runs, and whose version is not hashed. It came from `develop` (CHE-76) after this research. |
 | `verbose-broccoli-python#check`, `#test` and the packages' `#check` | They run `true` to group other tasks; caching saves nothing. |
 
-These six took about 16 s together in `develop`'s last full run. The tasks
+The first six took about 16 s together in `develop`'s last full run. The tasks
 outside `npm run verify` (`doc-regions:update`, `prepare`, `audit`) keep
 `cache: false`; they write files or call a model.
 
@@ -256,7 +259,8 @@ run.
 in `systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7`
 (the four efficiency cores), timed with `/usr/bin/time`; CPU is user plus
 system time of the whole process tree. Before: 1eef330's configuration and
-files with this feature's Markdown records added. After: 1dfd2fb, with
+files with this feature's Markdown records added. After: c2cb5a7, before
+the merge of `develop` da52d3a, with
 `TURBO_CACHE_DIR` set to the worktree's own `.turbo/cache` (D7), emptied
 before the cold run.
 
@@ -264,18 +268,18 @@ before the cold run.
 | --- | ---: | ---: | ---: | --- |
 | Before, a full run | 230.6 s | 541.5 s | 0 of 37 | VERIFIED |
 | Before, a repeat on the unchanged tree | 228.7 s | 545.1 s | 0 of 37 | VERIFIED |
-| After, cold cache | 270.8 s | 583.7 s | 0 of 38 | VERIFIED |
-| After, a repeat on the unchanged tree (warm) | 5.2 s | 10.0 s | 30 of 38 | VERIFIED |
+| After, cold cache | 243.1 s | 587.2 s | 0 of 38 | VERIFIED |
+| After, a repeat on the unchanged tree (warm) | 5.0 s | 9.9 s | 30 of 38 | VERIFIED |
 | After a commit that changed only Markdown records (at 4da153c) | 49.6 s | 186.4 s | 5 of 38 | VERIFIED |
 
 - A repeat verify on an unchanged tree now uses about 2% of the CPU time it
-  used before (10.0 s against 545.1 s). Its 8 executed tasks are D5's six
+  used before (9.9 s against 545.1 s). Its 8 executed tasks are D5's six
   and the two grouping tasks.
-- A cold run costs more CPU than before: 583.7 s here, against 545.1 s.
+- A cold run costs more CPU than before: 587.2 s here, against 545.1 s.
   The new tests take about 11 s, and the fingerprint and environment hashing
   about 1.3 s per Turborepo run. Cold runs at earlier commits of this feature
-  measured 643.3 s (65d0ac9), 557.5 s (75c60d1) and 568.1 s (d7387f7); the
-  spread was not analyzed.
+  measured 643.3 s (65d0ac9), 557.5 s (75c60d1), 568.1 s (d7387f7) and
+  583.7 s (1dfd2fb); the spread was not analyzed.
 - After an edit to files that only root tasks read, the five Python package
   tests replay and the root tasks rerun: in the last row, about a third of
   the CPU of a full run. Other worktrees replay the package tests whose

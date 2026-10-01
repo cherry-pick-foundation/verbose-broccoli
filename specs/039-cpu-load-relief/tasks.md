@@ -35,10 +35,11 @@
   tree before (at 1eef330's configuration) and after, on the efficiency
   cores, one verify at a time (SC-001, FR-005).
   - By main. A repeat verify on an unchanged tree: 228.7 s wall and 545.1 s
-    CPU before; 5.2 s wall and 10.0 s CPU after (at 1dfd2fb), with 30 of 38
+    CPU before; 5.0 s wall and 9.9 s CPU after (at c2cb5a7), with 30 of 38
     tasks replayed and VERIFIED read from the same run's summary
     (research.md D9). Of 1eef330's 43 tasks, 29 are cached; with the new
-    test, 30 of 44.
+    test, 30 of 44, and after the merge of `develop` da52d3a, which added
+    the uncached `//#test:reference-library`, 30 of 45.
 - [x] T006 Update the command reference and the architecture note for the
   cache.
   - By main, in 592012b (`npm run doc-regions:update` for the reference).
@@ -119,3 +120,14 @@
     being hashed: Turborepo passes a built-in list of variables even in
     strict mode. Fixed by hashing the ones that can change a result here
     (research.md D3), with a test case that fails without it.
+  - No fifth review: the fourth fix only adds variable names to the hashed
+    list, which can cause extra cache misses but never a replay, so it does
+    not change the implementation materially (AGENTS.md, "Review").
+  - 2026-10-01: `develop` moved to da52d3a (CHE-76, reference library);
+    merged in a9fe379. Conflicts: `turbo.json`, where CHE-76's new
+    `//#test:reference-library` stays uncached with its reason (research.md
+    D5), and the generated command reference, regenerated. After reviewing
+    CHE-76's `mise.toml` change (the checksum-pinned Caddy 2.11.4 and a
+    doctor check), ran `mise trust --yes mise.toml` and `npm ci
+    --ignore-scripts --no-audit --no-fund --prefix plugins/work`; the
+    project's tools, Caddy included, were already installed.
