@@ -63,6 +63,7 @@ jobs:
           mise exec -- uv sync --locked --project tools/check-jsonschema
           mise exec -- uv sync --locked --project tools/commitizen
           npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency
+          npm ci --ignore-scripts --no-audit --no-fund --prefix plugins/work
           mise exec -- npm run backfire:install
           ./node_modules/.bin/lefthook install
           git config gitflow.shared.trustHooks true

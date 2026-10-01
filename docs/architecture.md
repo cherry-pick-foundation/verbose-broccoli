@@ -21,8 +21,11 @@ skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
 `backfire` server, which
-replaces student identifiers with English stand-ins and refuses Hangul; its other business capabilities have no
-implementation until new features specify them.
+replaces student identifiers with English stand-ins and refuses Hangul, and
+for the `reference-library` server (see
+[Reference library](#reference-library--2026-10-01)); its other business capabilities have no
+implementation until new features specify them. The package has a small
+`package.json` and lock file that pin the reference-library connector.
 The `chat` package contains the `web-agent` and `credit-offers` skills
 (see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
 it has no package manifest, MCP declaration or scripts, and its
@@ -64,7 +67,7 @@ ignores, such as `.venv`, as literal `ignore` entries; untracked files that Git
 does not ignore are checked, and `npm run test:lint-names` covers both.
 
 mise pins the development tools: the root `mise.toml` pins uv 0.11.32,
-ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
+Caddy 2.11.4, ls-lint 2.3.1, lychee 0.24.2, Vale 3.23.0, git-flow-next 2.1.0, gws 0.22.5, betterleaks
 1.9.0 and SpecStory's command-line tool 2.15.1, and `mise.lock` records
 each download's URL, checksum and provenance. Node.js stays on the user's
 mise Node 24 (the root `package.json` requires 24.12 or later) and Quarto
@@ -363,6 +366,51 @@ from the pinned tag with an `upstream.json` each, and the local
 with this repository's rules: the approved scopes, how to invoke gws, and
 when to ask the user first. The security check of the pinned release is in
 `specs/027-google-workspace/security/`.
+
+### Reference library — 2026-10-01
+
+Feature 040 ([spec](../specs/040-reference-library/spec.md)) lets agents use
+the user's Zotero library without the Zotero window. The chain, all through
+systemd user units kept in `infra/reference-library/`:
+
+1. `reference-library.socket` listens on `127.0.0.1:23190`. The first request
+   starts `reference-library.service`, which runs `systemd-socket-proxyd
+   --exit-idle-time=10min` toward the gateway on `127.0.0.1:23191`.
+2. `reference-library-gateway.service` runs Caddy (pinned in `mise.toml`) with
+   `reference-library.caddyfile`. Zotero's web server answers only a Host
+   header with its own port 23119, and the socket proxy cannot change
+   headers, so Caddy rewrites it and forwards to `127.0.0.1:23119`.
+3. `reference-library-app.service` runs `zotero --headless` and holds the
+   proxy back until the local API answers. If the app is already open, it
+   holds one idle connection to it instead, so no second copy starts and the
+   chain ends when the app closes. Both services stop when nothing needs them
+   (`StopWhenUnneeded`); the proxy is bound to the app unit.
+4. `reference-library-app.desktop` replaces the app's menu shortcut for this
+   user: it stops the background copy, then opens the app.
+
+`sh infra/reference-library/install.sh` copies the units, the Caddyfile and the
+shortcut to the user's folders and starts the socket. To uninstall: `systemctl
+--user disable --now reference-library.socket reference-library.service`,
+then delete `~/.config/systemd/user/reference-library*`,
+`~/.config/reference-library/` and `~/.local/share/applications/zotero.desktop`,
+and run `systemctl --user daemon-reload`. If the Caddy pin changes, change the
+version in `reference-library-gateway.service` too; `npm run
+test:reference-library` checks that they agree.
+
+The work plugin declares the `zotero-native-mcp` 1.0.1 connector as the
+`reference-library` server in `plugins/work/mcp.json`, started with `node`
+from `plugins/work/node_modules` (installed by `npm ci --ignore-scripts
+--prefix plugins/work` from the pinned `package-lock.json`) and pointed at the
+socket's port. Its delete-items, delete-collection and empty-trash tools are
+blocked in each client's own settings: Claude Code's permission deny rules
+(`.claude/settings.json` and the user's settings, for the plugin's server and
+for a server of the same name added by the user) and Codex's `disabled_tools`
+in the user's `~/.codex/config.toml`, whose `reference-library` entry runs the
+same pinned copy under `~/.local/share/mcp-servers/zotero/1.0.1`. Claude Code
+2.1.286 reads a plugin's `.mcp.json`, not Agent Plugins' `mcp.json`, and Codex
+does not load the repository's plugins, so the server is not yet loaded by
+either client from this declaration. The security checks of the connector
+and of Caddy are in `specs/040-reference-library/security/`.
 
 ### Chat web agent and credit offers — 2026-09-30
 

@@ -46,6 +46,7 @@ Generated file. Do not edit; refresh with npm run doc-regions:update.
 | test:mise-doctor            | npm run test:mise-doctor            |                                                                                                                      |
 | test:plugin-skills          | npm run test:plugin-skills          |                                                                                                                      |
 | test:plugins-validate       | npm run test:plugins-validate       |                                                                                                                      |
+| test:reference-library      | npm run test:reference-library      |                                                                                                                      |
 | test:ruff                   | npm run test:ruff                   |                                                                                                                      |
 | test:secrets-refresh        | npm run test:secrets-refresh        |                                                                                                                      |
 | test:session-select         | npm run test:session-select         |                                                                                                                      |
