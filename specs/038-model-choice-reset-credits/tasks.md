@@ -32,3 +32,16 @@
 - [ ] T003 Merge `develop`, run `npm run verify`, pass the develop merge
   review by a provider other than Claude Code, commit the review record and
   finish with `git flow feature finish model-choice-reset-credits`.
+  - 2026-10-01: `develop` b9ab0ae had not moved, so no merge was needed;
+    `npm run verify` printed VERIFIED (37 of 37). The document judgment
+    steps (`doc-regions:prepare` and `audit`) were not run: the change is two
+    paragraphs of prose and the rules do not require them.
+  - Reviewer: a fresh Cursor session (`auto`), started with `worker-start
+    --agent cursor --model auto`, chosen with Jev (agent: Cursor, probability
+    0.39, confidence 0.30). It reviewed b9ab0ae to a446f21 and found 1 low
+    finding: the reference's jq command failed on a missing
+    `usage.codexResetCredits`, though the spec promised "none reported". Fixed
+    in fc2016e.
+  - Follow-up reviewer: a second fresh Cursor session (`auto`), chosen with
+    Jev (Cursor 0.43, confidence 0.34), reviewed a446f21 to fc2016e with no
+    findings.
