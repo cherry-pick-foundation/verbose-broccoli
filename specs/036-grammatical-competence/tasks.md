@@ -294,10 +294,17 @@ messages. Run files stay in the run folders and records in the work vault.
     session's scratch files (survey list, batch manifest, loop scripts,
     judgment outputs) are in `.local/che-68/scratch/`; run folders stay in
     `~/.local/state/verbose-broccoli/grammatical-competence/` until the
-    finish. Next: fix both findings (a test that fails without the
-    coverage check), `npm run verify`, decide whether the fix needs a
-    second review, add the review-record commit, ask the develop session
-    for the finish slot, merge develop, verify, check develop has not
-    moved, `git flow feature finish`, CHE-68 Done with one comment, board
-    `completed`, delete the run folders and `.local/che-68/`, and ask the
-    user whether to delete stage 1's folder with the answer key.
+    finish. The next steps it listed are done or listed in the next note.
+  - 2026-10-01 after the reboot: both findings fixed in 3b45e7e; the
+    coverage test fails without the fix. The four recorded mappings already
+    list every inventory key exactly once, so no record changes. A fresh
+    Copilot reviewer (auto, efficiency tier, routed to gpt-6-luna; Jev:
+    0.57, confidence 0.51; 1.36 AI credits) reviewed 57f52d5 to 3b45e7e: 0
+    high, 0 medium, 1 low (this handoff still named the fixes as next),
+    resolved in this note. Report: `.local/che-68/follow-up-review.md`.
+    Remaining: `npm run verify`, the review-record commit, the finish slot
+    from the develop session, merge develop if it moved, verify, check
+    develop has not moved, `git flow feature finish`, CHE-68 Done with one
+    comment, board `completed`, delete the run folders and `.local/che-68/`,
+    and ask the user whether to delete stage 1's folder with the answer
+    key.
