@@ -22,4 +22,4 @@ free agents.
 
 ## Tests Added or Updated
 
-None: documentation only. The command was run against the real log.
+None: documentation only. The command was run against the real log. The develop merge review found that "no entry leaves Grok available" overstated what the log shows; the text now says no known cap.

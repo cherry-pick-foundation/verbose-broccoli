@@ -196,8 +196,10 @@ It prints the entry's time, model and `actual/limit`. On 2026-10-01
 the last entry read `2026-10-01T13:11:58.698Z grok-4.7 1012248/1000000`.
 Give that line to backfire as evidence. Grok counts as unavailable for that
 model until about 24 hours after the heavy use that hit the cap, so about
-24 hours after the entry's time at the earliest; no entry, or one older than
-24 hours, leaves Grok available. Other models have their own cap.
+24 hours after the entry's time at the earliest. No entry, or one older than
+24 hours, shows no known cap, not that Grok is free of one: the log may be
+missing or rotated, so say so in the evidence. Other models have their own
+cap.
 
 Copilot's and Cursor's trackers show the same kind of window their plans
 cap (monthly), and no refusal that the tracker missed has been seen for
