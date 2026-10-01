@@ -14,13 +14,13 @@ MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
-an MCP declaration for the `backfire` server.
+an MCP declaration for the `backfire-code` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
 `wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
 skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
-`backfire` server, which
+`backfire-education` server, which
 replaces student identifiers with English stand-ins and refuses Hangul, and
 for the `reference-library` server (see
 [Reference library](#reference-library--2026-10-01)); its other business capabilities have no
@@ -350,8 +350,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
 
 ### Backfire server
 
-`plugins/code/mcp.json` and `plugins/work/mcp.json` both declare the `backfire`
-stdio server and start it from the repository with `uv --directory
+`plugins/code/mcp.json` declares `backfire-code` and `plugins/work/mcp.json`
+declares `backfire-education`. Both start the stdio server from the repository with `uv --directory
 ${PLUGIN_ROOT}/../../packages/backfire run --frozen --offline --no-sync
 backfire serve-mcp`, the work plugin adding `--education`; backfire is used
 from the repository and never installed. The server is PyModel's
@@ -432,9 +432,10 @@ blocked in each client's own settings: Claude Code's permission deny rules
 for a server of the same name added by the user) and Codex's `disabled_tools`
 in the user's `~/.codex/config.toml`, whose `reference-library` entry runs the
 same pinned copy under `~/.local/share/mcp-servers/zotero/1.0.1`. Claude Code
-2.1.286 reads a plugin's `.mcp.json`, not Agent Plugins' `mcp.json`, and Codex
-does not load the repository's plugins, so the server is not yet loaded by
-either client from this declaration. The security checks of the connector
+2.1.286 reads the prepared plugin's `mcp.json` through its native manifest's
+`mcpServers` path; Codex reads that same portable declaration. See
+[Sharing and distribution](#sharing-and-distribution) for preparation and loading.
+The security checks of the connector
 and of Caddy are in `specs/040-reference-library/security/`.
 
 ### Chat web agent and credit offers — 2026-09-30
@@ -496,21 +497,32 @@ Shared packages are implementation dependencies, not a fourth plugin. Plugins do
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
-The code and work plugins are used from the repository checkout and never
-installed: their `backfire` server runs from `packages/backfire` through a
-repository path in `mcp.json` (the user's decision of 2026-09-30), so a copy
-of a plugin outside the repository cannot start it. Do not distribute
+Backfire and the reference connector run from the repository checkout.
+`npm run plugins:prepare` validates the canonical manifests and prepares local
+client packages in `.local/plugin-clients/`. It resolves `${PLUGIN_ROOT}` to
+the source plugin directory, so copied client packages retain the checkout's
+dependency paths. Run preparation from a permanent checkout such as `develop`
+before installing; an installed package still needs that checkout and its
+dependencies. The generated output is limited to 16 MiB, with one staging and
+one recovery copy; failed preparation preserves the previous completed output.
+Do not distribute
 `skills/` or package components as symlinks into neighboring workspace
 directories. Development workspace resolution is not proof that an isolated
 installation works. Reuse upstream packaging tools if an installable plugin
 becomes necessary.
 
 Use root `plugin.json`, `skills/`, and `mcp.json` according to
-[Agent Plugins 1.0](https://agent-plugins.org/specification). Client-specific
-adapters remain separate future work. Clients load the packaged skills from the
-plugin folders: Claude Code directly, for example with `--plugin-dir` or
-`CLAUDE_CODE_PLUGIN_DIRS`, and Codex and OMP through a local marketplace install,
-which copies each plugin, so edited plugins must be reinstalled there. The
+[Agent Plugins 1.0](https://agent-plugins.org/specification).
+Each prepared package retains this layout. Its generated Claude manifest points
+`mcpServers` at `./mcp.json`, so both clients consume one generated declaration
+derived from the canonical source. Claude Code loads these prepared folders
+with `--plugin-dir .local/plugin-clients/plugins/code` and corresponding Work
+and Chat paths, or `CLAUDE_CODE_PLUGIN_DIRS`. Codex uses the generated local
+marketplace: `codex plugin marketplace add .local/plugin-clients`, then
+`codex plugin add code@verbose-broccoli` and corresponding Work and Chat
+selectors. Codex copies the packages, so rerun preparation and `plugin add`
+after source changes; changing a saved client's settings needs user approval.
+These commands do not publish anything. The
 project keeps no `.agents/skills` or `.claude/skills` links, which would list
 every packaged skill twice. OMP does not offer a plugin skill that declares
 `argument-hint`, so OMP needs `ponytail` in its user skills folder,
@@ -699,7 +711,7 @@ Linear extension is used. The design and its reasons are in
   detailed task record. There are no sub-issues. Each issue has one type label
   (Feature, Bug or Improvement) and a plugin label (`code`, `work`, `chat`) for
   each plugin the work concerns; repository-wide tooling has none.
-- Only the main agent writes to Linear, after searching for similar issues,
+- Only the develop orchestrator writes to Linear, after searching for similar issues,
   including archived ones (`orca linear list-issues --team CHE --query <words>
   --include-archived`). Workers report out-of-scope bugs to it through Orca
   messages. Linear is an external service, so issues and comments never hold
@@ -710,10 +722,11 @@ Linear extension is used. The design and its reasons are in
   The Spec Kit preset `linear-issue` in `.specify/presets/` appends that line,
   with instructions, to the spec template. Commits and branch names carry no
   issue ID; a bug's `assessment.md` keeps the issue URL.
-- Merging into `develop` completes the issue. The main agent commits the
-  record on the feature branch, moves the issue to In Review, runs the merge
-  review and finish described under [Git flow](#git-flow--2026-09-27), then
-  moves the issue to Done with one completion comment giving the merge commit
+- Merging into `develop` completes the issue. The feature orchestrator commits
+  its record on the feature branch and obtains the merge review. The develop
+  orchestrator moves the issue to In Review and grants the serialized finish
+  slot; the feature orchestrator runs the finish described under
+  [Git flow](#git-flow--2026-09-27). Develop then moves the issue to Done with one completion comment giving the merge commit
   and the record location instead of a PR link. `npm run workflow` prints
   this order in every mode. The commands are in
   [the life-cycle contract](../specs/007-linear-usage/contracts/linear-lifecycle.md).
@@ -721,7 +734,7 @@ Linear extension is used. The design and its reasons are in
   issues toward its limit of 250, and Linear archives closed issues one month
   after they close (Team Settings > Issue statuses & automations); archived
   issues stay readable with `--include-archived`. Nothing monitors the count:
-  a failed creation at the limit is the signal, and the main agent reports it
+  a failed creation at the limit is the signal, and the develop orchestrator reports it
   to the user.
 - Orca cannot archive or delete issues or create labels, projects, documents,
   cycles or milestones. Label, project and team-setting changes happen in
@@ -744,9 +757,9 @@ or an agent region, written by agents. No part is human-written.
 - Everything else is an agent region. Backfire judges it before each `develop`
   merge review.
 - `scripts/doc-regions.toml` lists the targets, including the generated
-  `docs/reference/` pages, and `AGENTS.md` and the constitution as
-  report-only documents. `specs/` and vendored skills are not listed. A plugin document becomes a
-  target when the project writes one.
+  `docs/reference/` pages, and root and plugin `AGENTS.md` files and the
+  constitution as report-only documents. `specs/` and vendored skills are not
+  listed. Other plugin documents become targets when explicitly configured.
 - To add a mechanical region, add a function to `scripts/doc_sources.py` and a
   test to `scripts/doc_sources_test.py` with fixture sources, the exact output,
   and a missing source that raises. The function reads only its named sources
@@ -759,7 +772,7 @@ or an agent region, written by agents. No part is human-written.
   to a missing local file or heading (lychee 0.24.2, offline). It writes
   nothing and uses no network. `npm run doc-regions:update` regenerates
   stale regions.
-- Before each `develop` merge review, the main agent runs the judgment step
+- Before each `develop` merge review, the feature orchestrator runs the judgment step
   that `npm run workflow` prints in REVIEW mode. `npm run
   doc-regions:prepare -- --base develop --max-evidence-chars <n>` splits the
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
@@ -768,18 +781,21 @@ or an agent region, written by agents. No part is human-written.
   Backfire refuses a request that holds Hangul, so the requests spell every
   Hangul run in Latin letters, in claims and evidence alike, with anyascii
   0.3.3 (ISC); the printed `units` keep the original text.
+  Each `jev_verify` request holds at most 110 claims and 12,000 claim
+  characters, below the sizes OpenRouter refused (the real limit is not
+  published); a longer claim stops the command with an error naming it.
   The agent sends them through its MCP client. It corrects target units judged
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.
 - `npm run doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
-  on `AGENTS.md` and the constitution. It downloads the pinned archive once
+  on root and plugin `AGENTS.md` files and the constitution. It downloads the pinned archive once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
-  Findings for these two files, from the audit or from backfire, are only
+  Findings for these rule files, from the audit or from backfire, are only
   reported to the user; the tooling never changes them.
 - The engine is the uv project `packages/doc-regions/`. `mise run setup`
   syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
 - Not automated: sending the backfire requests and acting on the results,
-  reporting drift in `AGENTS.md` and the constitution to the user, and
+  reporting drift in root and plugin `AGENTS.md` files and the constitution, and
   choosing which candidates become mechanical regions.

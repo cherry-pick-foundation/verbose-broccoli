@@ -4,5 +4,7 @@
   "revision": "705fb0ecac6f4249679958f6325b809b63fdde17",
   "path": "skills/gws-drive-upload",
   "skill_sha256": "7ffd4bdffab870e3aab8b9081b60d485dc5d0bb7f6e6524ee84100a630f84595",
-  "local_modifications": []
+  "local_modifications": [
+    "Added a relative pointer after the front matter to read the work plugin AGENTS.md before using the skill."
+  ]
 }

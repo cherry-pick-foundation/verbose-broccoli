@@ -7,6 +7,8 @@ metadata:
   source: bug:commands/speckit.bug.fix.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Fix Bug
 
 Apply the remediation that was proposed by `$speckit-bug-assess` and record the changes in a fix report at `.specify/bugs/<slug>/fix.md`. This command is **only** valid after an assessment exists for the given slug.

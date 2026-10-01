@@ -9,6 +9,8 @@ description: >
   starting any worker, reviewer or orchestrator through Orca.
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Build with TypeSafe
 
 TypeSafe makes units of AI intelligence usable like programming primitives: small

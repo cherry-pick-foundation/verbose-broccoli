@@ -9,6 +9,8 @@ from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
 
+from doc_regions.requests import MAX_CLAIM_CHARS
+from doc_regions.requests import MAX_CLAIMS
 from doc_regions.requests import classify_requests
 from doc_regions.requests import prepare
 from doc_regions.requests import verify_requests
@@ -61,6 +63,39 @@ def test_verify_limits_and_lossless_order(evidence_count):
         count = len(request["arguments"]["claims"])
         assert count * (3 if evidence_count == 1 else evidence_count + 4) <= 672
         assert request["arguments"]["evidence"] == evidence
+
+
+def claim_chars(request):
+    return sum(len(c) for c in request["arguments"]["claims"])
+
+
+@pytest.mark.parametrize("evidence_count", [1, 12])
+def test_verify_bounds_claim_characters_and_count(evidence_count):
+    # 106 claims of 470 characters, about the size of docs/architecture.md.
+    long = [dict(id=f"long:{i}", text="x" * 470) for i in range(106)]
+    short = [dict(id=f"short:{i}", text="y") for i in range(224)]
+    huge = [dict(id="huge:1", text="z" * (MAX_CLAIM_CHARS + 1))]
+    evidence = [dict(id=f"e{i}", text="E") for i in range(evidence_count)]
+    for source in (long, short, long[:2]):
+        requests = verify_requests([(source, evidence)])
+        valid(requests)
+        assert [i for r in requests for i in r["units"]] == [
+            u["id"] for u in source
+        ]
+        assert [c for r in requests for c in r["arguments"]["claims"]] == [
+            u["text"] for u in source
+        ]
+        for request in requests:
+            claims = request["arguments"]["claims"]
+            assert len(claims) <= MAX_CLAIMS
+            assert claim_chars(request) <= MAX_CLAIM_CHARS
+            # The sizes OpenRouter refused (45,800 characters; 224 claims),
+            # written out so changing the constants cannot hide a regression.
+            assert claim_chars(request) < 45800
+            assert len(claims) < 224
+    assert (MAX_CLAIMS, MAX_CLAIM_CHARS) == (110, 12000)
+    with pytest.raises(ValueError, match="huge:1"):
+        verify_requests([(long[:2] + huge, evidence)])
 
 
 def test_verify_groups_keep_input_order_and_evidence():
@@ -188,6 +223,73 @@ def test_prepare_root_diff_schema_determinism_and_read_only(
         repository, "diff", first["base"], "--", "source.txt"
     )
     assert "Working tree addition." in "".join(e["text"] for e in evidence)
+
+
+def test_prepare_keeps_a_rename_as_one_small_diff(repository, unchanged):
+    body = "".join(f"Line {i} of the source.\n" for i in range(400))
+    (repository / "source.txt").write_text(body)
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "grow the source")
+    base = git(repository, "rev-parse", "HEAD").strip()
+    git(repository, "mv", "source.txt", "moved.txt")
+    (repository / "moved.txt").write_text(body + "One more line.\n")
+    git(repository, "add", ".")
+    with unchanged(repository):
+        result = prepare(
+            repository, "config.toml", base=base, max_evidence_chars=100000
+        )
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
+    evidence = verify[0]["arguments"]["evidence"]
+    assert [e["id"] for e in evidence] == ["moved.txt"]
+    assert "rename from source.txt" in evidence[0]["text"]
+    assert "+One more line." in evidence[0]["text"]
+    assert len(evidence[0]["text"]) < len(body) // 4
+
+
+def test_prepare_keeps_a_rename_chain_as_renames(repository, unchanged):
+    for name, text in (("a.txt", "A\n"), ("b.txt", "B\n")):
+        (repository / name).write_text(text * 300)
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "add pair")
+    base = git(repository, "rev-parse", "HEAD").strip()
+    git(repository, "mv", "b.txt", "c.txt")
+    git(repository, "mv", "a.txt", "b.txt")
+    with unchanged(repository):
+        result = prepare(
+            repository, "config.toml", base=base, max_evidence_chars=1000
+        )
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
+    evidence = verify[0]["arguments"]["evidence"]
+    assert [e["id"] for e in evidence] == ["b.txt", "c.txt"]
+    assert "rename from a.txt" in evidence[0]["text"]
+    assert "rename from b.txt" in evidence[1]["text"]
+
+
+def test_prepare_keeps_a_rename_out_of_an_excluded_path(repository, unchanged):
+    (repository / "src").mkdir()
+    (repository / "src" / "impl.py").write_text("print('x')\n")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "add impl")
+    base = git(repository, "rev-parse", "HEAD").strip()
+    (repository / "tests").mkdir()
+    git(repository, "mv", "src/impl.py", "tests/impl.py")
+    config = repository / "excluding.toml"
+    config.write_text(
+        (repository / "config.toml").read_text()
+        + 'evidence_exclude = ["tests/**"]\n'
+    )
+    with unchanged(repository):
+        result = prepare(
+            repository, "excluding.toml", base=base, max_evidence_chars=1000
+        )
+    verify = [r for r in result["requests"] if r["tool"] == "jev_verify"]
+    assert [e["id"] for e in verify[0]["arguments"]["evidence"]] == [
+        "tests/impl.py"
+    ]
+    assert (
+        "rename from src/impl.py"
+        in verify[0]["arguments"]["evidence"][0]["text"]
+    )
 
 
 def test_prepare_classifies_only_target_units(repository, unchanged):

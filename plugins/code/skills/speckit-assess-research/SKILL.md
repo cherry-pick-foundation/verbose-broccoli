@@ -7,6 +7,8 @@ metadata:
   source: assess:commands/speckit.assess.research.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Research an Idea
 
 Gather the **evidence** needed to judge an idea honestly, and record it at `.specify/assessments/<slug>/research.md`. This stage exists to *challenge* the idea as much as support it — surfacing prior art, real user signal, market context, and data so the later `$speckit-assess-define` and `$speckit-assess-decide` stages rest on facts, not enthusiasm.

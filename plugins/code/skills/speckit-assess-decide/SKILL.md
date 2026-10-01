@@ -7,6 +7,8 @@ metadata:
   source: assess:commands/speckit.assess.decide.md
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 # Decide: Go, Clarify, or Kill
 
 Render the **verdict** on an assessed idea and record it at `.specify/assessments/<slug>/decision.md`. This is the gate between discovery and delivery: a **go** hands the idea off to `$speckit-specify`; a **kill** stops it with a documented reason; **needs-clarification** sends it back to an earlier stage. Killing ideas here is a success, not a failure — that is the entire point of an assessment pipeline.

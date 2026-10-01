@@ -42,6 +42,36 @@ def latin(text):
     return _HANGUL_RUN.sub(lambda run: anyascii(run[0]).lower(), text)
 
 
+# A request of about 45,800 claim characters (106 claims) and one of 224
+# short claims drew OpenRouter's `400 max_tokens_exceeded`; 110 claims and
+# four hand-split requests of about 11,500 characters were answered. Neither
+# jev-judge-mcp nor backfire splits requests. Evidence is the same in every
+# request of a group, so it does not count here.
+MAX_CLAIMS = 110
+MAX_CLAIM_CHARS = 12000
+
+
+def claim_batches(units, claims_per_request):
+    """Split units in order; a batch stays within both claim limits."""
+    batch, chars = [], 0
+    for unit in units:
+        size = len(unit["text"])
+        if size > MAX_CLAIM_CHARS:
+            raise ValueError(
+                f"claim {unit['id']} has {size} characters; the jev_verify "
+                f"claim limit is {MAX_CLAIM_CHARS}"
+            )
+        if batch and (
+            len(batch) == claims_per_request or chars + size > MAX_CLAIM_CHARS
+        ):
+            yield batch
+            batch, chars = [], 0
+        batch.append(unit)
+        chars += size
+    if batch:
+        yield batch
+
+
 def verify_requests(groups):
     """Build bounded jev_verify requests from units and evidence."""
     requests = []
@@ -50,11 +80,11 @@ def verify_requests(groups):
             raise ValueError("jev_verify evidence limit is at least 1 item")
         if len(evidence) > 249:
             raise ValueError("jev_verify evidence request cap is 249 items")
-        claims_per_request = 672 // (
-            3 if len(evidence) == 1 else len(evidence) + 4
+        claims_per_request = min(
+            MAX_CLAIMS,
+            672 // (3 if len(evidence) == 1 else len(evidence) + 4),
         )
-        for start in range(0, len(units), claims_per_request):
-            batch = units[start : start + claims_per_request]
+        for batch in claim_batches(units, claims_per_request):
             requests.append(
                 {
                     "tool": "jev_verify",
@@ -128,25 +158,48 @@ def prepare(root, config_path, *, base, max_evidence_chars):
     # letters, in claims and evidence alike.
     sendable = [{**unit, "text": latin(unit["text"])} for unit in units]
 
+    # -B -M pairs a file moved onto another moved file as two renames, not as
+    # a whole deletion, modification and addition of each.
     diff_options = [
         "--no-ext-diff",
         "--no-textconv",
         "--no-color",
-        "--no-renames",
+        "-B",
+        "-M",
     ]
-    changed = git(
-        root, "diff", *diff_options, merge_base, "--name-only", "-z", "--"
+    fields = git(
+        root, "diff", *diff_options, merge_base, "--name-status", "-z", "--"
     ).split("\0")
+    # The full diff lists the same files in the same order: one segment per
+    # file, so a renamed file is one rename diff in the global pairing.
+    segments = re.split(
+        r"(?m)^(?=diff --git )",
+        git(root, "diff", *diff_options, merge_base, "--"),
+    )[1:]
+    # Each entry is its status letter and one path, or two for a rename or
+    # copy.
+    changed, index = [], 0
+    while index < len(fields) - 1:
+        count = 2 if fields[index][0] in "RC" else 1
+        paths = fields[index + 1 : index + 1 + count]
+        changed.append((paths[-1], paths))
+        index += 1 + count
+    if len(changed) != len(segments):
+        raise ValueError("git diff listed a different number of files")
     evidence = []
-    for document in sorted(path for path in changed if path):
-        if document in documents or any(
-            PurePosixPath(document).full_match(pattern)
-            for pattern in config["evidence_exclude"]
+    for (document, paths), segment in sorted(zip(changed, segments)):
+        # A rename is skipped only when both its paths are, so moving a file
+        # into an excluded path still shows the old file's removal.
+        if all(
+            path in documents
+            or any(
+                PurePosixPath(path).full_match(pattern)
+                for pattern in config["evidence_exclude"]
+            )
+            for path in paths
         ):
             continue
-        diff = latin(
-            git(root, "diff", *diff_options, merge_base, "--", document)
-        )
+        diff = latin(segment)
         chunks = [
             diff[index : index + max_evidence_chars]
             for index in range(0, len(diff), max_evidence_chars)

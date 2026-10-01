@@ -39,7 +39,7 @@ parallel.
 
 ## Phase 4: Finish
 
-- [ ] T009 Merge `develop`, run `npm run verify`, pass the develop merge
+- [x] T009 Merge `develop`, run `npm run verify`, pass the develop merge
   review by the other provider, commit the review record and finish with
   `git flow feature finish session-wiki`.
   - 2026-09-30 pause for a restart: `develop` (b9a0293) is merged and
@@ -47,6 +47,10 @@ parallel.
     move CHE-47 to In Review, start the two develop merge reviewers named in
     the notes (their specs are in the ignored `.local/che47/`), resolve their
     findings, then the review record and the finish.
+  - 2026-10-02 ledger reconciliation: stage 1 finished as `ff5ff91`, review
+    record `356da97`; current develop `3d4613f` is VERIFIED (47 of 47).
+    Next: stage 2 classification, user list approval, import and page writing
+    remain under CHE-47, returned to Backlog because nothing is in review.
 
 ## Notes
 

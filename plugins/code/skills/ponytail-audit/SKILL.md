@@ -9,6 +9,8 @@ description: >
   not apply fixes.
 ---
 
+Read [the code plugin rules](../../AGENTS.md) before using this skill.
+
 ponytail-review, repo-wide. Scan the whole tree instead of a diff. Rank
 findings biggest cut first.
 

@@ -9,7 +9,7 @@ targets = [
   "docs/reference/commands.md",
   "docs/reference/plugins.md",
 ]
-report_only = ["AGENTS.md", ".specify/memory/constitution.md"]
+report_only = ["AGENTS.md", "plugins/*/AGENTS.md", ".specify/memory/constitution.md"]
 generators = "doc_sources"
 generator_path = "scripts"
 # These files cannot make a document statement wrong on their own.

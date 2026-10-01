@@ -11,6 +11,8 @@ metadata:
     cliHelp: "gws drive +upload --help"
 ---
 
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
+
 # drive +upload
 
 > **PREREQUISITE:** Read `../gws-shared/SKILL.md` for auth, global flags, and security rules. If missing, run `gws generate-skills` to create it.
