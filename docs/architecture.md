@@ -684,6 +684,9 @@ or an agent region, written by agents. No part is human-written.
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
   `jev_verify` requests, with units as claims and the feature diff as
   evidence, and `jev_classify` requests for the units the feature added.
+  Backfire refuses a request that holds Hangul, so the requests spell every
+  Hangul run in Latin letters, in claims and evidence alike, with anyascii
+  0.3.3 (ISC); the printed `units` keep the original text.
   The agent sends them through its MCP client. It corrects target units judged
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.

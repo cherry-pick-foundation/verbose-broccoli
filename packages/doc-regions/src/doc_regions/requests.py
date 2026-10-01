@@ -3,7 +3,10 @@
 import os
 from pathlib import Path
 from pathlib import PurePosixPath
+import re
 import subprocess
+
+from anyascii import anyascii
 
 from doc_regions.config import load
 from doc_regions.units import split
@@ -26,6 +29,17 @@ CLASSES = [
         ),
     },
 ]
+
+# Hangul syllables and Jamo, composed or decomposed; backfire refuses a request
+# that holds any (`hangul_remaining`).
+_HANGUL_RUN = re.compile(
+    r"[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]+"
+)
+
+
+def latin(text):
+    """Spell each run of Hangul in Latin letters, so a request can be sent."""
+    return _HANGUL_RUN.sub(lambda run: anyascii(run[0]).lower(), text)
 
 
 def verify_requests(groups):
@@ -110,6 +124,9 @@ def prepare(root, config_path, *, base, max_evidence_chars):
         for unit in split(document, source, base_text):
             unit["report_only"] = document in config["report_only"]
             units.append(unit)
+    # The units keep their Hangul; the requests carry it spelled in Latin
+    # letters, in claims and evidence alike.
+    sendable = [{**unit, "text": latin(unit["text"])} for unit in units]
 
     diff_options = [
         "--no-ext-diff",
@@ -127,24 +144,28 @@ def prepare(root, config_path, *, base, max_evidence_chars):
             for pattern in config["evidence_exclude"]
         ):
             continue
-        diff = git(root, "diff", *diff_options, merge_base, "--", document)
+        diff = latin(
+            git(root, "diff", *diff_options, merge_base, "--", document)
+        )
         chunks = [
             diff[index : index + max_evidence_chars]
             for index in range(0, len(diff), max_evidence_chars)
         ]
         evidence.extend(
             {
-                "id": document if len(chunks) == 1 else f"{document}#{index}",
+                "id": latin(document)
+                if len(chunks) == 1
+                else f"{latin(document)}#{index}",
                 "text": chunk,
             }
             for index, chunk in enumerate(chunks, 1)
         )
 
-    requests = verify_requests([(units, evidence)]) if evidence else []
+    requests = verify_requests([(sendable, evidence)]) if evidence else []
     for document in config["targets"]:
         added = [
             unit
-            for unit in units
+            for unit in sendable
             if unit["document"] == document and unit["added"]
         ]
         requests.extend(
