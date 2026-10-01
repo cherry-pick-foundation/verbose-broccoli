@@ -279,3 +279,25 @@ messages. Run files stay in the run folders and records in the work vault.
   resolve findings; review-record commit; ask the develop session for the
   finish slot; check `develop` has not moved; `git flow feature finish`;
   CHE-68 Done with one completion comment; board status `completed`.
+  - 2026-10-01 review: Copilot CLI (auto model, balance tier, routed to
+    gpt-6-luna; backfire: 0.59, confidence 0.54; 2.73 of 200 monthly AI
+    credits) reviewed 57f52d5 against the spec, plan and `AGENTS.md`: 1
+    medium finding (`map` and the mapping `record` accept a
+    `mappings.jsonl` that misses or repeats inventory keys) and 1 low
+    (the spec's Terms and Assumptions still name `catalog`, say mappings
+    use education mode, and call every item checked though items without
+    sections send no call). Report: `.local/che-68/merge-review.md`
+    (git-ignored). Tests passed for the reviewer (9 and 102).
+  - 2026-10-01 handoff (computer reboot): stopped at a safe point. Recorded:
+    all 63 first-batch profiles (vault 3fba692, 88f8308) and the 4
+    mappings (7d5577d); no worker is running; CHE-68 is In Review. The
+    session's scratch files (survey list, batch manifest, loop scripts,
+    judgment outputs) are in `.local/che-68/scratch/`; run folders stay in
+    `~/.local/state/verbose-broccoli/grammatical-competence/` until the
+    finish. Next: fix both findings (a test that fails without the
+    coverage check), `npm run verify`, decide whether the fix needs a
+    second review, add the review-record commit, ask the develop session
+    for the finish slot, merge develop, verify, check develop has not
+    moved, `git flow feature finish`, CHE-68 Done with one comment, board
+    `completed`, delete the run folders and `.local/che-68/`, and ask the
+    user whether to delete stage 1's folder with the answer key.
