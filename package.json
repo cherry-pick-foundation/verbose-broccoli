@@ -35,6 +35,7 @@
     "test:lint-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/lint-names-test.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "plugins:validate": "uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/plugin.schema.json plugins/chat/plugin.json plugins/code/plugin.json plugins/work/plugin.json && uv run --project tools/check-jsonschema --frozen --offline --no-sync check-jsonschema --no-cache --schemafile scripts/vendor/agent-plugins/mcp.schema.json plugins/code/mcp.json plugins/work/mcp.json",
+    "plugins:distribute": "npm run plugins:validate && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/plugin-clients.ts --distribute",
     "plugins:prepare": "npm run plugins:validate && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/plugin-clients.ts",
     "clean-architecture": "env GIT_OPTIONAL_LOCKS=0 depcruise --config .config/dependency-cruiser.json --no-cache --no-progress --output-type err packages plugins scripts",
     "python:imports": "uv run --project packages/wiki-consistency --frozen --offline --no-sync lint-imports --config pyproject.toml --no-cache",

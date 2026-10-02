@@ -97,7 +97,7 @@
     "//#test:secrets-refresh": {},
     "//#test:commit-msg": {},
     "//#test:plugin-skills": {
-      "description": "Test the plugins' skill packaging; uncached because it checks that two folders are absent, and Turborepo does not hash folders",
+      "description": "Test live skill links, resources and copied distribution; uncached because filesystem discovery and conflicts are checked directly",
       "cache": false
     },
     "//#test:reference-library": {

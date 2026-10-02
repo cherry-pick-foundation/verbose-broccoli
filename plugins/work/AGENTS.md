@@ -15,8 +15,8 @@ before planning around it; an earlier plan does not establish working access.
 Keep learning-status and progress judgments working through the approved work
 Backfire privacy gate. Do not impose a blanket prohibition on education data.
 The user's provider decisions apply within the current privacy boundary in
-[the Backfire skill](skills/backfire/SKILL.md) and
-[its privacy limits](skills/backfire/references/verbose-broccoli.md).
+[the Backfire skill](skills/backfire-education/SKILL.md) and
+[its privacy limits](skills/backfire-education/references/verbose-broccoli.md).
 Never send student data to code Backfire or credentials to either mode.
 
 Only the user's own Claude and ChatGPT accounts, with training off, may receive

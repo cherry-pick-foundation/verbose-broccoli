@@ -16,7 +16,7 @@ The `code` package contains the adapted Wondel Clean Code skill
 and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 an MCP declaration for the `backfire-code` server.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
-`wiki-raw-import`, `wiki-consistency` and `backfire` skills, the `google-workspace`
+`wiki-raw-import`, `wiki-consistency` and `backfire-education` skills, the `google-workspace`
 skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
@@ -30,8 +30,8 @@ The `chat` package contains the `web-agent` and `credit-offers` skills
 (see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
 it has no package manifest, MCP declaration or scripts, and its
 persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
-No release has occurred, and actual client installation
-remains open.
+No release has occurred. Live checkout discovery and copied client distribution
+are separate routes (see [Sharing and distribution](#sharing-and-distribution)).
 
 check-jsonschema 0.38.2 validates the plugin manifests offline against the
 unmodified official Agent Plugins schemas; `tools/check-jsonschema/` is a uv
@@ -431,10 +431,13 @@ blocked in each client's own settings: Claude Code's permission deny rules
 (`.claude/settings.json` and the user's settings, for the plugin's server and
 for a server of the same name added by the user) and Codex's `disabled_tools`
 in the user's `~/.codex/config.toml`, whose `reference-library` entry runs the
-same pinned copy under `~/.local/share/mcp-servers/zotero/1.0.1`. Claude Code
+same pinned copy under `~/.local/share/mcp-servers/zotero/1.0.1`. The live project
+route instead generates a checkout-local Codex entry with the same disabled
+tools; Claude's project deny rules cover the local server name. Claude Code
 2.1.286 reads the prepared plugin's `mcp.json` through its native manifest's
 `mcpServers` path; Codex reads that same portable declaration. See
-[Sharing and distribution](#sharing-and-distribution) for preparation and loading.
+[Sharing and distribution](#sharing-and-distribution) for live preparation and
+optional copied loading.
 The security checks of the connector
 and of Caddy are in `specs/040-reference-library/security/`.
 
@@ -497,52 +500,166 @@ Shared packages are implementation dependencies, not a fourth plugin. Plugins do
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
 
+### Live checkout discovery
+
+Run `mise run setup` for a new checkout after trusting its mise configuration;
+setup prepares discovery after installing the checkout's dependencies. With
+dependencies already present, run `npm run plugins:prepare` to refresh the
+links and project MCP configuration. Rerun it after moving a checkout or changing
+the skill inventory or canonical server declarations. Ordinary skill-body edits
+flow through the links and do not need preparation.
+
+Edit skills in `plugins/*/skills/<name>/`, their canonical source directories.
+The repository's `.agents/skills` is a real directory containing individual
+relative directory links, such as
+`backfire-code -> ../../plugins/code/skills/backfire-code`.
+`.claude/skills -> ../.agents/skills` gives Claude Code the same index.
+These links stay within the checkout and expose source edits without copying,
+reinstalling a plugin or bumping its version.
+
+The existing generator, `scripts/plugin-clients.ts`, reads the canonical
+`plugins/code/mcp.json` and `plugins/work/mcp.json` declarations. It generates
+Claude's root `.mcp.json` and a managed block in `.codex/config.toml`, with
+absolute paths to this checkout. Code and education Backfire use the installed
+uv workspace under `packages/backfire`, with `--education` only for education;
+the reference connector uses `plugins/work/node_modules`. Project discovery
+needs those dependencies and client trust/permission decisions. It changes no
+global client configuration and performs no provider judgment or library read.
+The reference-library destructive-tool denials still apply in both clients.
+Use a fresh session to check changed MCP configuration and metadata; skill-text
+reload does not prove a server configuration has reloaded.
+
+Generated absolute MCP paths are local setup output, not portable declarations.
+Keep the machine-specific Codex block out of commits. After that block is removed
+for a clean commit, run `npm run plugins:prepare` again before using Codex MCP;
+the relative skill links remain usable without that block.
+
+Preparation keeps unrelated user settings and skill directories, and uses
+`$XDG_STATE_HOME/verbose-broccoli/workspaces/<checkout-id>/plugin-discovery/plugin-discovery.json`
+to recognize its generated MCP entries. `<checkout-id>` is the basename of
+Node's `resolve(checkout)` plus `-` and the first 12 lowercase hexadecimal
+characters of its SHA-256 hash. The hash uses the resolved absolute path string
+as UTF-8, without resolving symlinks through `realpath`. Same-named folders at
+different paths therefore have separate receipt, cache, staging and recovery
+locations. `plugin-discovery` is the stable operation namespace; `che-82` names
+only retained feature-run evidence. Absolute `XDG_STATE_HOME` values are honored; unset, empty or relative values use
+`~/.local/state`. Keep this durable ownership receipt when clearing scratch or
+cache; its atomic-write sibling is `plugin-discovery.json.next`. Client-required
+`.agents/`, `.claude/`, `.codex/` and `.mcp.json` remain in their supported project
+locations; `.local/` holds disposable editor copies.
+
+When no durable receipt exists, preparation imports the legacy
+`.local/plugin-discovery.json` after checking conflicts, preserving its exact
+bytes as `plugin-discovery-legacy.json` beside the durable receipt and leaving
+the legacy file unchanged. Later runs use the durable receipt. Moving a
+configured checkout changes its identity even when its basename stays the same.
+Before re-preparation, explicitly copy its prior receipt to the moved checkout's
+`.local/plugin-discovery.json` for that importer, preserving the original evidence
+and checking any existing destination rather than overwriting it. Preparation
+does not automatically import receipts from the old `<checkout-folder>/che-82/`
+state location. It refuses unsafe conflicts rather than replacing user-edited
+entries. Inspect a conflict before rerunning instead of deleting user-owned content.
+
+Keep folder and frontmatter names equal. Local invocation uses
+`$backfire-code` or `$backfire-education` in Codex and `/backfire-code` or
+`/backfire-education` in Claude Code. Code Backfire forbids student data;
+education Backfire keeps its privacy gate and documented detector limits.
+The distinct names do not relax either boundary.
+
+Resolve references, assets and helpers from the canonical skill directory,
+not from the session's working directory or the shared index. For example,
+Backfire's `../../AGENTS.md` names its owning plugin's rules. Root `AGENTS.md`
+also requires reading those rules; discovering a skill alone does not prove
+the client loaded them. Local discovery is not plugin installation and does
+not supply plugin-only runtime variables. Distributed resources stay inside
+their owning plugin root.
+
+[Codex's skill documentation](https://learn.chatgpt.com/docs/build-skills)
+supports symlinked skill folders under `.agents/skills`, scanned from the
+working directory up to the repository root. It says skill changes are detected
+automatically, with a restart fallback if an update is missing. Existing context
+can still contain older instructions; use a fresh session and inspect the
+canonical source path when checking an edit.
+
+[Claude Code's skill documentation](https://code.claude.com/docs/en/skills)
+supports symlinked project skill entries. It describes live `SKILL.md` updates
+outside bare mode and `/reload-skills` for a discovery directory created after
+session start. This checkout also links the discovery root; check the installed
+client's behavior rather than assuming its watcher follows every target edit.
+Use a fresh session if reload does not expose the canonical source. Plugin
+component changes use `/reload-plugins`; that is separate from local skill text.
+
+Packaged skills may coexist with these local entries. Claude keeps both local
+and namespaced plugin skills, such as `/backfire-code` and
+`/code:backfire-code`; enterprise skills win over personal, which win over
+project skills of the same name. Codex does not merge equal skill names and
+can show both entries. Inspect paths before invoking; a packaged copy is not
+evidence of the live source. Preparation does not uninstall or disable existing
+user packages.
+
+Linux native clients are the acceptance target. Relative links are filesystem
+links, not a Windows copy fallback; macOS, Windows and remote or web clients
+need their own discovery and resource-resolution evidence. Filesystem checks
+alone do not establish native client acceptance.
+
+### Optional copied client packages
+
 Backfire and the reference connector run from the repository checkout.
-`npm run plugins:prepare` validates the canonical manifests and prepares local
-client packages in `.local/plugin-clients/`. It resolves `${PLUGIN_ROOT}` to
-the source plugin directory, so copied client packages retain the checkout's
-dependency paths. Run preparation from a permanent checkout such as `develop`
-before installing; an installed package still needs that checkout and its
-dependencies. The generated output is limited to 16 MiB, with one staging and
-one recovery copy; failed preparation preserves the previous completed output.
-Do not distribute
-`skills/` or package components as symlinks into neighboring workspace
-directories. Development workspace resolution is not proof that an isolated
-installation works. Reuse upstream packaging tools if an installable plugin
-becomes necessary.
+`npm run plugins:distribute` validates canonical manifests and prepares copied
+client packages in
+`$XDG_CACHE_HOME/verbose-broccoli/workspaces/<checkout-id>/plugin-discovery/plugin-clients/`
+and prints the destination path. Absolute `XDG_CACHE_HOME` values are honored;
+unset, empty or relative values use `~/.cache`. These packages are reproducible
+cache output, separate from durable discovery ownership; rerun distribution
+after clearing them. It resolves `${PLUGIN_ROOT}` to
+the source plugin directory, retaining that checkout's installed dependency
+paths. An installed copy still needs its source checkout and dependencies;
+it is not a standalone server distribution. The output is limited to 16 MiB,
+with sibling staging `plugin-clients.next` and recovery `plugin-clients.previous`
+copies under the same isolated operation directory; failed preparation preserves
+the previous completed output. Copied packages contain real skill resources,
+without links into neighboring workspaces.
 
 Use root `plugin.json`, `skills/`, and `mcp.json` according to
 [Agent Plugins 1.0](https://agent-plugins.org/specification).
 Each prepared package retains this layout. Its generated Claude manifest points
 `mcpServers` at `./mcp.json`, so both clients consume one generated declaration
 derived from the canonical source. Claude Code loads these prepared folders
-with `--plugin-dir .local/plugin-clients/plugins/code` and corresponding Work
+with `--plugin-dir <distribution-path>/plugins/code` and corresponding Work
 and Chat paths, or `CLAUDE_CODE_PLUGIN_DIRS`. Codex uses the generated local
-marketplace: `codex plugin marketplace add .local/plugin-clients`, then
+marketplace: `codex plugin marketplace add <distribution-path>`, then
 `codex plugin add code@verbose-broccoli` and corresponding Work and Chat
-selectors. Codex copies the packages, so rerun preparation and `plugin add`
-after source changes; changing a saved client's settings needs user approval.
-These commands do not publish anything. The
-project keeps no `.agents/skills` or `.claude/skills` links, which would list
-every packaged skill twice. OMP does not offer a plugin skill that declares
+selectors. Codex copies the packages; refreshing a copied installation is a
+separate operation from editing live local skills. Changing saved client
+settings needs user approval. These commands do not publish anything.
+Use the destination printed by `npm run plugins:distribute` for
+`<distribution-path>`; quote it if it contains spaces.
+Claude reads relative-path plugins from a local marketplace directly; hosted
+marketplace installs use cached copies. The local marketplace route applies
+plugin edits on session start or `/reload-plugins`, without a version change
+(see [marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)).
+Plugin manifest component paths must remain inside the plugin root (see
+[manifest path rules](https://code.claude.com/docs/en/plugins-reference)).
+Native publication manifests and release/version automation remain deferred.
+OMP does not offer a plugin skill that declares
 `argument-hint`, so OMP needs `ponytail` in its user skills folder,
 `~/.omp/agent/skills`. Marketplace registration, host config changes, and
 global skill migration remain separate.
 
 ### Skill source ownership — 2026-09-14
 
-Maintain each skill only in its owning package, without discovery links or
-duplicate source trees elsewhere in the repository. The one exception is the
-`backfire` skill: the code and work plugins each carry a vendored copy of the
-same upstream skill, because a plugin may not link to another plugin's files,
-and `scripts/plugin-skills-test.ts` keeps the copies' shared files identical.
+Maintain each skill body only in its owning package. The shared local discovery
+index links to those directories; it does not hold another source tree.
+`backfire-code` and `backfire-education` each carry their own vendored upstream
+resources, because a distributed plugin may not link to another plugin's files.
+`scripts/plugin-skills-test.ts` keeps their shared tool reference identical.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `backfire`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire`, `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/code/skills` | `backfire-code`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/work/skills` | `backfire-education`, `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
@@ -551,8 +668,8 @@ sources.
 Ponytail's unchanged upstream modules and tests live in `plugins/code/hooks`
 and `plugins/code/tests`. `.agents/ponytail` is a compatibility link to that
 package, so the commands in `.codex/hooks.json` and their trust hashes stay
-unchanged. The instruction loader finds the packaged skill without a link out
-of the package. Runtime state remains in the Git-local `ponytail` directory.
+unchanged. The shared discovery index points to the canonical Ponytail skill
+directory. Runtime state remains in the Git-local `ponytail` directory.
 Client hook registration remains project configuration, not a new portable
 hook manifest. The existing project policy hook is separate from this migration.
 
@@ -562,11 +679,10 @@ initialized `.specify` scripts, templates and constitution; those project assets
 are not moved into the plugin. Quarto retains its existing host runtime
 requirement.
 
-`npm run test:plugin-skills` checks that the project keeps no skill discovery
-links and that `.agents/ponytail` resolves to the `code` package, copies skill
-resources into temporary packages without workspace links, then runs the
-upstream Ponytail checks. This checks resource packaging; client installation
-and native invocation still need their own acceptance.
+`npm run test:plugin-skills` covers local discovery and copied distribution,
+including canonical resources and the `.agents/ponytail` compatibility link,
+then runs the upstream Ponytail checks. These checks do not replace fresh native
+client discovery and invocation evidence.
 
 ### Spec Kit extensions — 2026-09-27
 

@@ -31,3 +31,6 @@ __pycache__/
 !.env.template
 /infra/*.env
 /authorization.json
+
+# Project MCP paths are generated from canonical plugin declarations.
+/.mcp.json

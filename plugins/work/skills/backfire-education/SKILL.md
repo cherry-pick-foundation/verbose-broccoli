@@ -1,9 +1,9 @@
 ---
-name: backfire
-description: Conventions for the Backfire judgment tools. Use when screening fetched or pasted content, verifying claims against evidence, ranking or classifying items by meaning, comparing passages, extracting fields, reviewing a patch, gating completion, or judging how likely a proposition is — and when choosing between Backfire and rg, curl, or plain reading.
+name: backfire-education
+description: "Use Backfire judgment tools for education work, including learning status, progress, scores, observations, and Wiki evidence, through the approved work privacy gate. Follow its identifier-detection limits and account-training requirements; never send credentials."
 ---
 
-Read [the code plugin rules](../../AGENTS.md) before using this skill.
+Read [the work plugin rules](../../AGENTS.md) before using this skill.
 
 # Backfire
 
@@ -50,12 +50,12 @@ Eleven tools built on TypeSafe's Jev. They return typed judgments and probabilit
 
 ## Data handling and cost
 
-- Tool inputs, within each tool's size limits, and the questions used for each judgment are sent through the code plugin's local Backfire backend to an external model provider: the first profile in Backfire's order that is not known to be out of credit, OpenRouter and then Hive by default. Never send secrets, credentials, or private personal records such as student data to these tools: this backend replaces nothing, and student data goes only through the work plugin's Backfire. Requests must be English; the backend refuses any request that contains Hangul (`hangul_remaining`) and sends nothing.
+- Tool inputs, within each tool's size limits, and the questions used for each judgment are sent through the work plugin's local Backfire backend to an external model provider: the first profile in Backfire's order that is not known to be out of credit, OpenRouter and then Hive by default. Everything you send must be English: translate Korean material into English yourself, in your own Claude or ChatGPT session, before any call. The backend refuses a request that still contains Hangul (`hangul_remaining`) and sends nothing. Before anything leaves, it replaces students' names and EduOK numbers, guardian names, schools, regions, school years, birth dates, addresses, phone numbers and email addresses with stable English stand-ins such as `Student 03`, and restores them in the results; it scans the result again and refuses if an identifier is left (`identifier_remaining`). Learning content such as scores and observations is sent as is. Student records may be sent to these tools once the operator has turned off model training in the Claude and ChatGPT account settings; secrets and credentials never. Never send student data to the code plugin's Backfire. See [`references/verbose-broccoli.md`](references/verbose-broccoli.md) for what the backend cannot detect.
 - Send only the evidence needed for the decision. Text is truncated per tool (limits in [`reference/tools.md`](reference/tools.md)), so chunk deliberately rather than hoping the tail survives.
 - Every successful result that called the model reports token usage. Report usage when cost matters. Judgments are signals, not proof — Jev can be wrong even at high confidence.
 
 ## See also
 
 - [`reference/tools.md`](reference/tools.md) — per-tool arguments, output shapes, verdict enums, defaults, limits, failure modes, and the classification-catalog checklist. Read a tool's block before first use.
-- [`references/verbose-broccoli.md`](references/verbose-broccoli.md) — local provider, privacy, advisory limits, and measured quality guidance.
+- [`references/verbose-broccoli.md`](references/verbose-broccoli.md) — local provider, pseudonymization, advisory limits, and measured quality guidance.
 - Need the judgments to drive a real browser instead? [Jev Browser](https://github.com/jkudish/jev-browser) (`@jkudish/jev-browser`) exposes `jev_navigate` and ships its own skill.

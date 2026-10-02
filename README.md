@@ -9,6 +9,21 @@ Development follows the [constitution](.specify/memory/constitution.md), Spec
 Kit feature ledgers under `specs/` and the repository's coding guidelines. Each
 capability is specified anew from current needs.
 
+For a new checkout, trust its mise configuration and run `mise run setup`.
+With dependencies installed, `npm run plugins:prepare` refreshes live local
+skills and project Model Context Protocol (MCP) configuration for Codex and
+Claude Code. Edit canonical skills under `plugins/*/skills/`; `.agents/skills`
+indexes them through relative links, and `.claude/skills` links to that index.
+`backfire-code` forbids student
+data; `backfire-education` retains its education privacy gate.
+See [local discovery and reload limits](docs/architecture.md#live-checkout-discovery).
+Optional copied packages use `npm run plugins:distribute` separately; local
+skill edits need neither reinstall nor a version bump.
+Discovery ownership stays in XDG state storage; reproducible copied packages
+stay in XDG cache storage. Both use the stable `plugin-discovery` operation
+namespace and a checkout path hash to isolate same-named folders. Client discovery
+files keep their supported project locations; `.local/` holds disposable editor copies.
+
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE).
 Third-party components retain their upstream licenses; see
 [licenses/third-party-notices.md](licenses/third-party-notices.md).
