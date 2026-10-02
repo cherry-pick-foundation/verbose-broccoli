@@ -1,5 +1,7 @@
 import {
   cpSync,
+  chmodSync,
+  chownSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -22,7 +24,7 @@ import {
 import {homedir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {isDeepStrictEqual} from 'node:util';
-import {createHash} from 'node:crypto';
+import {createHash, randomUUID} from 'node:crypto';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PLUGINS = ['chat', 'code', 'work'];
@@ -50,6 +52,19 @@ type Ownership = {
 
 function stat(path: string) {
   return lstatSync(path, {throwIfNoEntry: false});
+}
+
+function replaceClient(path: string, contents: string, staging: string) {
+  const stage = `${path}.${staging}.next`;
+  const previous = stat(path);
+  writeFileSync(stage, contents, {flag: 'wx', mode: 0o600});
+  if (previous) {
+    const current = lstatSync(stage);
+    if (current.uid !== previous.uid || current.gid !== previous.gid)
+      chownSync(stage, previous.uid, previous.gid);
+  }
+  chmodSync(stage, previous?.mode ?? 0o666 & ~process.umask());
+  renameSync(stage, path);
 }
 
 function storagePath(root: string, kind: 'STATE' | 'CACHE') {
@@ -141,10 +156,15 @@ export function preparePluginDiscovery(root = ROOT) {
     previousText !== undefined ? JSON.parse(previousText) : {};
   const old = structuredClone(receipt);
   const pending:
-    {receipt: Ownership; old: Ownership; intended: Ownership} | undefined =
-    existsSync(pendingPath)
-      ? JSON.parse(readFileSync(pendingPath, 'utf8'))
-      : undefined;
+    | {
+        receipt: Ownership;
+        old: Ownership;
+        intended: Ownership;
+        staging?: string;
+      }
+    | undefined = existsSync(pendingPath)
+    ? JSON.parse(readFileSync(pendingPath, 'utf8'))
+    : undefined;
   if (
     pending &&
     ![pending.receipt, pending.intended].some(value =>
@@ -223,6 +243,21 @@ export function preparePluginDiscovery(root = ROOT) {
   const servers = readServers(root);
   const mcpPath = join(root, '.mcp.json');
   const codexPath = join(root, '.codex/config.toml');
+  const staging = randomUUID();
+  if (
+    pending?.staging !== undefined &&
+    !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(pending.staging)
+  )
+    throw new Error('Conflict: invalid client staging receipt');
+  for (const path of [mcpPath, codexPath]) {
+    const leftover = pending?.staging
+      ? stat(`${path}.${pending.staging}.next`)
+      : undefined;
+    if (leftover && (!leftover.isFile() || leftover.isSymbolicLink()))
+      throw new Error(`Conflict: client staging ${path}`);
+    if (stat(`${path}.${staging}.next`))
+      throw new Error(`Conflict: unowned client staging ${path}`);
+  }
   for (const path of [receiptPath, mcpPath, codexPath]) {
     const value = stat(path);
     if (value && (!value.isFile() || value.isSymbolicLink()))
@@ -290,9 +325,14 @@ export function preparePluginDiscovery(root = ROOT) {
   }
   block += END;
   const intended = {links, servers, codex: block};
-  const journal = json({receipt, old, intended});
+  const journal = json({receipt, old, intended, staging});
   if (Buffer.byteLength(journal) > 64 * 1024)
     throw new Error('Ownership journal exceeds 64 KiB');
+  // Only this pending attempt owns leftovers; never sweep matching filenames.
+  if (pending?.staging) {
+    for (const path of [mcpPath, codexPath])
+      rmSync(`${path}.${pending.staging}.next`, {force: true});
+  }
   // Import ownership before changing client files; retain the original bytes
   // separately so deleting disposable .local cannot lose migration evidence.
   mkdirSync(dirname(receiptPath), {recursive: true});
@@ -313,15 +353,73 @@ export function preparePluginDiscovery(root = ROOT) {
     if (!Object.hasOwn(links, path)) rmSync(join(root, path), {force: true});
   }
   mkdirSync(dirname(codexPath), {recursive: true});
-  writeFileSync(mcpPath, json(mcp));
-  writeFileSync(
+  // At most two staged client files survive interruption, named by the journal.
+  replaceClient(mcpPath, json(mcp), staging);
+  replaceClient(
     codexPath,
     codex + (codex && !codex.endsWith('\n') ? '\n' : '') + block,
+    staging,
   );
   writeFileSync(`${receiptPath}.next`, json(intended));
   renameSync(`${receiptPath}.next`, receiptPath);
   rmSync(pendingPath);
   return index;
+}
+
+export function cleanPluginCodex(root = ROOT) {
+  root = resolve(root);
+  const receiptPath = join(storagePath(root, 'STATE'), 'plugin-discovery.json');
+  const pendingPath = `${receiptPath}.pending`;
+  const next = `${receiptPath}.next`;
+  const codexPath = join(root, '.codex/config.toml');
+  const directory = stat(dirname(codexPath));
+  if (!directory?.isDirectory() || directory.isSymbolicLink())
+    throw new Error('Conflict: .codex must be a real directory');
+  for (const path of [receiptPath, codexPath]) {
+    const value = stat(path);
+    if (
+      !value?.isFile() ||
+      value.isSymbolicLink() ||
+      (path === receiptPath && value.size > 64 * 1024)
+    )
+      throw new Error(
+        `Conflict: completed discovery ownership required: ${path}`,
+      );
+  }
+  if (stat(pendingPath) || stat(next))
+    throw new Error(
+      'Conflict: pending discovery; run plugins:prepare before cleanup',
+    );
+  const receipt: Ownership = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  const block = receipt.codex;
+  if (
+    typeof block !== 'string' ||
+    !block.startsWith(BEGIN) ||
+    !block.endsWith(END)
+  )
+    throw new Error('Conflict: invalid Codex ownership receipt');
+  const codex = readFileSync(codexPath, 'utf8');
+  if (!codex.includes(BEGIN) && !codex.includes(END)) return false;
+  if (
+    !codex.includes(block) ||
+    codex.split(BEGIN).length !== 2 ||
+    codex.split(END).length !== 2
+  )
+    throw new Error('Conflict: generated Codex configuration');
+  const staging = randomUUID();
+  for (const path of [join(root, '.mcp.json'), codexPath]) {
+    if (stat(`${path}.${staging}.next`))
+      throw new Error('Conflict: unowned client staging');
+  }
+  // The completed receipt stays authoritative; interrupted cleanup recovers by preparation.
+  const journal = json({receipt, old: receipt, intended: receipt, staging});
+  if (Buffer.byteLength(journal) > 64 * 1024)
+    throw new Error('Ownership journal exceeds 64 KiB');
+  writeFileSync(next, journal, {flag: 'wx'});
+  renameSync(next, pendingPath);
+  replaceClient(codexPath, codex.replace(block, ''), staging);
+  rmSync(pendingPath);
+  return true;
 }
 
 // Client packages still use this checkout's installed dependencies. Claude's
@@ -424,11 +522,16 @@ if (
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const args = process.argv.slice(2);
-  if (args.length && (args.length !== 1 || args[0] !== '--distribute'))
-    throw new Error('Usage: plugin-clients.ts [--distribute]');
+  if (
+    args.length &&
+    (args.length !== 1 || !['--distribute', '--clean-codex'].includes(args[0]))
+  )
+    throw new Error('Usage: plugin-clients.ts [--distribute|--clean-codex]');
   console.log(
     args[0] === '--distribute'
       ? preparePluginClients()
-      : preparePluginDiscovery(),
+      : args[0] === '--clean-codex'
+        ? cleanPluginCodex()
+        : preparePluginDiscovery(),
   );
 }

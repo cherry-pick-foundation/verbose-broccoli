@@ -533,9 +533,28 @@ Canonical plugin declarations and relative skill links belong in Git.
 Preparation adds a local delta with absolute MCP paths, including a managed
 block in tracked `.codex/config.toml`. The existing `commit-msg` hook rejects
 its BEGIN or END marker in the Git index; an unstaged prepared block is allowed.
-Before committing, remove only that generated block, preserving unrelated edits.
-Run `npm run plugins:prepare` again before using Codex MCP after removal;
-the relative skill links remain usable without it.
+The generated checkout-local delta is the supported loading route. Keep it
+unstaged during use; do not hide it with `skip-worktree` or bypass hooks.
+Before committing or a normal git-flow finish, remove only the exact block
+owned by that checkout's durable receipt, preserving all unrelated edits.
+Run `npm run plugins:clean-codex` (the generator's `--clean-codex` mode).
+It requires a completed durable receipt and exactly one byte-matching block;
+missing ownership, pending discovery, duplicate markers or edited blocks stop
+cleanup. An already-clean file is unchanged. Cleanup preserves unrelated bytes,
+the file's mode and owner/group IDs, and the receipt for later preparation.
+It journals the attempt and replaces the file through exclusive same-directory
+staging and an atomic rename. After interrupted cleanup, run
+`npm run plugins:prepare` to recover before trying cleanup again.
+
+Both the `develop` and feature worktrees must be clean for a normal finish.
+Run `npm run plugins:clean-codex` separately in each checkout that was prepared,
+then check `git status --porcelain --untracked-files=all` in both. Resolve other
+changes with their owners; generated cleanup does not authorize discarding them.
+After integration, run `npm run plugins:prepare` from the final `develop`
+checkout again so its project configuration uses that checkout's paths and
+current declarations. Open a fresh client session to load it and check MCP
+metadata readiness. Removing the block leaves Codex MCP unprepared until this
+step; the relative skill links remain usable.
 
 Preparation keeps unrelated user settings and skill directories, and uses
 `$XDG_STATE_HOME/verbose-broccoli/workspaces/<checkout-id>/plugin-discovery/plugin-discovery.json`
@@ -554,13 +573,17 @@ locations; `.local/` holds disposable editor copies.
 
 Before changing client files, preparation publishes a journal of at most 64 KiB
 as `plugin-discovery.json.pending` beside the receipt. It records the receipt
-baseline, observed old ownership and intended output. Reruns can recover between
-complete client-file writes on first preparation or an update; successful receipt
-publication removes the journal. Keep it after an interrupted run. A missing or
-invalid ownership record, partial client-file write or user edit can still cause
-a conflict; identical output alone does not establish ownership. Inspect those
-conflicts before rerunning. This is bounded process-interruption recovery,
-without a power-loss durability or concurrent-preparation guarantee.
+baseline, observed old ownership, intended output and a unique client-staging
+attempt. Each client file is written to an exclusively created temporary file
+in its own directory, then atomically renamed into place, preserving an
+existing file's mode and owner/group IDs. An interrupted staging write leaves
+the prior client file intact; a rerun removes only journal-owned staging
+leftovers after conflict preflight. Successful receipt publication removes the
+journal. Keep it after an interrupted run. A missing or invalid ownership
+record or user edit can still cause a conflict; identical output alone does
+not establish ownership. Inspect those conflicts before rerunning. This is
+bounded process-interruption recovery, without a power-loss durability or
+concurrent-preparation guarantee.
 
 When no durable receipt exists, preparation imports the legacy
 `.local/plugin-discovery.json` after checking conflicts, preserving its exact
@@ -580,8 +603,10 @@ Keep folder and frontmatter names equal. Local invocation uses
 education Backfire keeps its privacy gate and documented detector limits.
 The distinct names do not relax either boundary.
 
-Resolve references, assets and helpers from the canonical skill directory,
-not from the session's working directory or the shared index. For example,
+Claude's shared `.claude/rules/claude-code.md` requires filesystem `realpath`
+of a linked project skill directory before constructing relative Read or Bash
+paths for rules, references, helpers or assets. Use that canonical base rather
+than the session's working directory or the shared index. For example,
 Backfire's `../../AGENTS.md` names its owning plugin's rules. Root `AGENTS.md`
 also requires reading those rules; discovering a skill alone does not prove
 the client loaded them. Local discovery is not plugin installation and does

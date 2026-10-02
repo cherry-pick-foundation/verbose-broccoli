@@ -5,6 +5,7 @@ import {assert, assertEquals, assertThrows} from '@std/assert';
 import {fromFileUrl, join} from '@std/path';
 import {
   cp,
+  chmod,
   lstat,
   mkdir,
   mkdtemp,
@@ -22,6 +23,7 @@ import {tmpdir} from 'node:os';
 import {basename, resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {
+  cleanPluginCodex,
   preparePluginClients,
   preparePluginDiscovery,
 } from './plugin-clients.ts';
@@ -278,6 +280,78 @@ void test('plugin skills: work Backfire shares code tool reference and license',
       ),
     );
   }
+});
+
+void test('plugin skills: canonical Backfire metadata exposes distinct data boundaries', async () => {
+  const guidance = await readFile(
+    join(ROOT, '.claude/rules/claude-code.md'),
+    'utf8',
+  );
+  const resolution = guidance
+    .split('\n- ')
+    .find(rule => rule.includes('`realpath`'));
+  assert(
+    resolution,
+    'Shared Claude rule must resolve skill symlinks before relative paths',
+  );
+  assert(
+    /`realpath`.*before constructing.*relative (Read|Bash)/.test(
+      resolution.replace(/\s+/g, ' '),
+    ),
+  );
+  for (const pointer of ['../../AGENTS.md', '.claude/skills', '.agents/skills'])
+    assert(resolution.includes(pointer), pointer);
+  const descriptions: string[] = [];
+  for (const [plugin, name] of [
+    ['code', 'backfire-code'],
+    ['work', 'backfire-education'],
+  ]) {
+    const text = await readFile(
+      join(ROOT, 'plugins', plugin, 'skills', name, 'SKILL.md'),
+      'utf8',
+    );
+    const front = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text)?.[1];
+    assert(front, name);
+    assertEquals(front.match(/^name:\s*([a-z0-9-]+)\s*$/m)?.[1], name);
+    assert(name.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name));
+    // Both canonical sources use a JSON-compatible quoted YAML scalar.
+    const description = JSON.parse(
+      front.match(/^description:\s*(".*")\s*$/m)?.[1] ?? 'null',
+    );
+    assert(typeof description === 'string' && description.trim().length > 0);
+    assert(description.length <= 1024 && !/[<>]/.test(description));
+    const pointer = text.match(/Read \[[^\]]+plugin rules\]\(([^)]+)\)/)?.[1];
+    assert(pointer, name);
+    const expectedRules = join(ROOT, 'plugins', plugin, 'AGENTS.md');
+    for (const alias of ['.agents/skills', '.claude/skills']) {
+      const directory = join(ROOT, alias, name);
+      assert(resolve(directory, pointer) !== expectedRules);
+      const canonicalRules = resolve(await realpath(directory), pointer);
+      assertEquals(canonicalRules, expectedRules);
+      assertEquals(
+        await readFile(canonicalRules),
+        await readFile(expectedRules),
+      );
+    }
+    if (plugin === 'code') {
+      assert(/development/i.test(description));
+      assert(
+        /never.*student data.*private personal records/i.test(description),
+      );
+      assert(description.includes('backfire-education'));
+    } else {
+      assert(
+        /education/i.test(description) && /privacy gate/i.test(description),
+      );
+      assert(
+        /identifier-detection/i.test(description) &&
+          /account-training/i.test(description),
+      );
+      assert(/never.*credentials/i.test(description));
+    }
+    descriptions.push(description);
+  }
+  assert(descriptions[0] !== descriptions[1]);
 });
 
 void test('plugin clients: shared declarations survive copying, changes and failed preparation', async () => {
@@ -828,7 +902,7 @@ void test('live discovery: durable intent recovers interrupted first preparation
             `
           import fs from 'node:fs';
           import {syncBuiltinESMExports} from 'node:module';
-          const method = ${JSON.stringify(cut)} === 'receipt' ? 'renameSync' : 'writeFileSync';
+          const method = ${JSON.stringify(cut)} === 'receipt-next' ? 'writeFileSync' : 'renameSync';
           const original = fs[method];
           fs[method] = (...args) => {
             const result = original(...args);
@@ -899,6 +973,348 @@ void test('live discovery: durable intent recovers interrupted first preparation
     }
   } finally {
     await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('live discovery: torn client staging preserves original bytes and recovers without accumulation', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'plugin-torn-'));
+  try {
+    for (const update of [false, true]) {
+      for (const target of ['.mcp.json', '.codex/config.toml']) {
+        const root = join(
+          temp,
+          `${update ? 'update' : 'first'}-${basename(target)}`,
+        );
+        for (const plugin of ['chat', 'code', 'work']) {
+          const source = join(root, 'plugins', plugin);
+          await mkdir(join(source, `skills/demo-${plugin}`), {recursive: true});
+          await writeFile(
+            join(source, `skills/demo-${plugin}/SKILL.md`),
+            `---\nname: demo-${plugin}\n---\n`,
+          );
+          if (plugin === 'code')
+            await writeFile(
+              join(source, 'mcp.json'),
+              JSON.stringify({
+                mcpServers: {
+                  'backfire-code': {type: 'stdio', command: 'synthetic'},
+                },
+              }),
+            );
+        }
+        await mkdir(join(root, '.codex'));
+        const paths = ['.mcp.json', '.codex/config.toml'].map(path =>
+          join(root, path),
+        );
+        await writeFile(
+          paths[0],
+          ' {"extra":"keep ☃", "mcpServers":{"personal":{"command":"user-owned"}}}\n',
+        );
+        await writeFile(
+          paths[1],
+          '# user comment ☃\n[features]\nhooks = true\n',
+        );
+        await chmod(paths[0], 0o600);
+        await chmod(paths[1], 0o640);
+        if (update) preparePluginDiscovery(root);
+        const originals = await Promise.all(paths.map(path => readFile(path)));
+        const metadata = await Promise.all(paths.map(path => lstat(path)));
+        const receipt = receiptPath(root);
+        const previous = update ? await readFile(receipt) : undefined;
+        const faultPath = join(root, target);
+        const unowned = `${faultPath}.unowned.next`;
+        await writeFile(unowned, 'unowned staging bytes');
+        const collisionId = '00000000-0000-4000-8000-000000000000';
+        const collisionPath = `${faultPath}.${collisionId}.next`;
+        await writeFile(collisionPath, 'unowned collision');
+        const collision = spawnSync(
+          process.execPath,
+          [
+            '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+            '--input-type=module',
+            '-e',
+            `
+          import crypto from 'node:crypto';
+          import {syncBuiltinESMExports} from 'node:module';
+          crypto.randomUUID = () => ${JSON.stringify(collisionId)};
+          syncBuiltinESMExports();
+          const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+          preparePluginDiscovery(${JSON.stringify(root)});
+        `,
+          ],
+          {env: process.env, encoding: 'utf8'},
+        );
+        assertEquals(collision.status, 1);
+        assert(collision.stderr.includes('Conflict: unowned client staging'));
+        assertEquals(
+          await readFile(collisionPath, 'utf8'),
+          'unowned collision',
+        );
+        assertEquals(
+          await Promise.all(paths.map(path => readFile(path))),
+          originals,
+        );
+        assert(!existsSync(`${receipt}.pending`));
+        await rm(collisionPath);
+        for (let retry = 0; retry < 2; retry++) {
+          const child = spawnSync(
+            process.execPath,
+            [
+              '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+              '--input-type=module',
+              '-e',
+              `
+            import fs from 'node:fs';
+            import {syncBuiltinESMExports} from 'node:module';
+            const write = fs.writeFileSync;
+            fs.writeFileSync = (...args) => {
+              const path = String(args[0]);
+              if (path === ${JSON.stringify(faultPath)} || path.startsWith(${JSON.stringify(faultPath + '.')})) {
+                write(args[0], String(args[1]).slice(0, 13), args[2]);
+                process.kill(process.pid, 'SIGKILL');
+              }
+              return write(...args);
+            };
+            syncBuiltinESMExports();
+            const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+            preparePluginDiscovery(${JSON.stringify(root)});
+          `,
+            ],
+            {env: process.env, encoding: 'utf8'},
+          );
+          assertEquals(child.signal, 'SIGKILL', child.stderr);
+          const i = paths.indexOf(faultPath);
+          assertEquals(await readFile(faultPath), originals[i]);
+          const intent = JSON.parse(
+            await readFile(`${receipt}.pending`, 'utf8'),
+          );
+          assert(typeof intent.staging === 'string');
+          assertEquals(
+            (await lstat(`${faultPath}.${intent.staging}.next`)).size,
+            13,
+          );
+          assertEquals(
+            (await lstat(`${faultPath}.${intent.staging}.next`)).mode & 0o777,
+            0o600 & ~process.umask(),
+          );
+          assertEquals(
+            (
+              await readdir(join(root, target === '.mcp.json' ? '.' : '.codex'))
+            ).filter(name => /\.[0-9a-f-]{36}\.next$/.test(name)).length,
+            1,
+          );
+          if (previous) assertEquals(await readFile(receipt), previous);
+          else assert(!existsSync(receipt));
+        }
+        const intent = JSON.parse(await readFile(`${receipt}.pending`, 'utf8'));
+        const leftover = `${faultPath}.${intent.staging}.next`;
+        const torn = await readFile(leftover);
+        await rm(leftover);
+        await symlink(unowned, leftover);
+        assertThrows(
+          () => preparePluginDiscovery(root),
+          Error,
+          'Conflict: client staging',
+        );
+        assertEquals(await readlink(leftover), unowned);
+        assertEquals(await readFile(unowned, 'utf8'), 'unowned staging bytes');
+        await rm(leftover);
+        await writeFile(leftover, torn);
+        preparePluginDiscovery(root);
+        assert(!existsSync(`${receipt}.pending`));
+        for (let i = 0; i < paths.length; i++) {
+          const current = await lstat(paths[i]);
+          assertEquals(
+            [current.mode, current.uid, current.gid],
+            [metadata[i].mode, metadata[i].uid, metadata[i].gid],
+          );
+          assertEquals(
+            (await readdir(join(root, i === 0 ? '.' : '.codex'))).filter(name =>
+              /\.[0-9a-f-]{36}\.next$/.test(name),
+            ),
+            [],
+          );
+        }
+        const mcp = JSON.parse(await readFile(paths[0], 'utf8'));
+        assertEquals(mcp.extra, 'keep ☃');
+        assertEquals(mcp.mcpServers.personal, {command: 'user-owned'});
+        assert(
+          (await readFile(paths[1], 'utf8')).startsWith(
+            '# user comment ☃\n[features]\nhooks = true\n',
+          ),
+        );
+        assertEquals(await readFile(unowned, 'utf8'), 'unowned staging bytes');
+        const completed = await Promise.all(paths.map(path => readFile(path)));
+        preparePluginDiscovery(root);
+        assertEquals(
+          await Promise.all(paths.map(path => readFile(path))),
+          completed,
+        );
+      }
+    }
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('live discovery: receipt-owned Codex cleanup preserves user edits and recovers interrupted cleanup', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'plugin-clean-'));
+  try {
+    for (const plugin of ['chat', 'code', 'work']) {
+      const source = join(root, 'plugins', plugin);
+      await mkdir(join(source, `skills/demo-${plugin}`), {recursive: true});
+      await writeFile(
+        join(source, `skills/demo-${plugin}/SKILL.md`),
+        `---\nname: demo-${plugin}\n---\n`,
+      );
+    }
+    await writeFile(
+      join(root, 'plugins/code/mcp.json'),
+      JSON.stringify({
+        mcpServers: {'backfire-code': {type: 'stdio', command: 'synthetic'}},
+      }),
+    );
+    await mkdir(join(root, '.codex'));
+    const config = join(root, '.codex/config.toml');
+    const user = '# keep user edits\n[features]\nhooks = true\n';
+    await writeFile(config, user);
+    await chmod(config, 0o640);
+    assertThrows(
+      () => cleanPluginCodex(root),
+      Error,
+      'completed discovery ownership required',
+    );
+    assertEquals(await readFile(config, 'utf8'), user);
+    preparePluginDiscovery(root);
+    const receipt = receiptPath(root);
+    const owned = await readFile(receipt);
+    const mcp = await readFile(join(root, '.mcp.json'));
+    const block = JSON.parse(owned.toString()).codex;
+    const edited = user + block + '# unrelated suffix\n';
+    const cleaned = edited.replace(block, '');
+    await writeFile(config, edited);
+    for (const path of [`${receipt}.pending`, `${receipt}.next`]) {
+      await writeFile(path, '{}');
+      assertThrows(() => cleanPluginCodex(root), Error, 'pending discovery');
+      assertEquals(await readFile(config, 'utf8'), edited);
+      assertEquals(await readFile(path, 'utf8'), '{}');
+      await rm(path);
+    }
+    await writeFile(
+      config,
+      edited.replace('command = "synthetic"', 'command = "user-edit"'),
+    );
+    assertThrows(
+      () => cleanPluginCodex(root),
+      Error,
+      'generated Codex configuration',
+    );
+    assert((await readFile(config, 'utf8')).includes('user-edit'));
+    await writeFile(config, edited + block);
+    assertThrows(
+      () => cleanPluginCodex(root),
+      Error,
+      'generated Codex configuration',
+    );
+    await writeFile(config, edited);
+    await rm(receipt);
+    assertThrows(
+      () => cleanPluginCodex(root),
+      Error,
+      'completed discovery ownership required',
+    );
+    assertEquals(await readFile(config, 'utf8'), edited);
+    await writeFile(receipt, owned);
+    await rename(join(root, '.codex'), join(root, 'user-codex'));
+    await symlink('user-codex', join(root, '.codex'));
+    assertThrows(
+      () => cleanPluginCodex(root),
+      Error,
+      '.codex must be a real directory',
+    );
+    assertEquals(await readFile(config, 'utf8'), edited);
+    await rm(join(root, '.codex'));
+    await rename(join(root, 'user-codex'), join(root, '.codex'));
+    // Exercise the actual npm command in an isolated synthetic checkout.
+    await mkdir(join(root, 'scripts'));
+    await cp(
+      join(ROOT, 'scripts/plugin-clients.ts'),
+      join(root, 'scripts/plugin-clients.ts'),
+    );
+    const command = JSON.parse(
+      await readFile(join(ROOT, 'package.json'), 'utf8'),
+    ).scripts['plugins:clean-codex'];
+    await writeFile(
+      join(root, 'package.json'),
+      JSON.stringify({scripts: {'plugins:clean-codex': command}}),
+    );
+    const cli = spawnSync('npm', ['run', '--silent', 'plugins:clean-codex'], {
+      cwd: root,
+      env: process.env,
+      encoding: 'utf8',
+    });
+    assertEquals(cli.status, 0, cli.stderr);
+    assertEquals(cli.stdout.trim(), 'true');
+    assertEquals(await readFile(config, 'utf8'), cleaned);
+    assertEquals((await lstat(config)).mode & 0o777, 0o640);
+    assertEquals(await readFile(receipt), owned);
+    assertEquals(await readFile(join(root, '.mcp.json')), mcp);
+    assertEquals(cleanPluginCodex(root), false);
+    for (const cut of ['torn', 'replaced']) {
+      preparePluginDiscovery(root);
+      const original = await readFile(config);
+      const child = spawnSync(
+        process.execPath,
+        [
+          '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+          '--input-type=module',
+          '-e',
+          `
+        import fs from 'node:fs';
+        import {syncBuiltinESMExports} from 'node:module';
+        const write = fs.writeFileSync;
+        fs.writeFileSync = (...args) => {
+          if (${JSON.stringify(cut)} === 'torn' && String(args[0]).startsWith(${JSON.stringify(config + '.')})) {
+            write(args[0], String(args[1]).slice(0, 11), args[2]);
+            process.kill(process.pid, 'SIGKILL');
+          }
+          return write(...args);
+        };
+        const rename = fs.renameSync;
+        fs.renameSync = (...args) => { const result = rename(...args); if (${JSON.stringify(cut)} === 'replaced' && args[1] === ${JSON.stringify(config)}) process.kill(process.pid, 'SIGKILL'); return result; };
+        syncBuiltinESMExports();
+        const {cleanPluginCodex} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+        cleanPluginCodex(${JSON.stringify(root)});
+      `,
+        ],
+        {env: process.env, encoding: 'utf8'},
+      );
+      assertEquals(child.signal, 'SIGKILL', child.stderr);
+      assertEquals(
+        await readFile(config),
+        cut === 'torn'
+          ? original
+          : Buffer.from(original.toString().replace(block, '')),
+      );
+      assertThrows(() => cleanPluginCodex(root), Error, 'pending discovery');
+      assertEquals(await readFile(receipt), owned);
+      preparePluginDiscovery(root);
+      assertEquals(await readFile(config), original);
+      assert(!existsSync(`${receipt}.pending`));
+      assertEquals(
+        (await readdir(join(root, '.codex'))).filter(name =>
+          name.endsWith('.next'),
+        ),
+        [],
+      );
+      assertEquals(await readFile(join(root, '.mcp.json')), mcp);
+    }
+    assertEquals(cleanPluginCodex(root), true);
+    assertEquals(await readFile(config, 'utf8'), cleaned);
+    preparePluginDiscovery(root);
+    assert((await readFile(config, 'utf8')).includes(block));
+  } finally {
+    await rm(root, {recursive: true, force: true});
   }
 });
 

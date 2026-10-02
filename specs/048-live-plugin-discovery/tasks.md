@@ -165,3 +165,15 @@ and remaining work under the tasks, without ticking them.
   Docs changed five units in three retained Jev calls; source dispositions
   resolve consequential uncertainty without final approval. Freeze the combined
   snapshot, run a fresh serialized full verification and obtain a fresh review.
+
+- [ ] T009 [US1,US2,US3] Protect user-owned client bytes with same-directory
+  atomic replacement and interruption readback; pin narrow skill metadata
+  contracts and document the explicit feature/develop cleanup/reprepare route.
+  Second fresh review is bound to `fbb4365` and current shared policy revision 2.
+  Develop accepted the existing local generated-delta route with explicit
+  finish guidance. Broad skill-body changes for the Claude lexical rule-pointer
+  finding are held for main's closeout/rollout scope decision.
+  Retain every completed capture immutably; each new worker uses its injected
+  current Dispatch ID beneath its preassigned attempt directory. Original
+  failure exit metadata and source-before were hash-verified restored; four
+  older raw verification artifacts remain unavailable and are disclosed.

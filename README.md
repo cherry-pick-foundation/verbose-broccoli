@@ -17,6 +17,10 @@ indexes them through relative links, and `.claude/skills` links to that index.
 `backfire-code` forbids student
 data; `backfire-education` retains its education privacy gate.
 See [local discovery and reload limits](docs/architecture.md#live-checkout-discovery).
+Before a normal git-flow finish, clean both develop and feature worktrees by
+running `npm run plugins:clean-codex` separately to remove only their
+receipt-owned generated Codex blocks; prepare and reload
+the final develop project configuration again after integration.
 Optional copied packages use `npm run plugins:distribute` separately; local
 skill edits need neither reinstall nor a version bump.
 Discovery ownership stays in XDG state storage; reproducible copied packages

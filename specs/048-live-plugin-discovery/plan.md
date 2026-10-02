@@ -129,3 +129,11 @@ The final generator is +281/-4 lines (net +277); focused regressions are
 Keep the same feature split: names, discovery, MCP setup and producer ownership
 share one preparation route and must be accepted together. No independent
 package, dependency or publication capability was added.
+
+Current committed checkpoint `fbb4365` measures 77 changed files against
+`develop`: 1,869 additions and 70 deletions (1,939 changed lines). Generator
+growth is +319/-4 (net +315) and the existing hook adds six lines. The fresh
+review agrees these preparation, discovery and ownership changes remain one
+feature. The final client-write safety follow-up is estimated at 15–35 further
+implementation lines plus focused regressions; measured final size remains
+subject to the same split review, without a line cap.

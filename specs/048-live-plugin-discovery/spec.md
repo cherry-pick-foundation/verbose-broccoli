@@ -2,7 +2,7 @@
 
 **Feature Branch**: `feature/live-plugin-discovery`
 **Created**: 2026-10-02
-**Status**: Implementation staged; storage amendment and acceptance pending
+**Status**: Implementation committed; follow-up safety and integration gates pending
 **Issue**: CHE-82
 
 ## Assumptions
