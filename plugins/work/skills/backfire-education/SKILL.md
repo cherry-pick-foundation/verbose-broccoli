@@ -1,6 +1,6 @@
 ---
-name: backfire
-description: Conventions for the Backfire judgment tools. Use when screening fetched or pasted content, verifying claims against evidence, ranking or classifying items by meaning, comparing passages, extracting fields, reviewing a patch, gating completion, or judging how likely a proposition is — and when choosing between Backfire and rg, curl, or plain reading.
+name: backfire-education
+description: "Use Backfire judgment tools for education work, including learning status, progress, scores, observations, and Wiki evidence, through the approved work privacy gate. Follow its identifier-detection limits and account-training requirements; never send credentials."
 ---
 
 Read [the work plugin rules](../../AGENTS.md) before using this skill.

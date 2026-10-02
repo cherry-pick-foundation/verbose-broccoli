@@ -239,8 +239,8 @@ evidence and do not guess. Give the remaining limits and their reset times to
 example with `jev_rerank` over the catalog entries with the task as the query,
 or decide in steps: agent, then model, then effort. When `jev_rerank` scores
 every candidate the same, it cannot narrow; decide in steps. Read the
-[`jev_decide`](../../backfire/reference/tools.md#jev_decide) and
-[`jev_rerank`](../../backfire/reference/tools.md#jev_rerank) blocks before the
+[`jev_decide`](../../backfire-code/reference/tools.md#jev_decide) and
+[`jev_rerank`](../../backfire-code/reference/tools.md#jev_rerank) blocks before the
 first call.
 
 The code plugin's Jev-only rule requires the explicit route below. Backfire's
