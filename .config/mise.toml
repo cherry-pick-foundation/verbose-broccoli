@@ -42,6 +42,7 @@ run = [
   "mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py",
   "git config gitflow.shared.trustHooks true",
   "mise exec -- git flow config sync",
+  "mise exec -- npm run plugins:prepare",
 ]
 
 [doctor.checks.quarto]

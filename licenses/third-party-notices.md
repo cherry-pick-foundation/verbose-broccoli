@@ -105,12 +105,12 @@ with the already approved Ajv dependency. Sources:
   <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
 - Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
 - Reused: the agent skill `skills/jev`, copied as
-  `plugins/code/skills/backfire/` and again as
-  `plugins/work/skills/backfire/`, with the changes that each copy's
+  `plugins/code/skills/backfire-code/` and again as
+  `plugins/work/skills/backfire-education/`, with the changes that each copy's
   `upstream.json` lists, and the Noul tool's definition, questions and
   decision logic in `packages/backfire/src/backfire/noul.py`.
 - Copyright (c) 2026 Joey Kudish.
-  [MIT license](../plugins/code/skills/backfire/LICENSE).
+  [MIT license](../plugins/code/skills/backfire-code/LICENSE).
 
 ## typesafe-ai/skills — model-choice
 

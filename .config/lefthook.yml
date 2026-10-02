@@ -4,5 +4,11 @@ assert_lefthook_installed: true
 
 commit-msg:
   commands:
+    plugin-discovery:
+      run: |
+        if git show :.codex/config.toml 2>/dev/null | grep -Eq '^# (BEGIN|END) generated plugin discovery'; then
+          echo 'Generated Codex discovery must stay out of the index' >&2
+          exit 1
+        fi
     commitlint:
       run: ./node_modules/.bin/commitlint --config scripts/commitlint.config.mjs --edit {1}
