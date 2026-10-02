@@ -126,14 +126,14 @@ Waits for T005. One block per approved batch.
     the copy script and again by `sha256sum -c`; all 324 originals still
     exist. `admit`: 324 admitted, 0 already admitted, 0 refused, 0 failed.
     `verify`: 771 revisions, 0 invalid. Vault commit `50312ca`.
-- [ ] T007 [US3] (batch 1: 46 of 46 recorded) Per material: `inventory`, `extract`, one native Orca worker
+- [x] T007 [US3] (batch 1: 46 of 46 recorded) Per material: `inventory`, `extract`, one native Orca worker
   (Codex `gpt-6.1-sol`, `xhigh`), `record --unchecked`; counts per material
   in this file.
   - 2026-10-03 final textbook closeout: all 46 approved volumes are recorded unchecked, with 21,505 sentences and 512,862 matches (zero dropped or unclear). The six saved proposals contributed 1,986 sentences and 40,139 matches across 51 sources; complete structural, inventory, source-order, uncovered-text coverage and record-readback checks found zero failures. The earlier 40 profile pairs match vault commit `f7248f8` byte for byte; all six saved run folders and their paid outputs are retained unchanged.
   - Final-six ordinal sentence/match counts: 41: 259/5,499; 42: 294/5,957; 43: 317/7,082; 44: 270/6,150; 45: 491/8,483; 46: 355/6,968. The 475 uncovered spans containing Latin letters were inspected and excluded as headings, labels, phrase-only material or non-English translations; zero full English sentences remain unresolved. Hash-bound dispositions are in the closeout evidence folder.
   - 2026-10-02 reboot pause: 40 volumes remain recorded; all six final proposers (41 to 46) succeeded and were released, with worker-reported totals of 1,986 rows and 40,139 matches across 51 sources. Their six private run folders remain; parent validation is complete only for 41 and remains pending for 42 to 46, before later unchecked recording.
   - Resume from private `survey/lists-2026-10-02/textbooks-2015.tsv` and Run `run_d56f85e2efc3`, coordinated by `structworker_b0565862-30b6-4726-acb3-63ac0e71a861`; child Task/Dispatch IDs remain in that Run. Parent Task `task_40cc757a9328` / Dispatch `ctx_9b26bdbec20e` was stopped before reboot, so fresh develop direction and authority are needed before continuing.
-- [ ] T008 [US3] (all 46 textbook records persisted) `wiki-consistency` `update` and `check`, the log entry, a
+- [x] T008 [US3] (all 46 textbook records persisted) `wiki-consistency` `update` and `check`, the log entry, a
   vault commit per batch, and retained paid results, logs and resume evidence.
   Remove only rebuildable scratch after required data and receipts persist;
   preserve the six saved closeout folders unchanged.
@@ -190,16 +190,31 @@ Waits for T005. One block per approved batch.
 
 ## Phase 5: Review and finish
 
-- [ ] T009 Merge the latest `develop`, run `npm run verify` (one full run at
+- [x] T009 Merge the latest `develop`, run `npm run verify` (one full run at
   a time on the machine, in the CPU wrapper), measure the change against
   `develop`, move the board status to `in-review`.
   - 2026-10-03 closeout: current-develop integration, full verification and independent review receipts belong in the immutable Dispatch evidence folder named under T008; its final `report.md` is the handoff. Develop owns review acceptance, integration, final ticks and remaining batch approvals.
-- [ ] T010 Fresh review from another provider that its data scope permits;
+- [x] T010 Fresh review from another provider that its data scope permits;
   record the reviewed commit; ask the develop session for the finish slot;
   never push, release or merge into `main`.
+  - 2026-10-03: the approved 46-textbook batch finished into develop as
+    `8e7c658e7194f0871e56db485b3d4acd036f9e13`, with review record
+    `0bc23dc68e25e05bbe8a73703848fc1306185b28` for reviewed source `fd33e2a`.
+    Copilot's public source review and evidence acceptance confirmed the
+    324 individual digest/admission mappings and all 46 native proposer
+    settings. Post-merge verification `3K9ctEQEftdo2gruiaPsxce9ZCZ` exited 0:
+    47 tasks, 42 executed successes, five cached and zero failed. Immutable
+    finish and verification receipts are under
+    `~/.local/state/verbose-broccoli/workspaces/develop/che-71/closeout-2026-10-02-term-dc252745/`;
+    the complete public feature evidence is under
+    `~/.local/state/verbose-broccoli/workspaces/feature-grammatical-competence-batches/che-71/verified-closeout/ctx_fe9f42618952/public-integrity-manifest-audited.json`.
+    The unchecked judgments, two unrelated Wiki findings and unavailable
+    semantic search remain stated limits. The next exam batch needs its exact
+    file-list approval before copying or admission.
 
-Phase 3 and admission are complete; the profiling notes above state current
-progress. Phase 5 review and integration remain unperformed.
+The approved 2015 textbook batch is complete and integrated. The 372 remaining
+readable exam materials (132 office, 66 national and 174 school papers) remain
+outside the approved batch; their exact file lists still need approval.
 
 ---
 
