@@ -14,8 +14,8 @@ digests read back, `raw_import.py verify`, the vault's Wiki check and the
 counts per material. `npm run verify` runs on the result merged with
 `develop`.
 
-**Organization**: One feature orchestrator (Claude Code, Sonnet 5.5 at high
-effort) owns these records and the vault steps and asks the develop session
+**Organization**: One feature orchestrator (currently Codex `gpt-6.1-sol` at
+`xhigh`) owns these records and the vault steps and asks the develop session
 for the user's decisions. Proposers are Orca workers: Codex `gpt-6.1-sol` at
 `xhigh`, one per material (the user's fixed choice). The final review comes
 from a provider other than the implementer's.
@@ -126,12 +126,18 @@ Waits for T005. One block per approved batch.
     the copy script and again by `sha256sum -c`; all 324 originals still
     exist. `admit`: 324 admitted, 0 already admitted, 0 refused, 0 failed.
     `verify`: 771 revisions, 0 invalid. Vault commit `50312ca`.
-- [ ] T007 [US3] (batch 1 wave 1 done, wave 2 next) Per material: `inventory`, `extract`, one native Orca worker
+- [ ] T007 [US3] (batch 1: 46 of 46 recorded) Per material: `inventory`, `extract`, one native Orca worker
   (Codex `gpt-6.1-sol`, `xhigh`), `record --unchecked`; counts per material
   in this file.
-- [ ] T008 [US3] (wave 1 done) `wiki-consistency` `update` and `check`, the log entry, a
+  - 2026-10-03 final textbook closeout: all 46 approved volumes are recorded unchecked, with 21,505 sentences and 512,862 matches (zero dropped or unclear). The six saved proposals contributed 1,986 sentences and 40,139 matches across 51 sources; complete structural, inventory, source-order, uncovered-text coverage and record-readback checks found zero failures. The earlier 40 profile pairs match vault commit `f7248f8` byte for byte; all six saved run folders and their paid outputs are retained unchanged.
+  - Final-six ordinal sentence/match counts: 41: 259/5,499; 42: 294/5,957; 43: 317/7,082; 44: 270/6,150; 45: 491/8,483; 46: 355/6,968. The 475 uncovered spans containing Latin letters were inspected and excluded as headings, labels, phrase-only material or non-English translations; zero full English sentences remain unresolved. Hash-bound dispositions are in the closeout evidence folder.
+  - 2026-10-02 reboot pause: 40 volumes remain recorded; all six final proposers (41 to 46) succeeded and were released, with worker-reported totals of 1,986 rows and 40,139 matches across 51 sources. Their six private run folders remain; parent validation is complete only for 41 and remains pending for 42 to 46, before later unchecked recording.
+  - Resume from private `survey/lists-2026-10-02/textbooks-2015.tsv` and Run `run_d56f85e2efc3`, coordinated by `structworker_b0565862-30b6-4726-acb3-63ac0e71a861`; child Task/Dispatch IDs remain in that Run. Parent Task `task_40cc757a9328` / Dispatch `ctx_9b26bdbec20e` was stopped before reboot, so fresh develop direction and authority are needed before continuing.
+- [ ] T008 [US3] (all 46 textbook records persisted) `wiki-consistency` `update` and `check`, the log entry, a
   vault commit per batch, and the run folders deleted after their record
   commits.
+  - 2026-10-03 closeout evidence is retained under `~/.local/state/verbose-broccoli/workspaces/feature-grammatical-competence-batches/che-71/final-textbook-closeout/ctx_4a0389b23feb/`. All 324 approved originals, copies and admitted payloads match the listed digests; raw integrity passed 771 revisions with zero invalid. Wiki update passed; changed records have zero check findings, while two date findings on unchanged unrelated pages remain. Vault commit `79441fb` records only the final six profile pairs, generated index and append-only log; the vault is clean. Conversion reused 52 cached revisions; preparation made zero judgment requests and reported six record-description units unverifiable against bounded raw evidence. Keyword indexing is preserved, but semantic search, page comparisons and cross-reference searches remain unavailable. Develop approved stopping only the owned whole-corpus embedding processes, with exit and cache/output preservation proof retained; no saved run folder was deleted.
+  - 2026-10-02 reboot pause: vault commit `f7248f8` remains clean; the earlier repository verification passed 47/47 tasks before this pause note. Final-six Wiki work, recording commit, run-folder cleanup and independent review remain pending; no workflow or verification was run for the user-authorized pause note.
 
   - Batch 1, wave 1 (first 12 of 46 volumes), 2026-10-02: 12 profiles recorded
     unchecked, 7,563 sentences, 189,998 items, 0 dropped, 0 unclear
@@ -145,6 +151,33 @@ Waits for T005. One block per approved batch.
     semantic search was not ready (keyword search ran). Vault commits
     `50312ca` (admission) and `730b168` (profiles); the 12 run folders were
     deleted.
+  - 2026-10-02 resumed phase: live reconciliation found 34 recorded volumes
+    (17,082 sentences, 423,758 matches), with 22 profile pairs uncommitted.
+    Six native Codex `gpt-6.1-sol` / `xhigh` proposers resumed volumes 33 and
+    36 to 40; all settled and were released. Recorded unchecked: 2,437
+    sentences and 48,965 matches; per-volume sentence/match counts are
+    33: 578/14,860; 36: 463/8,098; 37: 318/6,021; 38: 382/6,469;
+    39: 363/7,139; 40: 333/6,378. Source order, containment, keys, no Hangul,
+    coverage passes and saved-record comparisons found zero failures.
+    All 34 earlier profile pairs remain byte unchanged; all 324 approved
+    originals, copies and admitted payloads match their listed digests.
+    Total: 40 profiles, 19,519 sentences, 472,723 matches; zero dropped or
+    unclear items. Volumes 41 to 46 remain queued, with 51 approved files
+    and no run folders prepared; no new input is needed beyond develop's
+    next phase direction. Exam-list approvals remain pending.
+  - T008 resumed phase: updated the index, checked the Wiki, reused 196
+    readable cached revisions, and prepared zero judgment requests.
+    The 28 record-description units were unverifiable against bounded raw
+    evidence. Semantic search remained unavailable after embedding
+    completed; page comparisons and cross-reference searches did not run.
+    The post-log command found zero profile/index/log findings and two
+    existing date findings on unchanged unrelated pages: the whole-vault
+    check is not fully passing. Develop explicitly accepted these limits
+    for this phase. Vault commit `f7248f8` records the 22 preserved and six
+    resumed profiles, index and log; 28 completed run folders were deleted
+    after that commit. Repository verification uses task
+    `task_40cc757a9328` and baseline `f91aec6`; final ticks and review remain
+    with develop. No executable code was added.
   - Codex use: the weekly window went from 68% to 73% used (CodexBar, read
     2026-10-02 05:03 KST), with every Codex session counted, so at most 5
     points for this wave, about 0.66 points per 1,000 sentences. The rest of
@@ -159,19 +192,20 @@ Waits for T005. One block per approved batch.
 - [ ] T009 Merge the latest `develop`, run `npm run verify` (one full run at
   a time on the machine, in the CPU wrapper), measure the change against
   `develop`, move the board status to `in-review`.
+  - 2026-10-03 closeout: current-develop integration, full verification and independent review receipts belong in the immutable Dispatch evidence folder named under T008; its final `report.md` is the handoff. Develop owns review acceptance, integration, final ticks and remaining batch approvals.
 - [ ] T010 Fresh review from another provider that its data scope permits;
   record the reviewed commit; ask the develop session for the finish slot;
   never push, release or merge into `main`.
 
-Unperformed at the time of writing: every Phase 3 to 5 task; no original has
-been copied or admitted.
+Phase 3 and admission are complete; the profiling notes above state current
+progress. Phase 5 review and integration remain unperformed.
 
 ---
 
 ## Handoff (2026-10-02, pause before Orca closes)
 
-Written for a restart of this orchestrator from the files. Nothing below is
-committed except what `git log` shows; this section itself is uncommitted.
+Historical restart notes follow. Current phase notes above supersede their
+runtime handles, unfinished counts and next steps; Git records commit state.
 
 - **Orchestrator**: Claude Code, Sonnet 5.5, high effort, session ID
   `7aaee383-1ce0-4932-9e82-056a0e824bbf`; branch
