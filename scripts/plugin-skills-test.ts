@@ -1318,6 +1318,130 @@ void test('live discovery: receipt-owned Codex cleanup preserves user edits and 
   }
 });
 
+async function syntheticCheckout(root: string, codex?: string) {
+  for (const plugin of ['chat', 'code', 'work']) {
+    const target = join(root, 'plugins', plugin);
+    await mkdir(join(target, `skills/demo-${plugin}`), {recursive: true});
+    await cp(
+      join(ROOT, 'plugins', plugin, 'plugin.json'),
+      join(target, 'plugin.json'),
+    );
+    if (plugin !== 'chat')
+      await cp(
+        join(ROOT, 'plugins', plugin, 'mcp.json'),
+        join(target, 'mcp.json'),
+      );
+    await writeFile(
+      join(target, `skills/demo-${plugin}/SKILL.md`),
+      `---\nname: demo-${plugin}\n---\n`,
+    );
+  }
+  if (codex === undefined) return;
+  await mkdir(join(root, '.codex'));
+  await writeFile(join(root, '.codex/config.toml'), codex);
+}
+
+void test('plugin clients: checkout paths with quotes, backslashes and replacement patterns stay literal', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'plugin-path-'));
+  try {
+    const root = join(temp, 'q"\\b $$ $& $` $\' end');
+    await syntheticCheckout(root);
+    preparePluginDiscovery(root);
+    const output = preparePluginClients(root);
+    const expected = join(
+      root,
+      'plugins/work/node_modules/zotero-native-mcp/build/index.js',
+    );
+    const live = JSON.parse(await readFile(join(root, '.mcp.json'), 'utf8'));
+    const copied = JSON.parse(
+      await readFile(join(output, 'plugins/work/mcp.json'), 'utf8'),
+    );
+    for (const mcp of [live, copied])
+      assertEquals(mcp.mcpServers['reference-library'].args, [expected]);
+    const toml = await readFile(join(root, '.codex/config.toml'), 'utf8');
+    assert(toml.includes(`args = ${JSON.stringify([expected])}`));
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('live discovery: Codex cleanup restores bytes with and without a final newline', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'plugin-newline-'));
+  try {
+    for (const original of [
+      '[features]\nhooks = true',
+      '[features]\nhooks = true\n',
+      '',
+    ]) {
+      const root = join(
+        temp,
+        `case-${Buffer.from(original).toString('hex').slice(-4) || 'empty'}`,
+      );
+      await syntheticCheckout(root, original);
+      const config = join(root, '.codex/config.toml');
+      for (let repeat = 0; repeat < 2; repeat++) {
+        preparePluginDiscovery(root);
+        const prepared = await readFile(config);
+        preparePluginDiscovery(root);
+        assertEquals(await readFile(config), prepared);
+        assertEquals(cleanPluginCodex(root), true);
+        assertEquals(await readFile(config, 'utf8'), original);
+      }
+      if (!original) continue;
+      // A user edit before the block survives; only the owned bytes leave.
+      preparePluginDiscovery(root);
+      const edited = (await readFile(config, 'utf8')).replace('true', 'false');
+      await writeFile(config, edited);
+      assertEquals(cleanPluginCodex(root), true);
+      assertEquals(
+        await readFile(config, 'utf8'),
+        original.replace('true', 'false'),
+      );
+    }
+    // An interrupted cleanup leaves a pending journal; preparation recovers it.
+    const root = join(temp, 'interrupted');
+    await syntheticCheckout(root, '[features]\nhooks = true');
+    const config = join(root, '.codex/config.toml');
+    preparePluginDiscovery(root);
+    const prepared = await readFile(config);
+    const child = spawnSync(
+      process.execPath,
+      [
+        '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+        '--input-type=module',
+        '-e',
+        `
+      import fs from 'node:fs';
+      import {syncBuiltinESMExports} from 'node:module';
+      const rename = fs.renameSync;
+      fs.renameSync = (...args) => { const result = rename(...args); if (args[1] === ${JSON.stringify(config)}) process.kill(process.pid, 'SIGKILL'); return result; };
+      syncBuiltinESMExports();
+      const {cleanPluginCodex} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+      cleanPluginCodex(${JSON.stringify(root)});
+    `,
+      ],
+      {env: process.env, encoding: 'utf8'},
+    );
+    assertEquals(child.signal, 'SIGKILL', child.stderr);
+    assertEquals(await readFile(config, 'utf8'), '[features]\nhooks = true');
+    assertThrows(() => cleanPluginCodex(root), Error, 'pending discovery');
+    preparePluginDiscovery(root);
+    assertEquals(await readFile(config), prepared);
+    // A legacy receipt does not own the separator, so cleanup leaves it.
+    const receipt = receiptPath(root);
+    const owned = JSON.parse(await readFile(receipt, 'utf8'));
+    owned.codex = owned.codex.slice(1);
+    await writeFile(receipt, JSON.stringify(owned));
+    assertEquals(cleanPluginCodex(root), true);
+    assertEquals(await readFile(config, 'utf8'), '[features]\nhooks = true\n');
+    preparePluginDiscovery(root);
+    assertEquals(cleanPluginCodex(root), true);
+    assertEquals(await readFile(config, 'utf8'), '[features]\nhooks = true\n');
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
 void test('plugin storage: XDG defaults, absolute roots and worktree isolation', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'plugin-xdg-'));
   try {

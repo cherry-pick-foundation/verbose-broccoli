@@ -1,6 +1,6 @@
 ---
 name: backfire-code
-description: "Use Backfire judgment tools for development work: verify claims, review patches, gate completion, and rank or classify evidence. Never send student data or other private personal records; use backfire-education for education judgments."
+description: "Use Backfire judgment tools for development work: screen fetched or pasted text, verify claims against evidence, review patches, gate completion, compare passages, extract fields, rank, classify or choose among candidates by meaning, and judge probabilities. Never send student data or other private personal records; use backfire-education for education judgments."
 ---
 
 Read [the code plugin rules](../../AGENTS.md) before using this skill.

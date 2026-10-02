@@ -14,6 +14,6 @@
     "Changed the argument notes in SKILL.md and the reference: the server drops unknown arguments instead of rejecting them.",
     "Removed the See also line that points to the package README, which this repository does not ship.",
     "Added a relative pointer after the front matter to read the code plugin AGENTS.md before using the skill.",
-    "Renamed the canonical skill folder and frontmatter to backfire-code, with a description distinguishing its data boundary."
+    "Renamed the canonical skill folder and frontmatter to backfire-code, with a description distinguishing its data boundary and naming the screen, compare, extract, choose and probability capabilities."
   ]
 }

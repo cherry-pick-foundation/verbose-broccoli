@@ -542,6 +542,10 @@ It requires a completed durable receipt and exactly one byte-matching block;
 missing ownership, pending discovery, duplicate markers or edited blocks stop
 cleanup. An already-clean file is unchanged. Cleanup preserves unrelated bytes,
 the file's mode and owner/group IDs, and the receipt for later preparation.
+When the original file had text but no final newline, preparation adds one
+separator newline and the receipt owns it, so cleanup restores the original
+bytes. A receipt written before this change does not own that newline; cleanup
+with it leaves the one newline behind.
 It journals the attempt and replaces the file through exclusive same-directory
 staging and an atomic rename. After interrupted cleanup, run
 `npm run plugins:prepare` to recover before trying cleanup again.
@@ -613,6 +617,12 @@ the client loaded them. Local discovery is not plugin installation and does
 not supply plugin-only runtime variables. Distributed resources stay inside
 their owning plugin root.
 
+The canonical-path guidance for Claude is a rule that depends on the model
+following it; no client mechanism enforces it. It was tested in two fresh
+Sonnet 5.5 sessions at high effort, and only those two cases. Other models,
+helper or asset execution, client file watchers and other platforms are not
+verified.
+
 [Codex's skill documentation](https://learn.chatgpt.com/docs/build-skills)
 supports symlinked skill folders under `.agents/skills`, scanned from the
 working directory up to the repository root. It says skill changes are detected
@@ -640,6 +650,21 @@ Linux native clients are the acceptance target. Relative links are filesystem
 links, not a Windows copy fallback; macOS, Windows and remote or web clients
 need their own discovery and resource-resolution evidence. Filesystem checks
 alone do not establish native client acceptance.
+
+Developer notes on ownership:
+
+- Moving a skill between plugins keeps its name but changes the link target.
+  Preparation stops with `Conflict: .agents/skills/<name>` rather than
+  retargeting a link by itself. Check that the link is the generated one: a
+  symlink under `.agents/skills` into `plugins/*/skills/<same name>`, listed in
+  the durable receipt. Then approve the move by removing only that link and
+  rerunning `npm run plugins:prepare`, which links the new location. Renaming a
+  skill inside one plugin needs no approval. Automatic retargeting is a
+  deliberate omission, because a wrong guess could replace a user's link.
+- `preparePluginDiscovery` is one long function on purpose. It finishes every
+  conflict check before its first write, and one body keeps that order easy to
+  audit. Splitting it is deferred until the ordering is covered by tests that
+  would catch a write moved ahead of a check.
 
 ### Optional copied client packages
 

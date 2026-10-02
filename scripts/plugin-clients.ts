@@ -90,8 +90,7 @@ function readServers(root: string) {
     if (!existsSync(path)) continue;
     const declaration = JSON.parse(readFileSync(path, 'utf8'));
     const resolved = JSON.parse(
-      json(declaration).replaceAll(
-        '${PLUGIN_ROOT}',
+      json(declaration).replaceAll('${PLUGIN_ROOT}', () =>
         JSON.stringify(source).slice(1, -1),
       ),
     );
@@ -324,6 +323,9 @@ export function preparePluginDiscovery(root = ROOT) {
     }
   }
   block += END;
+  // The receipt owns the separator this generator adds, so cleanup restores
+  // the original bytes without guessing about a user's final newline.
+  if (codex && !codex.endsWith('\n')) block = '\n' + block;
   const intended = {links, servers, codex: block};
   const journal = json({receipt, old, intended, staging});
   if (Buffer.byteLength(journal) > 64 * 1024)
@@ -355,11 +357,7 @@ export function preparePluginDiscovery(root = ROOT) {
   mkdirSync(dirname(codexPath), {recursive: true});
   // At most two staged client files survive interruption, named by the journal.
   replaceClient(mcpPath, json(mcp), staging);
-  replaceClient(
-    codexPath,
-    codex + (codex && !codex.endsWith('\n') ? '\n' : '') + block,
-    staging,
-  );
+  replaceClient(codexPath, codex + block, staging);
   writeFileSync(`${receiptPath}.next`, json(intended));
   renameSync(`${receiptPath}.next`, receiptPath);
   rmSync(pendingPath);
@@ -394,7 +392,7 @@ export function cleanPluginCodex(root = ROOT) {
   const block = receipt.codex;
   if (
     typeof block !== 'string' ||
-    !block.startsWith(BEGIN) ||
+    !block.replace(/^\n/, '').startsWith(BEGIN) ||
     !block.endsWith(END)
   )
     throw new Error('Conflict: invalid Codex ownership receipt');
@@ -475,8 +473,7 @@ export function preparePluginClients(root = ROOT) {
             throw new Error(`Duplicate plugin server: ${server}`);
           servers.add(server);
         }
-        const contents = json(mcp).replaceAll(
-          '${PLUGIN_ROOT}',
+        const contents = json(mcp).replaceAll('${PLUGIN_ROOT}', () =>
           JSON.stringify(source).slice(1, -1),
         );
         writeFileSync(join(target, 'mcp.json'), contents);
