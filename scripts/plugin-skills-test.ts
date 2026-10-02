@@ -10,6 +10,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  readlink,
   realpath,
   rm,
   rename,
@@ -49,6 +50,135 @@ const receiptPath = (root: string) =>
     checkoutName(root),
     'plugin-discovery/plugin-discovery.json',
   );
+
+async function checkDiscoveryTree(root: string) {
+  const expected: Record<string, string> = {
+    '.claude/skills': '../.agents/skills',
+    '.agents/ponytail': '../plugins/code',
+  };
+  for (const plugin of ['chat', 'code', 'work']) {
+    for (const name of await readdir(join(root, 'plugins', plugin, 'skills'))) {
+      const path = `.agents/skills/${name}`;
+      assert(!Object.hasOwn(expected, path), `Duplicate skill: ${name}`);
+      expected[path] = `../../plugins/${plugin}/skills/${name}`;
+    }
+  }
+  const index = await lstat(join(root, '.agents/skills'));
+  assert(index.isDirectory() && !index.isSymbolicLink());
+  const tracked = spawnSync(
+    'git',
+    [
+      'ls-files',
+      '--stage',
+      '-z',
+      '--',
+      '.agents/skills',
+      '.claude/skills',
+      '.agents/ponytail',
+    ],
+    {cwd: root, encoding: 'utf8'},
+  );
+  assertEquals(tracked.status, 0, tracked.stderr);
+  const entries = tracked.stdout
+    .split('\0')
+    .filter(Boolean)
+    .map(line => line.split('\t'));
+  assertEquals(
+    entries.map(([, path]) => path).sort(),
+    Object.keys(expected).sort(),
+  );
+  for (const [metadata, path] of entries) {
+    assertEquals(metadata.split(' ')[0], '120000', path);
+    assertEquals(metadata.split(' ')[2], '0', path);
+    const blob = spawnSync('git', ['show', `:${path}`], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    assertEquals(blob.status, 0, blob.stderr);
+    assertEquals(blob.stdout, expected[path], path);
+    assert((await lstat(join(root, path))).isSymbolicLink(), path);
+    assertEquals(await readlink(join(root, path)), expected[path], path);
+    assertEquals(
+      await realpath(join(root, path)),
+      resolve(root, path, '..', expected[path]),
+      path,
+    );
+  }
+}
+
+void test('plugin skills: tracked discovery tree matches canonical inventory without preparation', async () => {
+  await checkDiscoveryTree(ROOT);
+  const hooks = await readFile(join(ROOT, '.codex/hooks.json'), 'utf8');
+  for (const helper of [
+    'ponytail-activate',
+    'ponytail-subagent',
+    'ponytail-mode-tracker',
+  ]) {
+    assert(hooks.includes(`.agents/ponytail/hooks/${helper}.js`));
+    assert(
+      (await lstat(join(ROOT, `.agents/ponytail/hooks/${helper}.js`))).isFile(),
+    );
+  }
+  const canonical = spawnSync('git', ['show', 'HEAD:.codex/config.toml'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+  });
+  assertEquals(canonical.status, 0, canonical.stderr);
+  assert(!/^# (BEGIN|END) generated plugin discovery/m.test(canonical.stdout));
+});
+
+void test('plugin skills: missing, stale, wrong and non-link indexed entries fail', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'plugin-tree-'));
+  const git = (args: string[]) => {
+    const result = spawnSync('git', args, {cwd: temp, encoding: 'utf8'});
+    assertEquals(result.status, 0, result.stderr);
+  };
+  try {
+    git(['init', '--quiet', '--template=']);
+    await mkdir(join(temp, '.agents/skills'), {recursive: true});
+    await mkdir(join(temp, '.claude'));
+    await symlink('../.agents/skills', join(temp, '.claude/skills'));
+    await symlink('../plugins/code', join(temp, '.agents/ponytail'));
+    for (const plugin of ['chat', 'code', 'work']) {
+      await mkdir(join(temp, `plugins/${plugin}/skills/${plugin}`), {
+        recursive: true,
+      });
+      await symlink(
+        `../../plugins/${plugin}/skills/${plugin}`,
+        join(temp, `.agents/skills/${plugin}`),
+      );
+    }
+    git(['add', '.agents', '.claude']);
+    await checkDiscoveryTree(temp);
+    git(['rm', '--cached', '.agents/skills/code']);
+    await rejects(checkDiscoveryTree(temp));
+    git(['add', '.agents']);
+    await symlink(
+      '../../plugins/code/skills/stale',
+      join(temp, '.agents/skills/stale'),
+    );
+    git(['add', '.agents']);
+    await rejects(checkDiscoveryTree(temp));
+    await rm(join(temp, '.agents/skills/stale'));
+    const link = join(temp, '.agents/skills/code');
+    await rm(link);
+    await symlink('../../plugins/work/skills/work', link);
+    git(['add', '.agents']);
+    await rejects(checkDiscoveryTree(temp));
+    await rm(link);
+    await writeFile(link, '../../plugins/code/skills/code');
+    git(['add', '.agents']);
+    await rejects(checkDiscoveryTree(temp));
+    await rm(link);
+    await symlink('../../plugins/code/skills/code', link);
+    git(['add', '.agents']);
+    await checkDiscoveryTree(temp);
+    await rm(join(temp, '.agents/ponytail'));
+    await rejects(checkDiscoveryTree(temp));
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
 
 void test('plugin skills: isolated packages retain resources and executable helpers', async () => {
   for (const pluginDirectory of ['code', 'work', 'chat']) {
@@ -377,6 +507,29 @@ void test('live discovery: source edits, resources, reruns and moved checkout', 
       await readFile(join(index, 'personal/SKILL.md'), 'utf8'),
       'User-owned',
     );
+    const destructive = [
+      'zotero_delete_items',
+      'zotero_delete_collection',
+      'zotero_empty_trash',
+    ];
+    const claude = JSON.parse(
+      await readFile(join(ROOT, '.claude/settings.json'), 'utf8'),
+    );
+    assertEquals(
+      claude.permissions.deny.filter((rule: string) =>
+        rule.includes('reference-library'),
+      ),
+      ['plugin_work_reference-library', 'reference-library'].flatMap(server =>
+        destructive.map(tool => `mcp__${server}__${tool}`),
+      ),
+    );
+    const referenceBlock = before
+      .split('[mcp_servers."reference-library"]\n')[1]
+      .split('[mcp_servers.')[0];
+    assertEquals(
+      JSON.parse(referenceBlock.match(/^disabled_tools = (.+)$/m)![1]),
+      destructive,
+    );
     const moved = join(temp, 'moved checkout');
     await mkdir(moved);
     // A relocated checkout must carry its ownership; import a legacy receipt
@@ -613,6 +766,137 @@ void test('live discovery: legacy ownership survives migration and disposable de
     await writeFile(config, JSON.stringify(changed));
     assertThrows(() => preparePluginDiscovery(temp), Error, 'Conflict');
     assertEquals(await readFile(receipt, 'utf8'), owned);
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('live discovery: durable intent recovers interrupted first preparation and updates', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'plugin-interruption-'));
+  try {
+    for (const update of [false, true]) {
+      for (const cut of ['mcp', 'codex', 'receipt-next', 'receipt'] as const) {
+        const root = join(temp, `${update ? 'update' : 'first'}-${cut}`);
+        for (const plugin of ['chat', 'code', 'work']) {
+          const target = join(root, 'plugins', plugin);
+          await mkdir(join(target, `skills/demo-${plugin}`), {recursive: true});
+          await writeFile(
+            join(target, `skills/demo-${plugin}/SKILL.md`),
+            `---\nname: demo-${plugin}\n---\n`,
+          );
+          if (plugin !== 'chat')
+            await cp(
+              join(ROOT, 'plugins', plugin, 'mcp.json'),
+              join(target, 'mcp.json'),
+            );
+        }
+        await mkdir(join(root, '.agents/skills/personal'), {recursive: true});
+        await writeFile(
+          join(root, '.agents/skills/personal/keep.txt'),
+          'unowned data',
+        );
+        await mkdir(join(root, '.codex'));
+        const codexPath = join(root, '.codex/config.toml');
+        const mcpPath = join(root, '.mcp.json');
+        await writeFile(codexPath, '[features]\nhooks = true\n');
+        await writeFile(
+          mcpPath,
+          JSON.stringify({
+            extra: 'keep',
+            mcpServers: {personal: {command: 'user-owned'}},
+          }),
+        );
+        if (update) preparePluginDiscovery(root);
+        const receipt = receiptPath(root);
+        const previous = update ? await readFile(receipt) : undefined;
+        const declaration = join(root, 'plugins/code/mcp.json');
+        const changed = JSON.parse(await readFile(declaration, 'utf8'));
+        changed.mcpServers['backfire-code'].command = 'synthetic-updated';
+        await writeFile(declaration, JSON.stringify(changed));
+        const faultPath = {
+          mcp: mcpPath,
+          codex: codexPath,
+          'receipt-next': `${receipt}.next`,
+          receipt,
+        }[cut];
+        const child = spawnSync(
+          process.execPath,
+          [
+            '--disable-warning=MODULE_TYPELESS_PACKAGE_JSON',
+            '--input-type=module',
+            '-e',
+            `
+          import fs from 'node:fs';
+          import {syncBuiltinESMExports} from 'node:module';
+          const method = ${JSON.stringify(cut)} === 'receipt' ? 'renameSync' : 'writeFileSync';
+          const original = fs[method];
+          fs[method] = (...args) => {
+            const result = original(...args);
+            if (String(args[method === 'renameSync' ? 1 : 0]) === ${JSON.stringify(faultPath)}) {
+              // receipt .next is also used to publish intent: interrupt its final write only.
+              if (${JSON.stringify(cut)} !== 'receipt-next' || !fs.readFileSync(args[0], 'utf8').includes('"intended"')) process.exit(86);
+            }
+            return result;
+          };
+          syncBuiltinESMExports();
+          const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+          preparePluginDiscovery(${JSON.stringify(root)});
+        `,
+          ],
+          {env: process.env, encoding: 'utf8'},
+        );
+        assertEquals(child.status, 86, child.stderr);
+        const pending = `${receipt}.pending`;
+        assert((await lstat(pending)).size <= 64 * 1024);
+        const intent = JSON.parse(await readFile(pending, 'utf8'));
+        assertEquals(
+          intent.receipt,
+          previous ? JSON.parse(previous.toString()) : {},
+        );
+        if (cut !== 'receipt') {
+          if (previous) assertEquals(await readFile(receipt), previous);
+          else assert(!existsSync(receipt));
+        }
+        const output = await readFile(mcpPath, 'utf8');
+        const edited = JSON.parse(output);
+        edited.mcpServers['backfire-code'].command = 'user-edit';
+        await writeFile(mcpPath, JSON.stringify(edited));
+        assertThrows(() => preparePluginDiscovery(root), Error, 'Conflict');
+        assertEquals(await readFile(mcpPath, 'utf8'), JSON.stringify(edited));
+        await writeFile(mcpPath, output);
+        preparePluginDiscovery(root);
+        assertEquals(
+          JSON.parse(await readFile(receipt, 'utf8')),
+          intent.intended,
+        );
+        assert(!existsSync(pending));
+        assert(!existsSync(`${receipt}.next`));
+        const mcp = JSON.parse(await readFile(mcpPath, 'utf8'));
+        assertEquals(mcp.extra, 'keep');
+        assertEquals(mcp.mcpServers.personal, {command: 'user-owned'});
+        assertEquals(
+          mcp.mcpServers['backfire-code'].command,
+          'synthetic-updated',
+        );
+        assertEquals(
+          await readFile(codexPath, 'utf8'),
+          '[features]\nhooks = true\n' + intent.intended.codex,
+        );
+        assertEquals(
+          await readFile(
+            join(root, '.agents/skills/personal/keep.txt'),
+            'utf8',
+          ),
+          'unowned data',
+        );
+        const completed = await readFile(receipt);
+        preparePluginDiscovery(root);
+        assertEquals(await readFile(receipt), completed);
+        // Equal desired output without durable ownership must remain unowned.
+        await rm(receipt);
+        assertThrows(() => preparePluginDiscovery(root), Error, 'Conflict');
+      }
+    }
   } finally {
     await rm(temp, {recursive: true, force: true});
   }

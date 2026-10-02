@@ -529,10 +529,13 @@ The reference-library destructive-tool denials still apply in both clients.
 Use a fresh session to check changed MCP configuration and metadata; skill-text
 reload does not prove a server configuration has reloaded.
 
-Generated absolute MCP paths are local setup output, not portable declarations.
-Keep the machine-specific Codex block out of commits. After that block is removed
-for a clean commit, run `npm run plugins:prepare` again before using Codex MCP;
-the relative skill links remain usable without that block.
+Canonical plugin declarations and relative skill links belong in Git.
+Preparation adds a local delta with absolute MCP paths, including a managed
+block in tracked `.codex/config.toml`. The existing `commit-msg` hook rejects
+its BEGIN or END marker in the Git index; an unstaged prepared block is allowed.
+Before committing, remove only that generated block, preserving unrelated edits.
+Run `npm run plugins:prepare` again before using Codex MCP after removal;
+the relative skill links remain usable without it.
 
 Preparation keeps unrelated user settings and skill directories, and uses
 `$XDG_STATE_HOME/verbose-broccoli/workspaces/<checkout-id>/plugin-discovery/plugin-discovery.json`
@@ -544,9 +547,20 @@ different paths therefore have separate receipt, cache, staging and recovery
 locations. `plugin-discovery` is the stable operation namespace; `che-82` names
 only retained feature-run evidence. Absolute `XDG_STATE_HOME` values are honored; unset, empty or relative values use
 `~/.local/state`. Keep this durable ownership receipt when clearing scratch or
-cache; its atomic-write sibling is `plugin-discovery.json.next`. Client-required
+cache; receipt and journal publication use `plugin-discovery.json.next`.
+Client-required
 `.agents/`, `.claude/`, `.codex/` and `.mcp.json` remain in their supported project
 locations; `.local/` holds disposable editor copies.
+
+Before changing client files, preparation publishes a journal of at most 64 KiB
+as `plugin-discovery.json.pending` beside the receipt. It records the receipt
+baseline, observed old ownership and intended output. Reruns can recover between
+complete client-file writes on first preparation or an update; successful receipt
+publication removes the journal. Keep it after an interrupted run. A missing or
+invalid ownership record, partial client-file write or user edit can still cause
+a conflict; identical output alone does not establish ownership. Inspect those
+conflicts before rerunning. This is bounded process-interruption recovery,
+without a power-loss durability or concurrent-preparation guarantee.
 
 When no durable receipt exists, preparation imports the legacy
 `.local/plugin-discovery.json` after checking conflicts, preserving its exact
@@ -679,10 +693,15 @@ initialized `.specify` scripts, templates and constitution; those project assets
 are not moved into the plugin. Quarto retains its existing host runtime
 requirement.
 
-`npm run test:plugin-skills` covers local discovery and copied distribution,
-including canonical resources and the `.agents/ponytail` compatibility link,
-then runs the upstream Ponytail checks. These checks do not replace fresh native
-client discovery and invocation evidence.
+`npm run test:plugin-skills` compares the actual checkout's Git index inventory,
+symlink modes and targets with canonical skills, checks the live relative links
+and real `.agents/skills` directory, and checks `.claude/skills` and the
+`.agents/ponytail` compatibility link without preparing that checkout. It also
+checks portable HEAD Codex configuration, synthetic discovery and interruption
+recovery, copied resources and distribution, and runs the upstream Ponytail checks.
+The live discovery fixture pins Claude's six project and packaged
+reference-library deny rules and Codex's three generated disabled tools.
+These checks do not replace fresh native client discovery and invocation evidence.
 
 ### Spec Kit extensions — 2026-09-27
 

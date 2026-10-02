@@ -39,11 +39,13 @@ uv --directory "${PLUGIN_ROOT}/../../packages/backfire" run --frozen --offline -
 ```
 
 Serving uses the prepared environment and does not sync packages.
-`npm run plugins:prepare` resolves the source checkout path before clients
-copy the plugin. Prepare from a permanent checkout such as `develop`; the
-client packages still need that checkout and its installed dependencies.
+`npm run plugins:prepare` refreshes live checkout skill links and project
+MCP configuration for Codex and Claude Code. Optional copied client packages
+use `npm run plugins:distribute` separately; they still need their source
+checkout and its installed dependencies. Use a permanent checkout such as
+`develop` for those packages.
 See [Sharing and distribution](architecture.md#sharing-and-distribution)
-for client loading commands.
+for local discovery and copied client loading commands.
 
 ## Select a provider
 

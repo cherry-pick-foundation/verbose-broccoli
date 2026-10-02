@@ -42,6 +42,11 @@ const DENIED = [
   'zotero_delete_collection',
   'zotero_empty_trash',
 ];
+type Ownership = {
+  links?: Record<string, string>;
+  servers?: Record<string, Server>;
+  codex?: string;
+};
 
 function stat(path: string) {
   return lstatSync(path, {throwIfNoEntry: false});
@@ -103,6 +108,7 @@ export function preparePluginDiscovery(root = ROOT) {
       throw new Error(`Conflict: ${path} must be a real directory`);
   }
   const receiptPath = join(storagePath(root, 'STATE'), 'plugin-discovery.json');
+  const pendingPath = `${receiptPath}.pending`;
   const legacyPath = join(root, '.local/plugin-discovery.json');
   const backupPath = join(dirname(receiptPath), 'plugin-discovery-legacy.json');
   const previousPath = stat(receiptPath) ? receiptPath : legacyPath;
@@ -111,6 +117,7 @@ export function preparePluginDiscovery(root = ROOT) {
     receiptPath,
     `${receiptPath}.next`,
     backupPath,
+    pendingPath,
   ]) {
     const value = stat(path);
     if (
@@ -130,12 +137,23 @@ export function preparePluginDiscovery(root = ROOT) {
     !readFileSync(backupPath).equals(previousBytes)
   )
     throw new Error('Conflict: legacy ownership receipt backup');
-  const old: {
-    links?: Record<string, string>;
-    servers?: Record<string, Server>;
-    codex?: string;
-  } = previousText !== undefined ? JSON.parse(previousText) : {};
-  for (const [path, target] of Object.entries(old.links ?? {})) {
+  const receipt: Ownership =
+    previousText !== undefined ? JSON.parse(previousText) : {};
+  const old = structuredClone(receipt);
+  const pending:
+    {receipt: Ownership; old: Ownership; intended: Ownership} | undefined =
+    existsSync(pendingPath)
+      ? JSON.parse(readFileSync(pendingPath, 'utf8'))
+      : undefined;
+  if (
+    pending &&
+    ![pending.receipt, pending.intended].some(value =>
+      isDeepStrictEqual(value, receipt),
+    )
+  )
+    throw new Error('Conflict: pending ownership receipt');
+  old.links = {...old.links, ...pending?.old.links, ...pending?.intended.links};
+  for (const [path, target] of Object.entries(old.links)) {
     if (
       !(path === '.claude/skills' && target === '../.agents/skills') &&
       !(
@@ -221,21 +239,33 @@ export function preparePluginDiscovery(root = ROOT) {
     throw new Error('Conflict: invalid project mcpServers');
   for (const name of new Set([
     ...Object.keys(old.servers ?? {}),
+    ...Object.keys(pending?.old.servers ?? {}),
+    ...Object.keys(pending?.intended.servers ?? {}),
     ...Object.keys(servers),
   ])) {
     if (
       Object.hasOwn(mcp.mcpServers, name) &&
-      !isDeepStrictEqual(mcp.mcpServers[name], old.servers?.[name])
+      ![old, pending?.old, pending?.intended].some(
+        owned =>
+          Object.hasOwn(owned?.servers ?? {}, name) &&
+          isDeepStrictEqual(mcp.mcpServers[name], owned?.servers?.[name]),
+      )
     )
       throw new Error(`Conflict: project server ${name}`);
+    old.servers ??= {};
+    if (Object.hasOwn(mcp.mcpServers, name))
+      old.servers[name] = mcp.mcpServers[name];
+    else delete old.servers[name];
     delete mcp.mcpServers[name];
   }
   Object.assign(mcp.mcpServers, servers);
   let codex = existsSync(codexPath) ? readFileSync(codexPath, 'utf8') : '';
   if (codex.includes(BEGIN) || codex.includes(END)) {
+    old.codex = [old.codex, pending?.old.codex, pending?.intended.codex].find(
+      value => value && codex.includes(value),
+    );
     if (
       !old.codex ||
-      !codex.includes(old.codex) ||
       codex.split(BEGIN).length !== 2 ||
       codex.split(END).length !== 2
     )
@@ -259,6 +289,10 @@ export function preparePluginDiscovery(root = ROOT) {
     }
   }
   block += END;
+  const intended = {links, servers, codex: block};
+  const journal = json({receipt, old, intended});
+  if (Buffer.byteLength(journal) > 64 * 1024)
+    throw new Error('Ownership journal exceeds 64 KiB');
   // Import ownership before changing client files; retain the original bytes
   // separately so deleting disposable .local cannot lose migration evidence.
   mkdirSync(dirname(receiptPath), {recursive: true});
@@ -268,6 +302,9 @@ export function preparePluginDiscovery(root = ROOT) {
     writeFileSync(`${receiptPath}.next`, previousBytes);
     renameSync(`${receiptPath}.next`, receiptPath);
   }
+  // Publish intent before client writes; equal unowned output alone proves nothing.
+  writeFileSync(`${receiptPath}.next`, journal);
+  renameSync(`${receiptPath}.next`, pendingPath);
   for (const [path, target] of Object.entries(links)) {
     mkdirSync(dirname(join(root, path)), {recursive: true});
     if (!stat(join(root, path))) symlinkSync(target, join(root, path), 'dir');
@@ -281,8 +318,9 @@ export function preparePluginDiscovery(root = ROOT) {
     codexPath,
     codex + (codex && !codex.endsWith('\n') ? '\n' : '') + block,
   );
-  writeFileSync(`${receiptPath}.next`, json({links, servers, codex: block}));
+  writeFileSync(`${receiptPath}.next`, json(intended));
   renameSync(`${receiptPath}.next`, receiptPath);
+  rmSync(pendingPath);
   return index;
 }
 

@@ -138,3 +138,30 @@ and remaining work under the tasks, without ticking them.
   Six bounded Jev calls cover the two documentation continuations; unchanged
   judgments are reused by text hash. Advisory gates remain evidence rather
   than final approval. Full verification and cross-provider review are next.
+
+- [ ] T008 [US1,US2,US3] Resolve the first independent review's actionable
+  portability, committed-discovery, interrupted-generation and denial-check
+  findings; correct affected operator documentation, then verify and review again.
+  Initial implementation `e35248f9e819b497bc6019763227d7a9cb8306ee` has verified
+  tree `7e2f10b4c918193423c243b9c8d601746cd2f522`; full run
+  `3K8GWaOX8zZMsnRwqqFFI0ckaOx` passed 47/47 tasks, zero failures and cache hits.
+  Review was bound to that commit and main's immutable policy packet by native
+  Claude Code Sonnet high; actual assistant metadata confirms
+  `claude-sonnet-5-5`. Its empty-tip finding was resolved by binding; two Medium
+  and four Low items remain actionable. The reviewer and verifier are released.
+  Exact ownership now includes `.config/lefthook.yml`,
+  `scripts/commit-msg-test.ts` and `docs/backfire.md`; reuse the existing hook
+  and Node filesystem support. Estimate 25–60 added implementation lines plus
+  focused regressions. No source change is accepted as finally reviewed until
+  renewed affected checks, a new full-run slot and fresh cross-provider review.
+  Source Task `task_43e5dd167b4b`, Dispatch `ctx_36fb05984222`, is native
+  Codex `gpt-6.1-sol` high; docs Task `task_b3c196ecc3b4`, Dispatch
+  `ctx_d44dd0f97a36`, is native Codex `gpt-6.1-sol` medium. Requested/effective
+  launch matches the retained applicable generator/docs Jev decisions.
+  Authoritative evidence uses task state `che-82/review-fixes/{source,docs}/`.
+  Both fix workers delivered and were released. Source +53/-9 implementation
+  lines includes the existing hook; 11 plugin tests and the commit-hook suite
+  passed, with eight interruption/readback cases and failing incoming regressions.
+  Docs changed five units in three retained Jev calls; source dispositions
+  resolve consequential uncertainty without final approval. Freeze the combined
+  snapshot, run a fresh serialized full verification and obtain a fresh review.
