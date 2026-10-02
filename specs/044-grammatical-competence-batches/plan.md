@@ -64,8 +64,9 @@ use.
    proposer instructions, wait for its `proposals.jsonl`, then `record
    --unchecked`.
 4. `wiki-consistency` `update` and `check`, append the log entry, commit
-   the pages, data, index and log in the vault, delete each run folder after
-   its record commit.
+   the pages, data, index and log in the vault. Retain paid results, logs and
+   resume evidence; remove only rebuildable scratch after required data and
+   receipts persist. Preserve the six saved closeout folders unchanged.
 
 ## Constitution Check
 
