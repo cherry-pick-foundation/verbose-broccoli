@@ -129,6 +129,19 @@ void test('plugin skills: tracked discovery tree matches canonical inventory wit
   assert(!/^# (BEGIN|END) generated plugin discovery/m.test(canonical.stdout));
 });
 
+void test('plugin skills: project Codex servers declare a transport', async () => {
+  // Codex refuses to start on a server table without command or url, so a
+  // table that only turns off a user-level server breaks once it is removed.
+  const config = await readFile(join(ROOT, '.codex/config.toml'), 'utf8');
+  for (const [, name, body] of config.matchAll(
+    /^\[mcp_servers\.("[^"]+"|[\w-]+)\]\n((?:[^[\n].*\n|\n)*)/gm,
+  ))
+    assert(
+      /^(command|url) *=/m.test(body),
+      `mcp_servers.${name}: no transport`,
+    );
+});
+
 void test('plugin skills: missing, stale, wrong and non-link indexed entries fail', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'plugin-tree-'));
   const git = (args: string[]) => {

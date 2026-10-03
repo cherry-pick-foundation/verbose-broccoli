@@ -19,14 +19,6 @@ hooks = true
 url = "https://mcp.inkeep.com/zod/mcp"
 enabled = true
 
-# Keep these user-level servers out of this project; they stay available to
-# other projects.
-[mcp_servers.llm-wiki]
-enabled = false
-
-[mcp_servers.duckdb]
-enabled = false
-
 # Use the repository's Ponytail skills and hooks without a second plugin copy.
 [plugins."ponytail@ponytail"]
 enabled = false
