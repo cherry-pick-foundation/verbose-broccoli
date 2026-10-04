@@ -16,8 +16,8 @@ from mcp import ClientSession
 from mcp import StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-from backfire_education.pseudonymize import compile_roster_pattern
-from backfire_education.roster import load_roster
+from education_privacy_gate.roster import load_registry
+from wiki_consistency.roster import load_roster as load_domain_roster
 
 SPECSTORY_FLAGS = (
     "--print",
@@ -382,10 +382,23 @@ def digest(stage, scan=None):
         for item in sessions
     ):
         raise ValueError("scan report is stale")
-    identifiers = load_roster()
-    roster_pattern = compile_roster_pattern(identifiers)
-    if roster_pattern is None:
-        raise ValueError("roster is empty")
+    registry = load_registry()
+    if not registry.matches:
+        raise ValueError("registry is empty")
+    student_numbers = {
+        spelling
+        for spelling, (kind, unused_name) in load_domain_roster().items()
+        if kind == "student" and spelling.isdecimal()
+    }
+    number_pattern = (
+        re.compile(
+            "|".join(
+                map(re.escape, sorted(student_numbers, key=len, reverse=True))
+            )
+        )
+        if student_numbers
+        else None
+    )
     digests, held = [], []
     for info in sessions:
         path = Path(info["output_path"])
@@ -412,7 +425,11 @@ def digest(stage, scan=None):
         if orca_worker:
             user = user.rsplit("=== TASK ===", 1)[-1].strip()
             tags.append("orca_worker")
-        if roster_match(text, roster_pattern):
+        if (
+            any(roster_match(text, match.pattern) for match in registry.matches)
+            or number_pattern is not None
+            and roster_match(text, number_pattern)
+        ):
             tags.append("student_data")
         digests.append(
             {
@@ -431,18 +448,16 @@ def digest(stage, scan=None):
 
 
 async def mcp_classify(batches, purpose, server_command=None):
-    """Send classification batches through backfire's education MCP server."""
+    """Send classification batches through the always-gated jev-mcp proxy."""
     server_command = server_command or [
         "uv",
         "--directory",
-        str(ROOT / "packages/backfire"),
+        str(ROOT / "packages/education-privacy-gate"),
         "run",
         "--frozen",
         "--offline",
         "--no-sync",
-        "backfire",
-        "serve-mcp",
-        "--education",
+        "jev-mcp",
     ]
     server = StdioServerParameters(
         command=server_command[0],
@@ -462,11 +477,22 @@ async def mcp_classify(batches, purpose, server_command=None):
                         "purpose": purpose,
                     },
                 )
-                if result.is_error:
-                    raise RuntimeError("backfire classification failed")
-                payload = result.structured_content
-                if payload is None:
+                if (
+                    result.is_error
+                    or len(result.content) != 1
+                    or result.content[0].type != "text"
+                ):
+                    raise RuntimeError("jev-mcp classification failed")
+                try:
                     payload = json.loads(result.content[0].text)
+                except json.JSONDecodeError:
+                    raise RuntimeError(
+                        "jev-mcp classification failed"
+                    ) from None
+                if not isinstance(payload, dict) or not isinstance(
+                    payload.get("results"), list
+                ):
+                    raise RuntimeError("jev-mcp classification failed")
                 responses.append(payload)
     return responses
 
@@ -511,6 +537,12 @@ def classify(stage, catalog_path, limit=None, call=None):
         for digest_item, result in zip(
             batch["digests"], response["results"], strict=True
         ):
+            if (
+                result.get("classification")
+                not in {item["id"] for item in batch["classes"]}
+                and result.get("classification") is not None
+            ):
+                raise ValueError("jev-mcp returned an unexpected class")
             labels.append(
                 {
                     "id": digest_item["id"],
@@ -521,11 +553,18 @@ def classify(stage, catalog_path, limit=None, call=None):
                     "tags": digest_item["tags"],
                 }
             )
+        reported_usage = response.get("usage")
         for key in usage:
-            usage[key] += int(response["usage"][key])
+            value = (
+                reported_usage.get(key)
+                if isinstance(reported_usage, dict)
+                else None
+            )
+            if type(value) in (int, float):
+                usage[key] += value
     write_jsonl(stage / "labels.jsonl", labels)
     return {
-        "backfire_calls": len(batches),
+        "jev_calls": len(batches),
         **usage,
     }
 

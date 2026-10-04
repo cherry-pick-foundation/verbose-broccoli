@@ -104,7 +104,8 @@ source, audience and publication decisions stay held with main.
 - Write everything in `wiki/` in English, whatever the language of the raw
   evidence, which stays unchanged. Write student names in the roster's
   romanized spelling (its `romanized` column, such as `Kim Gildong`), so
-  backfire still replaces them; the Korean spelling stays only in the roster.
+  the `jev-mcp` gate still replaces registered spellings; the Korean spelling
+  stays only in the roster.
   Write a school as its domain ID, the short ID that names its folders in the
   user's documents, not by its Korean name. A short direct quote may keep its
   original language next to an English translation, except a student,
@@ -113,9 +114,10 @@ source, audience and publication decisions stay held with main.
   information system (EduOK) first, and school information follows the
   school's official homepage first.
 - Write dates as YYYY-MM-DD, and every time with its time zone.
-- A student who has a page stays in backfire's roster even after leaving
-  the student information system (EduOK), so the name keeps getting its
-  alias.
+- A student who has a page stays in the domain roster and privacy registry
+  even after leaving
+  the student information system (EduOK), so the gate keeps masking the name
+  with fresh per-call stand-ins.
 - Pages record only the personal details the work needs: a student's
   romanized name, school (domain ID) and school year, plus the EduOK number
   as the page file name. Nothing else that identifies a student or family
@@ -140,11 +142,13 @@ source, audience and publication decisions stay held with main.
   accounts, may read student pages, the roster or raw student sources. Never
   give them to Copilot, OMP or any other provider.
 - When the user names a student in Korean, first resolve the name to the
-  EduOK student number. Look it up in backfire's roster (columns `name`,
-  `romanized`, `id`; its path is in
+  EduOK student number. Look it up in the work-owned source-backed domain roster
+  (columns `name`, `romanized`, `id`; its path stays in the legacy
   `$XDG_CONFIG_HOME/verbose-broccoli/backfire/education.toml`, or under
-  `~/.config` when that is unset) or, if the roster lacks the student, in the
-  raw EduOK student list capture. Match a given name alone and a name with a
+  `~/.config` when unset) or, if the roster lacks the student, in the raw
+  EduOK student list capture. The privacy registry contains names and school
+  spellings only; it cannot resolve student numbers. Match a given name alone
+  and a name with a
   particle attached (`은`, `이`, `를`). When several students share the name
   and the user's words do not tell them apart, ask which one is meant; never
   guess. Then open `wiki/students/s-<number>.qmd`. Pages never hold Korean
@@ -265,8 +269,10 @@ steps; its commands are `check`, `update`, `convert`, `index` and `prepare`.
    Read those reasons before sending requests; zero requests do not prove success.
    Boundary, bag, index and execution errors use stderr diagnostics and exit 1;
    invalid command-line arguments exit 2. Send each prepared
-   request to the work plugin's backfire server. Confirm a `contradicted`
-   result between two pages with `jev_compare`. Fix units that backfire
+   request to the only registered `jev-mcp` server, using the upstream `jev`
+   skill. Its privacy gate is always on and permits Korean requests.
+   Confirm a `contradicted`
+   result between two pages with `jev_compare`. Fix units that Jev
    finds contradicted or flags for review, or tell the user why they stand.
    Report contradictions between pages and every unit that `prepare` lists
    as unverifiable, with its cause (for example, sources that could not be
@@ -299,8 +305,9 @@ The language, school and date rules skip link targets outside code: link
 destinations, autolinks and bare URLs, which a page cannot change without
 breaking the link. Link text, link titles and code are checked.
 
-It reads the roster through backfire's `education.toml` only when a student
-page or such text exists. A passing `check` does not prove the rest, which
+It reads the work-owned domain roster only when a student page or such text
+exists; student-number validation is separate from the names-only privacy
+registry. A passing `check` does not prove the rest, which
 stays with the judgment step and your own review: whether Latin-letter text
 is English and a translation faithful, names written in other forms,
 school names in other forms and whether a domain ID is the right school,

@@ -11,6 +11,8 @@ Read the [procedure and record layouts](references/procedure.md) before a run.
 Records are English `.qmd` pages with shared folder metadata; reference text
 is retained in `text/<source-id>/<revision>.qmd`. Keep JSON Lines order, repeated
 sentences, empty entries and explicit unchecked status. Read the current schema.
+Judgments use the only registered `jev-mcp` server with its always-on privacy
+gate and the upstream `jev` skill. Korean requests are allowed.
 From this skill folder, run the script in the Wiki consistency environment:
 
 ```sh

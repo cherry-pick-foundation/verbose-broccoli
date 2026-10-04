@@ -20,8 +20,8 @@ Use one run folder per material: `--run <name>` is
 script refuses to pass 200 MB in the run folder. It writes a file under a
 temporary name and renames it, and appends `checks.jsonl` one line per
 sentence. Exit code 0 means
-success, 1 means a proposal was refused or a backfire result was invalid, and
-2 means an error stopped the command, such as a backfire failure during
+success, 1 means a proposal was refused or a Jev result was invalid, and
+2 means an error stopped the command, such as a Jev failure during
 `check`.
 
 - `inventory --inventory inventories/<inventory>.qmd` writes `inventory.tsv`
@@ -87,37 +87,41 @@ whatever the word's own level; never judge which tier a word belongs to.
 
 ## Check
 
+Use the upstream `jev` skill. The only registered server is `jev-mcp`; its
+privacy gate always masks registered person/school spellings and covered
+phone, e-mail, EduOK and resident-number patterns, then restores result text.
+Korean requests are allowed. Unregistered names/schools remain a known risk.
+
 `check --inventory inventories/<inventory>.qmd` first tests every row: its
-text must hold no Hangul, because everything sent to backfire is English;
-after whitespace is normalized, it must occur in the extracted text of its
+after whitespace is normalized, its text must occur in the extracted text of its
 source; and every key must be in the inventory. If any row fails, the command
 names each on stderr as `proposal <n>: <reason>`, exits 1 and sends nothing.
 
-Then it opens one `backfire serve-mcp --education` session, started from
-`packages/backfire`, and sends every unchecked sentence with items as one
+Then it opens one `jev-mcp` proxy session using
+`uv --directory packages/education-privacy-gate run --frozen --offline --no-sync jev-mcp`, and sends every unchecked sentence with items as one
 `jev_verify` call. Each item, once and in key order, gives one claim: the
 inventory page's `inventory.claim` template filled with `{text}` (the
 normalized sentence), `{label}` and `{statement}`. The evidence is one text:
 the line `Sentence: <sentence>`, then one block per item with its inventory
 ID, label, statement and examples on separate lines. One text, not one
-evidence item per inventory item, makes backfire ask one question per claim
+evidence item per inventory item, makes Jev ask one question per claim
 instead of two; on the
 pilot it cut a 29-claim call from about 86,000 to 16,500 tokens and let a
 36-claim call pass the provider's size limit.
 
 A result is kept when its verdict is `verified` with action `auto`, dropped
 when it is `contradicted` or `unsupported` with action `auto`, and unclear
-otherwise. A single result whose verdict is `unknown` (backfire's
+otherwise. A single result whose verdict is `unknown` (upstream's
 `invalid_response`) is recorded as unclear and counted in `invalid`.
 
-If a call raises, backfire returns a tool error or output that is not the
+If a call raises, Jev returns a tool error or output that is not the
 expected JSON, or the number of results differs from the number of claims, the
 command writes nothing for that sentence, prints `row <n>: <reason>` on stderr
 and exits 2. The sentences before it stay in `checks.jsonl`, so the same
 command resumes at the failed sentence.
 
 `checks.jsonl` gets one line per sentence: `row` (the proposal's line number),
-`provider`, `model`, `usage`, `seconds`, and `results`: each backfire result
+`provider`, `model`, `usage`, `seconds`, and `results`: each Jev result
 with the item's inventory ID as `item` and the `outcome` added. A run that
 stopped is rerun with the same command: sentences already in `checks.jsonl`
 are not sent again, and a torn last line is dropped first.
@@ -140,12 +144,12 @@ every proposal, unless `--unchecked` is given.
 result counts as confident when its confidence is at least `t`, and the
 rule above then keeps, drops or leaves it unclear; the page records `t` as
 `profile.auto_accept`. Without it, the outcomes stay as `check` recorded
-them at backfire's default of 0.8. On the pilot, 0.8 kept only 28% of the
+them at Jev's default of 0.8. On the pilot, 0.8 kept only 28% of the
 true items at 99% precision and 0.5 kept 74% at 95%; the user chose 0.5.
 
 `--unchecked` records a profile without `check`: it first refuses rows as
 `check` does, then keeps every proposed item, and `checker` is `none`. The
-user chose it for the first full run, so no backfire credit is spent; on the
+user chose it for the first full run, so no Jev credit is spent; on the
 pilot rerun the proposer alone had precision 0.94 and recall 0.90, and the
 items kept at 0.5 had 0.97 and 0.77.
 
@@ -213,7 +217,7 @@ profile:
   inventory: ../inventories/<inventory>.qmd
   data: <material>.jsonl
   proposer: <agent, model and effort>
-  checker: <backfire provider and model>
+  checker: <Jev provider and model>
   auto_accept: <t, when record was given one>
   counts: {sentences: 0, kept: 0, dropped: 0, unclear: 0}
 ---
@@ -279,9 +283,8 @@ reference that explain it. Build it in its own run folder:
    `jev_verify` call: one claim per section, `<reference title>, section
    <label>, explains <item label>: <statement>`, and one evidence text with the
    item's ID, label, statement and examples, then each section's lines, leaving
-   out every line with Hangul. It uses backfire without education mode, because
-   a reference holds no student data; education mode refused a practice book's
-   example that looked like an identifier. Results, resumption and the printed
+   out every line with Hangul under the existing reference selection rule.
+   It uses the same always-gated proxy as `check`. Results, resumption and the printed
    counts work as in `check`, with `section` in place of `item`.
 5. `record` with `--reference references/<reference>.qmd`, which refuses the
    same rows as `map`, and `--name <inventory>--<reference>` writes the mapping
@@ -293,7 +296,7 @@ mapping:
   reference: ../references/<reference>.qmd
   data: <inventory>--<reference>.jsonl
   proposer: <agent, model and effort>
-  checker: <backfire provider and model>
+  checker: <Jev provider and model>
   auto_accept: <t, when record was given one>
   counts: {items: 0, kept: 0, dropped: 0, unclear: 0}
 ```
