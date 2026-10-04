@@ -477,11 +477,19 @@ package two skills backed by two uv workspace packages.
   provider key through `uv run --env-file`; credit offers passes only the
   optional `github.env`. Backfire reads provider keys through its own shipped
   profiles' `credential_file` fields and follows its shared provider order.
-  `npm run secrets:refresh` rewrites these files from a Bitwarden Secrets
-  Manager project with `bws` (feature 041,
-  [spec](../specs/041-provider-secrets/spec.md)); the project ID and the
-  secret-to-file mapping live in `verbose-broccoli/secrets.json` outside the
-  repository.
+  `npm run secrets:refresh` refreshes provider and approved client files from
+  multiple Bitwarden Secrets Manager sources with the existing pinned `bws`
+  (feature 052, [spec](../specs/052-secrets-refresh-sources/spec.md)). The
+  external `verbose-broccoli/secrets.json` names each source's private token
+  file, project and optional HTTPS server, plus variable or whole-file mappings.
+  Every token preflights before any fetch, and every configured source is
+  collected before requested values are validated. Variable mappings preserve
+  unmapped bytes and support aliases. Targets are restricted to provider names,
+  the OMP agent `.env`, the two ownCloud client env files and optional GWS
+  `client_secret.json`; see the [operator contract](../specs/052-secrets-refresh-sources/contracts/operator-config.md).
+  All private temporary files are prepared before rename, with mode `0600`
+  outputs; validation failures preserve targets, while rename-time filesystem
+  failures have no multi-file rollback. Backfire readers remain unchanged.
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
 - Not automated: live provider calls, which spend paid credit; catching up

@@ -213,3 +213,16 @@ checksums against the release digests; `mise install --locked` and `bws
 
 Intentionally not run: any bws command that needs a token or the network, a
 source build, `RUST_LOG` runs. No claim is made about Bitwarden's server side.
+
+## Command-use update — 2026-10-04
+
+Feature 052 ([contract](../../052-secrets-refresh-sources/contracts/operator-config.md))
+extends refresh to multiple configured tokens, projects and optional HTTPS
+servers. The 2026-10-01 findings and observed evidence above remain historical.
+The command now checks every configured private token before any bws call and
+lists each configured source once. Each call retains the four-variable minimal
+environment, explicit BWS_SERVER_URL and umask 077; tokens remain outside argv.
+Captured bws stderr and unsafe exception payloads are now suppressed rather
+than forwarded. All requested values are validated and all temporary files
+prepared before target renames, with no cross-file rollback guarantee.
+No new upstream binary/source review or live service acceptance is claimed.
