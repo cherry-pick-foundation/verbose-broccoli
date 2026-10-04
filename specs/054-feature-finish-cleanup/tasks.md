@@ -21,10 +21,12 @@ full verification, independent review, final task ticks, and feature finish.
 
 ## Handoff
 
-The focused regression failed before the hook because successful finish output
-had no cleanup prompt. Successful repeated finishes, a failed merge commit, and
-a missing retained tip are now covered. Next, rerun the focused harness, check
-shell lint and whitespace, rerun workflow with the same task, base and file
-plan, inspect actual output and refs/worktrees, then complete T003.
-The unrelated `.codex/config.toml` edit remains untouched. Durable worker state
-is under `~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/CHE-87/ctx_4a587a43107d/`.
+The feature worker completed implementation, focused checks, diff review and
+commit `9468ac6` on 2026-10-05. The git-flow suite passed 20/20; ShellCheck,
+Prettier and whitespace checks passed. Workflow ran against the fixed base and
+declared files; it also reported the preserved generated `.codex/config.toml`
+edit outside that exact scope. The coordinator owns the serialized full verify,
+fresh cross-provider review, finish, and final task ticks. The worker cannot
+prove its turn-context model/effort from this terminal; the dispatch choice was
+Codex gpt-6-luna/medium. Durable evidence is under
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/CHE-87/ctx_4a587a43107d/`.
