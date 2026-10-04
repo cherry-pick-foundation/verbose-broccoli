@@ -53,7 +53,8 @@ failure and verify cleanup instructions do not appear or remove the source.
   feature finish and MUST never remove sessions, terminals, branches, or
   worktrees itself.
 - **FR-005**: If it cannot resolve the source tip or worktree state, the hook
-  MUST tell the operator to inspect and preserve it.
+  MUST tell the operator to inspect and preserve it, and MUST NOT print a
+  worktree removal command unless the source worktree exists and is clean.
 - **FR-006**: The existing git-flow-next shared hook path and test harness MUST
   be used without changing upstream code or adding dependencies.
 

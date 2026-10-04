@@ -41,8 +41,10 @@ The existing `.gitflow` sets `gitflow.path.hooks` to
 `BRANCH`, `BASE_BRANCH` and `EXIT_CODE`, runs post hooks after success or
 failure, and prints their output. The hook exits quietly on failed finishes.
 On success, it resolves the retained branch tip and its worktree from Git,
-reports current cleanliness, and prints a manual checklist. Missing tip or
-worktree facts produce a preserve-and-inspect message.
+reports current cleanliness, and prints a manual checklist. The Orca removal
+command appears only when the worktree exists and Git confirms it is clean; Git
+shell-quotes its selector, and the command uses `orca-ide`. Missing finish
+status, tip or worktree facts produce a preserve-and-inspect message.
 
 ## Reuse
 
@@ -72,7 +74,8 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 
 1. Add a real-finish regression and confirm it fails without the post hook.
 2. Add the hook and run the focused git-flow harness; inspect its exact output
-   and synthetic Git refs/worktrees.
+   and synthetic Git refs/worktrees, including dirty, missing and unreadable
+   source states and quoted paths.
 3. Run shell lint, whitespace checks and workflow. Request the coordinator's
    serialized full verification slot; the worker does not start full verify.
 4. Review and commit the exact scoped diff through the normal hooks.
@@ -80,6 +83,6 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ## Split Review
 
 The implementation is a small shell hook plus an existing harness regression;
-no split is needed. Final source is 44 shell lines; the test diff adds 101 and
-removes 2 lines; the three records total 193 lines. The five-file diff adds
-338 and removes 2 lines, with no separate tooling or dependency.
+no split is needed. Final source is 49 shell lines; the test diff adds 205 and
+removes 2 lines; the three records total 199 lines. The five-file diff adds
+453 and removes 2 lines, with no separate tooling or dependency.

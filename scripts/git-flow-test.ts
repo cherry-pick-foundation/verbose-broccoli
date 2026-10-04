@@ -1,5 +1,4 @@
 import {spawnSync} from 'node:child_process';
-import {existsSync} from 'node:fs';
 import {test} from 'node:test';
 import {
   chmod,
@@ -130,14 +129,12 @@ async function temporary(
     const hook = join(repo, 'scripts/git-flow-hooks/pre-flow-feature-finish');
     await copyFile(sharedHook, hook);
     await chmod(hook, 0o755);
-    if (existsSync(postHook)) {
-      const hook = join(
-        repo,
-        'scripts/git-flow-hooks/post-flow-feature-finish',
-      );
-      await copyFile(postHook, hook);
-      await chmod(hook, 0o755);
-    }
+    const postHookCopy = join(
+      repo,
+      'scripts/git-flow-hooks/post-flow-feature-finish',
+    );
+    await copyFile(postHook, postHookCopy);
+    await chmod(postHookCopy, 0o755);
     const packageConfig = JSON.parse(
       await readFile(join(root, 'package.json'), 'utf8'),
     ) as {scripts: Record<string, string>};
@@ -469,18 +466,38 @@ void test('git-flow: finish from develop creates the default no-ff merge and kee
 void test('git-flow: each successful feature finish prints its retained tip and worktree cleanup steps', async () => {
   await temporary(async (tempRoot, develop, feature) => {
     const firstTip = await addReviewRecord(feature);
+    const quotedFeature = join(tempRoot, `feature '"$\``);
+    await git(develop, 'worktree', 'move', feature, quotedFeature);
     const first = await attemptFinish(develop);
     assertEquals(first.code, 0, first.output);
-    assertMatch(first.output, new RegExp(`Source branch tip: ${firstTip}`));
+    assertMatch(
+      first.output,
+      new RegExp(`^Source branch tip: ${firstTip}$`, 'm'),
+    );
+    assertMatch(
+      first.output,
+      new RegExp(`^Post-merge cleanup for ${featureBranch}$`, 'm'),
+    );
     assert(
-      first.output.includes(`Source worktree: "${feature}"`),
+      first.output.includes(`Source worktree: "${quotedFeature}"`),
       first.output,
     );
     assertMatch(
       first.output,
       /settle workers first and\s+close only idle feature sessions/i,
     );
-    assertMatch(first.output, /orca worktree rm/i);
+    const quotedSelector = await git(
+      develop,
+      'rev-parse',
+      '--sq-quote',
+      `path:${quotedFeature}`,
+    );
+    assert(
+      first.output.includes(
+        `Orca removal command: orca-ide worktree rm --worktree ${quotedSelector}`,
+      ),
+      first.output,
+    );
     assertMatch(first.output, /git branch <source-branch> <tip>/i);
 
     const secondFeature = join(tempRoot, 'feature-two');
@@ -500,10 +517,25 @@ void test('git-flow: each successful feature finish prints its retained tip and 
     const secondTip = await addReviewRecord(secondFeature);
     const second = await attemptFinish(develop, 'flow-test-two');
     assertEquals(second.code, 0, second.output);
-    assertMatch(second.output, new RegExp(`Source branch tip: ${secondTip}`));
+    assertMatch(
+      second.output,
+      new RegExp(`^Source branch tip: ${secondTip}$`, 'm'),
+    );
+    assertMatch(
+      second.output,
+      new RegExp(`^Post-merge cleanup for ${secondBranch}$`, 'm'),
+    );
     assert(
       second.output.includes(`Source worktree: "${secondFeature}"`),
       second.output,
+    );
+    assertMatch(
+      second.output,
+      /Orca removal command: orca-ide worktree rm --worktree /,
+    );
+    assertMatch(
+      second.output,
+      /settle workers first and\s+close only idle feature sessions/i,
     );
     assertEquals(
       await git(develop, 'rev-parse', `refs/heads/${secondBranch}`),
@@ -527,6 +559,13 @@ void test('git-flow: failed feature finish never prints cleanup instructions or 
     const result = await attemptFinish(develop);
     assert(result.code !== 0, result.output);
     assert(!result.output.includes('Post-merge cleanup'), result.output);
+    const hookResult = commandOutput(postHook, {
+      args: [],
+      cwd: develop,
+      env: {BRANCH: featureBranch, EXIT_CODE: '1'},
+    });
+    assert(hookResult.success);
+    assertEquals(decoder.decode(hookResult.stdout), '');
     assertEquals(
       await git(develop, 'rev-parse', `refs/heads/${featureBranch}`),
       featureTip,
@@ -550,7 +589,72 @@ void test('git-flow: missing retained source tip warns and leaves the repository
     const output = `${decoder.decode(result.stdout)}\n${decoder.decode(result.stderr)}`;
     assert(result.success, output);
     assertMatch(output, /cannot resolve the retained tip/i);
-    assert(!output.includes('orca worktree rm'), output);
+    assert(!output.includes('orca-ide worktree rm'), output);
     assertEquals(await snapshot(develop, feature), before);
+  });
+});
+
+void test('git-flow: cleanup command is withheld unless the source worktree is clean and present', async () => {
+  await temporary(async (_root, develop, feature) => {
+    const branch = featureBranch;
+    const runHook = () => {
+      const result = commandOutput(postHook, {
+        args: [],
+        cwd: develop,
+        env: {BRANCH: branch, EXIT_CODE: '0'},
+      });
+      return `${decoder.decode(result.stdout)}\n${decoder.decode(result.stderr)}`;
+    };
+
+    await writeFile(join(feature, 'dirty.txt'), 'keep me\n');
+    const dirty = runHook();
+    assertMatch(dirty, /worktree is dirty; preserve it/i);
+    assert(!dirty.includes('orca-ide worktree rm'), dirty);
+    await rm(join(feature, 'dirty.txt'));
+
+    const gitFile = await readFile(join(feature, '.git'), 'utf8');
+    await writeFile(
+      join(feature, '.git'),
+      'gitdir: /missing-worktree-metadata\n',
+    );
+    const unreadable = runHook();
+    assertMatch(unreadable, /status could not be checked; do not remove it/i);
+    assert(!unreadable.includes('orca-ide worktree rm'), unreadable);
+    await writeFile(join(feature, '.git'), gitFile);
+
+    await rm(feature, {recursive: true});
+    const missing = runHook();
+    assertMatch(missing, /source directory is missing/i);
+    assert(!missing.includes('orca-ide worktree rm'), missing);
+
+    const noWorktree = commandOutput(postHook, {
+      args: [],
+      cwd: develop,
+      env: {BRANCH: 'main', EXIT_CODE: '0'},
+    });
+    const noWorktreeOutput = `${decoder.decode(noWorktree.stdout)}\n${decoder.decode(noWorktree.stderr)}`;
+    assert(noWorktree.success, noWorktreeOutput);
+    assertMatch(noWorktreeOutput, /source worktree: not found/i);
+    assert(
+      !noWorktreeOutput.includes('orca-ide worktree rm'),
+      noWorktreeOutput,
+    );
+  });
+});
+
+void test('git-flow: missing finish result asks for inspection without suggesting cleanup', async () => {
+  await temporary(async (_root, develop, _feature) => {
+    const result = commandOutput(postHook, {
+      args: [],
+      cwd: develop,
+      env: {BRANCH: featureBranch},
+    });
+    const output = `${decoder.decode(result.stdout)}\n${decoder.decode(result.stderr)}`;
+    assert(result.success, output);
+    assertMatch(
+      output,
+      /did not report the finish result; inspect the finish manually/i,
+    );
+    assert(!output.includes('orca-ide worktree rm'), output);
   });
 });

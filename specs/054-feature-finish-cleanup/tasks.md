@@ -21,12 +21,14 @@ full verification, independent review, final task ticks, and feature finish.
 
 ## Handoff
 
-The feature worker completed implementation, focused checks, diff review and
-commit `9468ac6` on 2026-10-05. The git-flow suite passed 20/20; ShellCheck,
-Prettier and whitespace checks passed. Workflow ran against the fixed base and
-declared files; it also reported the preserved generated `.codex/config.toml`
-edit outside that exact scope. The coordinator owns the serialized full verify,
-fresh cross-provider review, finish, and final task ticks. The worker cannot
-prove its turn-context model/effort from this terminal; the dispatch choice was
-Codex gpt-6-luna/medium. Durable evidence is under
-`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/CHE-87/ctx_4a587a43107d/`.
+The feature orchestrator updated the hook after review: it withholds the Orca
+removal command unless the source worktree exists and is clean, quotes the
+selector with Git, and names `orca-ide`. Regression coverage now includes dirty,
+missing, unreadable and absent worktrees, quoted paths, and missing or failed
+finish status. Focused checks pass 22/22; ShellCheck, Prettier and whitespace
+checks pass. Workflow remains in review mode because `.codex/config.toml` is
+preserved outside the declared scope. Next, the develop coordinator runs full
+verification on the frozen commit after the serialized slot is granted, obtains
+fresh independent review, and owns feature finish and final task ticks. T003
+remains unchecked for the coordinator's final ledger update. Current retry state is under
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/CHE-87/ctx_06b1cefdf48e/`.

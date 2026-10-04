@@ -1,7 +1,11 @@
 #!/bin/sh
 set -eu
 
-[ "${EXIT_CODE:-1}" = 0 ] || exit 0
+if [ -z "${EXIT_CODE:-}" ]; then
+  printf '%s\n' 'Post-merge cleanup: git-flow did not report the finish result; inspect the finish manually.'
+  exit 0
+fi
+[ "${EXIT_CODE}" = 0 ] || exit 0
 
 branch=${BRANCH:-${3-}}
 if [ -z "${branch}" ]; then
@@ -32,8 +36,9 @@ else
     printf '%s\n' 'The source worktree is dirty; preserve it and inspect its changes.'
   else
     printf '%s\n' 'The source worktree is clean.'
+    printf 'Orca removal command: orca-ide worktree rm --worktree%s\n' \
+      "$(git rev-parse --sq-quote "path:${worktree}")"
   fi
-  printf 'Orca removal command (only when complete and clean): orca worktree rm --worktree "path:%s"\n' "${worktree}"
 fi
 cat <<'EOF'
 Before removal, record the source tip above. In Orca, settle workers first and
