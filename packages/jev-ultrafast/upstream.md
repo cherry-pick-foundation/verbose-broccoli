@@ -33,21 +33,29 @@ paths show where the files were copied here.
   workspace's `pytest==9.1.1` dev dependency; omit the upstream README path
   because that file is not copied. Keep upstream runtime dependencies and the
   `jev` script.
-- `src/jev_ultrafast/model.py`: select TypeSafe, Vercel, OpenRouter or
-  Cloudflare from `providers.toml`, send OpenRouter's configured model through
-  the upstream system-one protocol, pass configured request headers, adapt
-  Vercel choice answers to Jev's TypeSafe answer shape, and support
-  Cloudflare's `ai-run` protocol. TypeSafe remains the default.
+- `src/jev_ultrafast/model.py`: remove the direct provider route
+  (`request_jev`, `post_json`, provider selection and its `providers.toml`).
+  Send each Choice head as a `jev_classify` call to the repository's gated
+  `jev-mcp` proxy over MCP, in one session per decision: the operation first,
+  then only the chosen operation's targets. A target head with one option is
+  chosen without a call, because `jev_classify` needs two. `validate_choice`,
+  `action_space`, `field_context` and the decision dictionary keep their
+  shape. The text helper is held: `field_text` raises before any model or
+  network use.
 - `src/jev_ultrafast/browser.py`: use Orca's private runtime folder and an
   owned Orca tab by default; read that tab's CDP address, attach to its page,
   and close the tab and daemon. `JEV_BROWSER=chrome` retains upstream target
   creation and close behavior.
+- `tests/test_agent.py`: replace the tests of the direct HTTP post and the
+  text helper with tests of the gated route (one request per used head, a lone
+  option, refusal, malformed results, held text); the other tests are
+  unchanged.
 
 ## Local additions
 
-- `src/jev_ultrafast/providers.toml` holds provider addresses, headers, model
-  and key-variable names.
-- `tests/test_providers.py` and `tests/test_orca_browser.py` contain offline
-  stubs for the added provider and browser behavior.
-- `examples/flights.py` is copied unchanged because the unchanged
-  `tests/test_agent.py` imports it.
+- `tests/test_providers.py` tests the gated route against a synthetic stdio
+  server and against the reviewed gate proxy over its mocked upstream.
+- `tests/test_orca_browser.py` contains offline stubs for the added browser
+  behavior.
+- `examples/flights.py` is copied unchanged because `tests/test_agent.py`
+  imports it.

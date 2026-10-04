@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 import asyncio
 import datetime as dt
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -10,12 +11,9 @@ import sys
 import tomllib
 
 import httpx
-from jev_judge_mcp.domain import ChoiceQuestion
-from jev_judge_mcp.providers import ProviderError
-from jev_judge_mcp.providers.resolver import DEFAULT_MODEL
-from jev_judge_mcp.validation import validate_choice
-
-import backfire.providers as providers
+from mcp import ClientSession
+from mcp import StdioServerParameters
+from mcp import stdio_client
 
 TRACKER = tomllib.loads(Path(__file__).with_name("tracker.toml").read_text())
 FIELDS = ("slug", "title", "provider", "category", "amount", "source_url")
@@ -33,8 +31,24 @@ ERRORS = (
     TypeError,
     ValueError,
     subprocess.CalledProcessError,
-    ProviderError,
 )
+# The only route to a model: the gated jev-mcp proxy, which loads its own key.
+GATE = StdioServerParameters(
+    command="uv",
+    args=[
+        "--directory",
+        str(Path(__file__).resolve().parents[3] / "education-privacy-gate"),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ],
+)
+# Seconds per request; the proxy's own upstream deadline is 60.
+TIMEOUT = 90
+# The most items one jev_classify call accepts.
+MAX_OFFERS = 64
 
 
 def _block(hours, end=None, now=None):
@@ -70,13 +84,71 @@ def notify(offers):
     )
 
 
-async def judge(state, questions):
-    """Run one judgment through backfire's shared provider order."""
-    provider = providers.provider_factory()(None)
+async def judge(offers):
+    """Classify the offers in one call to the gated jev-mcp proxy."""
+    if len(offers) > MAX_OFFERS:
+        raise ValueError(
+            f"{len(offers)} offers exceed the {MAX_OFFERS} one call can judge"
+        )
+    arguments = {
+        "items": [
+            {
+                "id": offer["slug"],
+                "text": json.dumps(
+                    {field: offer.get(field) for field in FIELDS},
+                    ensure_ascii=False,
+                ),
+            }
+            for offer in offers
+        ],
+        "classes": [
+            {"id": choice, "description": description}
+            for choice, description in CRITERIA.items()
+        ],
+        "purpose": "Judge each API credit offer.",
+    }
     try:
-        return await provider.evaluate(state, questions, DEFAULT_MODEL, None)
-    finally:
-        await provider.aclose()
+        async with (
+            stdio_client(GATE) as (read, write),
+            ClientSession(read, write, read_timeout_seconds=TIMEOUT) as session,
+        ):
+            await session.initialize()
+            result = await session.call_tool("jev_classify", arguments)
+    except ExceptionGroup as group:
+        error = group
+        while isinstance(error, ExceptionGroup):
+            error = error.exceptions[0]
+        raise RuntimeError(f"jev-mcp: {error}") from None
+    if result.is_error:
+        text = " ".join(getattr(block, "text", "") for block in result.content)
+        raise RuntimeError(f"jev-mcp: {text}")
+    return result
+
+
+def _answer(row):
+    """The (choice, probability) of one classification row, if it is valid."""
+    choice, probabilities = row["classification"], row["probabilities"]
+    if (
+        row.get("status") == "invalid_response"
+        or choice not in CRITERIA
+        or set(probabilities) != set(CRITERIA)
+        or not all(
+            type(value) in (int, float) and 0 <= value <= 1
+            for value in probabilities.values()
+        )
+    ):
+        raise ValueError("Invalid choice answer")
+    return choice, float(probabilities[choice])
+
+
+def _answers(result, offers):
+    """Map a jev_classify result to each offer's (choice, probability)."""
+    try:
+        [block] = result.content
+        rows = {row["id"]: row for row in json.loads(block.text)["results"]}
+        return {offer["slug"]: _answer(rows[offer["slug"]]) for offer in offers}
+    except (AttributeError, KeyError, TypeError, ValueError) as error:
+        raise ValueError("Invalid choice answer") from error
 
 
 def main(argv=None):
@@ -128,30 +200,13 @@ def main(argv=None):
             print("No active offer is new in this block.\njev_calls=0")
             return 1
 
-        questions = {
-            o["slug"]: ChoiceQuestion(
-                instructions={"offer": o["slug"], "task": "Judge this."},
-                criteria=CRITERIA,
-            )
-            for o in offers
-        }
-        state = {"offers": [{f: o.get(f) for f in FIELDS} for o in offers]}
-        result = asyncio.run(judge(state, questions))
+        result = asyncio.run(judge(offers))
         jev_calls = 1
-        answers = {
-            o["slug"]: validate_choice(
-                result.answers[o["slug"]], ("qualifies", "excluded")
-            )
-            for o in offers
-        }
-        if any(answer is None for answer in answers.values()):
-            raise ValueError("Invalid choice answer")
-        strong = [o for o in offers if answers[o["slug"]].choice == "qualifies"]
+        answers = _answers(result, offers)
+        strong = [o for o in offers if answers[o["slug"]][0] == "qualifies"]
         for offer in offers:
-            answer = answers[offer["slug"]]
-            print(
-                f"{offer['slug']}\t{answer.choice}\t{answer.probabilities[answer.choice]}"
-            )
+            choice, probability = answers[offer["slug"]]
+            print(f"{offer['slug']}\t{choice}\t{probability}")
         if args.notify and strong:
             notify(strong)
         print(f"jev_calls={jev_calls}")

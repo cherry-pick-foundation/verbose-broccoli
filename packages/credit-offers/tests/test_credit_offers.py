@@ -1,20 +1,73 @@
 """Offline tests for offer discovery, judgment, and notification."""
 
+import asyncio
 from datetime import datetime
+import json
+import os
 from pathlib import Path
+import sys
 from unittest.mock import Mock
 
 import httpx
-from jev_judge_mcp.domain import ChoiceQuestion
-from jev_judge_mcp.providers import ProviderConfigError
-from jev_judge_mcp.providers import ProviderError
-from jev_judge_mcp.providers import ProviderTimeoutError
-from jev_judge_mcp.providers.resolver import DEFAULT_MODEL
+from mcp import StdioServerParameters
+from mcp.types import CallToolResult
+from mcp.types import ImageContent
+from mcp.types import TextContent
 import pytest
 
 import credit_offers
 
 END = "2026-09-27T12:00:00+09:00"
+GATE_DIR = Path(__file__).resolve().parents[2] / "education-privacy-gate"
+REFUSAL = "Privacy gate rejected the call."
+# Synthetic stdio MCP server: records its launch and each call, then answers
+# as the canned file says. No provider, key or network is involved.
+SERVER = """
+import json, os, sys, time
+from mcp.server.mcpserver import MCPServer
+from mcp.types import CallToolResult, ImageContent, TextContent
+
+log, canned = sys.argv[1:3]
+
+
+def record(**entry):
+    with open(log, "a") as handle:
+        handle.write(json.dumps(entry) + "\\n")
+
+
+record(event="launch", pid=os.getpid(), env=sorted(os.environ))
+server = MCPServer("synthetic")
+
+
+@server.tool(name="jev_classify")
+def jev_classify(items: list, classes: list, purpose: str = ""):
+    record(event="call", items=items, classes=classes, purpose=purpose)
+    plan = json.load(open(canned))
+    if plan["mode"] == "crash":
+        os._exit(9)
+    if plan["mode"] == "hang":
+        time.sleep(60)
+    content = [TextContent(type="text", text=t) for t in plan["texts"]]
+    if plan["mode"] == "image":
+        image = ImageContent(type="image", data="AA==", mime_type="image/png")
+        content = [image]
+    return CallToolResult(content=content, is_error=plan["is_error"])
+
+
+server.run(transport="stdio")
+"""
+# The reviewed gate proxy over the mocked upstream, with a synthetic list.
+LAUNCHER = """
+import sys
+from education_privacy_gate import __main__ as proxy, roster
+
+person = {"kind": "person", "full": "\\uac00\\ub77c\\uc628"}
+data = {"version": 1, "entries": [person]}
+roster.load_registry = lambda: roster.Registry.from_data(data)
+proxy.build_proxy(
+    key="sk-or-synthetic-dummy-not-a-real-key", args=sys.argv[1:4]
+).run(transport="stdio", show_banner=False)
+"""
 
 
 def offer(slug, status="active", expiry_date=None):
@@ -62,51 +115,64 @@ def install_tracker(
     return requests
 
 
-def answers_for(offers, choices):
+def tool_result(payload=None, text=None, is_error=False):
+    body = json.dumps(payload) if text is None else text
+    return CallToolResult(
+        content=[TextContent(type="text", text=body)], is_error=is_error
+    )
+
+
+def row(slug, choice):
+    qualifies = choice == "qualifies"
     return {
-        offer["slug"]: {
-            "choice": choice,
-            "probabilities": {
-                "qualifies": 0.9 if choice == "qualifies" else 0.1,
-                "excluded": 0.1 if choice == "qualifies" else 0.9,
-            },
-            "confidence": 0.9,
-        }
-        for offer, choice in zip(offers, choices, strict=True)
+        "id": slug,
+        "classification": choice,
+        "probabilities": {
+            "qualifies": 0.9 if qualifies else 0.1,
+            "excluded": 0.1 if qualifies else 0.9,
+        },
+        "confidence": 0.9,
+        "margin": 0.8,
+        "top_probability": 0.9,
+        "decision": "auto",
     }
 
 
-class FakeProvider:
-    def __init__(self, answers=None, error=None):
-        self.answers = answers
+def payload(rows):
+    return {
+        "tool": "jev_classify",
+        "model": "typesafe/jev-1.13",
+        "provider": "openrouter",
+        "results": rows,
+        "usage": {"input_tokens": 12, "output_tokens": 3},
+    }
+
+
+def classified(offers, choices):
+    rows = [
+        row(candidate["slug"], choice)
+        for candidate, choice in zip(offers, choices, strict=True)
+    ]
+    return tool_result(payload(rows))
+
+
+class FakeJudge:
+    def __init__(self, result=None, error=None):
+        self.result = result
         self.error = error
         self.calls = []
-        self.closed = 0
 
-    async def evaluate(self, state, questions, model, timeout):
-        self.calls.append((state, questions, model, timeout))
+    async def __call__(self, offers):
+        self.calls.append(offers)
         if self.error:
             raise self.error
-        return Mock(answers=self.answers)
-
-    async def aclose(self):
-        self.closed += 1
+        return self.result
 
 
-def install_judgment(monkeypatch, answers=None, error=None, factory_error=None):
-    provider = FakeProvider(answers, error)
-
-    def factory(settings):
-        assert settings is None
-        if factory_error:
-            raise factory_error
-        return provider
-
-    factory_mock = Mock(return_value=factory)
-    monkeypatch.setattr(
-        credit_offers.providers, "provider_factory", factory_mock
-    )
-    return provider, factory_mock
+def install_judgment(monkeypatch, result=None, error=None):
+    judge = FakeJudge(result, error)
+    monkeypatch.setattr(credit_offers, "judge", judge)
+    return judge
 
 
 def test_default_end_is_latest_local_boundary():
@@ -131,7 +197,7 @@ def test_same_commit_exits_without_fetching_index_or_calling_jev(
     monkeypatch, capsys
 ):
     requests = install_tracker(monkeypatch, same_commit=True)
-    _, factory = install_judgment(monkeypatch)
+    judge = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
@@ -140,7 +206,7 @@ def test_same_commit_exits_without_fetching_index_or_calling_jev(
     assert all(
         not request.url.path.endswith("/index.json") for request in requests
     )
-    factory.assert_not_called()
+    assert judge.calls == []
     assert "jev_calls=0" in capsys.readouterr().out
 
 
@@ -152,8 +218,8 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     requests = install_tracker(
         monkeypatch, old=[offer("old")], new=[offer("new")]
     )
-    provider, _ = install_judgment(
-        monkeypatch, answers_for([offer("new")], ["qualifies"])
+    judge = install_judgment(
+        monkeypatch, classified([offer("new")], ["qualifies"])
     )
 
     assert credit_offers.main(["--end", END]) == 0
@@ -168,8 +234,7 @@ def test_github_token_is_sent_only_to_api_requests_and_not_logged(
     assert len(raw_requests) == 2
     assert all("Authorization" not in r.headers for r in raw_requests)
     assert token not in captured.out + captured.err
-    assert len(provider.calls) == 1
-    assert provider.closed == 1
+    assert len(judge.calls) == 1
 
 
 def test_github_token_is_redacted_from_error(monkeypatch, capsys):
@@ -227,34 +292,18 @@ def test_filters_new_offers_and_judges_each_candidate_once(monkeypatch, capsys):
         old=[existing],
         new=[existing, strong, excluded, expired, inactive],
     )
-    provider, _ = install_judgment(
-        monkeypatch, answers_for([strong, excluded], ["qualifies", "excluded"])
+    judge = install_judgment(
+        monkeypatch, classified([strong, excluded], ["qualifies", "excluded"])
     )
 
     status = credit_offers.main(["--end", END])
 
     output = capsys.readouterr().out
     assert status == 0
-    assert len(provider.calls) == 1
-    state, questions, model, timeout = provider.calls[0]
-    assert model == DEFAULT_MODEL
-    assert timeout is None
-    assert state == {
-        "offers": [
-            {field: candidate.get(field) for field in credit_offers.FIELDS}
-            for candidate in (strong, excluded)
-        ]
-    }
-    assert questions == {
-        slug: ChoiceQuestion(
-            instructions={"offer": slug, "task": "Judge this."},
-            criteria=credit_offers.CRITERIA,
-        )
-        for slug in ("strong", "excluded")
-    }
+    assert judge.calls == [[strong, excluded]]
     assert "strong\tqualifies\t0.9" in output
     assert "excluded\texcluded\t0.9" in output
-    assert provider.closed == 1
+    assert "jev_calls=1" in output
 
 
 def test_filtered_offers_make_no_jev_call(monkeypatch, capsys):
@@ -265,21 +314,19 @@ def test_filtered_offers_make_no_jev_call(monkeypatch, capsys):
             offer("inactive", status="removed"),
         ],
     )
-    _, factory = install_judgment(monkeypatch)
+    judge = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
     assert status == 1
-    factory.assert_not_called()
+    assert judge.calls == []
     assert "jev_calls=0" in capsys.readouterr().out
 
 
 def test_excluded_only_answer_returns_one(monkeypatch, capsys):
     candidate = offer("excluded")
     install_tracker(monkeypatch, new=[candidate])
-    provider, _ = install_judgment(
-        monkeypatch, answers_for([candidate], ["excluded"])
-    )
+    install_judgment(monkeypatch, classified([candidate], ["excluded"]))
 
     status = credit_offers.main(["--end", END])
 
@@ -287,15 +334,26 @@ def test_excluded_only_answer_returns_one(monkeypatch, capsys):
     assert status == 1
     assert "excluded\texcluded\t0.9" in output
     assert "jev_calls=1" in output
-    assert provider.closed == 1
+
+
+def test_review_decision_does_not_change_the_choice(monkeypatch, capsys):
+    candidate = offer("unsure")
+    install_tracker(monkeypatch, new=[candidate])
+    unsure = row("unsure", "qualifies")
+    unsure["probabilities"] = {"qualifies": 0.55, "excluded": 0.45}
+    unsure["decision"] = "review"
+    install_judgment(monkeypatch, tool_result(payload([unsure])))
+
+    assert credit_offers.main(["--end", END]) == 0
+    assert "unsure\tqualifies\t0.55" in capsys.readouterr().out
 
 
 def test_notification_only_contains_strong_offers(monkeypatch):
     strong, excluded = offer("strong"), offer("excluded")
     strong["title"] = "--version"
     install_tracker(monkeypatch, new=[strong, excluded])
-    provider, _ = install_judgment(
-        monkeypatch, answers_for([strong, excluded], ["qualifies", "excluded"])
+    install_judgment(
+        monkeypatch, classified([strong, excluded], ["qualifies", "excluded"])
     )
     sent = []
 
@@ -316,7 +374,17 @@ def test_notification_only_contains_strong_offers(monkeypatch):
     assert "Example Provider" in sent[0][3]
     assert "Free credits" in sent[0][3]
     assert "https://example.test/strong" in sent[0][3]
-    assert provider.closed == 1
+
+
+def test_no_notification_without_the_flag_or_a_strong_offer(monkeypatch):
+    candidate = offer("excluded")
+    install_tracker(monkeypatch, new=[candidate])
+    install_judgment(monkeypatch, classified([candidate], ["excluded"]))
+    run = Mock()
+    monkeypatch.setattr(credit_offers.subprocess, "run", run)
+
+    assert credit_offers.main(["--end", END, "--notify"]) == 1
+    run.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -332,9 +400,7 @@ def test_notification_failure_exits_three_after_printing_judgment(
     candidate = offer("candidate")
     install_tracker(monkeypatch, new=[candidate])
     monkeypatch.setenv("AI_GATEWAY_API_KEY", "synthetic-test-key")
-    provider, _ = install_judgment(
-        monkeypatch, answers_for([candidate], ["qualifies"])
-    )
+    install_judgment(monkeypatch, classified([candidate], ["qualifies"]))
 
     monkeypatch.setattr(
         credit_offers.subprocess, "run", Mock(side_effect=error)
@@ -348,7 +414,6 @@ def test_notification_failure_exits_three_after_printing_judgment(
     assert "jev_calls=1" in captured.out
     assert str(error) in captured.err
     assert "synthetic-test-key" not in captured.out + captured.err
-    assert provider.closed == 1
 
 
 def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
@@ -359,25 +424,62 @@ def test_tracker_http_error_exits_three_without_key(monkeypatch, capsys):
 
     client = httpx.Client(transport=httpx.MockTransport(forbidden))
     monkeypatch.setattr(credit_offers.httpx, "Client", lambda **_: client)
-    _, factory = install_judgment(monkeypatch)
+    judge = install_judgment(monkeypatch)
 
     status = credit_offers.main(["--end", END])
 
     captured = capsys.readouterr()
     assert status == 3
-    factory.assert_not_called()
+    assert judge.calls == []
     assert "403" in captured.err
     assert "jev_calls=0" in captured.out
     assert "synthetic-test-key" not in captured.out + captured.err
 
 
-def test_invalid_answer_fails_with_status_three(monkeypatch, capsys):
-    candidate = offer("bad-answer")
+def bad_rows():
+    wrong = row("a", "qualifies")
+    return {
+        "invalid-response": {
+            **row("a", "qualifies"),
+            "status": "invalid_response",
+            "classification": None,
+            "probabilities": None,
+            "confidence": None,
+        },
+        "unknown-class": {**wrong, "classification": "maybe"},
+        "missing-probability": {
+            **wrong,
+            "probabilities": {"qualifies": 0.9},
+        },
+        "extra-class": {
+            **wrong,
+            "probabilities": {**wrong["probabilities"], "maybe": 0.0},
+        },
+        "out-of-range": {
+            **wrong,
+            "probabilities": {"qualifies": 1.5, "excluded": -0.5},
+        },
+        "boolean": {
+            **wrong,
+            "probabilities": {"qualifies": True, "excluded": False},
+        },
+        "text-number": {
+            **wrong,
+            "probabilities": {"qualifies": "0.9", "excluded": "0.1"},
+        },
+        "no-classification": {
+            k: v for k, v in wrong.items() if k != "classification"
+        },
+        "not-an-object": "qualifies",
+        "other-id": {**wrong, "id": "b"},
+    }
+
+
+@pytest.mark.parametrize("case", sorted(bad_rows()))
+def test_invalid_answer_fails_with_status_three(monkeypatch, capsys, case):
+    candidate = offer("a")
     install_tracker(monkeypatch, new=[candidate])
-    provider, _ = install_judgment(
-        monkeypatch,
-        {"bad-answer": {"choice": "qualifies", "probabilities": {}}},
-    )
+    install_judgment(monkeypatch, tool_result(payload([bad_rows()[case]])))
 
     status = credit_offers.main(["--end", END])
 
@@ -385,64 +487,76 @@ def test_invalid_answer_fails_with_status_three(monkeypatch, capsys):
     assert status == 3
     assert "Invalid choice answer" in captured.err
     assert "jev_calls=1" in captured.out
-    assert provider.closed == 1
 
 
 @pytest.mark.parametrize(
-    ("error", "factory_error"),
+    "result",
     [
-        (ProviderConfigError("provider configuration is unavailable"), True),
-        (
-            ProviderError("no_credit: No profile in the order has credit."),
-            False,
+        tool_result(text="not json"),
+        tool_result(text="[]"),
+        tool_result({"tool": "jev_classify"}),
+        tool_result({"results": "x"}),
+        tool_result(payload([])),
+        CallToolResult(content=[]),
+        CallToolResult(
+            content=[
+                TextContent(type="text", text=json.dumps(payload([]))),
+                TextContent(type="text", text="second block"),
+            ]
         ),
-        (ProviderTimeoutError("provider timed out"), False),
+        CallToolResult(
+            content=[
+                ImageContent(type="image", data="AA==", mime_type="image/png")
+            ]
+        ),
     ],
-    ids=("configuration", "no-credit", "timeout"),
+    ids=(
+        "text",
+        "list",
+        "no-results",
+        "string-results",
+        "no-rows",
+        "no-blocks",
+        "two-blocks",
+        "image-block",
+    ),
 )
-def test_provider_failures_exit_three(
-    monkeypatch, capsys, error, factory_error
-):
-    candidate = offer("candidate")
-    install_tracker(monkeypatch, new=[candidate])
-    provider, _ = install_judgment(
-        monkeypatch,
-        error=error if not factory_error else None,
-        factory_error=error if factory_error else None,
-    )
-
-    assert credit_offers.main(["--end", END]) == 3
-
-    captured = capsys.readouterr()
-    assert "jev_calls=0" in captured.out
-    assert len(provider.calls) == (0 if factory_error else 1)
-    assert provider.closed == (0 if factory_error else 1)
-
-
-def test_missing_operator_credential_exits_three_without_provider_call(
-    monkeypatch, tmp_path, capsys
-):
-    candidate = offer("candidate")
-    install_tracker(monkeypatch, new=[candidate])
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
-    config_dir = tmp_path / "verbose-broccoli" / "backfire"
-    config_dir.mkdir(parents=True)
-    (config_dir / "config.toml").write_text(
-        'order = ["missing"]\n'
-        "\n[providers.missing]\n"
-        'api = "openai"\n'
-        'credential = "API_KEY"\n'
-        'credential_file = "missing.env"\n'
-        'base_url = "https://example.invalid/v1"\n'
-        'model = "test-model"\n'
-    )
+def test_malformed_result_fails_with_status_three(monkeypatch, capsys, result):
+    install_tracker(monkeypatch, new=[offer("a")])
+    install_judgment(monkeypatch, result)
 
     status = credit_offers.main(["--end", END])
 
     captured = capsys.readouterr()
     assert status == 3
-    assert "backend_not_configured" in captured.err
+    assert "Invalid choice answer" in captured.err
+    assert "jev_calls=1" in captured.out
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        RuntimeError(f"jev-mcp: {REFUSAL}"),
+        RuntimeError("jev-mcp: Connection closed"),
+        FileNotFoundError("uv"),
+        ValueError("65 offers exceed the 64 one call can judge"),
+    ],
+    ids=("refusal", "closed", "no-uv", "too-many"),
+)
+def test_judgment_failures_exit_three_without_a_call(
+    monkeypatch, capsys, error
+):
+    install_tracker(monkeypatch, new=[offer("candidate")])
+    judge = install_judgment(monkeypatch, error=error)
+    monkeypatch.setattr(credit_offers.subprocess, "run", Mock())
+
+    assert credit_offers.main(["--end", END, "--notify"]) == 3
+
+    captured = capsys.readouterr()
+    assert str(error) in captured.err
     assert "jev_calls=0" in captured.out
+    assert len(judge.calls) == 1
+    credit_offers.subprocess.run.assert_not_called()
 
 
 def test_invalid_arguments_exit_two(capsys):
@@ -460,3 +574,210 @@ def test_search_writes_no_files(monkeypatch, tmp_path):
 
     assert credit_offers.main(["--end", END]) == 1
     assert set(Path(tmp_path).iterdir()) == before
+
+
+# The real MCP client call, against a synthetic stdio server.
+
+
+@pytest.fixture
+def synthetic(tmp_path, monkeypatch):
+    log, canned = tmp_path / "server.log", tmp_path / "canned.json"
+
+    def install(mode="answer", texts=(), is_error=False):
+        canned.write_text(
+            json.dumps({"mode": mode, "texts": texts, "is_error": is_error})
+        )
+        monkeypatch.setattr(
+            credit_offers,
+            "GATE",
+            StdioServerParameters(
+                command=sys.executable,
+                args=["-c", SERVER, str(log), str(canned)],
+            ),
+        )
+
+    def entries():
+        if not log.exists():
+            return []
+        return [json.loads(line) for line in log.read_text().splitlines()]
+
+    return install, entries
+
+
+def assert_stopped(entries):
+    for launch in (e for e in entries() if e["event"] == "launch"):
+        with pytest.raises(ProcessLookupError):
+            os.kill(launch["pid"], 0)
+
+
+def test_gate_is_the_one_frozen_offline_proxy_without_keys():
+    gate = credit_offers.GATE
+    assert gate.command == "uv"
+    assert gate.args == [
+        "--directory",
+        str(GATE_DIR),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ]
+    assert gate.env is None and gate.cwd is None
+
+
+def test_judge_sends_one_bounded_classify_call(monkeypatch, synthetic):
+    install, entries = synthetic
+    first, second = offer("first"), offer("second")
+    answer = classified([first, second], ["qualifies", "excluded"])
+    install(texts=[answer.content[0].text])
+    for name in ("OPENROUTER_API_KEY", "GITHUB_TOKEN", "NODE_OPTIONS"):
+        monkeypatch.setenv(name, "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+
+    result = asyncio.run(credit_offers.judge([first, second]))
+
+    assert result.content[0].text == answer.content[0].text
+    launches = [e for e in entries() if e["event"] == "launch"]
+    calls = [e for e in entries() if e["event"] == "call"]
+    assert len(launches) == len(calls) == 1
+    assert not {
+        "OPENROUTER_API_KEY",
+        "GITHUB_TOKEN",
+        "JEV_PROVIDER",
+        "NODE_OPTIONS",
+    } & set(launches[0]["env"])
+    assert [item["id"] for item in calls[0]["items"]] == ["first", "second"]
+    assert [json.loads(item["text"]) for item in calls[0]["items"]] == [
+        {field: candidate[field] for field in credit_offers.FIELDS}
+        for candidate in (first, second)
+    ]
+    assert calls[0]["classes"] == [
+        {"id": choice, "description": description}
+        for choice, description in credit_offers.CRITERIA.items()
+    ]
+    assert calls[0]["purpose"] == "Judge each API credit offer."
+    assert_stopped(entries)
+
+
+def test_judge_accepts_the_most_offers_and_refuses_one_more(synthetic):
+    install, entries = synthetic
+    offers = [offer(f"offer-{n}") for n in range(credit_offers.MAX_OFFERS)]
+    install(texts=["{}"])
+
+    asyncio.run(credit_offers.judge(offers))
+    assert len([e for e in entries() if e["event"] == "call"]) == 1
+    seen = len(entries())
+
+    with pytest.raises(ValueError, match="65 offers exceed the 64"):
+        asyncio.run(credit_offers.judge([*offers, offer("one-more")]))
+    assert len(entries()) == seen
+
+
+@pytest.mark.parametrize(
+    "texts",
+    [[REFUSAL], ["note: restored text"], []],
+    ids=("gate-refusal", "upstream-error", "empty-error"),
+)
+def test_error_result_is_an_error_and_ends_the_session(synthetic, texts):
+    install, entries = synthetic
+    install(texts=texts, is_error=True)
+
+    with pytest.raises(RuntimeError, match="jev-mcp: ") as error:
+        asyncio.run(credit_offers.judge([offer("a")]))
+
+    assert str(error.value) == "jev-mcp: " + " ".join(texts)
+    assert [e["event"] for e in entries()] == ["launch", "call"]
+    assert_stopped(entries)
+
+
+def test_image_error_block_is_still_an_error(synthetic):
+    install, entries = synthetic
+    install(mode="image", is_error=True)
+
+    with pytest.raises(RuntimeError, match="jev-mcp:"):
+        asyncio.run(credit_offers.judge([offer("a")]))
+    assert_stopped(entries)
+
+
+def test_closed_connection_is_a_runtime_error(synthetic):
+    install, entries = synthetic
+    install(mode="crash")
+
+    with pytest.raises(RuntimeError, match="Connection closed"):
+        asyncio.run(credit_offers.judge([offer("a")]))
+    assert [e["event"] for e in entries()] == ["launch", "call"]
+    assert_stopped(entries)
+
+
+def test_silent_proxy_times_out_and_is_stopped(monkeypatch, synthetic):
+    install, entries = synthetic
+    install(mode="hang")
+    monkeypatch.setattr(credit_offers, "TIMEOUT", 1)
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        asyncio.run(credit_offers.judge([offer("a")]))
+    assert_stopped(entries)
+
+
+def test_production_command_fails_closed_without_a_key_file(
+    monkeypatch, tmp_path
+):
+    # An empty home means the proxy finds no key file; nothing real is read.
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(
+        credit_offers,
+        "GATE",
+        credit_offers.GATE.model_copy(
+            update={"env": {"HOME": str(home), "PATH": os.environ["PATH"]}}
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="Connection closed"):
+        asyncio.run(credit_offers.judge([offer("a")]))
+
+
+# The real gate proxy over the mocked upstream, with a synthetic list.
+
+
+@pytest.fixture
+def real_gate(monkeypatch):
+    entry = GATE_DIR / "node_modules/@jkudish/jev-mcp/dist/index.js"
+    wrapper = GATE_DIR / "tests/fixture-upstream.mjs"
+    assert entry.is_file(), (
+        "Run npm run education-privacy-gate:install before running"
+    )
+    monkeypatch.setattr(
+        credit_offers,
+        "GATE",
+        StdioServerParameters(
+            command=sys.executable,
+            args=["-c", LAUNCHER, str(wrapper), str(entry), "normal"],
+        ),
+    )
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_gate_judges_offers_end_to_end(monkeypatch, capsys):
+    candidate = offer("strong")
+    candidate["title"] = "Credits for 가라온"
+    install_tracker(monkeypatch, new=[candidate])
+
+    status = credit_offers.main(["--end", END])
+
+    output = capsys.readouterr().out
+    assert status == 0
+    assert "strong\tqualifies\t1.0" in output
+    assert "jev_calls=1" in output
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_upstream_error_passes_through_the_gate(monkeypatch, capsys):
+    install_tracker(monkeypatch, new=[offer("same"), offer("same")])
+
+    status = credit_offers.main(["--end", END])
+
+    captured = capsys.readouterr()
+    assert status == 3
+    assert "Duplicate item id: same" in captured.err
+    assert "jev_calls=0" in captured.out

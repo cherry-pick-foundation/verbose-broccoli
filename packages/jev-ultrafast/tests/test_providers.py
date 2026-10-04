@@ -1,438 +1,413 @@
-"""Offline contracts for configured Jev providers."""
+"""Offline contracts for the gated jev-mcp route. No browser, key or network."""
 
 import json
+import os
+from pathlib import Path
+import socket
+import sys
+from unittest.mock import Mock
 
-import httpx
+from mcp import StdioServerParameters
 import pytest
 
 from jev_ultrafast import model
 
-TEST_KEY = "synthetic-test-key"
+GATE_DIR = Path(__file__).resolve().parents[2] / "education-privacy-gate"
+REFUSAL = "Privacy gate rejected the call."
+# Synthetic stdio MCP server: records its launch and each call, then answers
+# as the plan file says. No provider, key or network is involved.
+SERVER = """
+import json, os, sys, time
+from mcp.server.mcpserver import MCPServer
+from mcp.types import CallToolResult, TextContent
+
+log, canned = sys.argv[1:3]
+
+
+def record(**entry):
+    with open(log, "a") as handle:
+        handle.write(json.dumps(entry) + "\\n")
+
+
+record(event="launch", pid=os.getpid(), env=sorted(os.environ))
+server = MCPServer("synthetic")
+
+
+@server.tool(name="jev_classify")
+def jev_classify(
+    items: list, classes: list, purpose: str = "", context: dict | None = None
+):
+    record(
+        event="call",
+        items=items,
+        classes=classes,
+        purpose=purpose,
+        context=context,
+    )
+    plan = json.load(open(canned))
+    head = items[0]["id"]
+    mode = plan["modes"].get(head, "answer")
+    if mode == "crash":
+        os._exit(9)
+    if mode == "hang":
+        time.sleep(60)
+    if mode == "error":
+        text = TextContent(type="text", text=plan["error"])
+        return CallToolResult(content=[text], is_error=True)
+    ids = [c["id"] for c in classes]
+    row = {
+        "id": head,
+        "classification": plan["picks"][head],
+        "probabilities": {i: float(i == plan["picks"][head]) for i in ids},
+        "confidence": 0.9,
+        "margin": 1,
+        "top_probability": 1,
+        "decision": "auto",
+    }
+    payload = {
+        "tool": "jev_classify",
+        "model": "synthetic-model",
+        "provider": "openrouter",
+        "results": [row],
+        "usage": {"input_tokens": 5, "output_tokens": 2},
+    }
+    text = TextContent(type="text", text=json.dumps(payload))
+    return CallToolResult(content=[text])
+
+
+server.run(transport="stdio")
+"""
+# The reviewed gate proxy over the mocked upstream, with a synthetic list.
+LAUNCHER = """
+import sys
+from education_privacy_gate import __main__ as proxy, roster
+
+person = {"kind": "person", "full": "\\uac00\\ub77c\\uc628"}
+data = {"version": 1, "entries": [person]}
+roster.load_registry = lambda: roster.Registry.from_data(data)
+proxy.build_proxy(
+    key="sk-or-synthetic-dummy-not-a-real-key", args=sys.argv[1:4]
+).run(transport="stdio", show_banner=False)
+"""
+
+
+def page():
+    return {
+        "url": "https://example.test/",
+        "title": "Search",
+        "text": "Search",
+        "actions": [
+            {
+                "id": "e1",
+                "kind": "fill",
+                "label": "Search",
+                "role": "textbox",
+                "value": "",
+                "node": 10,
+            },
+            {
+                "id": "e2",
+                "kind": "click",
+                "label": "Open Search",
+                "role": "textbox",
+                "value": "",
+                "node": 10,
+            },
+            {
+                "id": "e3",
+                "kind": "click",
+                "label": "Go",
+                "role": "button",
+                "value": "",
+                "node": 20,
+            },
+            {"id": "wait", "kind": "wait", "label": "Wait"},
+        ],
+    }
+
+
+def wide_page(count):
+    return {
+        "url": "https://example.test/",
+        "title": "Wide",
+        "text": "Wide",
+        "actions": [
+            {
+                "id": f"e{n}",
+                "kind": "click",
+                "label": f"Item {n}",
+                "node": n,
+                "role": "button",
+                "value": "",
+            }
+            for n in range(1, count + 1)
+        ],
+    }
+
+
+@pytest.fixture(autouse=True)
+def no_direct_network(monkeypatch):
+    """Any direct connection from this process would be a provider bypass."""
+    refuse = Mock(side_effect=AssertionError("direct network use"))
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    monkeypatch.setattr(socket.socket, "connect", refuse)
 
 
 @pytest.fixture
-def mock_provider(monkeypatch):
-    requests = []
-    clients = []
+def synthetic(tmp_path, monkeypatch):
+    log, canned = tmp_path / "server.log", tmp_path / "canned.json"
 
-    def install(result):
-        def respond(request):
-            requests.append(request)
-            return httpx.Response(200, json=result)
-
-        client = httpx.Client(transport=httpx.MockTransport(respond))
-        clients.append(client)
-        monkeypatch.setattr(model, "CLIENT", client)
-
-    yield requests, install
-    for client in clients:
-        client.close()
-
-
-def body():
-    return {
-        "model": "jev-latest",
-        "state": {"page": {"url": "https://example.test/"}},
-        "questions": {
-            "operation": {
-                "type": "choice",
-                "instructions": {},
-                "criteria": {"DONE": "done"},
-            }
-        },
-    }
-
-
-def test_vercel_request_and_answer_conversion(monkeypatch, mock_provider):
-    requests, install = mock_provider
-    install(
-        {
-            "answers": {
-                "operation": {
-                    "type": "choice",
-                    "choice": "DONE",
-                    "probabilities": {"DONE": 1.0},
-                },
-                "other": {"type": "score", "score": 0.5},
-            },
-            "providerMetadata": {
-                "typesafe": {"confidence": {"operation": 0.9}}
-            },
-            "usage": {"inputTokens": 12, "outputTokens": 3},
-        }
-    )
-    monkeypatch.setenv("JEV_PROVIDER", "vercel")
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", TEST_KEY)
-
-    result = model.request_jev(body())
-
-    request = requests[0]
-    assert (
-        str(request.url)
-        == "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
-    )
-    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
-    assert request.headers["ai-gateway-protocol-version"] == "0.0.1"
-    assert request.headers["ai-gateway-auth-method"] == "api-key"
-    assert request.headers["ai-evaluation-model-specification-version"] == "4"
-    assert request.headers["ai-model-id"] == "typesafe-ai/jev"
-    assert (
-        request.read()
-        == httpx.Request(
-            "POST",
-            str(request.url),
-            json={"state": body()["state"], "questions": body()["questions"]},
-        ).read()
-    )
-    assert result == {
-        "answers": {
-            "operation": {
-                "type": "choice",
-                "choice": "DONE",
-                "probabilities": {"DONE": 1.0},
-                "confidence": 0.9,
-            },
-            "other": {"type": "score", "score": 0.5},
-        },
-        "usage": {"input_tokens": 12, "output_tokens": 3},
-        "model": "typesafe-ai/jev",
-    }
-
-
-def test_vercel_choice_without_confidence_is_preserved_as_missing(
-    monkeypatch, mock_provider
-):
-    _, install = mock_provider
-    install(
-        {
-            "answers": {
-                "operation": {
-                    "type": "choice",
-                    "choice": "DONE",
-                    "probabilities": {"DONE": 1.0},
-                }
-            }
-        }
-    )
-    monkeypatch.setenv("JEV_PROVIDER", "vercel")
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", TEST_KEY)
-
-    assert (
-        model.request_jev(body())["answers"]["operation"]["confidence"] is None
-    )
-
-
-def test_typesafe_request_matches_upstream(monkeypatch, mock_provider):
-    requests, install = mock_provider
-    install({"model": "jev-latest", "answers": {}})
-    monkeypatch.delenv("JEV_PROVIDER", raising=False)
-    monkeypatch.setenv("TYPESAFE_API_KEY", TEST_KEY)
-    request_body = body()
-
-    result = model.request_jev(request_body)
-
-    request = requests[0]
-    assert str(request.url) == "https://api.typesafe.ai/v1/systemone"
-    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
-    assert (
-        request.read()
-        == httpx.Request("POST", str(request.url), json=request_body).read()
-    )
-    assert result == {"model": "jev-latest", "answers": {}}
-
-
-def test_choose_uses_openrouter_stub_end_to_end(monkeypatch, mock_provider):
-    requests, install = mock_provider
-    install(
-        {
-            "model": "typesafe/jev-1.13",
-            "answers": {
-                "operation": {
-                    "type": "choice",
-                    "choice": "CLICK",
-                    "probabilities": {
-                        "CLICK": 1.0,
-                        "DONE": 0.0,
-                        "BLOCKED": 0.0,
-                    },
-                    "confidence": 0.9,
-                },
-                "click_target": {
-                    "type": "choice",
-                    "choice": "1",
-                    "probabilities": {"1": 1.0},
-                    "confidence": 0.95,
-                },
-            },
-        }
-    )
-    monkeypatch.setenv("JEV_PROVIDER", "openrouter")
-    monkeypatch.setenv("OPENROUTER_API_KEY", TEST_KEY)
-    state = {
-        "url": "https://example.test/",
-        "title": "Example",
-        "text": "Go",
-        "actions": [
-            {
-                "id": "go",
-                "kind": "click",
-                "label": "Go",
-                "node": 1,
-                "role": "button",
-                "value": "",
-            }
-        ],
-    }
-
-    decision = model.choose(state, "Click Go", [])
-
-    request = requests[0]
-    assert str(request.url) == "https://openrouter.ai/api/alpha/decisions"
-    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
-    assert json.loads(request.read()) == {
-        "model": "typesafe/jev-1.13",
-        "state": decision["request"]["state"],
-        "questions": decision["request"]["questions"],
-    }
-    assert decision["choice"] == "go"
-
-
-def test_choose_uses_vercel_stub_end_to_end(monkeypatch, mock_provider):
-    requests, _ = mock_provider
-
-    def response(request):
-        payload = json.loads(request.read())
-        operations = payload["questions"]["operation"]["criteria"]
-        targets = payload["questions"]["click_target"]["criteria"]
-        return httpx.Response(
-            200,
-            json={
-                "answers": {
-                    "operation": {
-                        "type": "choice",
-                        "choice": "CLICK",
-                        "probabilities": {
-                            key: float(key == "CLICK") for key in operations
-                        },
-                    },
-                    "click_target": {
-                        "type": "choice",
-                        "choice": "1",
-                        "probabilities": {
-                            key: float(key == "1") for key in targets
-                        },
-                    },
-                },
-                "providerMetadata": {
-                    "typesafe": {
-                        "confidence": {"operation": 0.9, "click_target": 0.95}
-                    }
-                },
-            },
+    def install(picks, modes=None, error=REFUSAL):
+        canned.write_text(
+            json.dumps({"picks": picks, "modes": modes or {}, "error": error})
+        )
+        monkeypatch.setattr(
+            model,
+            "GATE",
+            StdioServerParameters(
+                command=sys.executable,
+                args=["-c", SERVER, str(log), str(canned)],
+            ),
         )
 
-    client = httpx.Client(
-        transport=httpx.MockTransport(
-            lambda request: (requests.append(request), response(request))[1]
-        )
-    )
-    monkeypatch.setattr(model, "CLIENT", client)
-    monkeypatch.setenv("JEV_PROVIDER", "vercel")
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", TEST_KEY)
-    state = {
-        "url": "https://example.test/",
-        "title": "Example",
-        "text": "Go",
-        "actions": [
-            {
-                "id": "go",
-                "kind": "click",
-                "label": "Go",
-                "node": 1,
-                "role": "button",
-                "value": "",
-            }
-        ],
-    }
+    def entries():
+        if not log.exists():
+            return []
+        return [json.loads(line) for line in log.read_text().splitlines()]
 
-    decision = model.choose(state, "Click Go", [])
-
-    assert (
-        str(requests[0].url)
-        == "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
-    )
-    assert decision["choice"] == "go"
-    assert decision["confidence"] == 0.9
-    client.close()
+    return install, entries
 
 
-def test_choose_uses_cloudflare_stub_end_to_end(monkeypatch, mock_provider):
-    requests, install = mock_provider
-    answers = {
-        "operation": {
-            "type": "choice",
-            "choice": "CLICK",
-            "probabilities": {"CLICK": 1.0, "DONE": 0.0, "BLOCKED": 0.0},
-            "confidence": 0.9,
-        },
-        "click_target": {
-            "type": "choice",
-            "choice": "1",
-            "probabilities": {"1": 1.0},
-            "confidence": 0.95,
-        },
-    }
-    model_output = {"model": "typesafe/jev", "answers": answers}
-    install({"result": {"result": model_output}})
-    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
-    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
-    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
-    state = {
-        "url": "https://example.test/",
-        "title": "Example",
-        "text": "Go",
-        "actions": [
-            {
-                "id": "go",
-                "kind": "click",
-                "label": "Go",
-                "node": 1,
-                "role": "button",
-                "value": "",
-            }
-        ],
-    }
-
-    decision = model.choose(state, "Click Go", [])
-
-    request = requests[0]
-    assert (
-        str(request.url)
-        == "https://api.cloudflare.com/client/v4/accounts/test-account/ai/run"
-    )
-    assert request.headers["authorization"] == f"Bearer {TEST_KEY}"
-    assert json.loads(request.read()) == {
-        "model": "typesafe/jev",
-        "input": {
-            "state": decision["request"]["state"],
-            "questions": decision["request"]["questions"],
-        },
-    }
-    assert decision["choice"] == "go"
-    assert decision["raw_answers"] == answers
+def assert_stopped(entries):
+    for launch in (e for e in entries() if e["event"] == "launch"):
+        with pytest.raises(ProcessLookupError):
+            os.kill(launch["pid"], 0)
 
 
-@pytest.mark.parametrize("envelope", ["nested", "single", "body"])
-def test_cloudflare_result_fallbacks(monkeypatch, mock_provider, envelope):
-    answer = {"answers": {}}
-    result = {
-        "nested": {"result": {"result": answer}},
-        "single": {"result": answer},
-        "body": answer,
-    }[envelope]
-    _, install = mock_provider
-    install(result)
-    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
-    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
-    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
+def heads(entries):
+    return [e["items"][0]["id"] for e in entries() if e["event"] == "call"]
 
-    assert model.request_jev(body()) == answer
+
+def test_gate_is_the_one_frozen_offline_proxy_without_keys():
+    gate = model.GATE
+    assert gate.command == "uv"
+    assert gate.args == [
+        "--directory",
+        str(GATE_DIR),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ]
+    assert gate.env is None and gate.cwd is None
+
+
+def test_no_direct_provider_route_remains():
+    package = Path(model.__file__).parent
+    assert not (package / "providers.toml").exists()
+    source = (package / "model.py").read_text()
+    for provider_fact in (
+        "openrouter.ai",
+        "api.typesafe.ai",
+        "ai-gateway.vercel.sh",
+        "api.cloudflare.com",
+        "OPENROUTER_API_KEY",
+        "TYPESAFE_API_KEY",
+        "AI_GATEWAY_API_KEY",
+        "CLOUDFLARE_API_TOKEN",
+        "JEV_PROVIDER",
+        "TEXT_MODEL",
+        "httpx",
+    ):
+        assert provider_fact not in source
+
+
+def test_choose_asks_both_heads_in_one_gated_session(monkeypatch, synthetic):
+    install, entries = synthetic
+    install({"operation": "CLICK", "click_target": "2"})
+    for name in (
+        "OPENROUTER_API_KEY",
+        "JEV_PROVIDER",
+        "TYPESAFE_API_KEY",
+        "NODE_OPTIONS",
+    ):
+        monkeypatch.setenv(name, "synthetic-marker")
+
+    decision = model.choose(page(), "Find a book", [])
+
+    log = entries()
+    assert [e["event"] for e in log] == ["launch", "call", "call"]
+    assert heads(entries) == ["operation", "click_target"]
+    assert not {
+        "OPENROUTER_API_KEY",
+        "JEV_PROVIDER",
+        "TYPESAFE_API_KEY",
+        "NODE_OPTIONS",
+    } & set(log[0]["env"])
+    operation, target = log[1], log[2]
+    assert [c["id"] for c in operation["classes"]] == [
+        "TYPE_TEXT",
+        "CLICK",
+        "WAIT",
+        "DONE",
+        "BLOCKED",
+    ]
+    assert [c["id"] for c in target["classes"]] == ["1", "2"]
+    assert target["context"]["operation"] == "CLICK"
+    assert decision["choice"] == "e3"
+    assert decision["operation"] == "CLICK" and decision["target"] == "2"
+    assert decision["probabilities"] == {"e2": 0.0, "e3": 1.0}
+    assert decision["confidence"] == decision["target_confidence"] == 0.9
+    assert decision["model"] == "synthetic-model"
+    assert decision["usage"] == {"input_tokens": 10, "output_tokens": 4}
+    assert decision["latency_ms"] >= 0
+    assert [r["items"][0]["id"] for r in decision["request"]] == heads(entries)
+    assert_stopped(entries)
+
+
+def test_control_operation_makes_one_call(synthetic):
+    install, entries = synthetic
+    install({"operation": "WAIT"})
+
+    decision = model.choose(page(), "Find a book", [])
+
+    assert [e["event"] for e in entries()] == ["launch", "call"]
+    assert decision["choice"] == "wait" and decision["target"] is None
+    assert decision["usage"] == {"input_tokens": 5, "output_tokens": 2}
+    assert_stopped(entries)
 
 
 @pytest.mark.parametrize(
-    "variable", ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"]
+    ("failing", "calls"), [("operation", 1), ("click_target", 2)]
 )
-def test_missing_cloudflare_variable_fails_before_request(
-    monkeypatch, mock_provider, variable
+def test_refusal_is_an_error_and_nothing_more_is_requested(
+    synthetic, failing, calls
 ):
-    requests, install = mock_provider
-    install({})
-    monkeypatch.setenv("JEV_PROVIDER", "cloudflare")
-    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TEST_KEY)
-    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
-    monkeypatch.delenv(variable)
+    install, entries = synthetic
+    install(
+        {"operation": "CLICK", "click_target": "1"}, modes={failing: "error"}
+    )
 
-    with pytest.raises(ValueError) as error:
-        model.request_jev(body())
+    with pytest.raises(RuntimeError, match="refused or failed") as error:
+        model.choose(page(), "Find a book", [])
 
-    assert variable in str(error.value)
-    assert TEST_KEY not in str(error.value)
-    assert requests == []
+    assert REFUSAL in str(error.value) and "no action executed" in str(
+        error.value
+    )
+    assert [e["event"] for e in entries()] == ["launch"] + ["call"] * calls
+    assert_stopped(entries)
 
 
-@pytest.mark.parametrize(
-    "provider,variable",
-    [("vercel", "AI_GATEWAY_API_KEY"), ("typesafe", "TYPESAFE_API_KEY")],
-)
-def test_missing_key_fails_before_request(
-    monkeypatch, mock_provider, provider, variable
+def test_upstream_error_text_is_reported_not_accepted(synthetic):
+    install, entries = synthetic
+    install(
+        {"operation": "DONE"}, modes={"operation": "error"}, error="API 429"
+    )
+
+    with pytest.raises(RuntimeError, match="API 429"):
+        model.choose(page(), "Find a book", [])
+    assert len(heads(entries)) == 1
+
+
+def test_closed_connection_is_a_runtime_error(synthetic):
+    install, entries = synthetic
+    install({"operation": "DONE"}, modes={"operation": "crash"})
+
+    with pytest.raises(RuntimeError, match="Connection closed.*no action"):
+        model.choose(page(), "Find a book", [])
+    assert [e["event"] for e in entries()] == ["launch", "call"]
+    assert_stopped(entries)
+
+
+def test_silent_proxy_times_out_and_is_stopped(monkeypatch, synthetic):
+    install, entries = synthetic
+    install({"operation": "DONE"}, modes={"operation": "hang"})
+    monkeypatch.setattr(model, "TIMEOUT", 1)
+
+    with pytest.raises(RuntimeError, match="timed out"):
+        model.choose(page(), "Find a book", [])
+    assert_stopped(entries)
+
+
+def test_production_command_fails_closed_without_a_key_file(
+    monkeypatch, tmp_path
 ):
-    requests, install = mock_provider
-    install({})
-    monkeypatch.setenv("JEV_PROVIDER", provider)
-    monkeypatch.delenv(variable, raising=False)
+    # An empty home means the proxy finds no key file; nothing real is read.
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(
+        model,
+        "GATE",
+        model.GATE.model_copy(
+            update={"env": {"HOME": str(home), "PATH": os.environ["PATH"]}}
+        ),
+    )
 
-    with pytest.raises(ValueError) as error:
-        model.request_jev(body())
-
-    assert variable in str(error.value)
-    assert TEST_KEY not in str(error.value)
-    assert requests == []
-
-
-def test_unknown_provider_fails_before_request(monkeypatch, mock_provider):
-    requests, install = mock_provider
-    install({})
-    monkeypatch.setenv("JEV_PROVIDER", "unknown-provider")
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", TEST_KEY)
-
-    with pytest.raises(ValueError, match="unknown-provider") as error:
-        model.request_jev(body())
-
-    assert TEST_KEY not in str(error.value)
-    assert requests == []
+    with pytest.raises(RuntimeError, match="Connection closed"):
+        model.choose(page(), "Find a book", [])
 
 
-def test_malformed_vercel_choice_is_rejected_before_action(monkeypatch):
-    def response(request):
-        operations = json.loads(request.read())["questions"]["operation"][
-            "criteria"
-        ]
-        return httpx.Response(
-            200,
-            json={
-                "answers": {
-                    "operation": {
-                        "type": "choice",
-                        "choice": "CLICK",
-                        "probabilities": {
-                            key: float(key == "CLICK") for key in operations
-                        },
-                    }
-                }
-            },
-        )
+# The real gate proxy over the mocked upstream, with a synthetic list.
 
-    client = httpx.Client(transport=httpx.MockTransport(response))
-    monkeypatch.setattr(model, "CLIENT", client)
-    monkeypatch.setenv("JEV_PROVIDER", "vercel")
-    monkeypatch.setenv("AI_GATEWAY_API_KEY", TEST_KEY)
-    state = {
-        "url": "https://example.test/",
-        "title": "Example",
-        "text": "Go",
-        "actions": [
-            {
-                "id": "go",
-                "kind": "click",
-                "label": "Go",
-                "node": 1,
-                "role": "button",
-                "value": "",
-            }
-        ],
-    }
 
-    with pytest.raises(ValueError, match="Invalid TypeSafe response"):
-        model.choose(state, "Click Go", [])
-    client.close()
+@pytest.fixture
+def real_gate(monkeypatch):
+    entry = GATE_DIR / "node_modules/@jkudish/jev-mcp/dist/index.js"
+    wrapper = GATE_DIR / "tests/fixture-upstream.mjs"
+    assert entry.is_file(), (
+        "Run npm run education-privacy-gate:install before running"
+    )
+    monkeypatch.setattr(
+        model,
+        "GATE",
+        StdioServerParameters(
+            command=sys.executable,
+            args=["-c", LAUNCHER, str(wrapper), str(entry), "normal"],
+        ),
+    )
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_gate_chooses_end_to_end():
+    start = wide_page(3)
+    start["title"] = "Search for 가라온"
+
+    decision = model.choose(start, "Open the first item", [])
+
+    # The mocked upstream always selects each question's first option.
+    assert decision["operation"] == "CLICK"
+    assert decision["target"] == "1" and decision["choice"] == "e1"
+    assert decision["confidence"] == decision["target_confidence"] == 0.99
+    assert decision["probabilities"] == {"e1": 1, "e2": 0, "e3": 0}
+    assert decision["model"] == "typesafe/jev-1.13"
+    # Upstream returns non-numeric usage here; it is ignored, not summed.
+    assert decision["usage"] == {}
+    assert len(decision["request"]) == 2
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_gate_lone_option_needs_no_second_request():
+    decision = model.choose(page(), "Find a book", [])
+
+    assert decision["operation"] == "TYPE_TEXT" and decision["choice"] == "e1"
+    assert decision["confidence"] == 0.99
+    assert decision["target_confidence"] == 1.0
+    assert len(decision["request"]) == 1
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_gate_accepts_250_targets_and_refuses_251():
+    decision = model.choose(wide_page(250), "Open the first item", [])
+    assert decision["operation"] == "CLICK" and decision["choice"] == "e1"
+    assert len(decision["request"][1]["classes"]) == 250
+
+    with pytest.raises(RuntimeError, match=REFUSAL):
+        model.choose(wide_page(251), "Open the first item", [])
+
+
+@pytest.mark.usefixtures("real_gate")
+def test_real_gate_still_answers_after_a_refusal():
+    with pytest.raises(RuntimeError, match=REFUSAL):
+        model.choose(wide_page(251), "Open the first item", [])
+    assert model.choose(wide_page(2), "Open one", [])["choice"] == "e1"

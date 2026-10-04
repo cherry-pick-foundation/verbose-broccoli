@@ -1,15 +1,18 @@
 """Offline contracts for a dynamic operation/target policy. No paid APIs."""
 
 import json
+import socket
 import time
 from copy import deepcopy
 from unittest.mock import Mock
 
 import pytest
+from mcp.types import CallToolResult, ImageContent, TextContent
 
 from jev_ultrafast import agent as loop
 from jev_ultrafast import model
 from jev_ultrafast.browser import StalePage, browser_operation, fingerprint
+from jev_ultrafast.questions import NEXT_ACTION, TARGET
 
 
 def page():
@@ -45,6 +48,47 @@ def decision(action="e1"):
     }
 
 
+def gate_result(head, selected, ids, usage=None, text=None, is_error=False):
+    """What the gated jev_classify tool returns for one head."""
+    row = {
+        "id": head,
+        "classification": selected,
+        "probabilities": {i: float(i == selected) for i in ids},
+        "confidence": 1.0,
+        "margin": 1.0,
+        "top_probability": 1.0,
+        "decision": "auto",
+    }
+    payload = {"tool": "jev_classify", "model": "test", "provider": "openrouter", "results": [row]}
+    if usage is not None:
+        payload["usage"] = usage
+    body = text if text is not None else json.dumps(payload)
+    return CallToolResult(content=[TextContent(type="text", text=body)], is_error=is_error)
+
+
+def install_gate(monkeypatch, picks, **overrides):
+    """Replace the gated session with canned results; the real follow-up still decides the second request."""
+    requests = []
+
+    def respond(arguments):
+        head = arguments["items"][0]["id"]
+        ids = [c["id"] for c in arguments["classes"]]
+        if head in overrides:
+            return overrides[head](head, ids)
+        return gate_result(head, picks[head], ids, usage={"input_tokens": 5, "output_tokens": 2})
+
+    async def ask(first, followup):
+        requests.append(first)
+        results = [respond(first)]
+        if (second := followup(results[0])) is not None:
+            requests.append(second)
+            results.append(respond(second))
+        return results
+
+    monkeypatch.setattr(model, "ask_gate", ask)
+    return requests
+
+
 @pytest.mark.parametrize("mutation", ["unknown", "nan", "missing", "negative", "non_max", "confidence"])
 def test_invalid_choice_is_rejected(mutation):
     a = choice(["a", "b"], "a")
@@ -74,43 +118,59 @@ def test_one_index_per_node_with_operation_specific_targets():
     assert "WAIT" in controls
 
 
-def test_all_heads_are_one_request_and_only_matching_head_executes(monkeypatch):
-    calls = []
-
-    def post(_url, _key, body):
-        calls.append(body)
-        return {
-            "model": "test",
-            "answers": {
-                "operation": choice(body["questions"]["operation"]["criteria"], "TYPE_TEXT"),
-                "type_text_target": choice(["1"], "1"),
-                "click_target": {"choice": "invented"},
-            },
-        }
-
-    monkeypatch.setenv("TYPESAFE_API_KEY", "test")
-    monkeypatch.setattr(model, "post_json", post)
+def test_only_the_chosen_operations_head_is_requested(monkeypatch):
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "2"})
     d = model.choose(page(), "Find a book", [])
-    assert len(calls) == 1
+    assert [r["items"][0]["id"] for r in requests] == ["operation", "click_target"]
+    assert [c["id"] for c in requests[0]["classes"]] == ["TYPE_TEXT", "CLICK", "WAIT", "DONE", "BLOCKED"]
+    assert [c["id"] for c in requests[1]["classes"]] == ["1", "2"]
+    assert d["operation"] == "CLICK" and d["target"] == "2" and d["choice"] == "e3"
+    assert d["probabilities"] == {"e2": 0.0, "e3": 1.0}
+    assert d["operation_probabilities"]["CLICK"] == 1.0 and d["target_probabilities"] == {"1": 0.0, "2": 1.0}
+    assert d["confidence"] == 1.0 and d["target_confidence"] == 1.0
+    assert d["model"] == "test" and d["usage"] == {"input_tokens": 10, "output_tokens": 4}
+    assert isinstance(d["latency_ms"], int) and d["request"] == requests
+    assert set(d["raw_answers"]) == {"operation", "click_target"}
+
+
+def test_lone_option_is_chosen_without_a_model_call(monkeypatch):
+    # jev_classify needs two options; the text field is the only TYPE_TEXT target.
+    requests = install_gate(monkeypatch, {"operation": "TYPE_TEXT"})
+    d = model.choose(page(), "Find a book", [])
+    assert [r["items"][0]["id"] for r in requests] == ["operation"] and d["request"] == requests
     assert d["operation"] == "TYPE_TEXT" and d["target"] == "1" and d["choice"] == "e1"
-    assert set(calls[0]["questions"]) == {"operation", "click_target", "type_text_target"}
+    assert d["probabilities"] == {"e1": 1.0} and d["target_probabilities"] == {"1": 1.0}
+    assert d["target_confidence"] == 1.0 and d["usage"] == {"input_tokens": 5, "output_tokens": 2}
+    assert d["raw_answers"]["type_text_target"]["choice"] == "1"
+
+
+def test_control_operation_needs_no_target_request(monkeypatch):
+    requests = install_gate(monkeypatch, {"operation": "WAIT"})
+    d = model.choose(page(), "Find a book", [])
+    assert len(requests) == 1 and d["request"] == requests
+    assert d["choice"] == "wait" and d["operation"] == "WAIT" and d["target"] is None
+    assert d["probabilities"] == {"wait": 1.0} and d["target_probabilities"] == {} and d["target_confidence"] is None
+    assert d["usage"] == {"input_tokens": 5, "output_tokens": 2}
+
+
+@pytest.mark.parametrize("operation", ["DONE", "BLOCKED"])
+def test_terminal_operation_keeps_its_name_as_the_choice(monkeypatch, operation):
+    install_gate(monkeypatch, {"operation": operation})
+    d = model.choose(page(), "Find a book", [])
+    assert d["choice"] == operation and d["probabilities"] == {operation: 1.0}
 
 
 def test_click_cannot_consume_a_text_target(monkeypatch):
-    def post(_url, _key, body):
-        return {
-            "model": "test",
-            "answers": {
-                "operation": choice(body["questions"]["operation"]["criteria"], "CLICK"),
-                "type_text_target": choice(["1"], "1"),
-                "click_target": choice(["1", "2", "999"], "999"),
-            },
-        }
-
-    monkeypatch.setenv("TYPESAFE_API_KEY", "test")
-    monkeypatch.setattr(model, "post_json", post)
+    requests = install_gate(
+        monkeypatch,
+        {"operation": "CLICK"},
+        click_target=lambda head, ids: gate_result(head, "999", [*ids, "999"]),
+    )
     with pytest.raises(ValueError, match="Invalid TypeSafe"):
         model.choose(page(), "Find a book", [])
+    # Only the click head is requested; the text head is never asked.
+    assert [r["items"][0]["id"] for r in requests] == ["operation", "click_target"]
+    assert [c["id"] for c in requests[1]["classes"]] == ["1", "2"]
 
 
 def test_target_head_receives_control_state_and_full_next_step_rules(monkeypatch):
@@ -119,42 +179,90 @@ def test_target_head_receives_control_state_and_full_next_step_rules(monkeypatch
         "id": "toggle", "kind": "click", "label": "Free cancellation", "node": 30,
         "role": "checkbox", "checked": "true", "selected": False,
     })
-
-    def post(_url, _key, body):
-        questions = body["questions"]
-        target = questions["click_target"]
-        assert target["criteria"]["1"]["checked"] == "true"
-        assert target["criteria"]["1"]["selected"] is False
-        assert questions["operation"]["instructions"]["rules"] in target["instructions"]["rules"]
-        return {
-            "model": "test",
-            "answers": {
-                "operation": choice(questions["operation"]["criteria"], "CLICK"),
-                "click_target": choice(target["criteria"], "3"),
-            },
-        }
-
-    monkeypatch.setenv("TYPESAFE_API_KEY", "test")
-    monkeypatch.setattr(model, "post_json", post)
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "3"})
     d = model.choose(p, "Search with free cancellation", [])
+    first, second = requests
+    target = {c["id"]: json.loads(c["description"]) for c in second["classes"]}
+    assert target["1"]["checked"] == "true" and target["1"]["selected"] is False
+    assert target["1"]["element"] == "[1] Free cancellation"
+    assert first["purpose"] in second["purpose"] and second["purpose"].endswith(TARGET)
+    assert second["context"]["goal"] == "Search with free cancellation" and second["context"]["operation"] == "CLICK"
     assert d["choice"] == "e3"
 
 
-def test_quoted_task_text_still_uses_the_llm(monkeypatch):
-    monkeypatch.setenv("TEXT_MODEL_API_KEY", "test")
-    post = Mock(return_value={"choices": [{"message": {"content": '{"text":"Zurich"}'}}]})
-    monkeypatch.setattr(model, "post_json", post)
+def test_request_carries_goal_page_elements_and_recent_actions_within_bounds(monkeypatch):
+    history = [{"action": f"a{n}", "kind": "click", "text": None, "page_changed": True, "secret": "x"} for n in range(15)]
+    requests = install_gate(monkeypatch, {"operation": "DONE"})
+    model.choose(page(), "Find a book", history)
+    (first,) = requests
+    assert set(first) == {"items", "classes", "purpose", "context"}
+    assert len(first["items"]) == 1 and first["purpose"] == NEXT_ACTION
+    assert set(first["context"]) == {"goal", "page", "elements", "recent_actions"}
+    assert set(first["context"]["page"]) == {"url", "title", "text"}
+    assert [h["action"] for h in first["context"]["recent_actions"]] == [f"a{n}" for n in range(5, 15)]
+    assert all(set(h) == {"action", "kind", "text", "page_changed"} for h in first["context"]["recent_actions"])
+
+
+def test_operation_is_validated_before_a_target_is_requested(monkeypatch):
+    short = {"results": [{"classification": "CLICK", "probabilities": {"CLICK": 1.0}, "confidence": 1.0}]}
+    requests = install_gate(
+        monkeypatch, {}, operation=lambda head, ids: gate_result(head, None, [], text=json.dumps(short))
+    )
+    with pytest.raises(ValueError, match="Invalid TypeSafe"):
+        model.choose(page(), "Find a book", [])
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        gate_result("operation", None, [], text="not json"),
+        gate_result("operation", None, [], text="[]"),
+        gate_result("operation", None, [], text=json.dumps({"results": []})),
+        gate_result("operation", None, [], text=json.dumps({"results": [{"status": "invalid_response", "probabilities": None}]})),
+        CallToolResult(content=[]),
+        CallToolResult(content=[TextContent(type="text", text="{}"), TextContent(type="text", text="{}")]),
+        CallToolResult(content=[ImageContent(type="image", data="AA==", mime_type="image/png")]),
+    ],
+    ids=["text", "list", "no-rows", "invalid-row", "no-blocks", "two-blocks", "image"],
+)
+def test_malformed_result_is_rejected_without_a_second_request(monkeypatch, result):
+    requests = install_gate(monkeypatch, {}, operation=lambda head, ids: result)
+    with pytest.raises(ValueError, match="Invalid"):
+        model.choose(page(), "Find a book", [])
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize("head", ["operation", "click_target"])
+def test_gate_refusal_stops_the_step_and_requests_nothing_more(monkeypatch, head):
+    refusal = lambda head, ids: gate_result(head, None, [], text="Privacy gate rejected the call.", is_error=True)
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "1"}, **{head: refusal})
+    with pytest.raises(RuntimeError, match="Jev gate refused or failed: Privacy gate rejected the call.*no action executed"):
+        model.choose(page(), "Find a book", [])
+    assert len(requests) == (1 if head == "operation" else 2)
+
+
+def test_usage_sums_numbers_and_ignores_unvalidated_values():
+    assert model.total_usage([{"usage": {"input_tokens": 3, "output_tokens": 1.5, "x": {"a": 1}, "y": "2", "z": True}}]) == {
+        "input_tokens": 3,
+        "output_tokens": 1.5,
+    }
+    assert model.total_usage([{"usage": None}, {"usage": "text"}, {}]) == {}
+    assert model.total_usage([{"usage": {"input_tokens": 3}}, {"usage": {"input_tokens": 4}}]) == {"input_tokens": 7}
+
+
+def test_text_helper_is_held_and_makes_no_connection(monkeypatch):
+    monkeypatch.setenv("TEXT_MODEL_API_KEY", "synthetic-test-key")
+    monkeypatch.setattr(socket, "create_connection", Mock(side_effect=AssertionError("network used")))
+    monkeypatch.setattr(socket.socket, "connect", Mock(side_effect=AssertionError("network used")))
     context = model.field_context('Fly from "Zurich" to London', page()["actions"][0], page(), [])
-    assert model.field_text(context)[0] == "Zurich"
-    assert post.call_count == 1
-    sent = json.loads(post.call_args.args[2]["messages"][1]["content"])
-    assert sent["goal"] == 'Fly from "Zurich" to London'
+    assert context["goal"] == 'Fly from "Zurich" to London'
+    with pytest.raises(ValueError, match="held.*nothing typed"):
+        model.field_text(context)
 
 
-def test_missing_text_credential_stops_before_guessing(monkeypatch):
-    monkeypatch.delenv("TEXT_MODEL_API_KEY", raising=False)
-    with pytest.raises(ValueError, match="TEXT_MODEL_API_KEY"):
-        model.field_text({"goal": 'Enter "Zurich"'})
+def test_no_direct_provider_route_remains():
+    assert not any(hasattr(model, name) for name in ("request_jev", "post_json", "CLIENT", "httpx"))
 
 
 @pytest.fixture
@@ -302,19 +410,43 @@ def test_flight_verification_rejects_wrong_trip(changed):
     assert not verify(actual)["passed"]
 
 
-@pytest.mark.parametrize(
-    "content", ["Thinking: Zurich", '{"text":null}', '{"text":"Zurich","extra":true}', '{"text":123}']
-)
-def test_text_helper_rejects_invalid_values(monkeypatch, content):
-    monkeypatch.setenv("TEXT_MODEL_API_KEY", "test")
-    monkeypatch.setattr(model, "post_json", Mock(return_value={"choices": [{"message": {"content": content}}]}))
-    with pytest.raises(ValueError, match="nothing typed"):
-        model.field_text({"goal": "Find a flight"})
-
-
 def test_navigation_during_prediction_reobserves_without_action(runner):
     runner.state["browser"].fresh.side_effect = StalePage("Document navigating")
     runner.command("tick")
     assert runner.state["status"] == "ready"
     assert runner.state["decision"] is None
     runner.state["browser"].act.assert_not_called()
+
+
+def test_prediction_through_the_gate_never_touches_the_page(runner, monkeypatch):
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "2"})
+    runner.state["decision"] = None
+    runner.state["decisions"] = []
+    runner.command("predict")
+    assert runner.state["decision"]["choice"] == "e3" and runner.state["status"] == "predicted"
+    assert len(requests) == 2 and len(runner.state["decisions"]) == 1
+    runner.state["browser"].act.assert_not_called()
+    runner.state["browser"].fresh.assert_called()
+
+
+def test_gate_refusal_leaves_no_decision_to_execute(runner, monkeypatch):
+    install_gate(
+        monkeypatch,
+        {},
+        operation=lambda head, ids: gate_result(head, None, [], text="Privacy gate rejected the call.", is_error=True),
+    )
+    runner.state["decision"] = None
+    with pytest.raises(RuntimeError, match="no action executed"):
+        runner.command("predict")
+    assert runner.state["decision"] is None and runner.state["decisions"] == []
+    with pytest.raises(ValueError, match="Observe and choose before acting"):
+        runner.command("act", {"fingerprint": runner.state["page"]["fingerprint"]})
+    runner.state["browser"].act.assert_not_called()
+
+
+def test_held_text_helper_stops_a_typing_step_before_any_input(runner):
+    runner.state["decision"] = decision("e1")
+    with pytest.raises(ValueError, match="held"):
+        runner.command("act", {"fingerprint": runner.state["page"]["fingerprint"]})
+    runner.state["browser"].act.assert_not_called()
+    assert runner.state["decision"] is None and runner.state["history"] == []
