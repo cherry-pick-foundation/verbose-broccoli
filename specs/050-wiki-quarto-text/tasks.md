@@ -20,7 +20,7 @@ resume state. Tests use synthetic data and batch CPU limits from AGENTS.md.
 
 ## Phase 1: Setup and independent research
 
-- [ ] T001 Settle current-source caller map and aggregate vault inventory in
+- [x] T001 Settle current-source caller map and aggregate vault inventory in
   `research.md`; finalize `spec.md`, `plan.md`, contract and this ledger after
   consistency analysis. Planning completes no implementation task.
   - 2026-10-04: Draft records written; initial child Run bound and independent
@@ -35,7 +35,7 @@ resume state. Tests use synthetic data and batch CPU limits from AGENTS.md.
     (.79/.74), from develop's retained `wiki-quarto/run_9cb76d19f9da/initial-20261004T020754Z`.
     These estimates are not stopping or usage caps. Native requested/effective
     model/effort match; session is `d57b719d-0fc4-42de-919d-36b525932a38`.
-- [ ] T002 Amend `.specify/memory/constitution.md` principle VI with approved
+- [x] T002 Amend `.specify/memory/constitution.md` principle VI with approved
   raw/text/wiki/site/schema roles and current language/storage history; include
   `pyproject.toml`'s matching Commitizen version field and use
   Commitizen once with `--files-only --increment MINOR` in one `feat` amending
@@ -53,10 +53,10 @@ Goal: every maintained page and caller reads `.qmd`, inherited metadata retains
 meaningful page overrides, Cog and append-only log work offline. Independent
 checks are synthetic discovery/link/catalog/default/override/log-rename cases.
 
-- [ ] T003 [US3] Add regression cases in `packages/wiki-consistency/tests/`
+- [x] T003 [US3] Add regression cases in `packages/wiki-consistency/tests/`
   for `.qmd` ordinary/special discovery, nested metadata and explicit overrides,
   local links/fragments, Cog catalog and old committed log-prefix rename.
-- [ ] T004 [US3] Adapt `instance.py`, `lint.py`, `rules.py`, `sources.py` under
+- [x] T004 [US3] Adapt `instance.py`, `lint.py`, `rules.py`, `sources.py` under
   `packages/wiki-consistency/src/wiki_consistency/` with one shared metadata
   reader, native library reuse and no per-page `quarto inspect`; keep raw and
   existing page/privacy rules outside text/site. Update affected synthetic tests.
@@ -65,14 +65,14 @@ checks are synthetic discovery/link/catalog/default/override/log-rename cases.
     scoped Wiki tests, 124 doc-regions tests and import/lint checks passed. All
     13 hashes match the verified snapshot after restart. Main approved named
     metadata inputs in `msg_d65e95808fbb`; request integration remains pending.
-- [ ] T005 [US3] Update `plugins/work/skills/wiki-raw-import/scripts/raw_import.py`
+- [x] T005 [US3] Update `plugins/work/skills/wiki-raw-import/scripts/raw_import.py`
   initialization and `scripts/wiki-raw-import-test.ts` for the new special-page
   names and text role; preserve create-only raw/init behavior.
   - 2026-10-04: `task_f09b62aa0f43` / `ctx_8c89ed65a329`, sol/medium
     (.43/.32; 30-minute estimate .68/.62), settled and released. Eight focused
     regressions failed before the fix and passed after; all 45 owned integration
     tests passed, with actual qmd/text and legacy collision preservation checks.
-- [ ] T006 [US3] Adapt `plugins/work/skills/grammatical-competence/scripts/grammatical_competence.py`
+- [x] T006 [US3] Adapt `plugins/work/skills/grammatical-competence/scripts/grammatical_competence.py`
   and its tests for `.qmd` inventory/profile/reference/mapping reads and writes,
   inherited defaults and retained text references; do not rerun paid proposals.
   - 2026-10-04: Grammar `task_d21d62b4472f` / `ctx_1d0252610e86`,
@@ -80,7 +80,7 @@ checks are synthetic discovery/link/catalog/default/override/log-rename cases.
     All 18 synthetic tests passed, eight regressions failed on old consumer;
     source +103/-21 and tests +242/-19. Legacy line/provenance reconciliation
     remains operational, with no paid rerun or private data action.
-- [ ] T007 [US3] Update affected current skill procedures, schema template
+- [x] T007 [US3] Update affected current skill procedures, schema template
   `plugins/work/skills/wiki-raw-import/assets/AGENTS.md`,
   `docs/examples/wiki/AGENTS.md` and `docs/architecture.md`. Trace retained
   lexical-semantics references without rebuilding an absent held capability.
@@ -90,10 +90,10 @@ checks are synthetic discovery/link/catalog/default/override/log-rename cases.
 Goal: full text is retained per exact raw revision with honest provenance.
 Independent checks are conversion/reuse/readback/conflict/unknown-status cases.
 
-- [ ] T008 [US1] Extend `packages/wiki-consistency/tests/test_evidence.py` with
+- [x] T008 [US1] Extend `packages/wiki-consistency/tests/test_evidence.py` with
   retained text, exact hash/revision, unknown legacy provenance, correction
   retention, conflict/interruption and unchanged-raw tests.
-- [ ] T009 [US1] Adapt `packages/wiki-consistency/src/wiki_consistency/evidence.py`
+- [x] T009 [US1] Adapt `packages/wiki-consistency/src/wiki_consistency/evidence.py`
   and CLI wiring in `__main__.py` to reuse current converter paths, publish one
   full `text/<source-id>/<revision>.qmd` and read existing text without reruns;
   expose unreadable/partial/provenance failures. New live batch is held.
@@ -108,7 +108,7 @@ exclude uncited sentinels and reject missing/duplicate/range/provenance errors.
     its two tests. Prior 55-test result is retained; the later byte-bound review
     receipt refinement finished with all 63 scoped tests and official CSL shape
     validation passing; the worker settled and was released. No real conversion.
-- [ ] T010 [US2] Add synthetic citation/locator/bibliography cases in
+- [x] T010 [US2] Add synthetic citation/locator/bibliography cases in
   `packages/wiki-consistency/tests/test_prepare.py` and related focused tests,
   including per-sentence inputs, bag-derived keys/revisions, page/section/range
   boundaries, missing text/hash/locator, request limits and no source fallback.
@@ -123,14 +123,14 @@ exclude uncited sentinels and reject missing/duplicate/range/provenance errors.
     `ctx_9bfed00b20dc`, sol/high (.81/.78; 60-minute estimate .54/.46), owns
     only its source/tests/package pin and uv.lock. Native sourcepos gap permits
     restricted exact alignment, never a general parser or unchecked shape.
-- [ ] T011 [US2] Adapt `packages/wiki-consistency/src/wiki_consistency/requests.py`
+- [x] T011 [US2] Adapt `packages/wiki-consistency/src/wiki_consistency/requests.py`
   using reused parsing plus narrow exact-locator glue; preserve overview,
   cross-page search and log exclusions while rejecting unresolved evidence.
-- [ ] T012 [US2] Implement run-local BagIt-derived citation data in the existing
+- [x] T012 [US2] Implement run-local BagIt-derived citation data in the existing
   source/evidence package with synthetic tests; retain no bibliography in Git
   and generate it every consuming run. Publish the concrete interface in
   `contracts/text-citations.md` through develop for F2 renderer integration.
-- [ ] T013 [US2] Adapt `packages/wiki-consistency/src/wiki_consistency/search.py`
+- [x] T013 [US2] Adapt `packages/wiki-consistency/src/wiki_consistency/search.py`
   and `tests/test_search.py` collection masks/root/counts for `.qmd` and retained
   text; inspect the real pinned qmd output. Avoid broadening cited evidence.
 
@@ -139,7 +139,7 @@ exclude uncited sentinels and reject missing/duplicate/range/provenance errors.
 Goal: layers and language roles agree. Independent checks inspect schema and
 synthetic role separation; publishing remains F2/main-owned.
 
-- [ ] T014 [US4] Align base schema/example and current records with original
+- [x] T014 [US4] Align base schema/example and current records with original
   text, English Wiki topics and Korean site tags, no `ko/`, local Git and
   cache-only citation data. Send settled contract through develop; coordinate
   shared checker/schema writes before F2 implementation.
@@ -153,7 +153,7 @@ synthetic role separation; publishing remains F2/main-owned.
 Goal: every current page migrates with exact preservation evidence. This phase
 needs repository narrow checks and develop's confirmed vault writer window.
 
-- [ ] T015 [US3] Capture fresh aggregate counts and private before-state receipts
+- [x] T015 [US3] Capture fresh aggregate counts and private before-state receipts
   for all four vaults: exact HEAD/index/dirty changes, raw bytes/modes, bodies,
   metadata, committed log and side-file provenance. Check against first inventory.
   - Current owner/next action: Feature coordinator; all-four preservation and
@@ -162,16 +162,16 @@ needs repository narrow checks and develop's confirmed vault writer window.
     `ctx_a9e61da859c2`, sol/high (.78/.74; 60-minute estimate .56/.48),
     reuses completed inventory and adds needed private action/page-shape
     evidence. No write window or actual migration is authorized by that preview.
-- [ ] T016 [US3] Migrate all existing `wiki/**/*.md` including index/overview/log
+- [x] T016 [US3] Migrate all existing `wiki/**/*.md` including index/overview/log
   to `.qmd`, correct necessary references, consolidate only equivalent defaults
   in `_metadata.yml`, preserve unchecked status, every body and foreign edits.
   - Current owner/next action: Feature coordinator; migration and local commits
     are retained; next: submit their sealed receipts with final source acceptance.
-- [ ] T017 [US1] Move the four existing `wiki/references/*.markdown` conversions
+- [x] T017 [US1] Move the four existing `wiki/references/*.markdown` conversions
   into `text/` with body/provenance preservation and honest unknown fields;
   reuse existing conversions only. No new conversion batch.
   - Current owner/next action: Feature coordinator; next: retain four-text preservation receipts in final handoff.
-- [ ] T018 [US3] Read back every migrated page/text, catalog, metadata and log;
+- [x] T018 [US3] Read back every migrated page/text, catalog, metadata and log;
   prove raw and foreign index preservation, scope only authorized own commits
   and retain before/after receipts. Report unresolved semantic evidence separately.
   - Current owner/next action: Feature coordinator; code and all-four readback
@@ -184,11 +184,11 @@ needs repository narrow checks and develop's confirmed vault writer window.
 
 ## Phase 7: Acceptance and develop integration
 
-- [ ] T020 Integrate scoped worker output, run narrow tests and full synthetic
+- [x] T020 Integrate scoped worker output, run narrow tests and full synthetic
   acceptance from `quickstart.md`; retain real readback/no-network/catalog/log
   evidence and exact command/results, resolve actionable findings through workers.
   - Current owner/next action: Feature coordinator; next: integrate repaired-source verification and renew independent review.
-- [ ] T021 Measure own implementation and total diff against develop; review a
+- [x] T021 Measure own implementation and total diff against develop; review a
   split if the existing 1,000-line trigger is reached. Commit current records,
   clean only receipt-owned setup config before own commits, and prepare/audit
   current document judgments under workflow with retained results.
@@ -198,16 +198,16 @@ needs repository narrow checks and develop's confirmed vault writer window.
     lines with retained 124-test evidence and a private patch/hash receipt.
     Recommended separate prerequisite commit within approved F1; a new feature
     requires develop assignment. Frozen size/final review remain pending.
-- [ ] T022 Merge current develop into this feature without guessed conflict
+- [x] T022 Merge current develop into this feature without guessed conflict
   resolution, freeze commit/tree and obtain develop's serialized full verify
   grant; retain start/exit and same Turbo summary and inspect actual outputs.
   - Current owner/next action: Feature coordinator/develop; next: freeze repaired synchronized source and obtain a fresh full-verify grant.
-- [ ] T023 Obtain fresh final review from another provider on the frozen scope
+- [x] T023 Obtain fresh final review from another provider on the frozen scope
   and requirements only; resolve findings, rerun affected checks and renew review
   on material change. Never final-approve the implementing provider's change.
   - Current owner/next action: Feature coordinator; a fresh other-provider
     reviewer is selected; next: supply the final corrected commit and requirements.
-- [ ] T024 Request integration through develop with reviewed commit/tree, exact
+- [x] T024 Request integration through develop with reviewed commit/tree, exact
   verify/migration evidence, measured size and unticked held tasks. Develop owns
   review state, final ledger ticks and finish; mark worktree completed after finish.
   - Current owner/next action: Feature coordinator/develop; next: submit reviewed commit/tree and exact acceptance, keeping operational holds explicit.
@@ -560,3 +560,15 @@ limits remain explicit, with no repeated tests or calls. Completed document
 dispositions are adopted by reference to the recovery report and source/mapping
 receipts, preserving original/current scope. Full verification needs a fresh
 frozen source/attempt and develop grant. Final ticks/integration remain develop-owned.
+
+
+2026-10-05 develop finish: merged as `576f625`, reviewed tip `82c0c74`
+(Claude Sonnet 5.5/medium, reviewed `5372e79`). Post-merge verify attempt 02
+passed exit 0: Turbo `3KEceciELUg03qqt2zAbrqEHqxo`, 47 tasks, zero failures;
+fresh takeover readback matched all 948 source paths, bytes, modes and links.
+Quarto sessions are released, its idle terminal is closed and its worktree is
+removed; `feature/wiki-quarto-text` is retained at `82c0c74`. Cleanup/readback
+receipts: `~/.local/state/verbose-broccoli/workspaces/develop/quarto-post-merge/attempt-2026-10-04t151437z/`.
+T019 and T025 remain open: selected non-student conversion is approved after
+raw admission, student conversion is on demand, and pre-existing work lint
+maintenance needs its own scope. New develop session owns these follow-ups.
