@@ -140,6 +140,51 @@ def assert_cleared(created):
     )
 
 
+@pytest.mark.usefixtures("isolated")
+def test_original_and_masked_schema_both_hold():
+    async def run():
+        gate = proxy_module.PrivacyGate(None)
+        gate.schemas = {
+            "echo": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "maxLength": 16},
+                    "number": {"type": "integer"},
+                },
+            }
+        }
+        forwarded = []
+
+        async def next_call(context):
+            forwarded.append(context.message.arguments)
+            return ToolResult(content="safe synthetic")
+
+        for args in (
+            {"text": ORIGINALS[1] + "!"},
+            {"number": 1234567890},
+        ):
+            result = await gate.on_call_tool(
+                MiddlewareContext(
+                    message=CallToolRequestParams(name="echo", arguments=args)
+                ),
+                next_call,
+            )
+            assert_generic(result)
+            assert not forwarded
+        result = await gate.on_call_tool(
+            MiddlewareContext(
+                message=CallToolRequestParams(
+                    name="echo", arguments={"text": ORIGINALS[1], "number": 85}
+                )
+            ),
+            next_call,
+        )
+        assert not result.is_error
+        assert forwarded == [{"text": "School 01", "number": 85}]
+
+    asyncio.run(run())
+
+
 def snapshot(root):
     return {
         str(path.relative_to(root)): path.read_bytes()

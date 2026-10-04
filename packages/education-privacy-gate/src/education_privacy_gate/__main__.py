@@ -120,6 +120,7 @@ class PrivacyGate(Middleware):
                         tool.name: tool.input_schema for tool in tools
                     }
                 schema = self.schemas[context.message.name]
+                validate(context.message.arguments or {}, schema)
                 masked = call.mask(
                     context.message.arguments or {},
                     constrained=lambda path: _pattern(schema, path),

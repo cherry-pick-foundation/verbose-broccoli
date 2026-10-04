@@ -111,6 +111,13 @@ void test('shared jev: single-plugin selection and disabling either owner preser
       for (const initiallyBoth of [false, true]) {
         const root = join(temp, `${disabled}-${initiallyBoth}`);
         await sharedJevCheckout(root);
+        if (!initiallyBoth) {
+          await mkdir(join(root, '.agents/skills'), {recursive: true});
+          await symlink(
+            `../../plugins/${disabled}/skills/jev`,
+            join(root, '.agents/skills/jev'),
+          );
+        }
         if (initiallyBoth) {
           preparePluginDiscovery(root);
           const owned = JSON.parse(await readFile(receiptPath(root), 'utf8'));
@@ -368,7 +375,7 @@ void test('shared jev: interrupted preparation recovers both owners and one regi
   }
 });
 
-void test('shared jev: object order is structural and unowned links are never retargeted', async () => {
+void test('shared jev: object order is structural and foreign links are never retargeted', async () => {
   const root = await mkdtemp(join(tmpdir(), 'shared-jev-order-'));
   try {
     await sharedJevCheckout(root);
@@ -380,13 +387,13 @@ void test('shared jev: object order is structural and unowned links are never re
     await writeFile(workPath, JSON.stringify(work));
     await mkdir(join(root, '.agents/skills'), {recursive: true});
     const link = join(root, '.agents/skills/jev');
-    await symlink('../../plugins/work/skills/jev', link);
+    await symlink('../../foreign/jev', link);
     assertThrows(
       () => preparePluginDiscovery(root),
       Error,
       'Conflict: .agents/skills/jev',
     );
-    assertEquals(await readlink(link), '../../plugins/work/skills/jev');
+    assertEquals(await readlink(link), '../../foreign/jev');
     assert(!existsSync(receiptPath(root)));
     await rm(link);
     preparePluginDiscovery(root);
@@ -401,6 +408,99 @@ void test('shared jev: object order is structural and unowned links are never re
     assertEquals(code.mcpServers['jev-mcp'], copiedWork.mcpServers['jev-mcp']);
   } finally {
     await rm(root, {recursive: true, force: true});
+  }
+});
+
+void test('shared skills: canonical targets retarget with journaled interruption recovery', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'shared-skill-retarget-'));
+  try {
+    for (const disabled of ['code', 'work']) {
+      for (const cut of ['present', 'removed', 'replaced']) {
+        const root = join(temp, `${disabled}-${cut}`);
+        await sharedJevCheckout(root);
+        const oldOwner = cut === 'present' ? 'work' : disabled;
+        const selected = oldOwner === 'code' ? 'work' : 'code';
+        const oldTarget = `../../plugins/${oldOwner}/skills/jev`;
+        const target = `../../plugins/${selected}/skills/jev`;
+        const link = join(root, '.agents/skills/jev');
+        await mkdir(join(root, '.agents/skills/personal'), {recursive: true});
+        await writeFile(
+          join(root, '.agents/skills/personal/keep.txt'),
+          'foreign',
+        );
+        await symlink(oldTarget, link);
+        if (cut !== 'present') {
+          await rm(join(root, 'plugins', disabled, 'skills/jev'), {
+            recursive: true,
+          });
+        }
+        if (cut === 'present') {
+          preparePluginDiscovery(root);
+        } else {
+          const child = spawnSync(
+            process.execPath,
+            [
+              '--input-type=module',
+              '-e',
+              `
+            import fs from 'node:fs';
+            import {syncBuiltinESMExports} from 'node:module';
+            const method = ${JSON.stringify(cut)} === 'removed' ? 'rmSync' : 'symlinkSync';
+            const original = fs[method];
+            fs[method] = (...args) => {
+              const result = original(...args);
+              if (args[method === 'rmSync' ? 0 : 1] === ${JSON.stringify(link)}) process.exit(86);
+              return result;
+            };
+            syncBuiltinESMExports();
+            const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+            preparePluginDiscovery(${JSON.stringify(root)});
+          `,
+            ],
+            {env: process.env, encoding: 'utf8'},
+          );
+          assertEquals(child.status, 86, child.stderr);
+          const intent = JSON.parse(
+            await readFile(`${receiptPath(root)}.pending`, 'utf8'),
+          );
+          assertEquals(intent.old.links['.agents/skills/jev'], oldTarget);
+          assertEquals(intent.intended.links['.agents/skills/jev'], target);
+          assertEquals(intent.intended.skillOwners.jev, [
+            `plugins/${selected}/skills/jev`,
+          ]);
+          if (cut === 'removed') assert(!existsSync(link));
+          else assertEquals(await readlink(link), target);
+          preparePluginDiscovery(root);
+          assert(!existsSync(`${receiptPath(root)}.pending`));
+        }
+        assertEquals(await readlink(link), target);
+        const owned = JSON.parse(await readFile(receiptPath(root), 'utf8'));
+        assertEquals(owned.links['.agents/skills/jev'], target);
+        assertEquals(
+          owned.skillOwners.jev,
+          cut === 'present'
+            ? ['plugins/code/skills/jev', 'plugins/work/skills/jev']
+            : [`plugins/${selected}/skills/jev`],
+        );
+        for (const plugin of ['code', 'work']) {
+          await rm(join(root, 'plugins', plugin, 'skills/jev'), {
+            recursive: true,
+            force: true,
+          });
+        }
+        preparePluginDiscovery(root);
+        await rejects(lstat(link), {code: 'ENOENT'});
+        assertEquals(
+          await readFile(
+            join(root, '.agents/skills/personal/keep.txt'),
+            'utf8',
+          ),
+          'foreign',
+        );
+      }
+    }
+  } finally {
+    await rm(temp, {recursive: true, force: true});
   }
 });
 

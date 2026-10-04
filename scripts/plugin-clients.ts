@@ -270,9 +270,21 @@ export function preparePluginDiscovery(root = ROOT) {
           receipt.links?.[path],
           pending?.old.links?.[path],
           pending?.intended.links?.[path],
+          ...(path.startsWith('.agents/skills/') && skillOwners[basename(path)]
+            ? PLUGINS.map(plugin =>
+                relative(
+                  dirname(join(root, path)),
+                  join(root, 'plugins', plugin, 'skills', basename(path)),
+                ),
+              )
+            : []),
         ].includes(readlinkSync(join(root, path))))
     )
       throw new Error(`Conflict: ${path}`);
+    if (value) {
+      old.links ??= {};
+      old.links[path] = readlinkSync(join(root, path));
+    }
   }
   const index = join(root, '.agents/skills');
   if (existsSync(index)) {

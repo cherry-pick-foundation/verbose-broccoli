@@ -954,6 +954,34 @@ def test_student_number_only_session_stays_work_only(tmp_path, monkeypatch):
     ]
 
 
+@pytest.mark.parametrize("status", ["invalid_response", None])
+def test_classify_null_review_rejects_only_invalid_response(tmp_path, status):
+    stage = selector.stage_dir(tmp_path / "stage")
+    selector.write_jsonl(
+        stage / "digests.jsonl",
+        [{"id": "synthetic", "tags": [], "text": "synthetic"}],
+    )
+
+    async def invoke(*unused_args):
+        row = {"classification": None, "decision": "review"}
+        if status is not None:
+            row["status"] = status
+        return [{"results": [row]}]
+
+    if status == "invalid_response":
+        with pytest.raises(
+            ValueError, match="^jev-mcp returned an invalid response$"
+        ):
+            selector.classify(stage, synthetic_catalog(tmp_path), call=invoke)
+        assert not (stage / "labels.jsonl").exists()
+    else:
+        selector.classify(stage, synthetic_catalog(tmp_path), call=invoke)
+        labels = selector.read_jsonl(stage / "labels.jsonl")
+        assert len(labels) == 1
+        assert labels[0]["label"] is None
+        assert labels[0]["decision"] == "review"
+
+
 @pytest.mark.parametrize(
     "usage",
     [

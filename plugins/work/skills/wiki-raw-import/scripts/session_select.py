@@ -541,6 +541,8 @@ def classify(stage, catalog_path, limit=None, call=None):
         for digest_item, result in zip(
             batch["digests"], response["results"], strict=True
         ):
+            if result.get("status") == "invalid_response":
+                raise ValueError("jev-mcp returned an invalid response")
             if (
                 result.get("classification")
                 not in {item["id"] for item in batch["classes"]}

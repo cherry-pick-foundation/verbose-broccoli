@@ -385,6 +385,44 @@ def test_preflight_refuses_before_backend(name, args, tmp_path, capture):
     asyncio.run(run())
 
 
+def test_original_review_path_limit_before_masking(
+    tmp_path, capture, monkeypatch
+):
+    school = "synthetic-school-" + "z" * 238
+    assert len(school) == 255
+    monkeypatch.setattr(
+        proxy_module.roster,
+        "load_registry",
+        lambda: Registry.from_data(
+            {
+                "version": 1,
+                "entries": [{"kind": "school", "spellings": [school]}],
+            }
+        ),
+    )
+
+    async def run():
+        async with upstream(tmp_path) as client:
+            before = len(capture)
+            args = {
+                "request": "Synthetic review",
+                "files": [
+                    {"path": "x" * 245 + "/" + school, "diff": "Synthetic diff"}
+                ],
+            }
+            assert len(args["files"][0]["path"]) == 501
+            assert_generic(await client.call_tool_mcp("jev_review", args))
+            assert len(capture) == before
+            args["files"][0]["path"] = "x" * 244 + "/" + school
+            result = await client.call_tool_mcp("jev_review", args)
+            assert not result.is_error
+            parsed = json.loads(result.content[0].text)
+            assert parsed["files"][0]["path"] == args["files"][0]["path"]
+            assert len(capture) == before + 1
+
+    asyncio.run(run())
+
+
 @pytest.mark.usefixtures("capture")
 def test_extract_local_no_match_and_invalid_regex(tmp_path):
     async def run():
