@@ -236,9 +236,14 @@ The Wiki instances, called vaults, live in
 | `code` | Coding knowledge for work in any project: libraries, patterns, decisions. It is not this repository's development memory, which stays in the Spec Kit records, code and Git |
 | `work` | Education work: the raw imports, including exported conversations, and the per-student pages |
 
-Each vault holds the schema `AGENTS.md`, `raw/{web,files,notes,assets}/` and
-`wiki/`, and its own Git repository versions the schema and `wiki/` but
-ignores `raw/`. A plugin's Wiki skills use the vault named after the plugin
+Each vault's schema `AGENTS.md` owns the roles of `raw/{web,files,notes,assets}/`,
+`text/`, `wiki/` and `site/`. Raw is immutable create-only BagIt originals outside
+Git. Vault-local Git with no remote versions schema, full original-language
+`text/<source-id>/<revision>.qmd` extractions and English `wiki/**/*.qmd` pages
+with topics. `site/` is Korean delivery derived from chosen English versions,
+with tags and no `ko/` tree. F2/CHE-12 owns freshness, rendering and publishing;
+new real conversion, student/audience and publication decisions stay with main.
+A plugin's Wiki skills use the vault named after the plugin
 unless the user selects another; `default` is always selected by name. Vaults
 are the user's shared Wiki storage, not a plugin's private store, so any
 plugin's Wiki tool may write a vault the user selects.
@@ -277,26 +282,26 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   source revisions they cite and one or more topics. A vault groups its
   pages by topic instead of splitting into more vaults; the front matter of
   its `AGENTS.md` declares the topics its pages may list, and the layer
-  folders stay as they are. `index.md` is one mechanical region,
+  folders stay as they are. `index.qmd` is one mechanical region,
   `page_catalog`, built from that metadata, which lists the pages under a
   heading per topic; a source page may hold a `source_provenance` region
-  built from its bags. `overview.md` is written by the agent, and `log.md`
+  built from its bags. `overview.qmd` is written by the agent, and `log.qmd`
   is append-only and never judged.
 - `check` runs before every commit of the instance. It fails on a stale or
   malformed region, a broken link (lychee, offline), missing or unresolvable
   page metadata, a missing or malformed topic list in `AGENTS.md`, a page
   topic that list does not declare, a cited bag that fails BagIt's fast
-  validation, or a changed earlier `log.md` entry, and it lists orphan pages
+  validation, or a changed earlier `log.qmd` entry, and it lists orphan pages
   and citations of non-latest revisions. It also runs the page rules as
   Vale 3.23.0 rules (`packages/wiki-consistency/vale/`), outside mechanical
-  regions, the front matter and `log.md`: phone numbers, email and postal
+  regions, the front matter and `log.qmd`: phone numbers, email and postal
   addresses and registration numbers; Hangul, Chinese or Japanese text other
   than one quote with its English translation in parentheses beside it;
   roster school names in Hangul outside such a quote, instead of domain IDs; and dates not written as YYYY-MM-DD or times
   without a zone. The privacy and time rules also check code and link
   targets; the language, school and date rules skip them. A small Python
   step reads backfire's roster only when a page needs it, checks that a
-  student page is `wiki/students/s-<EduOK student number>.md` with a number
+  student page is `wiki/students/s-<EduOK student number>.qmd` with a number
   from the roster's `id` column, reports the Korean spelling of a roster
   student, given or guardian name anywhere in a page, quotes and front matter
   included, and gives Vale the roster's schools through a private temporary
@@ -308,17 +313,28 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   birth date, phone and email detection is Vale's, not backfire's, and only
   the student-name rule reads the front matter's title and summary. The
   check writes nothing outside that temporary folder and uses no network.
-  `update` regenerates stale regions.
+  `update` regenerates stale regions. `check` is the offline structural,
+  metadata and rule stage; it does not prove exact sentence evidence or
+  semantic correctness.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
-  Markdown under `$XDG_CACHE_HOME/verbose-broccoli/wiki-evidence/` (by default
-  `~/.cache`) (1 GiB budget): markitdown 0.1.8 reads XLSX and other supported
-  formats, and python-hwpx 6.6.0 reads HWP and HWPX. An HWP file that
-  python-hwpx converts only in part keeps its text and is listed under
-  `partial`, with a `<revision>.partial.json` mark beside the text. Scanned
-  PDFs remain unreadable, so claims resting only on them are unverifiable.
+  full returned original-language `.qmd` in `text/<source-id>/<revision>.qmd`,
+  reusing existing retained output. Existing MarkItDown/JSON/python-hwpx paths
+  remain the converters; failure diagnostics use cache. Front matter records raw
+  identity/hash, converter/version, conversion status/warnings and original review.
+  `conversion-status: extracted` means backend output, not completeness or review;
+  partial and unknown remain explicit. Scanned PDFs remain unreadable. Corrections
+  are local Git history, never raw edits or default reconversion replacement.
+  `evidence.read(instance, source_id, revision, review=...)` reads the full body.
+  A true review flag requires actual caller evidence with raw `sha256`, full-file
+  `extraction-sha256` and nonempty `evidence`; corrections invalidate earlier
+  evidence, and unknown legacy facts are never promoted to reviewed.
+  `prepare --review-receipts <path>` accepts optional JSON mapping canonical
+  `source-id/revision` keys to real `sha256`, `extraction-sha256` and `evidence`
+  receipts; the API accepts `reviews=...`. Missing or stale receipts leave true
+  review status unresolved, and a receipt does not promote unchecked text.
   `index` builds qmd 2.8.3
-  collections of the pages and the converted evidence under
+  collections of English `.qmd` pages and retained text under
   `$XDG_CACHE_HOME/verbose-broccoli/qmd/` (3 GiB budget, a folder only the
   user can read), with the multilingual
   Qwen3 embedding model, a 610 MB download only when `index` is asked to
@@ -331,7 +347,15 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   `jev_verify` requests (units against their cited evidence, and against
   candidate units of other pages), `jev_find` cross-reference requests
   in a lint, and `jev_classify` requests for new units. qmd only finds
-  candidates; backfire judges.
+  candidates; backfire judges. The API records `outcome: unverifiable` units
+  and their reasons. The CLI prints diagnostic JSON on stdout and exits 1 when
+  any unit is unverifiable; boundary, bag, index and execution errors use stderr
+  diagnostics and exit 1, while invalid command-line arguments exit 2.
+  Missing inline citations and unchecked review status are operational limits,
+  not permission to invent citations, receipts or another batch. Claim/item and
+  decision limits and caller evidence budgets differ from complete serialized
+  tool-argument character/byte measurements; none establishes a whole-body cap
+  or the provider's unknown HTTP/token expansion limits.
 - The agent translates Korean evidence into English first and sends the
   requests to the work plugin's backfire server, which replaces student,
   guardian and school identifiers, regions, school years, birth dates,
@@ -345,8 +369,52 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   doctor` checks them. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
-  suggestions, updating stale citations, writing `log.md` entries, applying a
+  suggestions, updating stale citations, writing `log.qmd` entries, applying a
   new schema template to an existing instance, and converting scanned PDFs.
+
+Folder defaults use `_metadata.yml`. The checker merges root-to-folder defaults
+and page front matter itself, without per-page `quarto inspect`. Mappings recurse,
+arrays merge uniquely in order, empty/null array overrides preserve inheritance,
+scalar/list pairs combine and ordinary page scalars override. Preserve meaningful
+overrides, including `profile.checker: none`. The public
+`read_metadata(instance, document, named_defaults=...)` returns the full mapping
+and problems for a literal Wiki-relative `.qmd` path. `metadata_sources` lists
+safe ordered ancestors without content reads. Cog remains one catalog region
+with `wiki/**/*.qmd` plus actual existing literal metadata inputs where consumed;
+no absent glob, unnamed input or Quarto listings replacement.
+
+Supported knowledge sentences end with canonical citations whose keys come only
+from bags as `source-id/revision`. Exact declared `p.`, `pp.` and `sec.` locators
+use `evidence.read_located(..., locator, max_chars=..., review=...)`, never a
+whole-source, latest-revision or search fallback. Page/section headings and page
+fenced div markers are supported; PDF formfeeds do not establish missing markers.
+Arbitrary inline markers, section divs and lone-CR mappings remain unresolved.
+Full text remains readable locally when exact judgment fails. Native Pandoc
+parsing uses restricted literal alignment of plain paragraphs and simple list
+items; pySBD proposes candidate spans checked against exact source slices and
+citation coverage. Unsupported or ambiguous formatting, headings, tables,
+callouts, quotes and source maps, or lost text/citation coverage, are explicit
+unresolved failures, never a quiet zero-request success or a sentence-completeness
+claim. Source stays inert without executable
+cells, heavy includes or shortcodes.
+
+`evidence.bibliography(instance, revisions, budget_bytes=..., env=...)` yields a
+fresh private cache run's `sources.json` only within its context, cleaned on
+success, failure and catchable interruption. CSL entries use `id: source-id/revision`,
+`type: document`, the BagIt payload filename as `title`, and custom provenance;
+no invented author/date, sender or absolute paths. Earlier output is never
+new-run authority; no bibliography belongs in vault Git. F2 supplies renderer
+source and audience selection.
+
+The grammatical-competence consumer reads `.qmd` through shared metadata and
+retained evidence, without a separate PDF bypass. Its run's `extractions.json`
+pins raw/extraction hashes and revision; later raw revisions cannot silently
+retarget a recorded profile. Missing legacy provenance is refused/unresolved,
+not a reason to rerun paid proposals. Reference pages link
+`../../text/<source-id>/<revision>.qmd`; section indexes use exact full-file lines,
+including front matter. Moves or header changes need verified reconciliation,
+never guessed offsets. JSON Lines order, repeats, empty entries and checker `none`
+remain unchanged. The absent held lexical-semantics skill is not rebuilt here.
 
 ### Backfire server
 
