@@ -1,17 +1,17 @@
 # Privacy Gate Contract
 
-Normative design contract for FR-003 through FR-012. Assumption: follow D2-D6 subject to Root's latest default-English Faker, single-first-name and mixed-form restoration amendment, and proposed bounds in [data-model.md](../data-model.md). This defines planned behavior; it does not certify implementation.
+Normative design contract for FR-003 through FR-012. Assumption: follow D2-D6 subject to Root's latest default-English Faker, single-first-name and mixed-form restoration amendment, and decided reuse-existing-controls bounds in [data-model.md](../data-model.md). This defines planned behavior; it does not certify implementation.
 
 ## Surface and ordering
 
 Expose only tools/list and tools/call plus required MCP initialization/lifecycle. Tool descriptions/schemas are trusted pinned upstream metadata; verify all 12 at discovery. Resources, templates and prompts are hidden and direct access rejects. Use a disconnected plain Client, no automatic ProxyClient relays. Reject sampling, elicitation, roots and InputRequired continuation; suppress untrusted progress/logging. `provider_error_strategy='raise'` and explicit timeout are mandatory (D3; FastMCP 4.0.10 proxy.py:173-212,479-655,724-818,1528-1779).
 
-1. Validate bounded shape, registry snapshot and tool schema. Reject application request `_meta` before any forwarding, including values outside arguments. Allow only protocol-required fields proven value-free; do not forward arbitrary client/session identifiers.
+1. Validate shape against reused upstream tool limits and the gate recursion-safety guard, registry snapshot and tool schema. Reject application request `_meta` before any forwarding, including values outside arguments. Allow only protocol-required fields proven value-free; do not forward arbitrary client/session identifiers.
 2. Detect constrained-field violations. Build spans for registered spellings and the agreed patterns across every other string/key, including nested classification context.
 3. Resolve overlaps on original text, draw collision-free replacements and swap in one pass. Revalidate the masked arguments against the unchanged upstream schema; reject key collisions or invalid syntax.
-4. Forward through upstream transport; restore all result text/keys in one pass, check reverse collisions and the restored size, preserve types/status, then discard maps.
+4. Forward through upstream transport; restore all result text/keys in one pass, check reverse collisions and the recursion-safety guard, preserve types/status, then discard maps.
 
-Overlap order: select longest span first, then resident number, EduOK, phone, e-mail, registered full person, explicit person alias, school, given alias. Numeric boundaries prevent partial pattern matches. Latin names use case-insensitive letter boundaries and known separators; Hangul given/full forms permit attached particles. Apply admitted school variants exactly with deliberate Latin boundaries. Do not infer organizations or arbitrary domains. Keep exact original substrings. Two different owners of the same full alias reject the registry; shared given forms remain ambiguous matches (current roster.py:78-99, pseudonymize.py:535-635; W3:60-68).
+Phone matching runs first through phonenumbers: every span it accepts retains `Phone NN` and is excluded from EduOK matching. Resolve remaining overlaps by longest span, then resident number, EduOK, e-mail, registered full person, explicit person alias, school, given alias. Numeric boundaries prevent partial matches inside longer digit runs. An isolated ten-digit non-phone span uses `EduOK NN`; nine/eleven-digit runs and ten digits inside longer runs are not EduOK matches. Resident numbers remain isolated 13 digits with an optional separator after the sixth. Tests cover ten-digit phone versus EduOK, nine/eleven digits, embedded ten digits and untouched grades/classes. Latin names use case-insensitive letter boundaries and known separators; Hangul given/full forms permit attached particles. Apply admitted school variants exactly with deliberate Latin boundaries. Do not infer organizations or arbitrary domains. Keep exact original substrings. Two different owners of the same full alias reject the registry; shared given forms remain ambiguous matches (current roster.py:78-99, pseudonymize.py:535-635; W3:60-68).
 
 ## Person and school stand-ins
 
@@ -23,14 +23,14 @@ Reject/redraw a candidate whose single first-name stand-in or mask collides with
 
 ## Identifier patterns
 
-| Kind            | Planned detection                                                                                                               | Label / limits                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Phone           | phonenumbers 9.0.40 PhoneNumberMatcher(text, 'KR'), exact returned spans, E.164 only for internal grouping                      | Phone NN; parser does not cover arbitrary digit strings                             |
-| E-mail          | existing bounded e-mail pattern semantics from pseudonymize.py:16,696-699                                                       | Email NN; test boundaries and overlap, not an RFC-completeness claim                |
-| EduOK           | provisional explicit EduOK/student-number labels and `s-<digits>` page components; proposed 1-12 digits with numeric boundaries | EduOK NN; Root must confirm lengths and bare/numeric forms before acceptance        |
-| Resident number | isolated six digits + optional separator + seven digits, with numeric boundaries; no date/checksum requirement                  | Resident number NN; invalid-date shapes still mask; contiguous 13-digit shapes mask |
+| Kind            | Planned detection                                                                                                                    | Label / limits                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Phone           | phonenumbers 9.0.40 PhoneNumberMatcher(text, 'KR'), exact returned spans, E.164 only for internal grouping                           | Phone NN; parser does not cover arbitrary digit strings                             |
+| E-mail          | existing bounded e-mail pattern semantics from pseudonymize.py:16,696-699                                                            | Email NN; test boundaries and overlap, not an RFC-completeness claim                |
+| EduOK           | isolated ten-digit numbers and `s-<ten digits>` page IDs; numeric boundaries exclude longer digit runs; exclude accepted phone spans | EduOK NN; decided ten-digit format; accepted phone spans remain Phone NN            |
+| Resident number | isolated six digits + optional separator + seven digits, with numeric boundaries; no date/checksum requirement                       | Resident number NN; invalid-date shapes still mask; contiguous 13-digit shapes mask |
 
-Do not persist student numbers to extend matching. Root question 1 is an admission-format release gate. A plain number is not identifiable as an EduOK ID without a format or source relation. All other numeric/boolean schema arguments stay unchanged. Numeric identifiers in open context must be rejected or masked under an agreed numeric-ID policy before real education rollout; do not claim string-only matching covers them.
+Do not persist student numbers to extend matching. The decided ten-digit pattern covers bare strings and page IDs without requiring a label. Numeric/boolean schema values stay unchanged; detection applies to text fields and keys, not grades/classes or a schema-valid numeric learning value.
 
 Grades/classes, school years, scores, dates, regions, addresses and learning observations stay unchanged unless they overlap a registered spelling or covered pattern. Remove cohort/date/address/region/labeled-field/table-column detectors and blanket Hangul refusal. No new organization detector (Design; W3:66-70).
 
@@ -46,11 +46,19 @@ JSON map keys are text. Swap both keys and values, reject duplicate keys after m
 
 ## Result restoration and failure
 
-For each text block, parse JSON when valid, restore all string values and keys recursively, then serialize. Apply the same decoding/restoration to nested JSON-encoded strings, within the same depth/work bounds; escaping must not hide a supported text field. Restore plain text/errors directly when not JSON. Outer `content[].text` is always covered; JSON escape sequences must not prevent restoration. Walk `structured_content` and allowed `meta` recursively if present, plus supported text-bearing model fields. Treat usage as unvalidated arbitrary data: do not assume token counts are numbers. Preserve fixed enums, numbers, booleans, null and `is_error` (D2; W1:133-153).
+For each text block, parse JSON when valid, restore all string values and keys recursively, then serialize. Apply the same decoding/restoration to nested JSON-encoded strings, within the same recursion-safety depth guard; escaping must not hide a supported text field. Restore plain text/errors directly when not JSON. Outer `content[].text` is always covered; JSON escape sequences must not prevent restoration. Walk `structured_content` and allowed `meta` recursively if present, plus supported text-bearing model fields. Treat usage as unvalidated arbitrary data: do not assume token counts are numbers. Preserve fixed enums, numbers, booleans, null and `is_error` (D2; W1:133-153).
 
 No outputSchema exists in the selected package. If an upgrade adds one, pause for compatibility review; do not drop it to accommodate restored text. Restoration covers unchanged stand-in spellings. Truncated, translated or otherwise altered names are a documented limit; no fuzzy reverse guess. Use exact originals where a returned field/identifier uniquely anchors them; otherwise use the registered romanized spelling or Hangul fallback. Do not guess a mixed-form original without an anchor. If a different-person reverse collision, key collision or unsupported result prevents safe restoration, return generic error.
 
 Return generic `isError=true` text for rejected input, backend error, unsafe result, cancellation or timeout. Do not return raw exception strings, original paths, list contents, pairs or stderr. Upstream error results may use the normal restoration walk only when their type/bounds are allowed. Malformed input never starts a provider request; cancellation releases maps and closes/reaps the request's supported client scope. A bad call must not poison the next valid call. Error category/count may be recorded without payloads; no persistent per-call ledger is added.
+
+## Bounds and measurement contract
+
+Reuse upstream per-tool schema/lib.js limits (including Noul's 64 propositions of 2,000 characters), the streamed 1,000,000-byte provider response ceiling, `JEV_MCP_REQUEST_TIMEOUT_MS` default 60,000 ms and `JEV_MCP_MAX_ATTEMPTS` default 3 clamped 1-6. Set the FastMCP client timeout explicitly; reuse FastMCP/MCP SDK message handling. Do not replace these controls with new request/result/provider limits (W1:71,174,183-203; dist/provider.js:20-31,94-193; [data-model.md](../data-model.md#positive-bounds)).
+
+The gate keeps list bounds (1 MiB, 4,096 spellings, 256 characters each), 256 draws per identity and 128 identities, a recursion-safety depth guard with fixed generic error, and zero per-call files. Failed admission keeps the old file. Record peak RSS and CPU of a large synthetic call; no gate-enforced resource threshold is claimed.
+
+Missing verify claims/evidence, screen text/purpose and classification-context input ceilings, pre-parse stdio frame/allocation limits and concurrency caps remain explicit handoff notes. For each, ask the relevant upstream for a supported control or main for an operating-system resource scope at service level. FastMCP decoded-result limits do not bound pre-parse allocation. Build no custom framing, scheduler or provider/body budget.
 
 ## Dependency-review acceptance conditions
 
