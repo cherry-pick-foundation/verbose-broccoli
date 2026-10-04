@@ -58,7 +58,7 @@ unchecked profile status. Consolidate only values proved equivalent by readback;
 shared profile inventory paths remain relative to the consuming page. Do not
 run `quarto inspect` per page or inject defaults into body prose.
 
-Public interfaces are `instance.read_metadata(instance, document,
+Public interfaces are `instance.read_metadata(instance, document, *,
 named_defaults=None)` for the full mapping/problems and
 `instance.metadata_sources(instance, document)` for safe ordered ancestor names
 without content reads. F2 rediscovers the list each run and fingerprints exact

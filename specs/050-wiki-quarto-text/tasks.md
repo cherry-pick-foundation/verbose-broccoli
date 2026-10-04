@@ -443,3 +443,54 @@ paths remain as currently approved; future container/pointer changes are separat
 The renewed review choice is fresh Sonnet/high (.68/.62;45-minute checkpoint
 .45/.34); actual new session proof and disposition are still required before
 final combined verification/integration. No final self-approval is given.
+
+
+2026-10-04 c302 current-source acceptance `ctx_93f6f6887f51` settled/released:
+all176 pages/164 ordinary effective maps/four texts/raw810/113JSONL/4,671 spans,
+all-five clean Git roots/zero remotes and full raw/cache/grammar/source
+preservation pass. Actual check JSON reproduces the prior diagnostics exactly;
+zero new findings, work remains6problems/115orphans, otherthree pass. The complete
+report/command exits/byte receipts are sealed in that Dispatch. This evidence
+remains pinned historical acceptance when the inline guard changes source.
+
+Fresh final review `ctx_d414e981b05b` APPROVES c302/tree5a851280 with actual
+Sonnet/high/perTurnEffort proof and450Wiki/18grammar/124doc-regions/45raw tests.
+Four advisories are retained. Missing/failed pdftotext leaves a raw-hash-keyed
+unreadable cache diagnostic; selected-source recovery must retain results and
+inspect runtime before a separately authorized retry, not silently rerun. The
+existing system-binary timeout/size characteristics remain a pilot consideration.
+The read_metadata keyword-only contract is corrected in this record change.
+
+Main `msg_8e3ed1e6940f`, develop `msg_42ca2b02544c`, resolves inert-source scope
+to reject inline executable expressions too. Native `task_799eb8820019` /
+`ctx_34b63ae24e5a`, Luna/medium (.70/.63;10-minute checkpoint .41/.30), owns only
+lint/check tests and current Wiki skill under exact four-file plan at c302.
+No API/cache/framework or real data change is authorized. Affected fresh
+other-provider review/current-corpus check refresh/public-document support
+rebinding follow its new freeze; final full run waits for those results.
+
+Public binder `task_cf8d2fc8ed86` / `ctx_a331be7016ab`, sol/xhigh
+(.63/.55;30-minute checkpoint .38/.26), retains validated c302 draft52 inputs
+and26,853 artifact assertions while waiting for the final guard support. Original
+358objects/409parts/363unproposed dispositions/four classifications and all
+previous paid/refusal/source evidence stay exact. All submissions remain held.
+Future display-name/container changes grant no physical move or source rewrite.
+
+
+2026-10-04 restart recovery: runtime a07aa0c6 retains the original parent/child
+Run authority and all completed migration/review/choice receipts. The interrupted
+inline-completion and waiting binder Dispatches were explicitly stopped and
+released with supported receipts before retries, preserving their state. No
+completed paid call or broad test was repeated. Binder retry waits for exactfreeze.
+Native same-Task inline completion retry `ctx_c07a2e953d13` (Luna/medium retained
+.84/.80;5-minute checkpoint .70/.62) matched actual own turn_context line9.
+It completed Ruff/format,6inline CLI cases,1existing inert-positive and diff/workflow
+checks; its source hashes were unchanged during checks. Earlier corrections were
+already present, not reauthored. Scoped guard enters `82b1638`, normal hooks and
+T004/T020 trailers; no source/private/runtime/budget/API expansion.
+
+F2 reuse remains existing `lint._inert_problems(root, targets, markdown)` with
+safe root-relative selected inputs and existing MarkdownIt commonmark. Fence/inline
+checks parse front-matter-masked body; shortcode scanning includes metadata.
+F2 owns its render-metadata allowlist and selected publication scope. Final frozen
+lint/hash/review handoff is pending affected independent review; no shared redesign.
