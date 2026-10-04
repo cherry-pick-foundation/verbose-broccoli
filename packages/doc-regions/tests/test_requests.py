@@ -1,11 +1,9 @@
+import hashlib
 import json
 from pathlib import Path
-import re
 import subprocess
 import sys
 
-from jev_judge_mcp.tools.classify import TOOL as CLASSIFY_TOOL
-from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
 
@@ -36,12 +34,23 @@ def units(count):
     ]
 
 
-def test_schema_fixtures_copy_jev_verbatim():
-    tools = {"jev_verify": VERIFY_TOOL, "jev_classify": CLASSIFY_TOOL}
+def test_schema_fixtures_match_pinned_upstream_capture():
+    # SHA-256 of sorted JSON schemas captured from @jkudish/jev-mcp 0.13.0.
+    expected = {
+        "jev_verify": (
+            "772d715a0a13c7560836909588cf888046669ec4cda8bcdc1386df2581864e48"
+        ),
+        "jev_classify": (
+            "4ce6e0c1ec7b1f002dab541398f288ac973b2b153565fb9fb15b3f7e0f0e54ab"
+        ),
+    }
     for name, schema in SCHEMAS.items():
+        jsonschema.Draft202012Validator.check_schema(schema)
         assert (
-            schema
-            == tools[name].definition.model_dump(by_alias=True)["inputSchema"]
+            hashlib.sha256(
+                json.dumps(schema, sort_keys=True).encode()
+            ).hexdigest()
+            == expected[name]
         )
 
 
@@ -467,7 +476,7 @@ def test_cli_check_update_and_failures(repository, unchanged):
     assert not result.stdout
 
 
-def test_prepare_sends_hangul_in_latin_letters(repository, unchanged):
+def test_prepare_preserves_hangul_for_the_privacy_gate(repository, unchanged):
     (repository / "doc.md").write_text(
         (repository / "doc.md").read_text() + "\nName `가라온은` ㄴ.\n"
     )
@@ -483,6 +492,36 @@ def test_prepare_sends_hangul_in_latin_letters(repository, unchanged):
     sent = json.dumps(
         [r["arguments"] for r in result["requests"]], ensure_ascii=False
     )
-    assert not re.search(r"[ᄀ-ᇿ㄰-㆏가-퟿]", sent)
-    assert "Name `galaoneun` n." in sent
-    assert "mugho" in sent
+    assert "Name `가라온은` ㄴ." in sent
+    assert "묵호" in sent
+    assert "한글.txt" in sent
+
+
+@pytest.mark.parametrize("tool", ["jev_verify", "jev_classify"])
+def test_upstream_schema_rejects_unknown_request_fields(tool):
+    request = (
+        verify_requests([(units(1), [{"text": "Evidence"}])])[0]
+        if tool == "jev_verify"
+        else classify_requests(units(1), "Synthetic purpose")[0]
+    )
+    for field in ("tests_format", "tests_sha256", "tests_weight"):
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(
+                {**request["arguments"], field: "legacy"}, SCHEMAS[tool]
+            )
+
+
+@pytest.mark.parametrize("field", ["kind", "role"])
+def test_upstream_verify_evidence_rejects_old_python_fields(field):
+    request = verify_requests(
+        [(units(1), [{"id": "synthetic", "text": "Evidence", field: "raw"}])]
+    )[0]
+    with pytest.raises(jsonschema.ValidationError):
+        valid([request])
+
+
+@pytest.mark.parametrize("context", ["한국어 근거", {"policy": "한국어 근거"}])
+def test_upstream_classify_context_supports_text_or_mapping(context):
+    request = classify_requests(units(1), "Synthetic purpose")[0]
+    request["arguments"]["context"] = context
+    valid([request])

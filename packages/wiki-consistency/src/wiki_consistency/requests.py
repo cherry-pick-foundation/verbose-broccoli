@@ -1,4 +1,4 @@
-"""Prepare deterministic Backfire requests for a Wiki scope."""
+"""Prepare deterministic Jev requests for a Wiki scope."""
 
 from difflib import SequenceMatcher
 import json
@@ -6,9 +6,6 @@ import os
 from pathlib import Path
 import subprocess
 
-from jev_judge_mcp.limits import CANDIDATES
-from jev_judge_mcp.limits import CLASSIFY
-from jev_judge_mcp.text import length
 from markdown_it import MarkdownIt
 import yaml
 
@@ -26,6 +23,13 @@ from wiki_consistency.lint import _link_targets
 
 SPECIAL_NO_UNITS = {"wiki/index.qmd", "wiki/log.qmd"}
 REQUEST_ORDER = {"evidence": 0, "pages": 1, "crossref": 2, "classify": 3}
+# Upstream 0.13.0 truncates classify/find text at 2,000 UTF-16 code units.
+MAX_SUGGESTION_TEXT_UNITS = 2000
+
+
+def _text_units(text):
+    """Count JavaScript string length without truncating exact text."""
+    return len(text.encode("utf-16-le", "surrogatepass")) // 2
 
 
 def _git(root, *args):
@@ -576,12 +580,12 @@ def _prepare(
     for request in request_list:
         arguments = request["arguments"]
         if request["tool"] == "jev_classify" and any(
-            length(item["text"]) > CLASSIFY.item_units
+            _text_units(item["text"]) > MAX_SUGGESTION_TEXT_UNITS
             for item in arguments["items"]
         ):
             raise ValueError("classification item exceeds exact text limit")
         if request["tool"] == "jev_find" and any(
-            length(item["text"]) > CANDIDATES.text_units
+            _text_units(item["text"]) > MAX_SUGGESTION_TEXT_UNITS
             for item in arguments["candidates"]
         ):
             raise ValueError(
