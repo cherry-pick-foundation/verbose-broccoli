@@ -1,5 +1,6 @@
 import asyncio
 from contextlib import asynccontextmanager
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -14,13 +15,16 @@ from openpyxl import Workbook
 import pytest
 import yaml
 
+from wiki_consistency import evidence
 from wiki_consistency.instance import instance_path
+from wiki_consistency.instance import read_metadata
+from wiki_consistency.instance import revisions
 
 sys.path.insert(0, str(Path(__file__).parent))
 import grammatical_competence as profile
 
 REVISION = "20260930T000000000000Z"
-INVENTORY = "inventories/inventory.md"
+INVENTORY = "inventories/inventory.qmd"
 ROWS = [
     ("ID", "Label", "Type", "Level", "Statement", "Examples", "Tier"),
     ("keep", "Keep", "Group", " A1 ", "Shows support.", "One.\nTwo.", "N/A"),
@@ -69,11 +73,14 @@ def _run(command):
     )
 
 
-def _bag(root, source, name, content):
-    bag = root / "raw/files" / source / REVISION
+def _bag(root, source, name, content, revision=REVISION):
+    bag = root / "raw/files" / source / revision
     bag.mkdir(parents=True)
     (bag / name).write_bytes(content)
-    bagit.make_bag(str(bag), bag_info={"External-Identifier": source})
+    bagit.make_bag(
+        str(bag),
+        bag_info={"External-Identifier": source, "Admission-Time": revision},
+    )
 
 
 def _jsonl(path):
@@ -178,7 +185,7 @@ def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
 
     assert _run(RECORD) == 0
     (row,) = _jsonl(vault / "wiki/profiles/sample.jsonl")
-    page = (vault / "wiki/profiles/sample.md").read_text()
+    page = (vault / "wiki/profiles/sample.qmd").read_text()
     front = yaml.safe_load(page.split("---\n", 2)[1])
     assert row == {
         "n": 1,
@@ -290,7 +297,7 @@ def test_record_sorts_stored_results_again_at_a_threshold(backfire):
     root = instance_path("synthetic", os.environ)
     (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
     assert (row["items"], row["unclear"]) == (["keep"], ["drop"])
-    page = (root / "wiki/profiles/sample.md").read_text()
+    page = (root / "wiki/profiles/sample.qmd").read_text()
     profile_block = yaml.safe_load(page.split("---\n")[1])["profile"]
     assert profile_block["auto_accept"] == 0.5
     counts = {"sentences": 1, "kept": 1, "dropped": 1, "unclear": 1}
@@ -338,11 +345,11 @@ def test_map_checks_sections_without_hangul_and_records_them(
         "summary": "A reference for tests.",
         "topics": ["Teaching materials"],
         "sources": [{"id": "reference-source", "revision": REVISION}],
-        "reference": {"text": "reference.markdown"},
+        "reference": {"text": f"../../text/reference-source/{REVISION}.qmd"},
     }
     (root / "wiki/references").mkdir()
     front = yaml.safe_dump(reference, sort_keys=False)
-    (root / "wiki/references/reference.md").write_text(f"---\n{front}---\n")
+    (root / "wiki/references/reference.qmd").write_text(f"---\n{front}---\n")
     # The third line is Korean, escaped, so this file holds no Hangul.
     lines = (
         "# Unit 1",
@@ -351,13 +358,25 @@ def test_map_checks_sections_without_hangul_and_records_them(
         "# Unit 2",
         "Else.",
     )
-    (root / "wiki/references/reference.markdown").write_text("\n".join(lines))
+    _bag(root, "reference-source", "reference.txt", "\n".join(lines).encode())
+    evidence.convert(
+        root,
+        "synthetic",
+        profile.roots(os.environ)["cache"],
+        {"reference-source": revisions(root)["reference-source"]},
+    )
+    retained = evidence.read(root, "reference-source", REVISION)
+    offset = retained["first_line"] - 1
     run = profile._run_dir("run")
     run.mkdir(parents=True)
-    index = "Unit 1\t1\t3\tTitle\nUnit 2\t4\t5\nPast the end\t4\t9\n"
+    index = (
+        f"Unit 1\t{offset + 1}\t{offset + 3}\tTitle\n"
+        f"Unit 2\t{offset + 4}\t{offset + 5}\n"
+        f"Past the end\t{offset + 4}\t{offset + 9}\n"
+    )
     (run / "sections.tsv").write_text(index)
-    mapping = "map --inventory inventories/inventory.md "
-    mapping += "--reference references/reference.md"
+    mapping = "map --inventory inventories/inventory.qmd "
+    mapping += "--reference references/reference.qmd"
 
     def rows(*found):
         text = "".join(
@@ -407,7 +426,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
         "Section Unit 2:\n# Unit 2\nElse."
     )
     record = RECORD.replace("--name sample", "--name inventory--reference")
-    record += " --reference references/reference.md"
+    record += " --reference references/reference.qmd"
     rows((1, ["Unit 1", "Unit 2"]), *others[:-1])
     assert _run(record) == 1
     assert "exactly once" in capsys.readouterr().err
@@ -417,18 +436,24 @@ def test_map_checks_sections_without_hangul_and_records_them(
     assert data == [
         {
             "item": "keep",
-            "sections": [{"label": "Unit 1", "lines": [1, 3]}],
-            "unclear": [{"label": "Unit 2", "lines": [4, 5]}],
+            "sections": [
+                {"label": "Unit 1", "lines": [offset + 1, offset + 3]}
+            ],
+            "unclear": [{"label": "Unit 2", "lines": [offset + 4, offset + 5]}],
         },
     ] + [
         {"item": item, "sections": [], "unclear": []}
         for item in ("drop", "silent", "accept", "reject", "small", "alone")
     ]
-    page = (root / "wiki/mappings/inventory--reference.md").read_text()
-    front = yaml.safe_load(page.split("---\n")[1])
+    page = (root / "wiki/mappings/inventory--reference.qmd").read_text()
+    front, problems = read_metadata(
+        root, "wiki/mappings/inventory--reference.qmd"
+    )
+    assert not problems
+    assert "[reference](../references/reference.qmd)" in page
     assert front["mapping"] == {
         "inventory": f"../{INVENTORY}",
-        "reference": "../references/reference.md",
+        "reference": "../references/reference.qmd",
         "data": "inventory--reference.jsonl",
         "proposer": "test agent, test model, max",
         "checker": "synthetic stub",
@@ -454,8 +479,206 @@ def test_record_unchecked_keeps_every_valid_proposal(backfire, capsys):
     assert not backfire.calls and not (run / "checks.jsonl").exists()
     (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
     assert (row["items"], row["unclear"]) == (["keep", "drop"], [])
-    page = (root / "wiki/profiles/sample.md").read_text()
+    page = (root / "wiki/profiles/sample.qmd").read_text()
     block = yaml.safe_load(page.split("---\n")[1])["profile"]
     assert block["checker"] == "none"
     counts = {"sentences": 1, "kept": 2, "dropped": 0, "unclear": 0}
     assert block["counts"] == counts
+
+
+def test_inherited_inventory_and_generated_checker_override(vault, backfire):
+    defaults = dict(PAGE)
+    defaults["inventory"] = {**PAGE["inventory"], "claim": "Ancestor {text}"}
+    (vault / "wiki/_metadata.yml").write_text(yaml.safe_dump(defaults))
+    (vault / "wiki/inventories/_metadata.yml").write_text(
+        yaml.safe_dump(
+            {
+                "inventory": {
+                    "claim": "Directory {text}",
+                    "columns": {"level": "Level"},
+                },
+                "topics": ["Teaching materials", "Synthetic topic"],
+            }
+        )
+    )
+    (vault / "wiki" / INVENTORY).write_text(
+        '---\ninventory:\n  claim: "Page {text} {label} {statement}"\n'
+        "---\nInventory body.\n"
+    )
+    metadata, entries = profile._inventory(vault, INVENTORY)
+    assert entries[1]["id"] == "keep"
+    assert metadata["topics"] == ["Teaching materials", "Synthetic topic"]
+    assert metadata["inventory"]["claim"].startswith("Page")
+    assert _run("extract --source material-source") == 0
+    run = profile._run_dir("run")
+    _proposals(
+        run,
+        ("First sentence.", [1]),
+        ("Second sentence.", []),
+        ("First sentence.", [1]),
+    )
+    original = (run / "proposals.jsonl").read_bytes()
+    (vault / "wiki/profiles").mkdir()
+    (vault / "wiki/profiles/_metadata.yml").write_text(
+        yaml.safe_dump(
+            {
+                "profile": {
+                    "inventory": f"../{INVENTORY}",
+                    "checker": "Inherited checker",
+                    "custom": {"keep": True},
+                },
+            }
+        )
+    )
+    assert _run(f"{RECORD} --unchecked") == 0
+    front, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    assert not problems
+    assert front["profile"]["checker"] == "none"
+    assert front["profile"]["custom"] == {"keep": True}
+    assert (
+        f"[inventory](../{INVENTORY})"
+        in (vault / "wiki/profiles/sample.qmd").read_text()
+    )
+    rows = _jsonl(vault / "wiki/profiles/sample.jsonl")
+    assert [r["text"] for r in rows] == [
+        "First sentence.",
+        "Second sentence.",
+        "First sentence.",
+    ]
+    assert [r["items"] for r in rows] == [["keep"], [], ["keep"]]
+    assert [r["n"] for r in rows] == [1, 2, 3]
+    assert (run / "proposals.jsonl").read_bytes() == original
+    assert not backfire.calls
+
+
+def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
+    vault, monkeypatch
+):
+    _bag(vault, "retained-source", "book.pdf", b"synthetic PDF payload")
+    path = vault / f"text/retained-source/{REVISION}.qmd"
+    path.parent.mkdir(parents=True)
+    front = {
+        "source-id": "retained-source",
+        "revision": REVISION,
+        "sha256": hashlib.sha256(b"synthetic PDF payload").hexdigest(),
+        "checked-against-original": True,
+    }
+    path.write_text(
+        "---\n"
+        + yaml.safe_dump(front)
+        + "---\nFull retained sentence.\nUnlocated sentinel.\n"
+    )
+    before = path.read_bytes()
+
+    def no_conversion(*unused_args, **unused_kwargs):
+        raise AssertionError("existing retained source must be reused")
+
+    monkeypatch.setattr(profile.evidence, "convert", no_conversion)
+    assert _run("extract --source retained-source") == 0
+    run = profile._run_dir("run")
+    assert (
+        run / "text/retained-source.txt"
+    ).read_text() == "Full retained sentence.\nUnlocated sentinel.\n"
+    receipt = json.loads((run / "extractions.json").read_text())[
+        "retained-source"
+    ]
+    assert receipt["checked-against-original"] is None
+    assert "missing or stale original review evidence" in receipt["problems"]
+    assert "missing locator evidence" in receipt["problems"]
+    _bag(
+        vault,
+        "retained-source",
+        "book.pdf",
+        b"new synthetic PDF payload",
+        "20261004T000000000000Z",
+    )
+    (run / "proposals.jsonl").write_text(
+        json.dumps(
+            {
+                "source": "retained-source",
+                "part": "Unit 1",
+                "text": "Full retained sentence.",
+                "items": [],
+            }
+        )
+        + "\n"
+    )
+    assert _run(f"{RECORD} --unchecked") == 0
+    metadata, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    assert not problems
+    assert metadata["sources"][0] == {
+        "id": "retained-source",
+        "revision": REVISION,
+    }
+    assert _run("extract --source retained-source") == 0
+    assert path.read_bytes() == before
+    path.write_bytes(before + b"Correction.\n")
+    assert _run(f"{RECORD} --unchecked") == 2
+
+
+def test_legacy_run_refuses_without_touching_paid_results(vault, capsys):
+    run = profile._run_dir("run")
+    (run / "text").mkdir(parents=True)
+    (run / "text/material-source.txt").write_text("First sentence.")
+    _proposals(run, ("First sentence.", []))
+    checks = b'{"row": 1, "provider": null, "results": []}\n'
+    (run / "checks.jsonl").write_bytes(checks)
+    assert _run(f"{RECORD} --unchecked") == 2
+    assert "provenance" in capsys.readouterr().err
+    assert _run("extract --source material-source") == 2
+    assert (run / "checks.jsonl").read_bytes() == checks
+    assert not (vault / "wiki/profiles/sample.qmd").exists()
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "../../outside.qmd",
+        "../../text/link/revision.qmd",
+        "../../text/source/link.qmd",
+        "../../text/link/../source/link.qmd",
+    ],
+)
+def test_reference_rejects_escaping_and_symlink_paths(vault, tmp_path, target):
+    outside = tmp_path / "outside.qmd"
+    outside.write_text("Forbidden bytes.")
+    (vault / "text/source").mkdir(parents=True)
+    (vault / "text/link").symlink_to(tmp_path, target_is_directory=True)
+    (vault / "text/source/link.qmd").symlink_to(outside)
+    reference = {**PAGE, "reference": {"text": target}}
+    (vault / "wiki/references").mkdir()
+    (vault / "wiki/references/reference.qmd").write_text(
+        "---\n" + yaml.safe_dump(reference) + "---\n"
+    )
+    args = SimpleNamespace(reference="references/reference.qmd")
+    with pytest.raises(ValueError, match="text/|symlink"):
+        profile._sections(vault, args, profile._run_dir("run"))
+
+
+def test_metadata_problem_keeps_source_and_line(vault):
+    (vault / "wiki/inventories/_metadata.yml").write_text("inventory: [\n")
+    with pytest.raises(ValueError, match=r"wiki/inventories/_metadata.yml:\d+"):
+        profile._page(vault, INVENTORY)
+
+
+def test_empty_source_refuses_and_empty_profile_stays_unchecked(
+    vault, backfire
+):
+    _bag(vault, "empty-source", "empty.txt", b"123\n")
+    before = _snapshot(vault)
+    assert _run("extract --source empty-source") == 2
+    run = profile._run_dir("run")
+    assert not (run / "text/empty-source.txt").exists()
+    run.mkdir(parents=True, exist_ok=True)
+    _proposals(run)
+    assert _run(f"{RECORD} --unchecked") == 0
+    front, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    assert not problems and front["profile"]["checker"] == "none"
+    assert front["profile"]["counts"] == {
+        "sentences": 0,
+        "kept": 0,
+        "dropped": 0,
+        "unclear": 0,
+    }
+    assert (vault / "wiki/profiles/sample.jsonl").read_bytes() == b""
+    assert not backfire.calls and _snapshot(vault) == before

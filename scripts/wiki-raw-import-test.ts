@@ -96,7 +96,9 @@ async function snapshot(root: string, times = false) {
       path: relative(root, entry.path),
       mode: fileInfo.mode,
       bytes: fileInfo.isFile() ? Array.from(await readFile(entry.path)) : null,
-      ...(times ? {mtime: fileInfo.mtime?.getTime()} : {}),
+      ...(times
+        ? {mtime: (await lstat(entry.path, {bigint: true})).mtimeNs}
+        : {}),
     });
   }
   return entries.sort((a, b) => a.path.localeCompare(b.path));
@@ -825,7 +827,7 @@ void test('raw import US5: init copies the schema and creates an uncommitted Wik
       await readFile(join(f.instance, 'AGENTS.md')),
       await readFile(join(dirname(script), '../assets/AGENTS.md')),
     );
-    for (const name of ['index.md', 'overview.md', 'log.md'])
+    for (const name of ['index.qmd', 'overview.qmd', 'log.qmd'])
       assertEquals(await readText(join(f.instance, 'wiki', name)), '');
     const layout = (await snapshot(f.instance))
       .map(entry => entry.path)
@@ -842,10 +844,11 @@ void test('raw import US5: init copies the schema and creates an uncommitted Wik
         'raw/files',
         'raw/notes',
         'raw/web',
+        'text',
         'wiki',
-        'wiki/index.md',
-        'wiki/log.md',
-        'wiki/overview.md',
+        'wiki/index.qmd',
+        'wiki/log.qmd',
+        'wiki/overview.qmd',
       ].sort(),
     );
     const path = await f.file('evidence.txt');
@@ -901,13 +904,50 @@ void test('raw import US5: repeated init preserves every byte and modification t
   await fixture(async f => {
     await f.init();
     await writeFile(join(f.instance, 'AGENTS.md'), 'existing schema\n');
-    await writeFile(join(f.instance, 'wiki/index.md'), 'existing catalog\n');
+    for (const name of ['index', 'overview', 'log'])
+      await writeFile(
+        join(f.instance, `wiki/${name}.qmd`),
+        `existing ${name}\n`,
+      );
+    await writeFile(join(f.instance, 'wiki/_metadata.yml'), 'lang: en\n');
+    await writeFile(join(f.instance, 'text/extraction.qmd'), 'retained text\n');
     await writeFile(join(f.instance, '.gitignore'), '/raw/\n/custom/\n');
+    report(await f.admit([await f.file('rerun.txt')]));
     const before = await snapshot(f.instance, true);
     assertEquals(await f.init(), {created: []});
     assertEquals(await snapshot(f.instance, true), before);
   });
 });
+
+for (const layout of ['legacy', 'mixed']) {
+  for (const name of ['index', 'overview', 'log']) {
+    void test(`raw import US5: init refuses ${layout} ${name}.md before any write`, async () => {
+      await fixture(async f => {
+        await mkdir(join(f.instance, 'wiki'), {recursive: true});
+        await mkdir(join(f.raw, 'files'), {recursive: true});
+        await writeFile(join(f.raw, 'files/preserved.txt'), 'raw bytes\n');
+        await writeFile(join(f.instance, 'AGENTS.md'), 'legacy schema\n');
+        await writeFile(
+          join(f.instance, 'wiki', `${name}.md`),
+          'legacy body\n',
+        );
+        if (layout === 'mixed')
+          for (const special of ['index', 'overview', 'log'])
+            await writeFile(
+              join(f.instance, 'wiki', `${special}.qmd`),
+              `existing ${special}\n`,
+            );
+        const before = await snapshot(f.home, true);
+        const result = await f.run('init');
+        assertEquals(result.code, 2, result.stderr);
+        assertEquals(result.stdout, '');
+        assertMatch(result.stderr, /migration/i);
+        assert(result.stderr.includes(`${name}.md`));
+        assertEquals(await snapshot(f.home, true), before);
+      });
+    });
+  }
+}
 
 void test('raw import US5: named Wiki and all four kinds use their own roots', async () => {
   await fixture(async f => {
