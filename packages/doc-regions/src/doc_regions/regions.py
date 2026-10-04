@@ -1,12 +1,14 @@
 """Check named-source Cog regions and local links."""
 
 import ast
+from contextlib import ExitStack
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
 from doc_regions.config import files
 
@@ -250,6 +252,65 @@ def replace_outputs(document, original, updated, spans):
     return "".join(old_lines).encode("utf-8")
 
 
+def _link_views(root, directories, destination):
+    for directory in directories:
+        path = Path(directory)
+        if path.is_absolute() or ".." in path.parts or not path.parts:
+            raise ValueError(
+                f"expected a root-relative view directory: {directory}"
+            )
+        for source in sorted((root / path).rglob("*.qmd")):
+            relative = source.relative_to(root).as_posix()
+            files(root, relative)
+            if not source.resolve().is_relative_to(root / path):
+                raise ValueError(
+                    f"link view source leaves {directory}: {relative}"
+                )
+            target = (destination / relative).with_suffix(".md")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+
+
+def _links(root, document, views, directories):
+    options = []
+    target = document
+    if Path(document).suffix == ".qmd":
+        if views is None or not any(
+            Path(document).is_relative_to(directory)
+            for directory in directories
+        ):
+            raise ValueError(f"no named link view directory for {document}")
+        target = str((views / document).with_suffix(".md"))
+        options = ["--base-url", (root / document).as_uri()]
+        for directory in directories:
+            options.extend(
+                [
+                    "--remap",
+                    f"^{re.escape((root / directory).as_uri())}"
+                    "/(.*)\\.qmd(.*)$ "
+                    f"{(views / directory).as_uri()}/$1.md$2",
+                ]
+            )
+    return run(
+        root,
+        [
+            "lychee",
+            "--offline",
+            "--include-fragments",
+            "--no-progress",
+            "--root-dir",
+            "/",
+            "--config",
+            os.devnull,
+            "--format",
+            "json",
+            *options,
+            "--",
+            target,
+        ],
+    )
+
+
 def process(
     root,
     targets,
@@ -258,6 +319,8 @@ def process(
     updating=False,
     *,
     fix_command="npm run doc-regions:update",
+    link_view_roots=(),
+    link_views=None,
 ):
     """Check or update configured Cog regions and local links."""
     root = Path(root).resolve()
@@ -295,23 +358,7 @@ def process(
                     if merged != path.read_bytes():
                         path.write_bytes(merged)
         if not updating:
-            result = run(
-                root,
-                [
-                    "lychee",
-                    "--offline",
-                    "--include-fragments",
-                    "--no-progress",
-                    "--root-dir",
-                    "/",
-                    "--config",
-                    os.devnull,
-                    "--format",
-                    "json",
-                    "--",
-                    document,
-                ],
-            )
+            result = _links(root, document, link_views, link_view_roots)
             if result.returncode:
                 try:
                     failures = [
@@ -328,7 +375,11 @@ def process(
                         problem(
                             document,
                             (failure.get("span") or {}).get("line", 1),
-                            f"{failure.get('url', '')}: "
+                            f"{
+                                failure.get('remap', {})
+                                .get('original', {})
+                                .get('url', failure.get('url', ''))
+                            }: "
                             f"{
                                 failure.get('status', {}).get(
                                     'text', 'link failed'
@@ -353,11 +404,27 @@ def check(
     generator_path,
     *,
     fix_command="npm run doc-regions:update",
+    link_view_roots=(),
 ):
     """Check configured Cog regions and local links."""
-    return process(
-        root, targets, generators, generator_path, fix_command=fix_command
-    )
+    with ExitStack() as stack:
+        views = None
+        if link_view_roots:
+            views = Path(
+                stack.enter_context(
+                    TemporaryDirectory(prefix="doc-regions-links-")
+                )
+            )
+            _link_views(Path(root).resolve(), link_view_roots, views)
+        return process(
+            root,
+            targets,
+            generators,
+            generator_path,
+            fix_command=fix_command,
+            link_view_roots=link_view_roots,
+            link_views=views,
+        )
 
 
 def update(root, targets, generators, generator_path):
