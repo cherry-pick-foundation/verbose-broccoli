@@ -125,15 +125,6 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 TypeSafe AI.
   [MIT license](../plugins/code/skills/model-choice/LICENSE).
 
-## daviddrysdale/python-phonenumbers — work plugin pseudonymization
-
-- Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
-  PyPI as `phonenumbers` 9.0.40, a Python port of Google's libphonenumber.
-- Used as a pinned Python dependency of `packages/education-privacy-gate/`,
-  locked in the workspace's `uv.lock` and installed by `mise run setup`.
-  No source is copied into the repository.
-- Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
-
 ## browser-use/jev-ultrafast — chat web agent
 
 - Source:

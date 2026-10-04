@@ -607,6 +607,46 @@ def test_startup_failure_has_fixed_text():
         proxy_module.main(key_source=fail)
 
 
+@pytest.mark.parametrize("config", [None, "", "relative", "absolute"])
+def test_startup_provider_path_uses_config_root(config, tmp_path, monkeypatch):
+    import dotenv  # noqa: PLC0415
+
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv(
+            "XDG_CONFIG_HOME",
+            str(tmp_path / "config") if config == "absolute" else config,
+        )
+    paths = []
+
+    def synthetic_values(path, *, interpolate):
+        paths.append(path)
+        assert interpolate is False
+        return {"OPENROUTER_API_KEY": "synthetic-dummy"}
+
+    monkeypatch.setattr(dotenv, "dotenv_values", synthetic_values)
+    monkeypatch.setattr(
+        proxy_module,
+        "build_proxy",
+        lambda **unused_options: SimpleNamespace(
+            run=lambda **unused_options: None
+        ),
+    )
+    proxy_module.main()
+    root = (
+        tmp_path / "config"
+        if config == "absolute"
+        else tmp_path / "home/.config"
+    )
+    assert paths == [root / "verbose-broccoli/providers/openrouter.env"]
+    assert (
+        proxy_module.roster.registry_config_dir().parent
+        == root / "verbose-broccoli"
+    )
+
+
 def test_continuations_and_raw_boolean_progress_are_blocked(isolated):
     root, created = isolated
 

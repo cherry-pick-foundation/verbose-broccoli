@@ -256,8 +256,8 @@ def main(*, key_source=None):
                 from dotenv import dotenv_values  # noqa: PLC0415
 
                 key = dotenv_values(
-                    Path.home()
-                    / ".config/verbose-broccoli/providers/openrouter.env",
+                    roster.config_root()
+                    / "verbose-broccoli/providers/openrouter.env",
                     interpolate=False,
                 ).get("OPENROUTER_API_KEY")
             else:

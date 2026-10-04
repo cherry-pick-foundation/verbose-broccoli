@@ -1,4 +1,8 @@
-"""Strict, bounded, names-and-school-spellings-only registry snapshots."""
+"""Strict names-and-school-spellings-only registry snapshots.
+
+Bound registered explicit spellings at 4,096 (256 characters each), derived
+match patterns at 65,536 (16 per registered spelling), and file size at 1 MiB.
+"""
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -7,6 +11,10 @@ import os
 from pathlib import Path
 import re
 import stat
+from unicodedata import normalize
+
+MAX_REGISTERED_SPELLINGS = 4096
+MAX_DERIVED_PATTERNS = 16 * MAX_REGISTERED_SPELLINGS
 
 _COMPOUND = {"남궁", "황보", "제갈", "선우", "서문", "독고", "사공"}
 _LATIN = re.compile(r"[A-Za-z]+(?:[ -][A-Za-z]+)*")
@@ -20,12 +28,17 @@ class GateError(Exception):
         super().__init__("Privacy gate rejected the call.")
 
 
-def registry_config_dir() -> Path:
-    """Return the single XDG configuration seam for the gate registry."""
+def config_root() -> Path:
+    """Return absolute XDG configuration root, otherwise HOME/.config."""
     config = Path(os.environ.get("XDG_CONFIG_HOME") or "relative")
     if not config.is_absolute():
         config = Path.home() / ".config"
-    return config / "verbose-broccoli" / "education-privacy-gate"
+    return config
+
+
+def registry_config_dir() -> Path:
+    """Build the registry directory on the shared key/list config seam."""
+    return config_root() / "verbose-broccoli" / "education-privacy-gate"
 
 
 def _given(name):
@@ -37,7 +50,7 @@ def _given(name):
 def _spelling(value):
     if not isinstance(value, str) or not value.strip() or len(value) > 256:
         raise GateError()
-    return value
+    return normalize("NFC", value)
 
 
 def _array(value):
@@ -76,6 +89,7 @@ class Registry:
             raise GateError()
         full, given, defaults = {}, defaultdict(set), {}
         latin_owners = {}
+        registered_count = 0
         for index, entry in enumerate(data["entries"]):
             if not isinstance(entry, dict):
                 raise GateError()
@@ -105,6 +119,7 @@ class Registry:
                     raise GateError()
                 defaults[identity] = latin[0] if latin else name
                 spellings = [name, *_array(entry.get("aliases", [])), *latin]
+                registered_count += int("given" in entry)
                 if short:
                     given[short].add(identity)
                 for spelling in latin:
@@ -119,6 +134,9 @@ class Registry:
                     raise GateError()
             else:
                 raise GateError()
+            registered_count += len(spellings)
+            if registered_count > MAX_REGISTERED_SPELLINGS:
+                raise GateError()
             for spelling in spellings:
                 if kind == "person" and _LATIN.fullmatch(spelling):
                     surname, *rest = re.split(r"[ -]", spelling)
@@ -130,9 +148,7 @@ class Registry:
                 key = spelling.lower() if spelling.isascii() else spelling
                 if key in full and full[key][0] != identity:
                     raise GateError()
-                rank = (
-                    4 if kind == "person" and spelling == entry["full"] else 5
-                )
+                rank = 4 if kind == "person" and spelling == name else 5
                 full[key] = (
                     identity,
                     6 if kind == "school" else rank,
@@ -172,11 +188,16 @@ class Registry:
                 patterns = [_EDGE.format(re.escape(spelling))]
             else:
                 patterns = [re.escape(spelling)]
+            patterns += [
+                variant
+                for pattern in patterns
+                if (variant := normalize("NFD", pattern)) != pattern
+            ]
             matches.extend(
                 Match(re.compile(p, re.IGNORECASE), identity, rank)
                 for p in patterns
             )
-            if len(matches) > 4096:
+            if len(matches) > MAX_DERIVED_PATTERNS:
                 raise GateError()
         return cls(tuple(explicit), tuple(matches), tuple(defaults.items()))
 

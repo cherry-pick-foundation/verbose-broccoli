@@ -5,6 +5,7 @@ import os
 
 import pytest
 
+from education_privacy_gate import roster
 from education_privacy_gate.roster import GateError
 from education_privacy_gate.roster import Registry
 from education_privacy_gate.roster import load_registry
@@ -169,11 +170,60 @@ def test_spelling_bounds():
                 },
             ],
         }
-        if count == 4091:
-            assert len(Registry.from_data(expanded).matches) == 4096
-        else:
-            with pytest.raises(GateError):
-                Registry.from_data(expanded)
+        assert len(Registry.from_data(expanded).matches) >= count + 5
+
+
+@pytest.mark.parametrize("count", [4096, 4097])
+def test_registered_count_includes_repeated_explicit_spellings(count):
+    data = {
+        "version": 1,
+        "entries": [
+            {"kind": "school", "spellings": ["synthetic-school"] * count}
+        ],
+    }
+    if count == 4096:
+        Registry.from_data(data)
+    else:
+        with pytest.raises(GateError):
+            Registry.from_data(data)
+
+
+def test_820_people_with_romanized_spellings():
+    entries = []
+    for index in range(820):
+        suffix = "".join(
+            chr(65 + index // divisor % 26) for divisor in (676, 26, 1)
+        )
+        entries.append(
+            {
+                "kind": "person",
+                "full": "가" + chr(0xAC00 + index) + "온",
+                "romanized": ["Synthetic " + suffix],
+            }
+        )
+    registry = Registry.from_data({"version": 1, "entries": entries})
+    assert len(registry.matches) > 4096
+
+
+def test_derived_pattern_ceiling(monkeypatch):
+    monkeypatch.setattr(roster, "MAX_DERIVED_PATTERNS", 4, raising=False)
+    with pytest.raises(GateError):
+        Registry.from_data(fixture_data())
+
+
+def test_registered_bound_refusal_keeps_old_bytes(tmp_path):
+    directory, file = write_registry(tmp_path)
+    before = file.read_bytes()
+    data = {
+        "version": 1,
+        "entries": [
+            {"kind": "school", "spellings": ["synthetic-school"] * 4097}
+        ],
+    }
+    with pytest.raises(GateError):
+        Registry.from_data(data)
+    assert file.read_bytes() == before
+    assert load_registry(directory).spellings
 
 
 def test_byte_bound(tmp_path):

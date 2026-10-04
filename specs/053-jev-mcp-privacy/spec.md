@@ -115,7 +115,7 @@ Bounds are settled: reuse actual tool/runtime/schema controls rather than invent
 
 Browser-choice judgments now go through this gate (ec5f7f9, aa6c319, 9e80a5d). The text-generation helper stays held until its student-data boundary is settled, with no ungated student-data route.
 
-Skill convention (former question 3): byte-identical portable `jev` copies/resources in Code and Work, one deterministic local link, reject divergence, preserve both ownership sources and independent selection/disable behavior. No loading framework or direct unpinned upstream mcpServers block; shared discovery/docs integration was released for CHE-86 sections after the CHE-84 handoff at develop b7f3223 on 2026-10-05.
+Skill convention (former question 3): byte-identical portable `jev` copies/resources in Code and Work, one deterministic local link, reject divergence, preserve both ownership sources and independent selection/disable behavior. A tracked link to another known plugin's canonical copy of the same skill is discovery-managed and may be retargeted to the selected byte-identical copy; record the old target in the pending journal. Foreign targets and links to a copy whose bytes differ still conflict; a user's own link elsewhere is never touched. No loading framework or direct unpinned upstream mcpServers block; shared discovery/docs integration was released for CHE-86 sections after the CHE-84 handoff at develop b7f3223 on 2026-10-05.
 
 Identical Code/Work declarations are accepted only when their complete resolved launch configurations agree; one effective server retains both cleanup owners. Conflicting definitions still reject. Keep the change within existing discovery.
 

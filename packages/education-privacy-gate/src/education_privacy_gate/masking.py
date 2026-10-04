@@ -20,6 +20,7 @@ from collections import Counter
 import json
 import math
 import re
+from unicodedata import normalize
 
 from faker import Faker
 import phonenumbers
@@ -185,16 +186,17 @@ class Masker:
                 if not (candidate[-1:].isdigit() and token[-1:].isdigit())
             ),
         )
+        folded = normalize("NFC", candidate).casefold()
         return (
             not candidate
             or bool(self._spans(candidate))
             or any(
-                candidate.casefold() in text.casefold()
+                folded in normalize("NFC", text).casefold()
                 for text in self.originals
             )
             or any(
-                candidate.casefold() in text.casefold()
-                or text.casefold() in candidate.casefold()
+                folded in normalize("NFC", text).casefold()
+                or normalize("NFC", text).casefold() in folded
                 for text in texts
                 if text
             )

@@ -2,6 +2,7 @@
 
 from concurrent.futures import ThreadPoolExecutor
 import json
+from unicodedata import normalize
 
 import pytest
 
@@ -449,3 +450,63 @@ def test_literal_request_standins_still_redraw_or_refuse():
     for text in ("991399-1234567 Resident number 01", "1234567890 EduOK 01"):
         with gate() as masker, pytest.raises(GateError):
             masker.mask(text)
+
+
+@pytest.mark.parametrize(
+    "stored_form,request_form", [("NFC", "NFD"), ("NFD", "NFC")]
+)
+def test_canonical_spellings_mask_and_restore(stored_form, request_form):
+    data = {
+        "version": 1,
+        "entries": [
+            {"kind": "person", "full": normalize(stored_form, "가라온")},
+            {
+                "kind": "school",
+                "spellings": [normalize(stored_form, "가상별빛고")],
+            },
+        ],
+    }
+    text = normalize(request_form, "가라온은 라온과 가상별빛고")
+    with Masker(Registry.from_data(data)) as masker:
+        masker.faker = Names("Avery")
+        masked = masker.mask(text)
+        assert (
+            masked
+            == "Avery"
+            + normalize(request_form, "은")
+            + " Avery"
+            + normalize(request_form, "과")
+            + " School 01"
+        )
+        assert masker.restore(masked) == text
+
+
+def test_mixed_canonical_forms_share_identity_and_exact_echo():
+    text = "가라온 / " + normalize("NFD", "가라온 / 라온")
+    with gate("Avery") as masker:
+        masked = masker.mask({"text": text})
+        assert masked == {"text": "Avery / Avery / Avery"}
+        assert masker.faker.calls == 1
+        assert masker.restore(masked) == {"text": text}
+
+
+@pytest.mark.parametrize(
+    "candidate_form,original_form", [("NFC", "NFD"), ("NFD", "NFC")]
+)
+def test_canonical_collision_with_original(candidate_form, original_form):
+    candidate = normalize(candidate_form, "새봄")
+    original = normalize(original_form, "새봄")
+    with gate(candidate, "Avery") as masker:
+        assert masker.mask(["가라온", original]) == ["Avery", original]
+        assert masker.faker.calls == 2
+
+
+def test_canonical_latin_alias():
+    spelling = "Fictional Écho"
+    with gate(
+        "Avery",
+        extra=[{"kind": "person", "full": "다새봄", "aliases": [spelling]}],
+    ) as masker:
+        original = normalize("NFD", spelling)
+        assert masker.mask(original) == "Avery"
+        assert masker.restore("Avery") == original
