@@ -78,9 +78,12 @@ stay charged; exhaustion before a target call executes nothing.
 - Each step starts the gated proxy once; the decision time shown for a step
   includes that start. About 1.7 seconds per step was measured under a mock
   only, not live.
-- Gated-call attempts are not provider HTTP attempts or billing counts:
-  upstream can retry internally. A timeout leaves the provider outcome
-  unknown.
+- Under the default OpenRouter route, unmodified upstream may make up to
+  3 fetch attempts per dispatched operation or target request: up to 360
+  explicit fetch attempts for 120 gated tool-call attempts.
+  `JEV_MCP_MAX_ATTEMPTS` defaults to 3 and is clamped 1-6; the proxy does
+  not set it. Actual processed requests and billing are unknown. A timeout
+  leaves the provider outcome unknown.
 - A `DONE` step is not proof: check the outcome on the page yourself.
 - Upstream does not handle shadow roots, frames, canvas, uploads, pop-up
   tabs, nested scrolling or arbitrary keyboard widgets.

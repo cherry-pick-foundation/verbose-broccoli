@@ -60,6 +60,16 @@ paths show where the files were copied here.
   option, refusal, malformed results, held text), plus attempted-call budget
   boundaries and callback ordering; retain the existing execution guards.
 
+## Call units
+
+A browser run allows at most 120 gated tool-call attempts (`MAX_STEPS * 2`):
+each operation or target request counts, including failures. The 60-action
+guard is separate. Under the default OpenRouter route, the unmodified upstream
+may make up to 3 fetch attempts per dispatched request, so up to 360 explicit
+fetch attempts per run. `JEV_MCP_MAX_ATTEMPTS` defaults to 3 and is clamped
+1-6; the proxy does not set it. Actual processed requests and billing are
+unknown. The 1.7-second per-step startup figure comes from a mocked run only.
+
 ## Local additions
 
 - `tests/test_providers.py` tests the gated route against a synthetic stdio

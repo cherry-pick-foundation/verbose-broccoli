@@ -13,7 +13,8 @@ personal records or credentials. Education work belongs to authorized Claude
 Code or Codex sessions on the user's own accounts, with model training disabled.
 The gate covers the upstream judgment call, not what an agent itself reads.
 
-Implementation: [proxy and launcher](../packages/education-privacy-gate/src/education_privacy_gate/__main__.py),
+Implementation: [proxy and
+launcher](../packages/education-privacy-gate/src/education_privacy_gate/__main__.py),
 [masking](../packages/education-privacy-gate/src/education_privacy_gate/masking.py)
 and [registered list](../packages/education-privacy-gate/src/education_privacy_gate/roster.py).
 The [privacy contract](../specs/053-jev-mcp-privacy/contracts/privacy-gate.md)
@@ -57,16 +58,20 @@ uses provider credit and requires authorized local setup.
 ```python
 import asyncio
 import json
+import os
 from pathlib import Path
 
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 
 root = Path.cwd()  # Run from the repository root.
+config = os.environ.get("XDG_CONFIG_HOME")
+env = {"XDG_CONFIG_HOME": config} if config and Path(config).is_absolute() else None
 transport = StdioTransport(
     "uv",
     ["--directory", str(root / "packages/education-privacy-gate"),
      "run", "--frozen", "--offline", "--no-sync", "jev-mcp"],
+    env=env,
 )
 
 
@@ -144,7 +149,10 @@ names do not resolve to a particular person.
 Phone matching takes precedence over EduOK. Longer digit runs do not yield
 partial ten-digit matches. Distinct matched spellings of one school receive
 separate call-local labels. Grades, classes, school years, numeric learning
-values and Korean text remain unchanged. There is no region, date, address or
+values and Korean text remain unchanged except ten-digit JSON integers: these
+become EduOK label strings and restore as decimal text. A typed numeric field
+fails the unchanged upstream schema before forwarding. There is no region,
+date, address or
 organization detector. Korean particles around a replacement remain unchanged.
 
 The gate traverses every result text field and key, including JSON inside text,
@@ -157,13 +165,17 @@ error status retain their types and meaning.
 Schema-pattern fields reject matched identifiers instead of changing constrained
 syntax: `jev_decide` candidate IDs, `jev_extract` field IDs and `jev_audit`
 record IDs. Unsafe ID sanitization, invalid masked syntax and key collisions
-also reject. The only outward failure text is `Privacy gate rejected the call.`
+also reject. Supported upstream `isError` results are restored and preserved.
+Transport/protocol exceptions, unsupported content and gate failures return
+only `Privacy gate rejected the call.`
 It does not reveal the failing value, path or provider exception.
 
 Only tools are exposed, alongside required MCP lifecycle messages. Resources,
 resource templates and prompts are hidden and direct access rejects. Sampling,
 elicitation, roots, continuations and untrusted logging/progress relays cannot
-open another route. Caller application metadata is not forwarded.
+open another route. An integer progress counter is accepted and dropped;
+string tokens and other application `_meta` keys reject. Backend SDK
+counter/connection metadata contains no caller content.
 
 Originals and stand-in pairs stay in memory for the call and are discarded on
 success, failure, cancellation or timeout. No per-call files, persistent map,
@@ -225,6 +237,14 @@ text/purpose and classification context, pre-parse stdio allocation limits and
 a concurrency cap. Upstream support or a main-owned operating-system service
 scope is the handoff; no custom framing, scheduler or body budget is supplied.
 
+A browser run allows at most 120 gated tool-call attempts (`MAX_STEPS * 2`):
+each operation or target request counts, including failures. The 60-action
+guard is separate. Under the default OpenRouter route, the unmodified upstream
+may make up to 3 fetch attempts per dispatched request, so up to 360 explicit
+fetch attempts per run. `JEV_MCP_MAX_ATTEMPTS` defaults to 3 and is clamped
+1-6; the proxy does not set it. Actual processed requests and billing are
+unknown. The 1.7-second per-step startup figure comes from a mocked run only.
+
 Provider calls spend OpenRouter credit, including retries. There is no automatic
 credit check or provider switching. Inspect returned usage when supplied,
 without treating it as billing proof. Payloads and mapping pairs must never
@@ -250,7 +270,9 @@ The 2026-10-04 review checked downloaded checksums, npm registry signatures
 and static source. It approved adoption with conditions, not unconditional
 security or live acceptance. Banner, update checks, env-file loading and
 telemetry are disabled. The child gets three Jev variables plus the MCP SDK's
-supported baseline environment, not only three total variables. Its working
+supported baseline environment, not only three total variables. Native Node is
+resolved with `mise which node` from `/`, falling back to PATH when mise is
+absent. Its working
 directory is neutral; endpoint overrides, proxy variables and `NODE_OPTIONS`
 are not inherited. The [synthetic integration procedure](../specs/053-jev-mcp-privacy/quickstart.md)
 separates fixture checks from native-client acceptance.
@@ -261,8 +283,10 @@ The August 2024 education pseudonymization guideline motivates the design.
 Printed p. 62 gives a conditional example retaining grade; printed pp. 113–114
 provide reference risk rankings and alternatives. Combined attributes require
 comprehensive risk review. The example prohibits resident-number use; masking
-does not authorize it. See the [PIPC listing](https://pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS217&mCode=D010030000&nttId=10425),
-[verified guideline PDF](https://www.sen.go.kr/component/file/ND_fileDownload.do?q_fileSn=2145906&q_fileId=55793d35-539a-4cf4-8620-79cdad5180c9)
+does not authorize it. See the [PIPC
+listing](https://pipc.go.kr/np/cop/bbs/selectBoardArticle.do?bbsId=BS217&mCode=D010030000&nttId=10425),
+[verified guideline
+PDF](https://www.sen.go.kr/component/file/ND_fileDownload.do?q_fileSn=2145906&q_fileId=55793d35-539a-4cf4-8620-79cdad5180c9)
 and [source record](../specs/053-jev-mcp-privacy/spec.md#cited-sources).
 
 [Carrell et al., JAMIA 2013;20(2):342–348](https://doi.org/10.1136/amiajnl-2012-001034)
@@ -273,7 +297,8 @@ per-call unlinkability.
 Credit-offers and Ultrafast browser-choice judgments use this proxy.
 The text-generation helper stays held;
 there is no authorized ungated student-data route. These
-[migration handoffs](../specs/053-jev-mcp-privacy/contracts/migration.md#chat-handoffs-exact-dependency-edges)
+[migration
+handoffs](../specs/053-jev-mcp-privacy/contracts/migration.md#chat-handoffs-exact-dependency-edges)
 remain separate from repository documentation checks. The legacy judgment
 implementation and its dependencies have been removed.
 
