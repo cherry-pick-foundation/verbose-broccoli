@@ -1,17 +1,15 @@
 <!--
 Sync Impact Report
-- Version: 2.5.0 -> 2.6.0 (`feat` commit, so a minor bump).
-- Input: Linear CHE-70, feature 037 (`specs/037-model-choice-free-agents/`):
-  the user's 2026-10-01 decision to add Antigravity, Grok and Cursor as
-  model-choice options that may give develop merge reviews.
-- Modified principles: none.
-- Modified sections: Development Workflow and Quality Gates (the develop
-  merge review comes from a provider other than the implementer's: Claude
-  Code, Codex, Copilot, Antigravity, Grok or Cursor); Governance (the
-  decision record and the version).
+- Version: 2.6.0 -> 2.7.0 (user-approved `feat`/MINOR amendment).
+- Input: CHE-84, feature 050 (`specs/050-wiki-quarto-text/`): the user's
+  2026-10-04 decision to retain reviewed original-language text and maintain
+  English Quarto knowledge separately from Korean delivery.
+- Modified principles: VI. Wiki Layers and Storage Ownership (five roles,
+  retained text, Quarto pages and run-local citation bibliography).
+- Modified sections: Governance (the dated user decision and version).
 - Added sections: none. Removed sections: none.
-- Follow-up (outside this document): `AGENTS.md`, `scripts/workflow.ts` and
-  `docs/architecture.md` name the same providers.
+- Follow-up (outside this document): F1/CHE-84 implements the schema and
+  retained-text/Wiki contract; F2/CHE-12 owns site freshness and publishing.
 - Deferred placeholders: none.
 -->
 
@@ -56,26 +54,36 @@ compatibility. Record every unperformed check accurately.
 ### VI. Wiki Layers and Storage Ownership
 
 For the user-selected Wiki layout, each Wiki instance, called a vault, MUST
-contain three distinct layers:
+define five distinct roles:
 
-1. **Raw** is immutable original evidence under `raw/`, organized as `web/`,
-   `files/`, `notes/`, and `assets/`. LLM maintenance MUST NOT edit or delete
-   admitted raw bytes. Changed evidence creates a new source revision while
-   earlier revisions remain resolvable and recoverable. Conversation records and
+1. **Raw** is immutable, create-only BagIt original evidence under `raw/`,
+   outside Git, organized as `web/`, `files/`, `notes/`, and `assets/`. LLM
+   maintenance MUST NOT edit or delete admitted raw bytes. Changed evidence
+   creates a new source revision while earlier revisions remain resolvable and
+   recoverable. Conversation records and
    exported chats are not Raw evidence; they stay outside the vault in the
    user's workspace. Two exceptions apply: exported conversations are Raw
    evidence in the `chat` and `work` vaults, and exported Claude Code and
    Codex sessions are Raw evidence in any vault they belong to.
-2. **Wiki** is durable maintained Markdown knowledge under `wiki/`. The LLM
-   maintains pages, cross-references, `overview.md`, and the append-only
-   `log.md`; `index.md` is regenerated from page metadata. Source summaries
-   belong in `sources/`; entities, concepts, comparisons, and synthesis retain
-   their own directories. Adopted knowledge MUST NOT be classified as
-   disposable because it was LLM-authored. Git owns its history.
-3. **Schema** is the instance's `AGENTS.md`, above `raw/` and `wiki/`. It defines
-   page conventions and ingest/query/lint workflows. It has its own versioned
-   history and MUST NOT be confused with the repository's development AGENTS.md
-   or a duplicate runtime-settings file.
+2. **Text** under `text/` retains one full original-language `.qmd` extraction
+   per converted raw revision in vault-local Git with no remote. Each extraction
+   MUST record its source ID, revision, SHA-256, converter and version, and
+   whether it was checked against the original. Review it once against the
+   original; corrections are recorded in Git without changing raw evidence.
+3. **Wiki** is the single maintained English `.qmd` knowledge layer under
+   `wiki/`, with topics. The LLM maintains pages, cross-references,
+   `overview.qmd`, and the append-only `log.qmd`; `index.qmd` is regenerated
+   from page metadata. Source summaries belong in `sources/`; entities,
+   concepts, comparisons, and synthesis retain their own directories. Adopted
+   knowledge MUST NOT be classified as disposable because it was LLM-authored.
+   Vault-local Git with no remote owns its history.
+4. **Site** under `site/` is Korean delivery derived from chosen English Wiki
+   versions, with tags. F2/CHE-12 owns translation freshness and publishing.
+   There is no `ko/` tree.
+5. **Schema** is the instance's `AGENTS.md`, above the content layers. It defines
+   these roles, page conventions and ingest/query/lint workflows. It has its own
+   vault-local Git history with no remote and MUST NOT be confused with the
+   repository's development AGENTS.md or a duplicate runtime-settings file.
 
 Use the `verbose-broccoli` namespace under XDG configuration, data, state,
 and cache roots. The defaults are `~/.config/`, `~/.local/share/`,
@@ -84,14 +92,18 @@ and profile files; durable data owns `registry.json` and `vaults/`, which holds
 one folder per vault: `default` for knowledge that belongs to no single plugin,
 and `chat`, `code` and `work` for the plugins of those names. Restart/recovery
 state belongs in state storage. Only
-rebuildable indexes, embeddings, chunks, parsed data, temporary downloads and
-temporary work belong in cache. Cache cleanup MUST preserve raw evidence,
-adopted Wiki knowledge, instructions, configuration, registry and operational
-state. Direct Wiki index navigation and page reading MUST work without cache.
+rebuildable indexes, embeddings, chunks, parsed data, citation bibliographies,
+temporary downloads and temporary work belong in cache. Bags are the only source
+registry. Every run MUST generate its citation bibliography from bags into
+rebuildable cache, never persist it as durable data or in Git. Cache cleanup MUST
+preserve raw evidence, retained text, adopted Wiki knowledge, instructions,
+configuration, registry and operational state. Direct Wiki index/catalog
+navigation and page reading MUST work without cache.
 
 Raw sources and private user data MUST NOT enter the product source repository.
-Raw sources MUST NOT enter the Wiki's versioned knowledge tree. Do not add parallel per-page revision
-registries or a permanent generated-output archive.
+Raw originals MUST NOT enter the Wiki's versioned knowledge tree; retained
+`text/` extractions follow the Text role above. Do not add parallel per-page
+revision registries or a permanent generated-output archive.
 
 ### VII. One Decision Owner and Minimum Implementation
 
@@ -273,6 +285,14 @@ a provider other than the implementer's: Claude Code, Codex or Copilot. On
 2026-10-01 the user added Antigravity, Grok and Cursor as model-choice
 options that may give the develop merge review (CHE-70); release and hotfix
 reviews keep Claude Code, Codex or Copilot. The user's exact AGENTS.md is
-maintained as supplied, not regenerated by setup tasks.
+maintained as supplied, not regenerated by setup tasks. On 2026-10-04 the user
+approved the CHE-84 principle VI `feat`/MINOR amendment: raw remains immutable,
+create-only BagIt originals outside Git; retained original-language `text/` and
+single maintained English `wiki/` use `.qmd` and vault-local Git with no remote;
+Korean `site/` derives from chosen English versions, with F2/CHE-12 owning
+freshness and publishing and no `ko/` tree. The schema owns all five roles;
+bags remain the only source registry and every run generates its citation
+bibliography into rebuildable cache. This decision preserves the existing
+conversation/session exceptions and cache-independent reading guarantees.
 
-**Version**: 2.6.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-01
+**Version**: 2.7.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-04
