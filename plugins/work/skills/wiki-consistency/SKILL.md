@@ -60,6 +60,11 @@ Boundary, bag, index and execution errors, and failed `check` problems, print
 diagnostics on stderr and exit 1. Invalid command-line arguments exit 2.
 `check` is the separate offline structural, metadata and rule stage; a pass
 does not prove exact sentence evidence or semantic correctness.
+It reports every leftover `wiki/**/*.md` as a migration failure before catalog
+or privacy checks. It rejects executable Quarto cells and includes/shortcodes
+in Wiki source, including active shortcodes inside code examples; escape them
+with `{{{< ... >}}}`. Inert code examples remain allowed. These
+source checks do not impose Wiki language rules on original-language `text/`.
 `check` needs Vale 3.23.0, Git and lychee; `index` and `prepare` need Node 22
 or later.
 
@@ -106,6 +111,10 @@ original-language output in `text/<source-id>/<revision>.qmd`. Existing text is
 reused without replacement. `evidence.read(instance, source_id, revision,
 review=...)` reads its body and provenance without conversion. Unknown converter
 or review facts remain explicit, and partial output stays partial.
+PDF extraction uses the existing `pdftotext -raw` content-stream order and
+records the actual backend version; `pdftotext` must be on `PATH`. A missing
+or failed backend is unreadable, and backend warnings mark output partial.
+Other formats keep the existing MarkItDown/JSON/python-hwpx routes.
 `conversion-status: extracted` records backend output only, not completeness or
 review. A true `checked-against-original` requires actual caller review with raw
 `sha256`, full-file `extraction-sha256` and a nonempty `evidence` reference;
@@ -148,6 +157,8 @@ no invented author/date, sender or absolute paths. Earlier output is not new-run
 authority. No bibliography belongs in vault Git. F2 supplies renderer source and
 audience selection and owns Korean site tags, freshness and publishing; there is
 no `ko/` tree. Main's publication and student decisions remain undecided.
+`prepare` derives only its selected revisions; index and search do not build
+an unused whole-vault bibliography.
 
 ## After an operation that changed the Wiki
 

@@ -863,6 +863,16 @@ void test('raw import US5: init copies the schema and creates an uncommitted Wik
     const status = await git('status', '--porcelain', '--ignored');
     assertEquals(status.code, 0, status.stderr);
     assertMatch(status.stdout, /!! raw\//);
+    await mkdir(join(f.instance, 'text/source'), {recursive: true});
+    const temporary = 'text/source/.r1.qmd.deadbeef.wiki-consistency-tmp';
+    await writeFile(join(f.instance, temporary), 'abandoned partial');
+    await writeFile(join(f.instance, 'text/source/r1.qmd'), 'retained source');
+    assertEquals((await git('check-ignore', temporary)).code, 0);
+    assertEquals((await git('check-ignore', 'text/source/r1.qmd')).code, 1);
+    assertEquals(
+      (await git('check-ignore', 'wiki/.example.wiki-consistency-tmp')).code,
+      1,
+    );
     assertEquals((await git('ls-files', 'raw')).stdout, '');
     assert((await git('rev-parse', '--verify', 'HEAD')).code !== 0);
   });

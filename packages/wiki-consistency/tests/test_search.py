@@ -6,11 +6,13 @@ import signal
 import subprocess
 from types import SimpleNamespace
 
+from conftest import add_revision
 import pytest
 import yaml
 
 from wiki_consistency import evidence
 from wiki_consistency import search
+from wiki_consistency.instance import revisions
 
 MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
 
@@ -845,3 +847,43 @@ def test_search_reuses_evidence_helpers():
     assert search._component is evidence._component
     assert search._tree_size is evidence._tree_size
     assert search._clean_on_signals is evidence._clean_on_signals
+
+
+@pytest.mark.parametrize("damage", ["hash", "extra-payload"])
+def test_index_and_search_isolate_unrelated_raw_bag(tmp_path, damage):
+    instance, cache = _wiki(tmp_path)
+    bag = add_revision(instance, "r1", "Unrelated original.", source_id="other")
+    add_revision(instance, "r1", "Selected original.", source_id="selected")
+    search.index(instance, "wiki-a", cache, download=False)
+    if damage == "hash":
+        (bag / "data/document.txt").write_text("Changed unrelated raw.")
+    else:
+        (bag / "data/extra.txt").write_text("Extra unrelated payload.")
+    before = _snapshot(instance)
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [{"id": "q", "text": "quadratic", "collection": "pages"}],
+    )
+    assert any(hit["path"] == "concepts/quad.qmd" for hit in hits)
+    result = search.index(instance, "wiki-a", cache, download=False)
+    assert result["pages"] == result["evidence"] == 1
+    assert _snapshot(instance) == before
+    with evidence.bibliography(
+        instance,
+        {"selected": revisions(instance)["selected"]},
+        budget_bytes=10000,
+        env={"XDG_CACHE_HOME": str(cache)},
+    ) as bibliography:
+        assert [
+            item["id"] for item in json.loads(bibliography.read_text())
+        ] == ["selected/r1"]
+    # Consumers of this bag still validate it; search never makes it evidence.
+    with pytest.raises(ValueError, match="SHA-256|exactly one"):
+        with evidence.bibliography(
+            instance,
+            revisions(instance),
+            budget_bytes=10000,
+            env={"XDG_CACHE_HOME": str(cache)},
+        ):
+            pytest.fail("damaged selected bag must fail")

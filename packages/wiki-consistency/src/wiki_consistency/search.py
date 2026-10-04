@@ -12,11 +12,9 @@ from mcp.client.stdio import StdioServerParameters
 from mcp.client.stdio import stdio_client
 import yaml
 
-from wiki_consistency import evidence
 from wiki_consistency.evidence import _clean_on_signals
 from wiki_consistency.evidence import _component
 from wiki_consistency.evidence import _tree_size
-from wiki_consistency.instance import revisions
 
 QMD_BUDGET_BYTES = 3 * 1024**3
 EMBED_MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
@@ -236,43 +234,37 @@ def index(instance, wiki_id, cache, *, download):
     """Build the pinned qmd index and report status."""
     wiki_id = _component(wiki_id)
     instance, cache = Path(instance), Path(cache).resolve()
-    with evidence.bibliography(
-        instance,
-        revisions(instance),
-        budget_bytes=evidence.EVIDENCE_BUDGET_BYTES,
-        env={"XDG_CACHE_HOME": str(cache)},
-    ):
-        wiki_root = instance / "wiki"
-        evidence_root = instance / "text"
-        evidence_root.mkdir(parents=True, exist_ok=True)
-        _, index_path, _ = _paths(wiki_id, cache)
-        _ensure_collections(
-            wiki_id,
-            cache,
-            {"pages": wiki_root.resolve(), "evidence": evidence_root.resolve()},
-        )
-        _update_index(wiki_id, cache, index_path)
+    wiki_root = instance / "wiki"
+    evidence_root = instance / "text"
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    _, index_path, _ = _paths(wiki_id, cache)
+    _ensure_collections(
+        wiki_id,
+        cache,
+        {"pages": wiki_root.resolve(), "evidence": evidence_root.resolve()},
+    )
+    _update_index(wiki_id, cache, index_path)
 
-        cached = _model_is_cached(cache)
-        attempted = cached or download
-        error = None
-        if attempted:
-            try:
-                with _clean_on_signals():
-                    _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
-            except subprocess.CalledProcessError as exc:
-                error = " ".join((exc.stderr or exc.stdout or str(exc)).split())
-        status, _ = _run_mcp_search(wiki_id, cache, [])
-        semantic = _model_is_cached(cache) and status["needsEmbedding"] == 0
-        if attempted and not semantic and error is None:
-            error = "qmd embed completed but semantic search is still not ready"
-        counts = _counts(status)
-        return {
-            "pages": counts.get("pages", 0),
-            "evidence": counts.get("evidence", 0),
-            "semantic": semantic,
-            "semantic_error": error,
-        }
+    cached = _model_is_cached(cache)
+    attempted = cached or download
+    error = None
+    if attempted:
+        try:
+            with _clean_on_signals():
+                _run_qmd(wiki_id, cache, ["embed"], budget_action="embed")
+        except subprocess.CalledProcessError as exc:
+            error = " ".join((exc.stderr or exc.stdout or str(exc)).split())
+    status, _ = _run_mcp_search(wiki_id, cache, [])
+    semantic = _model_is_cached(cache) and status["needsEmbedding"] == 0
+    if attempted and not semantic and error is None:
+        error = "qmd embed completed but semantic search is still not ready"
+    counts = _counts(status)
+    return {
+        "pages": counts.get("pages", 0),
+        "evidence": counts.get("evidence", 0),
+        "semantic": semantic,
+        "semantic_error": error,
+    }
 
 
 def _collection_chunk_count(wiki_id: str, cache: Path, collection: str) -> int:
@@ -338,21 +330,14 @@ def search(
         cache,
         expected_pages_root=expected_pages_root,
     )
-    instance = roots["pages"].parent
-    with evidence.bibliography(
-        instance,
-        revisions(instance),
-        budget_bytes=evidence.EVIDENCE_BUDGET_BYTES,
-        env={"XDG_CACHE_HOME": str(cache)},
-    ):
-        _update_index(wiki_id, cache, index_path)
-        status, results = _run_mcp_search(wiki_id, cache, queries)
-        if search_status is not None:
-            search_status["semantic"] = (
-                _model_is_cached(cache) and status["needsEmbedding"] == 0
-            )
-        return [
-            hit
-            for query, mode, hits in results
-            for hit in _hits(hits, query, mode, roots[str(query["collection"])])
-        ]
+    _update_index(wiki_id, cache, index_path)
+    status, results = _run_mcp_search(wiki_id, cache, queries)
+    if search_status is not None:
+        search_status["semantic"] = (
+            _model_is_cached(cache) and status["needsEmbedding"] == 0
+        )
+    return [
+        hit
+        for query, mode, hits in results
+        for hit in _hits(hits, query, mode, roots[str(query["collection"])])
+    ]

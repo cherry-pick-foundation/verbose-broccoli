@@ -112,3 +112,26 @@ def test_log_prefix_preserves_committed_bytes_across_rename(
     before = tree_hash(instance)
     assert bool(_log_prefix(instance)) == (change != "append")
     assert tree_hash(instance) == before
+
+
+def test_inert_examples_and_original_language_text_stay_readable(tmp_path):
+    instance, env = make_instance(tmp_path)
+    assert update_regions(instance) == []
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text()
+        + (
+            "\n```python\nprint('inert')\n```\n"
+            "\n````markdown\n```{python}\nprint('example')\n```\n"
+            "{{{< include example.qmd >}}}\n````\n"
+            "\n`{{{< video example >}}}`\n"
+            "\n{{</* video example */>}}\n"
+            "\n{{{< include escaped >}}}\n"
+        )
+    )
+    source = instance / "text/source/r1.qmd"
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        "한국어 원문\n```{python}\n원문\n```\n{{< include 원문 >}}\n"
+    )
+    assert checked(instance, env)["problems"] == []

@@ -162,7 +162,35 @@ def test_fenced_page_markers_and_fake_code_markers(tmp_path):
     )
     root, _, _ = retained(tmp_path, body)
     item = evidence.read_located(root, SOURCE_ID, "r1", "p.25", max_chars=100)
-    assert item["text"] == "Selected.\n:::\n"
+    assert item["text"] == "Selected.\n"
+
+
+@pytest.mark.parametrize("ending", ["", "::: {.nested}\nMore.\n:::\n:::\n"])
+def test_ambiguous_page_div_bounds_fail(tmp_path, ending):
+    root, _, _ = retained(tmp_path, "::: {#p-25}\nSelected.\n" + ending)
+    with pytest.raises(ValueError, match="ambiguous page div"):
+        evidence.read_located(root, SOURCE_ID, "r1", "p.25", max_chars=100)
+
+
+def test_page_div_range_is_one_exact_slice_with_final_delimiter_excluded(
+    tmp_path,
+):
+    body = "::: {#p-25}\nAlpha.\n:::\n\n::: {#p-26}\nBeta.\n:::\nOUTSIDE\n"
+    root, path, _ = retained(tmp_path, body)
+    item = evidence.read_located(
+        root, SOURCE_ID, "r1", "pp.25-26", max_chars=100
+    )
+    assert item["text"] == "Alpha.\n:::\n\n::: {#p-26}\nBeta.\n"
+    assert (
+        "".join(
+            path.read_bytes()
+            .decode()
+            .splitlines(keepends=True)[
+                item["first_line"] - 1 : item["last_line"]
+            ]
+        )
+        == item["text"]
+    )
 
 
 @pytest.mark.parametrize(

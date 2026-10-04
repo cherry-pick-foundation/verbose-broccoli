@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -135,6 +137,8 @@ def test_unsupported_shapes_keep_all_original_text_unresolved(text):
 def test_dropped_invalid_and_overlapping_sentence_data_is_refused(
     monkeypatch, spans
 ):
+    import pysbd  # noqa: PLC0415 - exercise the lazily loaded backend.
+
     class Segmenter:
         def __init__(self, **kwargs):
             assert kwargs == {
@@ -149,7 +153,7 @@ def test_dropped_invalid_and_overlapping_sentence_data_is_refused(
                 for a, b, text in spans
             ]
 
-    monkeypatch.setattr(citations.pysbd, "Segmenter", Segmenter)
+    monkeypatch.setattr(pysbd, "Segmenter", Segmenter)
     unit = split("wiki/x.qmd", "abcde")[0]
     with pytest.raises(ValueError, match="bounds|dropped"):
         citations._sentences(unit, "abcde", [])
@@ -173,3 +177,20 @@ def test_input_limit_precedes_native_execution(monkeypatch):
     result = _parse("x" * (citations.MAX_PAGE_CHARS + 1))
     assert result[0]["citation_problem"] == "page exceeds native input limit"
     assert calls == []
+
+
+def test_unrelated_cli_import_does_not_load_sentence_backend():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-B",
+            "-c",
+            "import sys; import wiki_consistency.__main__; "
+            "assert 'pysbd' not in sys.modules",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "invalid escape sequence" not in result.stderr

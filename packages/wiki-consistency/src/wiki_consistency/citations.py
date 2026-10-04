@@ -11,8 +11,6 @@ import re
 import subprocess
 import tempfile
 
-import pysbd
-
 from doc_regions.requests import MAX_CLAIM_CHARS
 
 MAX_PAGE_CHARS = 1024 * 1024
@@ -111,6 +109,8 @@ def _align(unit, blocks):
 
 
 def _sentences(unit, projection, citations):
+    import pysbd  # noqa: PLC0415 - only sentence mapping needs this backend.
+
     if len(projection) != len(unit["text"]):
         raise ValueError("projection changed the source length")
     if (

@@ -316,11 +316,18 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   `update` regenerates stale regions. `check` is the offline structural,
   metadata and rule stage; it does not prove exact sentence evidence or
   semantic correctness.
+  Every leftover `wiki/**/*.md` fails migration before catalog or privacy checks.
+  The Markdown parser rejects executable Quarto cells and includes/shortcodes
+  in Wiki source, allowing inert code examples and preserving source bytes.
+  Original-language `text/` does not inherit Wiki language restrictions.
 - The judgment step runs at the end of an operation that changed pages, and
   over the whole Wiki in a lint. `convert` turns cited revisions into
   full returned original-language `.qmd` in `text/<source-id>/<revision>.qmd`,
-  reusing existing retained output. Existing MarkItDown/JSON/python-hwpx paths
-  remain the converters; failure diagnostics use cache. Front matter records raw
+  reusing existing retained output. PDFs use the existing `pdftotext -raw`
+  content-stream order, with the actual backend version recorded; the command
+  must be on `PATH`. Missing/failed backends remain unreadable, and warnings
+  mark output partial. Other formats keep MarkItDown/JSON/python-hwpx paths;
+  failure diagnostics use cache. Front matter records raw
   identity/hash, converter/version, conversion status/warnings and original review.
   `conversion-status: extracted` means backend output, not completeness or review;
   partial and unknown remain explicit. Scanned PDFs remain unreadable. Corrections
@@ -405,6 +412,8 @@ success, failure and catchable interruption. CSL entries use `id: source-id/revi
 no invented author/date, sender or absolute paths. Earlier output is never
 new-run authority; no bibliography belongs in vault Git. F2 supplies renderer
 source and audience selection.
+`prepare` consumes a bibliography scoped to its selected revisions; index and
+search do not build an unused whole-vault bibliography.
 
 The grammatical-competence consumer reads `.qmd` through shared metadata and
 retained evidence, without a separate PDF bypass. Its run's `extractions.json`

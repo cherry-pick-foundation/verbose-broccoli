@@ -56,6 +56,8 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   output is not a completeness or review claim. True original review requires
   actual evidence bound to both raw and full `.qmd` hashes; corrections invalidate
   earlier review evidence. Keep text, Wiki and schema in vault-local Git, no remote.
+  Shared PDF extraction uses `pdftotext -raw` content-stream order with its actual
+  version; missing/failed backends are unreadable and warnings mark output partial.
 - Supported knowledge sentences use bag-derived `source-id/revision` citations
   with exact declared page/range/section locators. Missing or ambiguous evidence
   is unresolved, with no whole-source/latest/search fallback. Keep source inert.
@@ -64,7 +66,10 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   coverage. Unsupported or ambiguous shapes and lost coverage are unresolved
   failures, never a quiet zero-request success or a sentence-completeness claim.
 - `check` is the offline structural, metadata and rule stage; it does not prove
-  exact sentence evidence. `prepare` records `outcome: unverifiable` units with
+  exact sentence evidence. It rejects executable Quarto cells and includes/shortcodes
+  in Wiki source while allowing inert code examples; every leftover `wiki/**/*.md`
+  fails migration before catalog or privacy checks. Retained source language stays
+  unchanged. `prepare` records `outcome: unverifiable` units with
   reasons, prints diagnostic JSON on stdout and exits 1 if any remain.
   Boundary, bag, index and execution errors use stderr diagnostics and exit 1;
   invalid command-line arguments exit 2. For text marked reviewed, supply real

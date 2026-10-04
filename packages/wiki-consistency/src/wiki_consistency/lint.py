@@ -1,6 +1,7 @@
 """Run offline consistency checks and mechanical-region updates."""
 
 from pathlib import Path
+import re
 import subprocess
 from urllib.parse import unquote
 from urllib.parse import urlsplit
@@ -32,6 +33,46 @@ def _targets(root):
         path.relative_to(root).as_posix()
         for path in files(root, "wiki/**/*.qmd")
     ]
+
+
+def _migration_problems(root):
+    return [
+        _problem(
+            path.relative_to(root).as_posix(),
+            1,
+            "Wiki migration required: .md page must be migrated to .qmd",
+        )
+        for path in sorted((root / "wiki").rglob("*.md"))
+        if path.is_file() or path.is_symlink()
+    ]
+
+
+def _inert_problems(root, targets, markdown):
+    problems = []
+    for document in targets:
+        text = (root / document).read_bytes().decode("utf-8")
+        for token in markdown.parse(mask_front_matter(text)):
+            if token.type == "fence" and re.match(
+                r"\{\s*[\w+-]+(?=[\s,}])", token.info.strip()
+            ):
+                problems.append(
+                    _problem(
+                        document,
+                        token.map[0] + 1,
+                        "Wiki source must stay inert: executable code cell",
+                    )
+                )
+        # Quarto expands shortcodes in code examples and metadata too.
+        for number, line in enumerate(text.split("\n"), 1):
+            if re.search(r"(?<!\{)\{\{<(?!/\*)", line):
+                problems.append(
+                    _problem(
+                        document,
+                        number,
+                        "Wiki source must stay inert: include or shortcode",
+                    )
+                )
+    return problems
 
 
 def _index_shape(root):
@@ -320,13 +361,17 @@ def _log_prefix(root):
 def check(instance):
     """Check local links, metadata, citations, and source-derived regions."""
     root = Path(instance).resolve()
-    problems = []
+    problems = _migration_problems(root)
+    if problems:
+        return {"problems": problems, "orphans": [], "stale_citations": []}
+    markdown = MarkdownIt("commonmark")
     try:
         targets = _targets(root)
     except (OSError, ValueError) as error:
         targets = []
         problems.append(_problem("wiki", 1, str(error)))
     if targets:
+        problems.extend(_inert_problems(root, targets, markdown))
         try:
             problems.extend(
                 check_regions(
@@ -352,7 +397,6 @@ def check(instance):
     problems.sort(
         key=lambda item: (item["document"], item["line"], item["message"])
     )
-    markdown = MarkdownIt("commonmark")
     return {
         "problems": problems,
         "orphans": _orphans(page_list, markdown, root),
@@ -370,6 +414,9 @@ def check(instance):
 def update(instance):
     """Regenerate the Wiki index and other source-derived regions."""
     root = Path(instance).resolve()
+    migration_problems = _migration_problems(root)
+    if migration_problems:
+        return {"problems": migration_problems}
     page_list = pages(root)
     topic_problems = _topic_problems(root, page_list)
     topic_problems.extend(

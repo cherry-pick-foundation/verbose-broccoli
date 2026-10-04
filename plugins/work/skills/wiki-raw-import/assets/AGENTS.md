@@ -77,6 +77,11 @@ explicit. `conversion-status: extracted` describes backend output, not
 completeness or review. Do not alter raw or replace an existing extraction by
 reconverting it. Reviewed text corrections belong in vault-local Git with no
 remote; a new raw revision has a separate text file.
+Shared PDF conversion uses `pdftotext -raw` content-stream order and records
+its actual version. Missing/failed backends remain unreadable; warnings mark
+output partial. Other formats keep MarkItDown/JSON/python-hwpx conversion.
+Newly initialized Git ignores abandoned `text/**/.*.wiki-consistency-tmp`
+files; initialization preserves an existing custom `.gitignore` unchanged.
 
 A true `checked-against-original` flag requires actual caller-supplied review
 with `sha256`, `extraction-sha256` and a nonempty `evidence` reference. The
@@ -189,6 +194,9 @@ reading their contents.
   locators in declared revisions. Missing or ambiguous spans are unresolved;
   never substitute a whole source, latest revision or search result.
 - Keep source inert: no executable cells, heavy includes or shortcodes.
+  The offline checker enforces this for Wiki source while allowing inert code
+  examples; original-language retained text does not inherit Wiki language rules.
+  Every leftover `wiki/**/*.md` fails migration before catalog or privacy checks.
 - Source summaries go in `wiki/sources/`; entities, concepts, comparisons and
   synthesis go in their own folders. Topics do not replace these folders.
 

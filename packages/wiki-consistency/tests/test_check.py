@@ -463,3 +463,67 @@ def test_invalid_wiki_name_is_an_argument_error(tmp_path, monkeypatch, capsys):
         with pytest.raises(SystemExit) as error:
             main(["check", "--wiki", "../invalid"])
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "```{python}\nraise RuntimeError('inert')\n```\n",
+        "~~~{r, echo=FALSE}\nstop('inert')\n~~~\n",
+        "> ```{julia}\n> error(1)\n> ```\n",
+        "{{< include missing.qmd >}}\n",
+        "{{< video synthetic >}}\n",
+        "```python\n{{< include missing.qmd >}}\n```\n",
+        "`{{< video synthetic >}}`\n",
+        "    {{< include missing.qmd >}}\n",
+        "---\ntitle: '{{< meta title >}}'\n---\n",
+    ],
+)
+def test_check_rejects_active_quarto_source(
+    tmp_path, monkeypatch, capsys, body
+):
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    text = page.read_text()
+    if body.startswith("---\n"):
+        page.write_text(
+            text.replace("title: Alpha", "title: '{{< meta title >}}'")
+        )
+    else:
+        page.write_text(text + "\n" + body)
+    assert_problem(
+        run_check(instance, env, monkeypatch, capsys),
+        "wiki/concepts/alpha.qmd",
+        "inert",
+    )
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        "wiki/concepts/alpha.md",
+        "wiki/concepts/stray.md",
+        "wiki/index.md",
+        "wiki/overview.md",
+        "wiki/log.md",
+        "wiki/students/stray.md",
+    ],
+)
+def test_check_rejects_legacy_pages_before_other_checks(
+    tmp_path, monkeypatch, capsys, document
+):
+    instance, env = ready_instance(tmp_path)
+    page = instance / document
+    page.parent.mkdir(exist_ok=True)
+    page.write_bytes(b"Unmigrated bytes.\r\n")
+    assert_problem(
+        run_check(instance, env, monkeypatch, capsys),
+        document,
+        "migration",
+    )
+    before = tree_hash(instance)
+    with monkeypatch.context() as patcher:
+        for name, value in env.items():
+            patcher.setenv(name, value)
+        assert main(["update", "--wiki", instance.name]) == 1
+    assert tree_hash(instance) == before

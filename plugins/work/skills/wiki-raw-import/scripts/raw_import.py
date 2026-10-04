@@ -78,7 +78,10 @@ def initialize(instance):
         if not path.exists():
             path.mkdir(parents=True)
             created.append(str(path))
-    files = {"AGENTS.md": None, ".gitignore": b"/raw/\n"}
+    files = {
+        "AGENTS.md": None,
+        ".gitignore": b"/raw/\n/text/**/.*.wiki-consistency-tmp\n",
+    }
     files.update(
         {f"wiki/{name}.qmd": b"" for name in ("index", "overview", "log")}
     )

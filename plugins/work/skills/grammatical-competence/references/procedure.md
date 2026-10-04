@@ -40,7 +40,9 @@ success, 1 means a proposal was refused or a backfire result was invalid, and
   `text/<source-id>/<revision>.qmd` through `wiki_consistency.evidence.read`.
   A fresh run selects the source's latest revision and calls the shared
   `evidence.convert` only when retained text is absent and conversion is
-  authorized. There is no separate PDF bypass. The run's `text/<source-id>.txt`
+  authorized. Shared PDF conversion uses `pdftotext -raw` to preserve
+  content-stream order, recording its actual version; there is no separate
+  grammar-only bypass. The run's `text/<source-id>.txt`
   is a body copy; `extractions.json` pins the exact revision, raw SHA-256 and
   full `.qmd` extraction SHA-256. Resumption validates both retained and copied
   bytes, and later raw revisions cannot silently retarget the recorded profile.

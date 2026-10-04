@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import re
 import signal
+import subprocess
 import tempfile
 from typing import Any, BinaryIO, Iterator, Mapping
 import uuid
@@ -323,6 +324,39 @@ def convert(
                                 "name": "python-utf-8",
                                 "version": platform.python_version(),
                             }
+                        elif payload.suffix.lower() == ".pdf":
+                            backend = subprocess.run(
+                                ["pdftotext", "-v"],
+                                check=True,
+                                capture_output=True,
+                                text=True,
+                            )
+                            found = re.search(
+                                r"^pdftotext version (\S+)",
+                                backend.stderr + backend.stdout,
+                                re.MULTILINE,
+                            )
+                            if found is None:
+                                raise ValueError(
+                                    "pdftotext version unavailable"
+                                )
+                            extracted = subprocess.run(
+                                ["pdftotext", "-raw", payload, "-"],
+                                check=True,
+                                capture_output=True,
+                            )
+                            text = extracted.stdout.decode("utf-8")
+                            detail = " ".join(
+                                extracted.stderr.decode(
+                                    "utf-8", errors="replace"
+                                )
+                                .replace(str(payload), "source payload")
+                                .split()
+                            )
+                            converter_info = {
+                                "name": "pdftotext -raw",
+                                "version": found[1],
+                            }
                         else:
                             if converter is None:
                                 converter = MarkItDown()
@@ -616,6 +650,33 @@ def read_located(
         )
     start = selected[0][2]
     lines = _split_lf_lines(retained["text"])
+    if page or pages:
+        div_lines = (
+            [
+                line
+                for token in MarkdownIt("commonmark").parse(retained["text"])
+                if token.type == "paragraph_open" and token.level == 0
+                for line in range(*token.map)
+                if re.match(r"^:::+", lines[line])
+            ]
+            if any(marker[3] == 0 for marker in selected)
+            else []
+        )
+        for marker in selected:
+            if marker[3] != 0:
+                continue
+            stop = next(
+                (m[1] for m in page_markers if m[1] > marker[1]), len(lines)
+            )
+            delimiters = [
+                line for line in div_lines if marker[2] <= line < stop
+            ]
+            if len(delimiters) != 1 or not re.fullmatch(
+                r":::+\s*", lines[delimiters[0]]
+            ):
+                raise ValueError("ambiguous page div bounds")
+            if marker == selected[-1]:
+                boundary = delimiters[0]
     text = "".join(lines[start:boundary])
     if not text.strip():
         raise ValueError("absent located text")

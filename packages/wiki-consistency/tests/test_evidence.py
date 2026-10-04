@@ -4,6 +4,7 @@ import json
 import os
 import signal
 import socket
+import subprocess
 import warnings
 import zipfile
 
@@ -575,3 +576,92 @@ def test_evidence_cache_path_uses_a_local_converter_revision(tmp_path):
     assert evidence.CONVERTER_VERSION == (
         f"{version('markitdown')}-hwpx-{version('python-hwpx')}-json-2"
     )
+
+
+def test_pdf_retains_content_stream_order_once(tmp_path, monkeypatch):
+    instance, cache = tmp_path / "instance", tmp_path / "cache"
+    stream = (
+        b"BT /F1 10 Tf 10 110 Td (Left sentence begins) Tj "
+        b"0 -15 Td (and ends here.) Tj ET "
+        b"BT /F1 10 Tf 160 110 Td (Right sentence begins) Tj "
+        b"0 -15 Td (and ends there.) Tj ET"
+    )
+    payload = _pdf_bytes(stream)
+    item = _revision(instance, "pdf", "r1", "columns.pdf", payload)
+    raw = instance / item["path"] / "data/columns.pdf"
+    run = subprocess.run
+    expected = run(
+        ["pdftotext", "-raw", raw, "-"], check=True, capture_output=True
+    ).stdout.decode("utf-8")
+    layout = run(
+        ["pdftotext", "-layout", raw, "-"], check=True, capture_output=True
+    ).stdout.decode("utf-8")
+    assert expected.index("and ends here.") < expected.index("Right sentence")
+    assert layout.index("Right sentence") < layout.index("and ends here.")
+    calls = []
+
+    def record(*args, **kwargs):
+        calls.append(args[0])
+        return run(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", record)
+    first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    retained = evidence.read(instance, "pdf", "r1")
+    assert first["converted"] == 1
+    assert retained["text"] == expected
+    assert retained["converter"]["name"] == "pdftotext -raw"
+    actual_version = run(["pdftotext", "-v"], check=True, capture_output=True)
+    assert retained["converter"]["version"] in actual_version.stderr.decode()
+    assert retained["checked-against-original"] is False
+    assert retained["problems"] == ["missing locator evidence"]
+    target = instance / "text/pdf/r1.qmd"
+    before = target.read_bytes()
+    second = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert second["present"] == 1
+    assert calls == [["pdftotext", "-v"], ["pdftotext", "-raw", raw, "-"]]
+    assert target.read_bytes() == before and raw.read_bytes() == payload
+
+
+@pytest.mark.parametrize("failure", ["missing", "failed", "warning"])
+def test_pdf_backend_failure_or_warning_is_honest(
+    tmp_path, monkeypatch, failure
+):
+    instance, cache = tmp_path / "instance", tmp_path / "cache"
+    item = _revision(instance, "pdf", "r1", "source.pdf", b"synthetic")
+    calls = []
+
+    def backend(command, **unused_kwargs):
+        calls.append(command)
+        if failure == "missing":
+            raise FileNotFoundError("pdftotext unavailable")
+        if command == ["pdftotext", "-v"]:
+            return subprocess.CompletedProcess(
+                command, 0, "", "pdftotext version 1.2\n"
+            )
+        if failure == "failed":
+            raise subprocess.CalledProcessError(1, command, stderr=b"bad PDF")
+        return subprocess.CompletedProcess(
+            command, 0, b"Partial text.\n", b"Syntax Warning: damaged PDF\n"
+        )
+
+    monkeypatch.setattr(subprocess, "run", backend)
+    first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert calls and calls[0] == ["pdftotext", "-v"]
+    if failure == "warning":
+        assert first["partial"] == [
+            {
+                "id": "pdf",
+                "revision": "r1",
+                "detail": "Syntax Warning: damaged PDF",
+            }
+        ]
+        assert (
+            evidence.read(instance, "pdf", "r1")["conversion-status"]
+            == "partial"
+        )
+    else:
+        assert first["unreadable"][0]["reason"] == "conversion_failed"
+        assert not (instance / "text/pdf/r1.qmd").exists()
+    count = len(calls)
+    evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert len(calls) == count
