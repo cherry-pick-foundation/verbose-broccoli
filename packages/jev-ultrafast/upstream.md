@@ -41,15 +41,24 @@ paths show where the files were copied here.
   chosen without a call, because `jev_classify` needs two. `validate_choice`,
   `action_space`, `field_context` and the decision dictionary keep their
   shape. The text helper is held: `field_text` raises before any model or
-  network use.
+  network use. Each step sends one or two gated calls. The per-step proxy
+  startup was measured at about 1.7 seconds under a mock only, not live.
+  Upstream's internal retries mean gated-call attempts are not provider HTTP
+  attempts or billing counts; a timeout leaves the provider outcome unknown.
+- `src/jev_ultrafast/agent.py`: charge each gated request attempt immediately
+  before dispatch, including failures, refusals, timeouts and cancellations;
+  never refund. Retain the 120-attempt allowance (`MAX_STEPS * 2`) and the
+  separate 60-action guard. Exhaustion before a target request leaves no
+  decision to execute. Record `model_calls` separately from `decisions`,
+  numeric usage (when supplied) and elapsed time.
 - `src/jev_ultrafast/browser.py`: use Orca's private runtime folder and an
   owned Orca tab by default; read that tab's CDP address, attach to its page,
   and close the tab and daemon. `JEV_BROWSER=chrome` retains upstream target
   creation and close behavior.
 - `tests/test_agent.py`: replace the tests of the direct HTTP post and the
   text helper with tests of the gated route (one request per used head, a lone
-  option, refusal, malformed results, held text); the other tests are
-  unchanged.
+  option, refusal, malformed results, held text), plus attempted-call budget
+  boundaries and callback ordering; retain the existing execution guards.
 
 ## Local additions
 

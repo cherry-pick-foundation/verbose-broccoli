@@ -63,7 +63,10 @@ Repeat `--goal` for an ordered list of goals. The command prints the elapsed
 time, the number of actions and the status after each step, then the final
 URL. Each step asks Jev once for the operation and, when that operation has
 two or more elements to choose between, once more for the element: one or
-two paid calls. Report the number of steps.
+two gated call attempts. Report decisions and attempted calls separately
+from numeric usage (when supplied) and elapsed time. The run allows at most
+120 attempts and 60 actions. Failed, refused, timed-out and cancelled calls
+stay charged; exhaustion before a target call executes nothing.
 
 ## Limits
 
@@ -73,7 +76,11 @@ two paid calls. Report the number of steps.
   On a tab that is not visible they can stall until they time out, so keep
   the worktree's browser visible for goals that need scrolling.
 - Each step starts the gated proxy once; the decision time shown for a step
-  includes that start.
+  includes that start. About 1.7 seconds per step was measured under a mock
+  only, not live.
+- Gated-call attempts are not provider HTTP attempts or billing counts:
+  upstream can retry internally. A timeout leaves the provider outcome
+  unknown.
 - A `DONE` step is not proof: check the outcome on the page yourself.
 - Upstream does not handle shadow roots, frames, canvas, uploads, pop-up
   tabs, nested scrolling or arbitrary keyboard widgets.

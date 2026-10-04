@@ -1,10 +1,12 @@
 """Offline contracts for a dynamic operation/target policy. No paid APIs."""
 
+import asyncio
 import json
 import socket
 import time
 from copy import deepcopy
-from unittest.mock import Mock
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from mcp.types import CallToolResult, ImageContent, TextContent
@@ -77,10 +79,14 @@ def install_gate(monkeypatch, picks, **overrides):
             return overrides[head](head, ids)
         return gate_result(head, picks[head], ids, usage={"input_tokens": 5, "output_tokens": 2})
 
-    async def ask(first, followup):
+    async def ask(first, followup, before_call=None):
+        if before_call:
+            before_call()
         requests.append(first)
         results = [respond(first)]
         if (second := followup(results[0])) is not None:
+            if before_call:
+                before_call()
             requests.append(second)
             results.append(respond(second))
         return results
@@ -276,6 +282,7 @@ def runner():
         "goal": "Find a book",
         "history": [],
         "decisions": [],
+        "model_calls": 0,
         "status": "predicted",
         "started_at": time.perf_counter(),
         "record": False,
@@ -422,7 +429,10 @@ def test_prediction_through_the_gate_never_touches_the_page(runner, monkeypatch)
     runner.state["decisions"] = []
     runner.command("predict")
     assert runner.state["decision"]["choice"] == "e3" and runner.state["status"] == "predicted"
-    assert len(requests) == 2 and len(runner.state["decisions"]) == 1
+    assert len(requests) == runner.state["model_calls"] == 2
+    assert len(runner.state["decisions"]) == 1
+    assert runner.state["decisions"][0]["usage"] == {"input_tokens": 10, "output_tokens": 4}
+    assert isinstance(runner.state["decisions"][0]["elapsed_ms"], int)
     runner.state["browser"].act.assert_not_called()
     runner.state["browser"].fresh.assert_called()
 
@@ -517,3 +527,88 @@ def test_choice_old_confidence_absent():
     a = choice(["a", "b"], "a")
     del a["confidence"]
     assert model.validate_choice(a, ["a", "b"])["confidence"] is None
+
+
+@pytest.mark.parametrize("head", ["operation", "click_target"])
+@pytest.mark.parametrize("failure", ["refusal", "timeout", "cancelled", "malformed"])
+def test_failed_attempts_stay_charged(runner, monkeypatch, head, failure):
+    def fail(head, ids):
+        if failure == "timeout":
+            raise TimeoutError("Synthetic timeout; provider outcome unknown")
+        if failure == "cancelled":
+            raise asyncio.CancelledError("Synthetic cancellation")
+        return gate_result(head, None, [], text="refused" if failure == "refusal" else "bad json",
+                           is_error=failure == "refusal")
+
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "2"}, **{head: fail})
+    error = {"refusal": RuntimeError, "timeout": TimeoutError,
+             "cancelled": asyncio.CancelledError, "malformed": ValueError}[failure]
+    with pytest.raises(error):
+        runner.command("predict")
+    assert runner.state["model_calls"] == len(requests) == (1 if head == "operation" else 2)
+    assert runner.state["decisions"] == [] and runner.state["decision"] is None
+    runner.state["browser"].act.assert_not_called()
+
+
+@pytest.mark.parametrize("remaining", [0, 1])
+def test_budget_stops_before_dispatch_and_leaves_no_action(runner, monkeypatch, remaining):
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "2"})
+    runner.state["model_calls"] = loop.MAX_STEPS * 2 - remaining
+    with pytest.raises(ValueError, match="model-call budget"):
+        runner.command("tick")
+    assert len(requests) == remaining
+    assert runner.state["model_calls"] == loop.MAX_STEPS * 2
+    assert runner.state["decision"] is None and runner.state["decisions"] == []
+    with pytest.raises(ValueError, match="model-call budget"):
+        runner.command("predict")
+    assert len(requests) == remaining
+    with pytest.raises(ValueError, match="Observe and choose"):
+        runner.command("act", {"fingerprint": runner.state["page"]["fingerprint"]})
+    runner.state["browser"].act.assert_not_called()
+
+
+def test_action_guard_stays_at_sixty(runner):
+    runner.state["history"] = [{}] * loop.MAX_STEPS
+    runner.state["decision"] = decision("e3")
+    with pytest.raises(ValueError, match="60-action"):
+        runner.command("act", {"fingerprint": runner.state["page"]["fingerprint"]})
+    runner.state["browser"].act.assert_not_called()
+
+
+@pytest.mark.parametrize("fail_on", [None, 1, 2])
+def test_gate_callback_runs_immediately_before_each_dispatch(monkeypatch, fail_on):
+    events = []
+
+    @asynccontextmanager
+    async def transport(_gate):
+        yield None, None
+
+    session = Mock(initialize=AsyncMock())
+
+    async def call_tool(name, arguments):
+        events.append(("dispatch", arguments))
+        return arguments
+
+    session.call_tool = call_tool
+
+    @asynccontextmanager
+    async def client(*args, **kwargs):
+        yield session
+
+    monkeypatch.setattr(model, "stdio_client", transport)
+    monkeypatch.setattr(model, "ClientSession", client)
+
+    def before_call():
+        events.append(("charge", None))
+        if sum(event == "charge" for event, _ in events) == fail_on:
+            raise ValueError("Synthetic exhausted budget")
+
+    if fail_on:
+        with pytest.raises(ValueError, match="budget"):
+            asyncio.run(model.ask_gate("operation", lambda _: "target", before_call))
+    else:
+        assert asyncio.run(model.ask_gate("operation", lambda _: "target", before_call)) == ["operation", "target"]
+    expected = [("charge", None), ("dispatch", "operation"), ("charge", None), ("dispatch", "target")]
+    if fail_on:
+        expected = expected[:2 * fail_on - 1]
+    assert events == expected

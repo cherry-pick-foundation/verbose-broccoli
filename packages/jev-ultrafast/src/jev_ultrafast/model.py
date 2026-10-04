@@ -40,7 +40,7 @@ def classify(head, text, classes, purpose, context):
     }
 
 
-async def ask_gate(first, followup):
+async def ask_gate(first, followup, before_call=None):
     """Send `first`, then the request `followup` builds from its result, in one gated session."""
     try:
         async with (
@@ -48,8 +48,12 @@ async def ask_gate(first, followup):
             ClientSession(read, write, read_timeout_seconds=TIMEOUT) as session,
         ):
             await session.initialize()
+            if before_call:
+                before_call()
             results = [await session.call_tool("jev_classify", first)]
             if (second := followup(results[0])) is not None:
+                if before_call:
+                    before_call()
                 results.append(await session.call_tool("jev_classify", second))
     except ExceptionGroup as group:
         error = group
@@ -164,7 +168,7 @@ def action_space(actions):
     return elements, targets, controls
 
 
-def choose(state, goal, history):
+def choose(state, goal, history, *, before_call=None):
     elements, targets, controls = action_space(state["actions"])
     labels = {
         "CLICK": "Click an element, button, menu option, autocomplete suggestion, or calendar day.",
@@ -212,7 +216,7 @@ def choose(state, goal, history):
 
     first = classify("operation", "Which operation should run next?", operations, NEXT_ACTION, context)
     started = time.perf_counter()
-    parsed = [parse(result) for result in asyncio.run(ask_gate(first, followup))]
+    parsed = [parse(result) for result in asyncio.run(ask_gate(first, followup, before_call))]
     operation_answer = validate_choice(answer(parsed[0], "operation"), operations)
     operation = operation_answer["choice"]
     target = None

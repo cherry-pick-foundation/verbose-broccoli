@@ -34,6 +34,7 @@ class Agent:
             plan=plan,
             plan_index=0,
             decisions=[],
+            model_calls=0,
             text_calls=[],
             elapsed_ms=0,
             started_at=None,
@@ -72,9 +73,13 @@ class Agent:
             state["decision"] = None
             if state["status"] in {"done", "blocked"}:
                 raise ValueError("This run has stopped. Start a fresh demo.")
-            if len(state["decisions"]) >= MAX_STEPS * 2:
-                raise ValueError("Reached the demo's model-call budget")
-            state["decision"] = choose(state["page"], state["goal"], state["history"])
+
+            def before_call():
+                if state["model_calls"] >= MAX_STEPS * 2:
+                    raise ValueError("Reached the demo's model-call budget")
+                state["model_calls"] += 1
+
+            state["decision"] = choose(state["page"], state["goal"], state["history"], before_call=before_call)
             state["decisions"].append(
                 {
                     **state["decision"],
