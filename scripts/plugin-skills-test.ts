@@ -639,91 +639,57 @@ void test('plugin skills: isolated packages retain resources and executable help
   }
 });
 
-void test('plugin skills: work Backfire shares code tool reference and license', async () => {
-  for (const path of ['reference/tools.md', 'LICENSE']) {
+void test('plugin skills: portable Jev copies share every resource and local privacy guidance', async () => {
+  const code = join(ROOT, 'plugins/code/skills/jev');
+  const work = join(ROOT, 'plugins/work/skills/jev');
+  const files = await readdir(code, {recursive: true});
+  assertEquals(await readdir(work, {recursive: true}), files);
+  for (const path of files) {
+    if (!(await lstat(join(code, path))).isFile()) continue;
     assertEquals(
-      await readFile(
-        join(ROOT, 'plugins/work/skills/backfire-education', path),
-        'utf8',
-      ),
-      await readFile(
-        join(ROOT, 'plugins/code/skills/backfire-code', path),
-        'utf8',
-      ),
+      await readFile(join(code, path)),
+      await readFile(join(work, path)),
     );
   }
+  const guidance = await readFile(
+    join(code, 'references/verbose-broccoli.md'),
+    'utf8',
+  );
+  for (const boundary of [
+    'always-on',
+    'Never send secrets or credentials',
+    'Model training must be off',
+    'Unknown names and school spellings pass unchanged',
+  ])
+    assert(guidance.includes(boundary), boundary);
 });
 
-void test('plugin skills: canonical Backfire metadata exposes distinct data boundaries', async () => {
-  const guidance = await readFile(
+void test('plugin skills: canonical Jev metadata and linked rules preserve plugin ownership', async () => {
+  const claude = await readFile(
     join(ROOT, '.claude/rules/claude-code.md'),
     'utf8',
   );
-  const resolution = guidance
-    .split('\n- ')
-    .find(rule => rule.includes('`realpath`'));
-  assert(
-    resolution,
-    'Shared Claude rule must resolve skill symlinks before relative paths',
-  );
   assert(
     /`realpath`.*before constructing.*relative (Read|Bash)/.test(
-      resolution.replace(/\s+/g, ' '),
+      claude.replace(/\s+/g, ' '),
     ),
   );
-  for (const pointer of ['../../AGENTS.md', '.claude/skills', '.agents/skills'])
-    assert(resolution.includes(pointer), pointer);
-  const descriptions: string[] = [];
-  for (const [plugin, name] of [
-    ['code', 'backfire-code'],
-    ['work', 'backfire-education'],
-  ]) {
-    const text = await readFile(
-      join(ROOT, 'plugins', plugin, 'skills', name, 'SKILL.md'),
+  for (const plugin of ['code', 'work']) {
+    const skill = join(ROOT, 'plugins', plugin, 'skills/jev');
+    const text = await readFile(join(skill, 'SKILL.md'), 'utf8');
+    assert(/^name: jev$/m.test(text));
+    assert(/^description: \S.+$/m.test(text));
+    assert(text.includes('references/verbose-broccoli.md'));
+    const guidance = await readFile(
+      join(skill, 'references/verbose-broccoli.md'),
       'utf8',
     );
-    const front = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text)?.[1];
-    assert(front, name);
-    assertEquals(front.match(/^name:\s*([a-z0-9-]+)\s*$/m)?.[1], name);
-    assert(name.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name));
-    // Both canonical sources use a JSON-compatible quoted YAML scalar.
-    const description = JSON.parse(
-      front.match(/^description:\s*(".*")\s*$/m)?.[1] ?? 'null',
+    assert(guidance.includes('../../../AGENTS.md'));
+    assertEquals(
+      await realpath(join(skill, 'references/../../../AGENTS.md')),
+      join(ROOT, 'plugins', plugin, 'AGENTS.md'),
     );
-    assert(typeof description === 'string' && description.trim().length > 0);
-    assert(description.length <= 1024 && !/[<>]/.test(description));
-    const pointer = text.match(/Read \[[^\]]+plugin rules\]\(([^)]+)\)/)?.[1];
-    assert(pointer, name);
-    const expectedRules = join(ROOT, 'plugins', plugin, 'AGENTS.md');
-    for (const alias of ['.agents/skills', '.claude/skills']) {
-      const directory = join(ROOT, alias, name);
-      assert(resolve(directory, pointer) !== expectedRules);
-      const canonicalRules = resolve(await realpath(directory), pointer);
-      assertEquals(canonicalRules, expectedRules);
-      assertEquals(
-        await readFile(canonicalRules),
-        await readFile(expectedRules),
-      );
-    }
-    if (plugin === 'code') {
-      assert(/development/i.test(description));
-      assert(
-        /never.*student data.*private personal records/i.test(description),
-      );
-      assert(description.includes('backfire-education'));
-    } else {
-      assert(
-        /education/i.test(description) && /privacy gate/i.test(description),
-      );
-      assert(
-        /identifier-detection/i.test(description) &&
-          /account-training/i.test(description),
-      );
-      assert(/never.*credentials/i.test(description));
-    }
-    descriptions.push(description);
   }
-  assert(descriptions[0] !== descriptions[1]);
 });
 
 void test('plugin clients: shared declarations survive copying, changes and failed preparation', async () => {
@@ -1365,7 +1331,7 @@ void test('live discovery: torn client staging preserves original bytes and reco
               join(source, 'mcp.json'),
               JSON.stringify({
                 mcpServers: {
-                  'backfire-code': {type: 'stdio', command: 'synthetic'},
+                  'synthetic-server': {type: 'stdio', command: 'synthetic'},
                 },
               }),
             );
@@ -1539,7 +1505,7 @@ void test('live discovery: receipt-owned Codex cleanup preserves user edits and 
     await writeFile(
       join(root, 'plugins/code/mcp.json'),
       JSON.stringify({
-        mcpServers: {'backfire-code': {type: 'stdio', command: 'synthetic'}},
+        mcpServers: {'synthetic-server': {type: 'stdio', command: 'synthetic'}},
       }),
     );
     await mkdir(join(root, '.codex'));

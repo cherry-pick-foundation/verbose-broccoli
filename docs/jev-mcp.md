@@ -270,12 +270,12 @@ provides motivation for realistic replacements from a small English clinical
 pilot. It does not validate Korean education, Faker, provider attacks or
 per-call unlinkability.
 
-The chat owner must repoint credit-offers to this proxy and route Ultrafast
-browser-choice judgments through it. The text-generation helper stays held;
+Credit-offers and Ultrafast browser-choice judgments use this proxy.
+The text-generation helper stays held;
 there is no authorized ungated student-data route. These
 [migration handoffs](../specs/053-jev-mcp-privacy/contracts/migration.md#chat-handoffs-exact-dependency-edges)
-remain separate from repository documentation checks. Old Backfire code and
-its dependencies remain until consumer handoffs permit deletion.
+remain separate from repository documentation checks. The legacy judgment
+implementation and its dependencies have been removed.
 
 External client and provider-path activation waits for the first official
 release and its fresh whole-repository review. Repository checks do not prove

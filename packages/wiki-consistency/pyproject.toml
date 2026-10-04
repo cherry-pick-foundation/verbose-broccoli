@@ -7,7 +7,6 @@ name = "wiki-consistency"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-  "backfire[education]",
   "bagit==1.9.0",
   "doc-regions",
   "markitdown[docx,pdf,pptx,xlsx]==0.1.8",
@@ -23,7 +22,6 @@ wiki-consistency = "wiki_consistency.__main__:main"
 dev = ["import-linter==2.15", "jsonschema==4.26.0", "pytest==9.1.1"]
 
 [tool.uv.sources]
-backfire = { workspace = true }
 doc-regions = { workspace = true }
 
 [tool.uv.build-backend]

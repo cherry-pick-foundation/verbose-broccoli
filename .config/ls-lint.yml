@@ -31,14 +31,13 @@ ls:
   .py: snake_case
   .py.lock: snake_case
   .*.pyc: snake_case
-  packages/backfire/src: &python-src
+  packages/credit-offers/src: &python-src
     .dir: snake_case
     ".": kebab-case
     .*: kebab-case
     .*.*: kebab-case
     .py: snake_case
     .*.pyc: snake_case
-  packages/credit-offers/src: *python-src
   packages/doc-regions/src: *python-src
   packages/education-privacy-gate/src: *python-src
   packages/jev-ultrafast/src: *python-src

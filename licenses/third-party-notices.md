@@ -99,19 +99,6 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
 
-## jkudish/jev-mcp — Backfire skills
-
-- Source:
-  <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
-- Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
-- Reused: the agent skill `skills/jev`, copied as
-  `plugins/code/skills/backfire-code/` and again as
-  `plugins/work/skills/backfire-education/`, with the changes that each copy's
-  `upstream.json` lists, and the Noul tool's definition, questions and
-  decision logic in `packages/backfire/src/backfire/noul.py`.
-- Copyright (c) 2026 Joey Kudish.
-  [MIT license](../plugins/code/skills/backfire-code/LICENSE).
-
 ## jkudish/jev-mcp — portable jev skills
 
 - Source:
@@ -142,9 +129,8 @@ with the already approved Ajv dependency. Sources:
 
 - Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
   PyPI as `phonenumbers` 9.0.40, a Python port of Google's libphonenumber.
-- Used as a pinned Python dependency of `packages/backfire/`, in its optional
-  `education` extra, locked in the workspace's `uv.lock` and installed by
-  `npm run backfire:install` for the work plugin's `serve-mcp --education`.
+- Used as a pinned Python dependency of `packages/education-privacy-gate/`,
+  locked in the workspace's `uv.lock` and installed by `mise run setup`.
   No source is copied into the repository.
 - Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
 
@@ -176,14 +162,3 @@ with the already approved Ajv dependency. Sources:
   the title sends the reader to the local `google-workspace` skill first.
 - Copyright 2026 Google LLC. Used under the Apache License 2.0, the same
   license as this repository ([LICENSE](../LICENSE)).
-
-## Ministry of the Interior and Safety — legal-district codes
-
-- Source: <https://www.code.go.kr>, "법정동코드 전체자료" (legal-district
-  code, full data), requested on 2026-09-30 as
-  [`upstream.md`](../packages/backfire/vendor/legal-district-codes/upstream.md)
-  records, with the ZIP's and the text file's SHA-256.
-- Reused: the response ZIP, unmodified, in
-  `packages/backfire/vendor/legal-district-codes/`; backfire's region list is
-  generated from its province and city/county/district names.
-- Public data of a Korean ministry; the site states no license.

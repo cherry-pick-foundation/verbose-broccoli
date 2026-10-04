@@ -37,7 +37,7 @@ and this package's npm closure. `npm run education-privacy-gate:install`
 installs only the reviewed npm lock with `npm ci --ignore-scripts` under this
 package's `node_modules`. The proxy requires that local layout; do not hoist
 or register the npm child directly. Python uses the root `.python-version`
-and MCP 2.2.0 while the legacy PyModel dependency remains. Newly adopted
+and the locked MCP runtime. Newly adopted
 Python dependencies are wheel-only.
 
 From the repository root, `npm run test:education-privacy-gate` runs the

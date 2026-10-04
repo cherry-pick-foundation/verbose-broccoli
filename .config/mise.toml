@@ -59,8 +59,8 @@ hint = "Install CodexBar 0.69.0 and ensure `codexbar` is on PATH."
 timeout = "5s"
 
 [doctor.checks.uv-workspace]
-description = "The uv workspace and education extra match uv.lock"
-run = "uv sync --locked --check --all-packages --extra education"
+description = "The uv workspace matches uv.lock"
+run = "uv sync --locked --check --all-packages"
 hint = "Run `mise run setup`."
 timeout = "30s"
 

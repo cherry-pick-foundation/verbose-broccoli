@@ -101,12 +101,6 @@
       "to": {"path": "^plugins/work/"}
     },
     {
-      "name": "public-api:packages/backfire",
-      "severity": "error",
-      "from": {"pathNot": "^packages/backfire/"},
-      "to": {"path": "^packages/backfire/"}
-    },
-    {
       "name": "public-api:packages/credit-offers",
       "severity": "error",
       "from": {"pathNot": "^packages/credit-offers/"},

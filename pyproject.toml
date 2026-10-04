@@ -36,8 +36,6 @@ no-build-package = [
   "watchfiles",
 ]
 constraint-dependencies = [
-  # Backfire's test_package_dependency_versions rejects 0.7.2; uv applies this pin only from the workspace root.
-  "typesafe-sdk==0.7.1",
   # Preserve magika 0.6.2 in the lock for Windows.
   "magika<=0.6.3",
 ]
@@ -47,8 +45,6 @@ members = ["packages/*"]
 
 [tool.importlinter]
 root_packages = [
-  "backfire",
-  "backfire_education",
   "credit_offers",
   "doc_regions",
   "education_privacy_gate",
@@ -61,21 +57,14 @@ name = "Workspace package layers"
 type = "layers"
 layers = [
   "wiki_consistency",
-  "backfire_education",
-  "backfire | doc_regions",
+  "doc_regions",
   "education_privacy_gate",
-]
-ignore_imports = [
-  # Backfire imports this optional adapter only when education is configured.
-  "backfire.providers -> backfire_education.pseudonymize",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Python package sibling cycles"
 type = "acyclic_siblings"
 ancestors = [
-  "backfire",
-  "backfire_education",
   "credit_offers",
   "doc_regions",
   "education_privacy_gate",
@@ -334,8 +323,6 @@ single-line-exclusions = ["typing", "collections.abc", "typing_extensions"]
 section-order = ["future", "standard-library", "third-party", "first-party"]
 known-third-party = ["absl", "enchant"]
 known-first-party = [
-  "backfire",
-  "backfire_education",
   "doc_regions",
   "education_privacy_gate",
   "wiki_consistency",

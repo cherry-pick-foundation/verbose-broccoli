@@ -254,7 +254,7 @@ Only the `chat` and `work` vaults admit exported conversations; the skill
 admits each ChatGPT export into both. Exported Claude Code and Codex
 sessions, rendered to Markdown by SpecStory's command-line tool, may go into
 any vault they belong to; the skill's session selection reference picks
-them with backfire, and the user approves the list. Each copy is one
+them with `jev-mcp`, and the user approves the list. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
@@ -443,8 +443,9 @@ for one call. Unknown spellings and identifying context remain residual risks.
 
 The [Jev MCP operator guide](jev-mcp.md) gives commands, twelve upstream tools,
 restoration rules, bounds and the independent dependency review. `jev_score` is
-absent; `jev_audit` audits extraction. Old Backfire code stays only until consumer
-handoffs allow deletion. External activation waits for the first official release.
+absent; `jev_audit` audits extraction. The legacy judgment implementation and
+its dependencies have been removed. External activation waits for the first
+official release.
 
 ### Google Workspace through gws — 2026-09-30
 
@@ -516,19 +517,15 @@ package two skills backed by two uv workspace packages.
 - `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
   fixed revision and patched in two modules; its
   [`upstream.md`](../packages/jev-ultrafast/upstream.md) lists the revision,
-  the original file hashes and every difference. Its Jev calls go to the
-  provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
-  `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
-  of jev-mcp 0.9.0's Vercel carrier; `cloudflare`, Cloudflare Workers AI; or
-  `openrouter`, OpenRouter's decisions API.
+  the original file hashes and every difference. Browser-choice judgments
+  call `jev_classify` through the gated `jev-mcp` proxy.
   By default the agent opens its own
   tab in Orca's built-in browser and attaches to it through that tab's own
   browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
   connection. The `web-agent` skill runs it.
 - `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
   offers that entered its published list during the latest 6-hour block,
-  asks once per run through the legacy Backfire provider order (feature 029,
-  [spec](../specs/029-offer-search-backfire/spec.md)), whether each costs
+  asks once per run through the gated proxy's `jev_classify` whether each costs
   nothing and states no time limit or end date, and sends a desktop
   notification for those that do. It saves
   nothing. The `credit-offers` skill runs it, and the user approved an Orca
@@ -540,11 +537,9 @@ package two skills backed by two uv workspace packages.
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
   `openrouter.env`, `hive.env`, `github.env` for the offer search's
   optional GitHub token, and `copilot.env` for CodexBar's Copilot usage
-  call), which every plugin uses. The web agent gets its
-  provider key through `uv run --env-file`; credit offers passes only the
-  optional `github.env`. The gated `jev-mcp` launcher loads its protected
-  OpenRouter key itself. Credit-offers awaits its chat-owner repoint; only its
-  legacy route still uses Backfire's shared provider order.
+  call), which every plugin uses. Credit offers passes only the optional
+  `github.env`. Both callers pass only an absolute `XDG_CONFIG_HOME` to the
+  gated `jev-mcp` launcher, which loads its protected OpenRouter key itself.
   `npm run secrets:refresh` refreshes provider and approved client files from
   multiple Bitwarden Secrets Manager sources with the existing pinned `bws`
   (feature 052, [spec](../specs/052-secrets-refresh-sources/spec.md)). The
@@ -558,9 +553,8 @@ package two skills backed by two uv workspace packages.
   All private temporary files are prepared before rename, with mode `0600`
   outputs; validation failures preserve targets, while rename-time filesystem
   failures have no multi-file rollback. Provider-key storage remains unchanged.
-- The chat owner must route Ultrafast browser-choice judgments through the
-  gated `jev-mcp` proxy; the direct provider routes above describe legacy code
-  awaiting that handoff. The text-generation helper stays held, with no
+- Ultrafast browser-choice judgments use the gated `jev-mcp` proxy.
+  The text-generation helper stays held, with no
   authorized ungated student-data route. See the
   [migration handoffs](../specs/053-jev-mcp-privacy/contracts/migration.md#chat-handoffs-exact-dependency-edges).
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
@@ -804,8 +798,8 @@ resources, because a distributed plugin may not link to another plugin's files.
 | Package | Owned skills |
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `backfire-code`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire-education`, `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/code/skills` | `clean-code`, `git-commit`, `jev`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `jev`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current

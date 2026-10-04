@@ -25,16 +25,16 @@ Server names below are declarations, not runtime availability or tool catalogs.
 | Package          | [plugins/code](../../plugins/code/)                 |
 | Manifest         | [plugin.json](../../plugins/code/plugin.json)       |
 | MCP declaration  | [mcp.json](../../plugins/code/mcp.json)             |
-| MCP server names | backfire-code                                       |
+| MCP server names | jev-mcp                                             |
 
 ## work
 
-| Field            | Declared value                                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Description      | Work skills for Quarto authoring, session continuity and Google Workspace through gws, with Backfire for education judgments. |
-| Version          | 0.1.0                                                                                                                         |
-| Package          | [plugins/work](../../plugins/work/)                                                                                           |
-| Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                                                 |
-| MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                                                       |
-| MCP server names | backfire-education, reference-library                                                                                         |
+| Field            | Declared value                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Description      | Work skills for Quarto authoring, session continuity and Google Workspace through gws, with jev-mcp for education judgments. |
+| Version          | 0.1.0                                                                                                                        |
+| Package          | [plugins/work](../../plugins/work/)                                                                                          |
+| Manifest         | [plugin.json](../../plugins/work/plugin.json)                                                                                |
+| MCP declaration  | [mcp.json](../../plugins/work/mcp.json)                                                                                      |
+| MCP server names | jev-mcp, reference-library                                                                                                   |
 <!-- [[[end]]] -->

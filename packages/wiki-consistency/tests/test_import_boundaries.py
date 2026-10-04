@@ -18,17 +18,6 @@ def test_workspace_layers_reject_higher_layer_import(tmp_path: Path) -> None:
         "from wiki_consistency import value\n", encoding="utf-8"
     )
 
-    # The current root contract requires its legacy allowed edge to exist.
-    # These isolated stubs import no installed judgment package.
-    if "backfire" in config["tool"]["importlinter"]["root_packages"]:
-        (tmp_path / "backfire_education" / "pseudonymize.py").write_text(
-            "def pseudonymize():\n    pass\n", encoding="utf-8"
-        )
-        (tmp_path / "backfire" / "providers.py").write_text(
-            "from backfire_education.pseudonymize import pseudonymize\n",
-            encoding="utf-8",
-        )
-
     result = subprocess.run(
         [
             "lint-imports",
