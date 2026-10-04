@@ -133,9 +133,10 @@ Foundation source hashes match all 13 files in its retained snapshot. Its scoped
 Retained-reader receipt refinement passed 63 tests; grammar passed 18, and
 schema/procedure checks passed. Request integration and concrete migration
 preview settled with their scoped receipts. Full verification attempt 02 passed
-47/47 on its frozen source, as recorded in tasks.md. Existing work/chat/default
-migration is active within the explicit writer window; code migration, document
-judgments, final independent review and develop integration remain pending.
+47/47 on its historical frozen source, as recorded in tasks.md. All four existing
+vault migrations are now locally committed with sealed preservation/readback.
+Current source review and the affected guard refresh are retained; final document
+review and serialized combined verification precede develop integration.
 
 ## Split assessment before develop review
 
@@ -180,7 +181,7 @@ advanced with unrelated secrets-refresh work; synchronization and combined
 frozen verification/review are still required before integration.
 
 
-The synchronized source is648f87f against clean develop447f3f70. Its fresh final
+The first synchronized source was648f87f against clean develop447f3f70. Its fresh final
 review requested four scoped corrections; tasks.md records their exact ownership,
 actual model choices and operational migration milestones. Full attempt03 was
 not started after findings superseded its grant. A repaired freeze, fresh review
@@ -195,3 +196,14 @@ transition kept atomic. All176 existing Wiki pages and four text moves are local
 committed with preservation receipts; T025 and new conversion/semantic/original
 review stay held. Renewed independent review and current-source operational
 readback precede the fresh serialized combined verify and integration request.
+
+The reviewed implementation is880115d, with net1070 implementation lines across
+13 source files. Fresh Sonnet/medium review and an unchanged-body/index guard
+refresh cover all176 migrated pages. Architecture-only precision corrections
+are fbee826; all implementation hashes remain unchanged. The split remains the
+adapter-first commit8877ca3 followed by the atomic format/consumer transition.
+Document judgments retain57 valid results and one refused final-scope request;
+two necessary042 contracts and corrected016/034 returned verified, with review
+flags and source dispositions retained. Fresh document/evidence review approves
+fbee826; final combined full verification is pending. T019/T025 and
+semantic/original-review holds remain explicit.

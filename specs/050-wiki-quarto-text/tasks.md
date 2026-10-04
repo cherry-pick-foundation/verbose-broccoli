@@ -521,3 +521,42 @@ The guard scans raw inline expressions in full physical source, including metada
 while fenced-cell parsing keeps the front-matter mask. It removes the private
 parser wrapper and adds no dependency or API. Earlier failed fixture attempts and
 passing70-case results remain immutable; final integration acceptance is pending.
+
+Current source880115d/treebe41b374 has fresh Sonnet/medium APPROVE from
+`ctx_ef2def5dc810`:76 affected tests pass. Its report is `receipt.md`; the
+complete native transcript and37 actual model/effort/perTurnEffort rows are sealed
+in planning state `inline-corrected-review-transcript.jsonl` and
+`inline-corrected-review-final-proof.json`. The20,000-string probe is a
+negative-only supplement, not positive execution evidence. Affected actual guard
+refresh `affected-inert-acceptance-attempt-02/` reports0problems across176 pages,
+with all bodies/Git indexes unchanged. Full raw/cache/grammar acceptance stays
+pinned to the earlier sealed corpus receipt; no migration or new batch was repeated.
+
+Final binder `ctx_8f44591bd554` settled/released with13,194 artifact assertions,
+54 measured proposals,358 original objects/409parts/363dispositions/four original
+classifier items preserved. Final-scope document calls are immutable under
+`doc-judgments-attempt-03/` and `doc-judgments-attempt-04/`:58 calls,57 valid
+results and one042 max_tokens_exceeded refusal. The original two larger refusals
+remain separate. No successful judgment or unchanged refusal was rerun.
+
+Recovery `ctx_db6b635039bc`, actual sol/xhigh (.54/.46;15-minute checkpoint
+.61/.53), settled/released: architecture-only+4/-3 and complete source dispositions.
+Develop approved deleting the inaccurate015 cache-location phrase with no new
+paid call. Source16/34 sentences are corrected in fbee826; necessary042a/042b
+and revised016/034 returned verified, with three review flags retained. Whole
+definitions, original associations, all584 current units/639parts and prior53
+results remain accounted in that Dispatch's report/proposals/evidence. Original
+classifier results apply only to their historical four items; no new mechanical
+region or current classification was added. Policy/source reasons for standing
+claims and external/runtime/private holds stay explicit, without provider replay.
+
+Fresh affected document/evidence reviewer `ctx_279948c53daf` is Sonnet/medium
+(.47/.33;10-minute checkpoint .56/.48), requirements and scope only. Its final
+disposition is APPROVE with no actionable findings for fbee826/treeb63b5ab8;
+the reviewer settled/released. Actual native model/effort/perTurnEffort match
+across52 assistant rows in planning `doc-recovery-review-final-proof.json`;
+the complete transcript and exact report remain sealed. Nonblocking source/style
+limits remain explicit, with no repeated tests or calls. Completed document
+dispositions are adopted by reference to the recovery report and source/mapping
+receipts, preserving original/current scope. Full verification needs a fresh
+frozen source/attempt and develop grant. Final ticks/integration remain develop-owned.
