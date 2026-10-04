@@ -1,17 +1,24 @@
+import hashlib
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 
+from conftest import SOURCE_ID
 from conftest import make_instance
 from conftest import update_regions
 import pytest
+from test_prepare import KEY
+from test_prepare import _page
 from test_prepare import _ready
+from test_prepare import _retain
 
+from wiki_consistency import evidence
 from wiki_consistency import search
 from wiki_consistency.__main__ import _parser
 from wiki_consistency.__main__ import main
+from wiki_consistency.instance import revisions
 
 
 def _setenv(monkeypatch, env):
@@ -64,11 +71,15 @@ def test_check_cli_does_not_write_cache_files(tmp_path):
     assert not [path for path in cache.rglob("*") if path.is_file()]
 
 
-def test_convert_cli_writes_only_wiki_evidence_to_cache(tmp_path):
+def test_convert_cli_retains_text_and_reports_missing_locator_evidence(
+    tmp_path,
+):
     instance, env = make_instance(tmp_path)
 
     result = _run_cli(instance, env, "convert")
-    assert result.returncode == 0, result.stderr
+    assert result.returncode == 1
+    assert "missing locator evidence" in result.stderr
+    assert list((instance / "text").rglob("*.qmd"))
 
     cache = Path(env["XDG_CACHE_HOME"])
     allowed = cache / "verbose-broccoli" / "wiki-evidence"
@@ -114,12 +125,10 @@ def test_convert_command_runs_offline_and_prints_result(
     status = main(["convert", "--wiki", instance.name, "--scope", "lint"])
 
     output = capsys.readouterr()
-    result = json.loads(output.out)
-    assert status == 0
-    assert output.err == ""
-    assert result["converted"] == 1
-    assert result["present"] == 0
-    assert result["unreadable"] == []
+    assert status == 1
+    assert output.out == ""
+    assert "missing locator evidence" in output.err
+    assert list((instance / "text").rglob("*.qmd"))
 
 
 def test_index_command_allows_download_and_prints_result(
@@ -222,3 +231,112 @@ def test_prepare_command_runs_after_offline_convert_and_index(
     assert result["wiki"] == instance.name
     assert result["scope"] == "lint"
     assert result["requests"]
+
+
+def test_prepare_cli_returns_failure_for_unresolved_sentences(
+    tmp_path, monkeypatch, capsys
+):
+
+    instance, _, env = _ready(tmp_path)
+    _page(instance, "Unsupported opening.\n")
+    _setenv(monkeypatch, env)
+    assert main(["prepare", "--wiki", instance.name, "--scope", "lint"]) == 1
+    result = json.loads(capsys.readouterr().out)
+    assert any(
+        item["reason"] == "missing sentence citation"
+        for item in result["unverifiable"]
+    )
+
+
+def test_prepare_cli_accepts_only_explicit_actual_review_receipts(
+    tmp_path, monkeypatch, capsys
+):
+
+    instance, _, env = _ready(tmp_path)
+    _setenv(monkeypatch, env)
+    retained = _retain(instance, **{"checked-against-original": True})
+    args = ["prepare", "--wiki", instance.name, "--scope", "lint"]
+    assert main(args) == 1
+    assert "review evidence" in capsys.readouterr().out
+    receipt = tmp_path / "review-receipts.json"
+    record = revisions(instance)[SOURCE_ID][-1]
+    receipt.write_text(
+        json.dumps(
+            {
+                KEY: {
+                    "sha256": evidence._raw_record(instance, record)[1],
+                    "extraction-sha256": hashlib.sha256(
+                        retained.read_bytes()
+                    ).hexdigest(),
+                    "evidence": "/private/SYNTHETIC-REVIEW-REFERENCE",
+                }
+            }
+        )
+    )
+    assert main(args + ["--review-receipts", str(receipt)]) == 0
+    output = capsys.readouterr()
+    assert output.err == ""
+    assert "SYNTHETIC-REVIEW-REFERENCE" not in output.out
+    assert json.loads(output.out)["requests"]
+
+
+def test_prepare_cli_rejects_invalid_receipt_mapping(
+    tmp_path, monkeypatch, capsys
+):
+    instance, _, env = _ready(tmp_path)
+    _setenv(monkeypatch, env)
+    receipt = tmp_path / "review-receipts.json"
+    receipt.write_text("[]")
+    args = [
+        "prepare",
+        "--wiki",
+        instance.name,
+        "--scope",
+        "lint",
+        "--review-receipts",
+        str(receipt),
+    ]
+    assert main(args) == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "canonical-key mapping" in output.err
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "> Supported [@{key}, p. 25].\n",
+        "::: {{.callout-note}}\nSupported [@{key}, p. 25].\n:::\n",
+        "| Claim | Evidence |\n| --- | --- |\n| Result | [@{key}, p. 25] |\n",
+        "An **unsupported mapping** [@{key}, p. 25].\n",
+    ],
+)
+def test_prepare_cli_exposes_unsupported_shapes_as_unresolved_failure(
+    tmp_path, monkeypatch, capsys, body
+):
+    instance, _, env = _ready(tmp_path)
+    page = _page(instance, body.format(key=KEY))
+    before = page.read_bytes()
+    _setenv(monkeypatch, env)
+    assert main(["prepare", "--wiki", instance.name, "--scope", "lint"]) == 1
+    output = capsys.readouterr()
+    assert output.err == ""
+    result = json.loads(output.out)
+    units = [
+        unit
+        for unit in result["units"]
+        if unit["page"] == "wiki/concepts/alpha.qmd"
+    ]
+    assert units and all(unit["outcome"] == "unverifiable" for unit in units)
+    ids = {unit["id"] for unit in units}
+    assert all(
+        any(
+            item["unit"] == unit_id and item["reason"]
+            for item in result["unverifiable"]
+        )
+        for unit_id in ids
+    )
+    assert not any(
+        ids.intersection(request["units"]) for request in result["requests"]
+    )
+    assert page.read_bytes() == before

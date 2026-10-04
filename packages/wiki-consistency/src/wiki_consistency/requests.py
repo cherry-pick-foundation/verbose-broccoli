@@ -1,36 +1,63 @@
 """Prepare deterministic Backfire requests for a Wiki scope."""
 
 from difflib import SequenceMatcher
+import json
 import os
 from pathlib import Path
 import subprocess
 
+from jev_judge_mcp.limits import CANDIDATES
+from jev_judge_mcp.limits import CLASSIFY
+from jev_judge_mcp.text import length
 from markdown_it import MarkdownIt
+import yaml
 
 from doc_regions.requests import classify_requests
 from doc_regions.requests import verify_requests
 from doc_regions.units import split
+from wiki_consistency import citations
 from wiki_consistency import evidence
+from wiki_consistency import instance as storage
 from wiki_consistency import search
 from wiki_consistency.instance import mask_front_matter
 from wiki_consistency.instance import pages
 from wiki_consistency.instance import revisions
 from wiki_consistency.lint import _link_targets
-from wiki_consistency.search import _collection_chunk_count
-from wiki_consistency.search import _markdown_count
 
-SPECIAL_NO_UNITS = {"wiki/index.md", "wiki/log.md"}
+SPECIAL_NO_UNITS = {"wiki/index.qmd", "wiki/log.qmd"}
 REQUEST_ORDER = {"evidence": 0, "pages": 1, "crossref": 2, "classify": 3}
 
 
 def _git(root, *args):
-    return subprocess.run(
+    result = subprocess.run(
         ["git", *args],
         cwd=root,
-        text=True,
         capture_output=True,
         check=False,
         env={**os.environ, "GIT_OPTIONAL_LOCKS": "0"},
+    )
+    result.stdout = result.stdout.decode("utf-8")
+    result.stderr = result.stderr.decode("utf-8", errors="replace")
+    return result
+
+
+def _head_metadata(root, path, text):
+    merged = {}
+    directory = Path("wiki")
+    for folder in (None, *Path(path).parent.relative_to("wiki").parts):
+        if folder is not None:
+            directory /= folder
+        result = _git(root, "show", f"HEAD:{directory}/_metadata.yml")
+        if result.returncode == 0:
+            value = yaml.safe_load(result.stdout)
+            if not isinstance(value, dict):
+                return {}, True
+            merged = storage._merge_metadata(merged, value)  # noqa: SLF001
+    local, problems = storage._front_matter_mapping(text)  # noqa: SLF001
+    if problems:
+        return {}, True
+    return storage._validate_metadata(  # noqa: SLF001
+        storage._merge_metadata(merged, local)  # noqa: SLF001
     )
 
 
@@ -55,16 +82,39 @@ def _collect(instance, scope):
         path = page["path"]
         if path in SPECIAL_NO_UNITS:
             continue
-        text = (root / path).read_text(encoding="utf-8")
+        text = (root / path).read_bytes().decode("utf-8")
         current = mask_front_matter(text)
         if head:
             base_result = _git(root, "show", f"HEAD:{path}")
-            base = mask_front_matter(
+            if base_result.returncode:
+                base_result = _git(
+                    root, "show", f"HEAD:{Path(path).with_suffix('.md')}"
+                )
+            base_text = (
                 base_result.stdout if base_result.returncode == 0 else ""
             )
+            base = mask_front_matter(base_text) if base_text else ""
         else:
             base = ""
-        units = split(path, current, base)
+        raw_units = split(path, current, base)
+        units = raw_units if page["special"] else citations.sentences(raw_units)
+        metadata_changed = False
+        if not page["special"]:
+            metadata, problems = storage.read_metadata(root, path)
+            if problems:
+                units = [
+                    {
+                        **unit,
+                        "citation_problem": "invalid effective page metadata",
+                    }
+                    for unit in units
+                ]
+            if head:
+                try:
+                    old, old_problems = _head_metadata(root, path, base_text)
+                except ValueError, yaml.YAMLError:
+                    old, old_problems = {}, True
+                metadata_changed = bool(old_problems) or old != metadata
         changed_lines = set()
         changed_boundaries = set()
         if head:
@@ -86,8 +136,28 @@ def _collect(instance, scope):
             available = revision_map.get(source_id, [])
             if available and cited_revision != available[-1]["revision"]:
                 stale = True
-                source_specs.add((source_id, available[-1]["revision"]))
+
         source_specs = sorted(source_specs)
+        retained_changed = head is not None and any(
+            _git(
+                root,
+                "diff",
+                "--quiet",
+                "HEAD",
+                "--",
+                f"text/{source_id}/{revision}.qmd",
+            ).returncode
+            or (
+                _git(
+                    root,
+                    "cat-file",
+                    "-e",
+                    f"HEAD:text/{source_id}/{revision}.qmd",
+                ).returncode
+                and (root / "text" / source_id / f"{revision}.qmd").exists()
+            )
+            for source_id, revision in source_specs
+        )
         linked = sorted(
             {
                 f"wiki/{target}"
@@ -97,6 +167,7 @@ def _collect(instance, scope):
         info = {
             "page": page,
             "units": units,
+            "blocks": raw_units,
             "source_specs": source_specs,
             "linked": linked,
         }
@@ -112,7 +183,14 @@ def _collect(instance, scope):
                 raw_unit["first_line"] - 1 <= boundary <= raw_unit["last_line"]
                 for boundary in changed_boundaries
             )
-            in_scope = scope == "lint" or head is None or stale or changed
+            in_scope = (
+                scope == "lint"
+                or head is None
+                or stale
+                or changed
+                or metadata_changed
+                or retained_changed
+            )
             if not in_scope:
                 continue
             unit = {
@@ -123,11 +201,22 @@ def _collect(instance, scope):
             unit.update({"page": path, "outcome": None})
             scoped_units.append(unit)
             scoped_pages.add(path)
-        if scope == "lint" or head is None or stale:
+        if (
+            scope == "lint"
+            or head is None
+            or stale
+            or metadata_changed
+            or retained_changed
+        ):
             scoped_pages.add(path)
 
     scoped_units.sort(
-        key=lambda unit: (unit["page"], unit["first_line"], unit["id"])
+        key=lambda unit: (
+            unit["page"],
+            unit["first_line"],
+            unit.get("start", 0),
+            unit["id"],
+        )
     )
     return (
         head,
@@ -156,24 +245,8 @@ def revisions_for_scope(instance, scope):
     }
 
 
-def _read_evidence(cache, wiki_id, source_specs):
-    result = []
-    texts = {}
-    for source_id, revision in source_specs:
-        try:
-            item = evidence.read(cache, wiki_id, source_id, revision)
-        except LookupError as error:
-            raise ValueError(f"prepare requires convert: {error}") from error
-        if "text" in item:
-            result.append(
-                {"id": f"{source_id}/{revision}", "text": item["text"]}
-            )
-            texts[(source_id, revision)] = item["text"]
-    return result, texts
-
-
 def _page_text(info):
-    return "\n".join(unit["text"] for unit in info["units"])
+    return "\n".join(unit["text"] for unit in info["blocks"])
 
 
 def _unit_at(page_info, path, line):
@@ -199,282 +272,135 @@ def _ranked_hits(hits):
         yield hit, position
 
 
-def _passages_for_group(job, hits, max_evidence_chars):
-    allowed = job["texts"]
-    path_keys = {
-        f"{source_id}/{revision}.md": (source_id, revision)
-        for source_id, revision in allowed
-    }
-    passage_units = {}
-    units_by_file = {}
-    query_units = {
-        f"evidence:{unit['id']}": unit["id"] for unit in job["units"]
-    }
-    unit_passages = {unit["id"]: {} for unit in job["units"]}
-    for hit, position in _ranked_hits(hits):
-        path = Path(str(hit["path"])).as_posix()
-        source_key = path_keys.get(path)
-        if source_key is None:
-            continue
-        if path not in units_by_file:
-            units_by_file[path] = split(path, allowed[source_key])
-        units = units_by_file[path]
-        unit = next(
-            (
-                item
-                for item in units
-                if item["first_line"] <= int(hit["line"]) <= item["last_line"]
-            ),
-            None,
-        )
-        if unit is None:
-            continue
-        key = (source_key, unit["first_line"], unit["last_line"])
-        passage_units[key] = {
-            "text": unit["text"],
-            "source": source_key,
-            "first_line": unit["first_line"],
-        }
-        query_unit = query_units.get(str(hit["query"]))
-        if query_unit is None:
-            continue
-        rank = (position, path, int(hit["line"]))
-        if (
-            key not in unit_passages[query_unit]
-            or rank < unit_passages[query_unit][key]
-        ):
-            unit_passages[query_unit][key] = rank
-
-    ranked_passages = {
-        unit_id: sorted(passages, key=passages.get)[:249]
-        for unit_id, passages in unit_passages.items()
-    }
-    selected_by_unit = {unit["id"]: set() for unit in job["units"]}
-    selected = set()
-    selected_chars = 0
-    for unit in job["units"]:
-        unit_id = unit["id"]
-        for key in ranked_passages[unit_id]:
-            if (
-                key not in selected
-                and selected_chars + len(passage_units[key]["text"])
-                > max_evidence_chars
-            ):
-                continue
-            if key not in selected:
-                selected.add(key)
-                selected_chars += len(passage_units[key]["text"])
-            selected_by_unit[unit_id].add(key)
-            break
-
-    cursors = {
-        unit_id: next(
-            (
-                index + 1
-                for index, key in enumerate(ranked_passages[unit_id])
-                if key in selected_by_unit[unit_id]
-            ),
-            0,
-        )
-        for unit_id in ranked_passages
-    }
-    while True:
-        progressed = False
-        for unit in job["units"]:
-            unit_id = unit["id"]
-            while cursors[unit_id] < len(ranked_passages[unit_id]):
-                key = ranked_passages[unit_id][cursors[unit_id]]
-                cursors[unit_id] += 1
-                if key in selected_by_unit[unit_id]:
-                    continue
-                if (
-                    key not in selected
-                    and selected_chars + len(passage_units[key]["text"])
-                    > max_evidence_chars
-                ):
-                    continue
-                if key not in selected:
-                    selected.add(key)
-                    selected_chars += len(passage_units[key]["text"])
-                selected_by_unit[unit_id].add(key)
-                progressed = True
-                break
-        if not progressed:
-            break
-
-    assigned = {unit_id for unit_id, keys in selected_by_unit.items() if keys}
-    ordered_keys = sorted(
-        selected,
-        key=lambda key: (
-            key[0],
-            passage_units[key]["first_line"],
-            passage_units[key]["text"],
-        ),
-    )
-    counts = {}
-    evidence_by_key = {}
-    for key in ordered_keys:
-        item = passage_units[key]
-        source_id, revision = item["source"]
-        counts[(source_id, revision)] = counts.get((source_id, revision), 0) + 1
-        evidence_by_key[key] = {
-            "id": f"{source_id}/{revision}#{counts[(source_id, revision)]}",
-            "text": item["text"],
-        }
-
-    packed = []
-    group_units = []
-    group_keys = set()
-    for unit in job["units"]:
-        unit_id = unit["id"]
-        keys = set(selected_by_unit[unit_id])
-        if not keys:
-            continue
-        if group_units and len(group_keys | keys) > 249:
-            packed.append((group_units, group_keys))
-            group_units = []
-            group_keys = set()
-        group_units.append(unit)
-        group_keys.update(keys)
-    if group_units:
-        packed.append((group_units, group_keys))
-    order = {key: index for index, key in enumerate(ordered_keys)}
-    groups = [
-        (
-            units,
-            [
-                evidence_by_key[key]
-                for key in sorted(keys, key=order.__getitem__)
-            ],
-        )
-        for units, keys in packed
-    ]
-    return groups, assigned
-
-
 def _request(kind, request):
     return {"kind": kind, **request}
 
 
-def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
-    """Build the sorted, ready-to-send request object for one Wiki scope."""
-    if not isinstance(max_evidence_chars, int) or max_evidence_chars < 1:
-        raise ValueError("max-evidence-chars must be a positive integer")
-    if not isinstance(candidates, int) or candidates < 1:
-        raise ValueError("candidates must be a positive integer")
-    head, page_info, units, scoped_pages, _ = _collect(instance, scope)
-    cache = Path(cache)
+def _prepare(
+    instance,
+    wiki_id,
+    cache,
+    *,
+    scope,
+    max_evidence_chars,
+    candidates,
+    collected,
+    canonical_keys,
+    reviews,
+):
+    head, page_info, units, scoped_pages, _ = collected
     by_page = {}
     for unit in units:
         by_page.setdefault(unit["page"], []).append(unit)
 
-    unverifiable = []
-    evidence_groups = []
-    passage_jobs = []
+    unverifiable, evidence_groups, evidence_spans = [], [], {}
     for path in sorted(scoped_pages):
         info = page_info[path]
         page_units = by_page.get(path, [])
-        if path == "wiki/overview.md":
-            linked = [
-                target
-                for target in info["linked"]
-                if target in page_info and target not in SPECIAL_NO_UNITS
-            ]
-            evidence_items = [
-                {"id": target, "text": _page_text(page_info[target])}
-                for target in linked
-                if _page_text(page_info[target])
-            ]
-            source_ids = linked
-            evidence_texts = {}
-        else:
-            evidence_items, evidence_texts = _read_evidence(
-                cache, wiki_id, info["source_specs"]
+        declared = {
+            f"{source_id}/{revision}"
+            for source_id, revision in info["source_specs"]
+        }
+        for unit in page_units:
+            evidence_items = []
+            reason = unit.get("citation_problem")
+            if path == "wiki/overview.qmd":
+                evidence_items = [
+                    {"id": target, "text": _page_text(page_info[target])}
+                    for target in info["linked"]
+                    if target in page_info
+                    and target not in SPECIAL_NO_UNITS
+                    and _page_text(page_info[target])
+                ]
+                source_ids = [item["id"] for item in evidence_items]
+                reason = (
+                    None
+                    if evidence_items
+                    else "overview has no linked English page evidence"
+                )
+            else:
+                source_ids = [item["key"] for item in unit.get("citations", [])]
+                if reason is None:
+                    try:
+                        for citation in unit["citations"]:
+                            key = citation["key"]
+                            if key not in declared or key not in canonical_keys:
+                                raise ValueError(
+                                    "citation is not an exact "
+                                    "declared bag revision"
+                                )
+                            source_id, revision = key.split("/", 1)
+                            located = evidence.read_located(
+                                instance,
+                                source_id,
+                                revision,
+                                citation["locator"],
+                                max_chars=max_evidence_chars,
+                                review=reviews.get(key),
+                            )
+                            evidence_id = (
+                                f"{key}#{','.join(located['locator_ids'])}:"
+                                f"{located['first_line']}-{located['last_line']}:"
+                                f"{located['extraction-sha256']}"
+                            )
+                            evidence_items.append(
+                                {"id": evidence_id, "text": located["text"]}
+                            )
+                            evidence_spans[evidence_id] = {
+                                key: value
+                                for key, value in located.items()
+                                if key != "text"
+                            }
+                    except (
+                        OSError,
+                        UnicodeError,
+                        ValueError,
+                        LookupError,
+                    ) as error:
+                        reason = str(error)
+            if (
+                reason is None
+                and sum(len(item["text"]) for item in evidence_items)
+                > max_evidence_chars
+            ):
+                reason = "exact evidence set exceeds the evidence budget"
+            if reason is not None or not evidence_items:
+                unverifiable.append(
+                    {
+                        "unit": unit["id"],
+                        "sources": sorted(source_ids),
+                        "reason": reason or "missing sentence citation",
+                    }
+                )
+                continue
+            evidence_items = sorted(
+                {item["id"]: item for item in evidence_items}.values(),
+                key=lambda item: item["id"],
             )
-            source_ids = [
-                f"{source_id}/{revision}"
-                for source_id, revision in info["source_specs"]
-            ]
-        if not page_units:
-            continue
-        if not evidence_items:
-            unverifiable.extend(
-                {"unit": unit["id"], "sources": sorted(source_ids)}
-                for unit in page_units
-            )
-            continue
-        if (
-            sum(len(item["text"]) for item in evidence_items)
-            <= max_evidence_chars
-        ):
-            evidence_groups.append((page_units, evidence_items))
-        elif path == "wiki/overview.md":
-            unverifiable.extend(
-                {"unit": unit["id"], "sources": sorted(source_ids)}
-                for unit in page_units
-            )
-        else:
-            passage_jobs.append(
-                {
-                    "page": path,
-                    "units": page_units,
-                    "texts": evidence_texts,
-                    "sources": [
-                        f"{source_id}/{revision}"
-                        for source_id, revision in info["source_specs"]
-                    ],
-                }
-            )
+            if evidence_groups and evidence_groups[-1][1] == evidence_items:
+                evidence_groups[-1][0].append(unit)
+            else:
+                evidence_groups.append(([unit], evidence_items))
 
     queries = []
-    try:
-        evidence_chunks = _collection_chunk_count(wiki_id, cache, "evidence")
-    except LookupError as error:
-        raise ValueError(f"prepare requires index: {error}") from error
-    evidence_limit = max(
-        20,
-        candidates * 4,
-        _markdown_count(
-            cache
-            / "wiki-evidence"
-            / wiki_id
-            / f"markitdown-{evidence.CONVERTER_VERSION}"
-        ),
-        evidence_chunks,
-    )
-    for job in passage_jobs:
-        for unit in job["units"]:
-            queries.append(
-                {
-                    "id": f"evidence:{unit['id']}",
-                    "text": unit["text"],
-                    "collection": "evidence",
-                    "limit": evidence_limit,
-                    "allowed_paths": sorted(
-                        f"{source_id}/{revision}.md"
-                        for source_id, revision in job["texts"]
-                    ),
-                }
-            )
-    try:
-        semantic = search.semantic_ready(wiki_id, cache)
-    except LookupError as error:
-        raise ValueError(f"prepare requires index: {error}") from error
+    # Status and candidate queries share the same qmd MCP session.
+    model_cached = search._model_is_cached(cache)  # noqa: SLF001
     page_query_ids = {}
     for unit in units:
         page_query_ids[unit["id"]] = f"pages:{unit['id']}"
-        if semantic:
+        if model_cached:
             queries.append(
                 {
                     "id": page_query_ids[unit["id"]],
                     "text": unit["text"],
                     "collection": "pages",
+                    "semantic_only": True,
                     "limit": min(249, max(20, candidates * 4)),
                 }
             )
 
     crossref_query_ids = {}
-    if scope == "lint" and semantic:
+    if scope == "lint" and model_cached:
         for path, info in sorted(page_info.items()):
             page = info["page"]
             if page["special"] or not page["title"] or not page["summary"]:
@@ -486,36 +412,26 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
                     "id": query_id,
                     "text": f"{page['title']}\n{page['summary']}",
                     "collection": "pages",
+                    "semantic_only": True,
                     "limit": 100,
                 }
             )
 
+    search_status = {}
     try:
         hits = search.search(
-            wiki_id, cache, queries, expected_pages_root=Path(instance) / "wiki"
+            wiki_id,
+            cache,
+            queries,
+            expected_pages_root=Path(instance) / "wiki",
+            search_status=search_status,
         )
     except LookupError as error:
         raise ValueError(f"prepare requires index: {error}") from error
+    semantic = search_status.get("semantic", False)
     hits_by_query = {}
     for hit in hits:
         hits_by_query.setdefault(str(hit["query"]), []).append(hit)
-
-    for job in passage_jobs:
-        passage_groups, assigned = _passages_for_group(
-            job,
-            [
-                hit
-                for unit in job["units"]
-                for hit in hits_by_query.get(f"evidence:{unit['id']}", [])
-            ],
-            max_evidence_chars,
-        )
-        unverifiable.extend(
-            {"unit": unit["id"], "sources": sorted(job["sources"])}
-            for unit in job["units"]
-            if unit["id"] not in assigned
-        )
-        evidence_groups.extend(passage_groups)
 
     request_list = [
         _request("evidence", item) for item in verify_requests(evidence_groups)
@@ -657,11 +573,34 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
         unit["outcome"] = (
             "requested" if unit["id"] in requestable else "unverifiable"
         )
+    for request in request_list:
+        arguments = request["arguments"]
+        if request["tool"] == "jev_classify" and any(
+            length(item["text"]) > CLASSIFY.item_units
+            for item in arguments["items"]
+        ):
+            raise ValueError("classification item exceeds exact text limit")
+        if request["tool"] == "jev_find" and any(
+            length(item["text"]) > CANDIDATES.text_units
+            for item in arguments["candidates"]
+        ):
+            raise ValueError(
+                "cross-reference candidate exceeds exact text limit"
+            )
+        if (
+            request["tool"] == "jev_verify"
+            and sum(len(item["text"]) for item in arguments["evidence"])
+            > max_evidence_chars
+        ):
+            raise ValueError(
+                "suggestion evidence exceeds caller evidence budget"
+            )
     unverifiable.sort(key=lambda item: (item["unit"], item["sources"]))
+    unit_order = {unit["id"]: index for index, unit in enumerate(units)}
     request_list.sort(
         key=lambda item: (
             REQUEST_ORDER[item["kind"]],
-            tuple(item["units"]),
+            tuple(unit_order[unit_id] for unit_id in item["units"]),
             item["tool"],
         )
     )
@@ -685,11 +624,18 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
                     "last_line",
                     "added",
                     "outcome",
+                    "block_id",
+                    "start",
+                    "end",
                 )
+                if key in unit
             }
             for unit in units
         ],
         "unverifiable": unverifiable,
+        "evidence_spans": evidence_spans,
+        "segmentation": "candidate spans; unsupported or ambiguous prose "
+        "needs review",
         "search": {
             "keyword": True,
             "semantic": semantic,
@@ -698,3 +644,58 @@ def prepare(instance, wiki_id, cache, *, scope, max_evidence_chars, candidates):
         "calls": calls,
         "requests": request_list,
     }
+
+
+def prepare(
+    instance,
+    wiki_id,
+    cache,
+    *,
+    scope,
+    max_evidence_chars,
+    candidates,
+    reviews=None,
+):
+    """Prepare exact candidate claims with optional caller-supplied receipts.
+
+    Each receipt uses a canonical source/revision key and contains actual raw
+    and extraction hashes plus its private evidence reference. The reference is
+    used only by the evidence reader and is never included in request text.
+    """
+    if type(max_evidence_chars) is not int or max_evidence_chars < 1:
+        raise ValueError("max-evidence-chars must be a positive integer")
+    if type(candidates) is not int or candidates < 1:
+        raise ValueError("candidates must be a positive integer")
+    if reviews is not None and not isinstance(reviews, dict):
+        raise ValueError("review receipts must be a canonical-key mapping")
+    root, cache = Path(instance).resolve(), Path(cache).resolve()
+    collected = _collect(root, scope)
+    _, page_info, _, scoped_pages, revision_by_key = collected
+    selected = {}
+    for path in sorted(scoped_pages):
+        for key in page_info[path]["source_specs"]:
+            if key in revision_by_key:
+                selected.setdefault(key[0], {})[key[1]] = revision_by_key[key]
+    selected = {
+        source: list(items.values()) for source, items in selected.items()
+    }
+    with evidence.bibliography(
+        root,
+        selected,
+        budget_bytes=evidence.EVIDENCE_BUDGET_BYTES,
+        env={"XDG_CACHE_HOME": str(cache)},
+    ) as bibliography:
+        canonical_keys = {
+            item["id"] for item in json.loads(bibliography.read_text())
+        }
+        return _prepare(
+            root,
+            wiki_id,
+            cache,
+            scope=scope,
+            max_evidence_chars=max_evidence_chars,
+            candidates=candidates,
+            collected=collected,
+            canonical_keys=canonical_keys,
+            reviews=reviews or {},
+        )
