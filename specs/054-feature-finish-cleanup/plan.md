@@ -81,5 +81,5 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 
 The implementation is a small shell hook plus an existing harness regression;
 no split is needed. Final source is 44 shell lines; the test diff adds 101 and
-removes 2 lines; the three records total 191 lines. The five-file diff adds
-336 and removes 2 lines, with no separate tooling or dependency.
+removes 2 lines; the three records total 193 lines. The five-file diff adds
+338 and removes 2 lines, with no separate tooling or dependency.
