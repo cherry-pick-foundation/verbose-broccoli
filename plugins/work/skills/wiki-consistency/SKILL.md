@@ -64,7 +64,16 @@ It reports every leftover `wiki/**/*.md` as a migration failure before catalog
 or privacy checks. It rejects executable Quarto cells and executable inline
 code, plus includes/shortcodes in Wiki source, including active shortcodes
 inside code examples; escape them with `{{{< ... >}}}`. Inert code examples
-remain allowed. These
+remain allowed. Executable inline expressions use single backticks around
+`{language}` followed by a space or tab and an expression, including Python,
+R, Jupyter kernel languages and Observable (`ojs`). Bare `{notcode}` or `{a,b}`,
+fence-style options, no-space forms and double-backtick examples stay literal.
+Quarto preprocesses these raw spans inside comments, image labels and ordinary
+code examples too; its R path also preprocesses front matter. A backslash before
+the opening backtick does not escape execution, and extra closing backticks do not prevent it. For literal examples,
+use double backticks directly around the brace-tag expression, with no nested
+single-backtick executable span. Inline diagnostics name the opening backtick's
+actual source line, including after multiline spans. These
 source checks do not impose Wiki language rules on original-language `text/`.
 `check` needs Vale 3.23.0, Git and lychee; `index` and `prepare` need Node 22
 or later.

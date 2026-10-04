@@ -7,8 +7,10 @@ from conftest import commit_instance
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
+from markdown_it import MarkdownIt
 import pytest
 
+from wiki_consistency.lint import _inert_problems
 from wiki_consistency.lint import _log_prefix
 from wiki_consistency.lint import check
 
@@ -133,5 +135,111 @@ def test_inert_examples_and_original_language_text_stay_readable(tmp_path):
     source.parent.mkdir(parents=True)
     source.write_text(
         "한국어 원문\n```{python}\n원문\n```\n{{< include 원문 >}}\n"
+        "<!-- `{python} 1` -->\n"
     )
     assert checked(instance, env)["problems"] == []
+
+
+@pytest.mark.parametrize(
+    "body, lines",
+    [
+        ("intro\nsecond\nthird `{python} 1+1`\n", [3]),
+        ("intro\r\nsecond\r\nthird `{python} 1+1`\r\n", [3]),
+        ("---\ntitle: Example\n---\nintro\n`{r} 1`\n", [5]),
+        ("`{r} 1`\n`{r} 1`\n", [1, 2]),
+        ("`{r} 1` and `{python} 2`\n", [1, 1]),
+        ("`literal\ncode`\nthen `{python} 1`\n", [3]),
+        ("`` `{python} 1`\nliteral ``\nthen `{r} 2`\n", [1, 3]),
+        ("intro  \nsecond\\\nthird `{r} 1`\n", [3]),
+        ("- intro\n  second\n  `{python} 1`\n", [3]),
+        ("> intro\n> second\n> `{r} 1`\n", [3]),
+        ("> - intro\n>   `{python} 1`\n", [2]),
+        ("# Heading `{r} 1`\n", [1]),
+        ("intro\nheading `{python} 1`\n===\n", [2]),
+        ("intro\n[link `{r} 1`](#example)\n", [2]),
+        ("`{python}\t1`\n", [1]),
+        ("`{ojs} 1+1`\n", [1]),
+        ("`{julia} 1+1`\n", [1]),
+        ("`{c#} 1+1`\n", [1]),
+        ("`{python} \n1+1`\nthen `{r} 2`\n", [1, 3]),
+        ("`{notcode}` and `{a,b}` and `{a, b}`\n", []),
+        ("`{r, echo=FALSE} 1` and `{python echo=false} 1`\n", []),
+        ("`print(1)` and `x {python} 1`\n", []),
+        ("`{python}1+1` and `{r}Sys.time()`\n", []),
+        ("`{python} ` and `{python}\n1`\n", []),
+        ("`{ python} 1` and `{python } 1`\n", []),
+        ("` {python} 1 ` and ``{python} 1``\n", []),
+        ("`{{python}} 1` and `{python} 1\n", []),
+        ("```python\n`{python} 1`\n```\n", [2]),
+    ],
+)
+def test_inline_execution_syntax_and_source_lines(tmp_path, body, lines):
+    document = "wiki/example.qmd"
+    page = tmp_path / document
+    page.parent.mkdir()
+    page.write_bytes(body.encode("utf-8"))
+    before = tree_hash(tmp_path)
+
+    problems = _inert_problems(tmp_path, [document], MarkdownIt("commonmark"))
+
+    assert problems == [
+        {
+            "document": document,
+            "line": line,
+            "message": "Wiki source must stay inert: executable inline code",
+        }
+        for line in lines
+    ]
+    assert tree_hash(tmp_path) == before
+
+
+@pytest.mark.parametrize(
+    "body, lines",
+    [
+        ("\\`{python} 1`\n", [1]),
+        ("`{python} 1``\n", [1]),
+        ("`{r} 1```\n", [1]),
+        ("![`{python} 1`](image.png)\n", [1]),
+        ("<!-- `{python} 1` -->\n", [1]),
+        ("```python\n`{python} 1`\n```\n", [2]),
+        ("~~~text\n`{ojs} 1`\n~~~\n", [2]),
+        ("    `{r} 1`\n", [1]),
+        ("<div>\n`{r} 1`\n</div>\n", [2]),
+        ('[link](target "`{python} 1`")\n', [1]),
+        ("\\`{r} 1`\n<!-- `{r} 1` -->\n![`{r} 1`](image.png)\n", [1, 2, 3]),
+        ("<!-- first\n`{python} \n1` -->\nthen `{r} 2`\n", [2, 4]),
+        (
+            "---\r\ntitle: Example\r\n---\r\n"
+            "<!-- intro\r\n\\`{python} 1` -->\r\n",
+            [5],
+        ),
+        ("---\ntitle: '`{python} 1`'\n---\n\n`{r} 2`\n", [2, 5]),
+        ("---\ntitle: '`{r} 1`'\n---\n", [2]),
+        ("``{python} 1`` and ```{r} 1```\n", []),
+        ("\\``{python} 1``\n", []),
+        ("`{python}\\ 1` and `\\{python} 1`\n", []),
+        ("<!-- ``{python} 1`` -->\n![``{r} 1``](image.png)\n", []),
+        (
+            "```text\n``{python} 1``\n`{python}1`\n`{r, echo=FALSE} 1`\n```\n",
+            [],
+        ),
+    ],
+)
+def test_inline_raw_preprocessing_boundary(tmp_path, body, lines):
+    document = "wiki/example.qmd"
+    page = tmp_path / document
+    page.parent.mkdir()
+    page.write_bytes(body.encode("utf-8"))
+    before = tree_hash(tmp_path)
+
+    problems = _inert_problems(tmp_path, [document], MarkdownIt("commonmark"))
+
+    assert problems == [
+        {
+            "document": document,
+            "line": line,
+            "message": "Wiki source must stay inert: executable inline code",
+        }
+        for line in lines
+    ]
+    assert tree_hash(tmp_path) == before

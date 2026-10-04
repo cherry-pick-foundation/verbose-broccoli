@@ -502,11 +502,18 @@ def test_check_rejects_active_quarto_source(
 @pytest.mark.parametrize(
     "body",
     [
-        "`{python}1+1`\n",
-        "`{r}Sys.time()`\n",
-        "> `{python}1+1`\n",
-        "# `{r}Sys.time()`\n",
-        "- `{python}1+1`\n",
+        "`{python} 1+1`\n",
+        "`{r} Sys.time()`\n",
+        "> `{python} 1+1`\n",
+        "# `{r} Sys.time()`\n",
+        "- `{python} 1+1`\n",
+        "intro\nsecond\nthird `{python} 1+1`\n",
+        "`literal\ncode`\nthird `{r} 1+1`\n",
+        "\\`{python} 1+1`\n",
+        "`{python} 1+1``\n",
+        "![`{python} 1+1`](#alpha)\n",
+        "<!-- `{python} 1+1` -->\n",
+        "```python\n`{python} 1+1`\n```\n",
     ],
 )
 def test_check_cli_rejects_executable_inline_code(
@@ -515,11 +522,38 @@ def test_check_cli_rejects_executable_inline_code(
     monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
     instance, env = ready_instance(tmp_path)
     page = instance / "wiki/concepts/alpha.qmd"
-    page.write_text(page.read_text() + "\n" + body)
+    prefix = page.read_text() + "\n"
+    page.write_text(prefix + body)
+    result = run_check(instance, env, monkeypatch, capsys)
     assert_problem(
-        run_check(instance, env, monkeypatch, capsys),
+        result,
         "wiki/concepts/alpha.qmd",
         "executable inline code",
+    )
+    line = prefix.count("\n") + body.count("\n", 0, body.index("`{")) + 1
+    assert result[2] == (
+        f"wiki/concepts/alpha.qmd:{line}: "
+        "Wiki source must stay inert: executable inline code\n"
+    )
+
+
+@pytest.mark.parametrize("language", ("r", "python"))
+def test_check_cli_rejects_inline_metadata(
+    tmp_path, monkeypatch, capsys, language
+):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text().replace(
+            "title: Alpha", f"title: Alpha\nexample: '`{{{language}}} 1`'"
+        )
+    )
+    result = run_check(instance, env, monkeypatch, capsys)
+    assert_problem(result, "wiki/concepts/alpha.qmd", "executable inline code")
+    assert result[2] == (
+        "wiki/concepts/alpha.qmd:3: "
+        "Wiki source must stay inert: executable inline code\n"
     )
 
 
@@ -528,7 +562,13 @@ def test_check_cli_allows_literal_inline_code(tmp_path, monkeypatch, capsys):
     instance, env = ready_instance(tmp_path)
     page = instance / "wiki/concepts/alpha.qmd"
     page.write_text(
-        page.read_text() + "\nLiteral inline code: `print(1 + 1)`.\n"
+        page.read_text().replace(
+            "title: Alpha", "title: Alpha\nexample: '``{r} 1``'"
+        )
+        + "\nLiteral inline code: `print(1 + 1)`, `{notcode}`, `{a,b}`, "
+        "`{r, echo=FALSE} 1`, `{python}1`, and ``{python} 1``.\n"
+        "\n```text\n``{python} 1``\n```\n"
+        "<!-- ``{python} 1`` -->\n"
     )
     status, stdout, stderr = run_check(instance, env, monkeypatch, capsys)
     assert status == 0

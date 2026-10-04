@@ -156,9 +156,8 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T015 [US3] Capture fresh aggregate counts and private before-state receipts
   for all four vaults: exact HEAD/index/dirty changes, raw bytes/modes, bodies,
   metadata, committed log and side-file provenance. Check against first inventory.
-  Owner: own-account scoped worker; next action: develop confirms writer window; code additionally needs main's
-  selected review to settle its 11 staged edits first.
-  - Current owner/next action: Feature coordinator; next: seal all-four preservation and repaired-source read-only acceptance.
+  - Current owner/next action: Feature coordinator; all-four preservation and
+    c302 read-only acceptance are sealed; next: refresh only the changed guard.
   - 2026-10-04: Read-only concrete preview `task_aadaf3ea6040` /
     `ctx_a9e61da859c2`, sol/high (.78/.74; 60-minute estimate .56/.48),
     reuses completed inventory and adds needed private action/page-shape
@@ -166,7 +165,8 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T016 [US3] Migrate all existing `wiki/**/*.md` including index/overview/log
   to `.qmd`, correct necessary references, consolidate only equivalent defaults
   in `_metadata.yml`, preserve unchecked status, every body and foreign edits.
-  - Current owner/next action: Feature coordinator; next: seal all-four preservation and repaired-source read-only acceptance.
+  - Current owner/next action: Feature coordinator; migration and local commits
+    are retained; next: submit their sealed receipts with final source acceptance.
 - [ ] T017 [US1] Move the four existing `wiki/references/*.markdown` conversions
   into `text/` with body/provenance preservation and honest unknown fields;
   reuse existing conversions only. No new conversion batch.
@@ -174,7 +174,8 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T018 [US3] Read back every migrated page/text, catalog, metadata and log;
   prove raw and foreign index preservation, scope only authorized own commits
   and retain before/after receipts. Report unresolved semantic evidence separately.
-  - Current owner/next action: Feature coordinator; next: collect code commit/readback and run repaired-source read-only acceptance.
+  - Current owner/next action: Feature coordinator; code and all-four readback
+    are retained; next: refresh the affected guard without another migration.
 - [ ] T019 [US1] Convert and review newly selected raw revisions only after main
   notifies develop of completed selection/admission. **Held**: main owns the
   checkpoint `~/.local/state/verbose-broccoli/workspaces/main/wiki-raw-selection/`;
@@ -204,7 +205,8 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T023 Obtain fresh final review from another provider on the frozen scope
   and requirements only; resolve findings, rerun affected checks and renew review
   on material change. Never final-approve the implementing provider's change.
-  - Current owner/next action: Feature coordinator; next: choose a fresh other-provider reviewer for repaired scope and requirements.
+  - Current owner/next action: Feature coordinator; a fresh other-provider
+    reviewer is selected; next: supply the final corrected commit and requirements.
 - [ ] T024 Request integration through develop with reviewed commit/tree, exact
   verify/migration evidence, measured size and unticked held tasks. Develop owns
   review state, final ledger ticks and finish; mark worktree completed after finish.
@@ -490,7 +492,32 @@ already present, not reauthored. Scoped guard enters `82b1638`, normal hooks and
 T004/T020 trailers; no source/private/runtime/budget/API expansion.
 
 F2 reuse remains existing `lint._inert_problems(root, targets, markdown)` with
-safe root-relative selected inputs and existing MarkdownIt commonmark. Fence/inline
-checks parse front-matter-masked body; shortcode scanning includes metadata.
+safe root-relative selected inputs and existing MarkdownIt commonmark. Fence
+checks parse front-matter-masked body; raw inline and shortcode scans include metadata.
 F2 owns its render-metadata allowlist and selected publication scope. Final frozen
 lint/hash/review handoff is pending affected independent review; no shared redesign.
+
+2026-10-04 affected review `ctx_02ff46e37063`, actual Sonnet/medium, requested
+changes for inline source lines and ordinary literal recognition. Scoped sol/high
+`ctx_be78b2554713` (.68/.62;20-minute checkpoint .56/.47) settled and was released:
+21 old-source regressions fail;46 focused cases,19 installed-handler probes,
+Ruff/import/document checks pass. Its exact four-file patch/hashes are retained.
+That correction did not complete raw Quarto preprocessing coverage, so no final
+acceptance or guard handoff is inferred from those results.
+
+Continuation `task_5fc787adc105` / `ctx_b641d0ef416c` runs native sol/high
+(.50/.41;20-minute checkpoint .50/.40), actual own turn_context line8 matched.
+It owns the same four files and must reuse installed expression syntax with
+physical source positions; no parser/API/cache/framework is authorized. Fresh
+affected final review is Sonnet/medium (.87/.85;10-minute checkpoint .49/.39),
+pending corrected freeze. Binder retry `ctx_8f44591bd554` retains its sealed bc7
+53-input checkpoint and12,796 artifact assertions; all submissions stay held
+until final support is rebound and affected review passes. Required resume state
+and every earlier attempt remain in their current Dispatch directories.
+
+Continuation `ctx_b641d0ef416c` settled/released:73 focused cases and48 installed
+handler cases pass, with exact delivery hashes and source/index preservation.
+The guard scans raw inline expressions in full physical source, including metadata,
+while fenced-cell parsing keeps the front-matter mask. It removes the private
+parser wrapper and adds no dependency or API. Earlier failed fixture attempts and
+passing70-case results remain immutable; final integration acceptance is pending.
