@@ -4,7 +4,7 @@ license: MIT
 description: >
   Choose the agent (Codex, Claude Code, Copilot, OMP, Antigravity, Grok or
   Cursor), model and reasoning effort for an Orca worker, reviewer or
-  orchestrator with backfire's Jev judgments, from live model catalogs, the
+  orchestrator with jev-mcp's Jev judgments, from live model catalogs, the
   task's difficulty and every candidate's remaining usage. Use before
   starting any worker, reviewer or orchestrator through Orca.
 ---
@@ -21,7 +21,7 @@ typed answers and probabilities rather
 than generating text or reasoning explanations. Code owns the workflow; the model
 supplies programmable common sense where ordinary code needs semantic understanding.
 
-To choose an Orca worker's agent, model and effort with backfire, follow
+To choose an Orca worker's agent, model and effort with jev-mcp, follow
 [references/model-choice.md](references/model-choice.md).
 
 ## Read the live docs
@@ -106,9 +106,9 @@ Choose by what the answer means, then read the relevant primitive page:
 | Degree along a described dimension | [Score](https://docs.typesafe.ai/primitives/score.md) | Probability-weighted position on ordered levels; use comparable per-item Scores for graded ranking |
 
 Never send credentials. Never send student data or other personal records
-through this plugin's backfire: student data goes only through the work plugin's
-backfire, which replaces identifiers first. Requests must be English; backfire
-refuses any request that contains Hangul. Keep the state minimal.
+in model-choice judgments. The single registered jev-mcp proxy always applies
+the education privacy gate; that does not relax this evidence boundary.
+Korean text is allowed. Keep the state minimal.
 
 Give each question enough relevant **state** to answer: source text, identities,
 relationships, policies, and current facts. Prefer named JSON fields when context
