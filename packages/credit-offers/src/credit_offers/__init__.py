@@ -44,6 +44,10 @@ GATE = StdioServerParameters(
         "--no-sync",
         "jev-mcp",
     ],
+    env={"XDG_CONFIG_HOME": config}
+    if (config := os.environ.get("XDG_CONFIG_HOME"))
+    and Path(config).is_absolute()
+    else None,
 )
 # Seconds per request; the proxy's own upstream deadline is 60.
 TIMEOUT = 90
@@ -128,14 +132,27 @@ async def judge(offers):
 def _answer(row):
     """The (choice, probability) of one classification row, if it is valid."""
     choice, probabilities = row["classification"], row["probabilities"]
+    # jev_judge_mcp/validation/choice.py:12-57: sum/argmax tolerances;
+    # malformed confidence is unknown, not a rejection; no margin condition.
     if (
         row.get("status") == "invalid_response"
+        or not isinstance(choice, str)
         or choice not in CRITERIA
+        or not isinstance(probabilities, dict)
         or set(probabilities) != set(CRITERIA)
         or not all(
             type(value) in (int, float) and 0 <= value <= 1
             for value in probabilities.values()
         )
+    ):
+        raise ValueError("Invalid choice answer")
+    # Left-to-right float64 sum; these class IDs are not JS array indices.
+    total = 0.0
+    for value in probabilities.values():
+        total += float(value)
+    if (
+        abs(total - 1) > 0.01 + 1e-12
+        or probabilities[choice] < max(probabilities.values()) - 1e-9
     ):
         raise ValueError("Invalid choice answer")
     return choice, float(probabilities[choice])
@@ -145,7 +162,14 @@ def _answers(result, offers):
     """Map a jev_classify result to each offer's (choice, probability)."""
     try:
         [block] = result.content
-        rows = {row["id"]: row for row in json.loads(block.text)["results"]}
+        results = json.loads(block.text)["results"]
+        if not isinstance(results, list) or len(results) != len(offers):
+            raise ValueError("Invalid choice answer")
+        rows = {row["id"]: row for row in results}
+        if len(rows) != len(results) or set(rows) != {
+            o["slug"] for o in offers
+        }:
+            raise ValueError("Invalid choice answer")
         return {offer["slug"]: _answer(rows[offer["slug"]]) for offer in offers}
     except (AttributeError, KeyError, TypeError, ValueError) as error:
         raise ValueError("Invalid choice answer") from error

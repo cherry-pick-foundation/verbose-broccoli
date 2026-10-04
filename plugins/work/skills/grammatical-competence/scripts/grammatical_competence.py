@@ -210,6 +210,10 @@ async def _jev():
         command="uv",
         args=["--directory", str(PROXY), "run", "--frozen", "--offline"]
         + ["--no-sync", "jev-mcp"],
+        env={"XDG_CONFIG_HOME": config}
+        if (config := os.environ.get("XDG_CONFIG_HOME"))
+        and Path(config).is_absolute()
+        else None,
     )
     async with stdio_client(server) as (read, write):
         async with ClientSession(read, write) as session:

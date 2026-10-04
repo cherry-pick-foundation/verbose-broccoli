@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-import math
+import os
 import time
 from pathlib import Path
 
@@ -22,6 +22,9 @@ GATE = StdioServerParameters(
         "--no-sync",
         "jev-mcp",
     ],
+    env={"XDG_CONFIG_HOME": config}
+    if (config := os.environ.get("XDG_CONFIG_HOME")) and Path(config).is_absolute()
+    else None,
 )
 # Seconds per request; the proxy's own upstream deadline is 60.
 TIMEOUT = 90
@@ -68,14 +71,16 @@ def parse(result):
         raise ValueError("Invalid Jev gate result; no action executed.") from None
 
 
-def answer(parsed):
+def answer(parsed, head):
     """The one classification row of a jev_classify result, shaped as validate_choice reads an answer."""
     try:
-        row = parsed["results"][0]
+        [row] = parsed["results"]
+        if row["id"] != head or row.get("status") == "invalid_response":
+            raise ValueError("Invalid TypeSafe response; no action executed.")
         return {
             "choice": row["classification"],
-            "probabilities": dict(row["probabilities"]),
-            "confidence": row["confidence"],
+            "probabilities": row["probabilities"],
+            "confidence": row.get("confidence"),
         }
     except (KeyError, IndexError, TypeError, ValueError):
         raise ValueError("Invalid TypeSafe response; no action executed.") from None
@@ -93,21 +98,37 @@ def total_usage(results):
 
 
 def validate_choice(answer, ids):
+    # jev_judge_mcp/validation/choice.py:12-57: sum/argmax tolerances;
+    # numbers.py:33-35: malformed confidence is unknown; no margin condition.
     try:
         probabilities = answer["probabilities"]
-        numbers = [*probabilities.values(), answer["confidence"]]
         valid = (
-            answer["choice"] in ids
+            isinstance(answer["choice"], str)
+            and answer["choice"] in ids
+            and isinstance(probabilities, dict)
             and set(probabilities) == set(ids)
-            and all(type(n) in (int, float) and math.isfinite(n) and 0 <= n <= 1 for n in numbers)
-            and abs(sum(probabilities.values()) - 1) < 0.02
-            and probabilities[answer["choice"]] >= max(probabilities.values()) - 1e-6
+            and all(type(n) in (int, float) and 0 <= n <= 1 for n in probabilities.values())
         )
-    except (KeyError, TypeError, ValueError):
+        if not valid:
+            raise ValueError
+        # JS array-index keys first, then insertion order; left-to-right float64 sum.
+        indices = {k for k in probabilities if k.isascii() and k.isdigit() and str(int(k)) == k and int(k) < 2**32 - 1}
+        total = 0.0
+        for key in sorted(indices, key=int) + [k for k in probabilities if k not in indices]:
+            total += float(probabilities[key])
+        valid = (
+            abs(total - 1) <= 0.01 + 1e-12
+            and probabilities[answer["choice"]] >= max(probabilities.values()) - 1e-9
+        )
+    except (KeyError, TypeError, ValueError, AttributeError):
         valid = False
     if not valid:
         raise ValueError("Invalid TypeSafe response; no action executed.")
-    return answer
+    confidence = answer.get("confidence")
+    return {
+        **answer,
+        "confidence": float(confidence) if type(confidence) in (int, float) and 0 <= confidence <= 1 else None,
+    }
 
 
 def action_space(actions):
@@ -184,7 +205,7 @@ def choose(state, goal, history):
         # Only the chosen operation's target is requested, and only when it has options to choose between
         # (jev_classify needs two). A bad answer gets no second request; it is rejected below.
         try:
-            operation = validate_choice(answer(parse(result)), operations)["choice"]
+            operation = validate_choice(answer(parse(result), "operation"), operations)["choice"]
         except (RuntimeError, ValueError):
             return None
         return target_request(operation) if len(targets.get(operation, ())) > 1 else None
@@ -192,7 +213,7 @@ def choose(state, goal, history):
     first = classify("operation", "Which operation should run next?", operations, NEXT_ACTION, context)
     started = time.perf_counter()
     parsed = [parse(result) for result in asyncio.run(ask_gate(first, followup))]
-    operation_answer = validate_choice(answer(parsed[0]), operations)
+    operation_answer = validate_choice(answer(parsed[0], "operation"), operations)
     operation = operation_answer["choice"]
     target = None
     target_answer = None
@@ -200,7 +221,7 @@ def choose(state, goal, history):
     if operation in targets:
         # Only the head selected by the operation is requested and validated; no other head can cause an action.
         if len(targets[operation]) > 1:
-            target_answer = validate_choice(answer(parsed[1]), targets[operation])
+            target_answer = validate_choice(answer(parsed[1], operation.lower() + "_target"), targets[operation])
         else:
             # A lone option is no judgment: it is chosen without a model call.
             (only,) = targets[operation]

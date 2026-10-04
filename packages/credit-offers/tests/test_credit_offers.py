@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import datetime
+import importlib
 import json
 import os
 from pathlib import Path
@@ -781,3 +782,81 @@ def test_real_upstream_error_passes_through_the_gate(monkeypatch, capsys):
     assert status == 3
     assert "Duplicate item id: same" in captured.err
     assert "jev_calls=0" in captured.out
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "sum-off",
+        "non-max",
+        "near-non-max",
+        "duplicate-id",
+        "extra-id",
+        "missing-id",
+        "invalid-response",
+    ],
+)
+def test_choice_trust_boundary(case):
+    first, second = row("a", "qualifies"), row("b", "excluded")
+    rows = [first, second]
+    if case == "sum-off":
+        first["probabilities"] = {"qualifies": 0.9, "excluded": 0.085}
+    elif case == "non-max":
+        first["classification"] = "excluded"
+    elif case == "near-non-max":
+        first["probabilities"] = {
+            "qualifies": 0.5 - 2e-8,
+            "excluded": 0.5 + 2e-8,
+        }
+    elif case == "duplicate-id":
+        rows = [first, first, second]
+    elif case == "extra-id":
+        rows.append(row("extra", "qualifies"))
+    elif case == "missing-id":
+        rows = [first]
+    else:
+        first["status"] = "invalid_response"
+    with pytest.raises(ValueError, match="^Invalid choice answer$"):
+        credit_offers._answers(
+            tool_result(payload(rows)), [offer("a"), offer("b")]
+        )
+
+
+@pytest.mark.parametrize(
+    "probabilities",
+    [
+        {"qualifies": 0.9, "excluded": 0.09},
+        {"qualifies": 0.5 - 2e-10, "excluded": 0.5 + 2e-10},
+    ],
+)
+def test_choice_old_tolerance_accepts(probabilities):
+    first = {
+        **row("a", "qualifies"),
+        "probabilities": probabilities,
+        "confidence": "bad",
+        "margin": -5,
+    }
+    assert credit_offers._answers(tool_result(payload([first])), [offer("a")])[
+        "a"
+    ] == ("qualifies", probabilities["qualifies"])
+
+
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
+def test_gate_storage_environment(monkeypatch, config):
+    monkeypatch.setattr(credit_offers, "GATE", credit_offers.GATE)
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
+    importlib.reload(credit_offers)
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert credit_offers.GATE.env == expected

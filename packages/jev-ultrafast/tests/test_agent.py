@@ -89,7 +89,7 @@ def install_gate(monkeypatch, picks, **overrides):
     return requests
 
 
-@pytest.mark.parametrize("mutation", ["unknown", "nan", "missing", "negative", "non_max", "confidence"])
+@pytest.mark.parametrize("mutation", ["unknown", "nan", "missing", "negative", "non_max"])
 def test_invalid_choice_is_rejected(mutation):
     a = choice(["a", "b"], "a")
     if mutation == "unknown":
@@ -102,8 +102,6 @@ def test_invalid_choice_is_rejected(mutation):
         a["probabilities"]["b"] = -1
     elif mutation == "non_max":
         a["choice"] = "b"
-    else:
-        a["confidence"] = 5
     with pytest.raises(ValueError, match="Invalid TypeSafe"):
         model.validate_choice(a, {"a", "b"})
 
@@ -450,3 +448,72 @@ def test_held_text_helper_stops_a_typing_step_before_any_input(runner):
         runner.command("act", {"fingerprint": runner.state["page"]["fingerprint"]})
     runner.state["browser"].act.assert_not_called()
     assert runner.state["decision"] is None and runner.state["history"] == []
+
+
+@pytest.mark.parametrize("head", ["operation", "click_target"])
+@pytest.mark.parametrize("case", ["wrong-id", "missing-id", "extra-row", "no-row", "invalid-response", "sum-off", "near-non-max"])
+def test_choice_head_trust_boundary(monkeypatch, head, case):
+    def corrupt(request_head, ids):
+        selected = "CLICK" if request_head == "operation" else "1"
+        result = gate_result(request_head, selected, ids)
+        payload = json.loads(result.content[0].text)
+        row = payload["results"][0]
+        if case == "wrong-id":
+            row["id"] = "other-head"
+        elif case == "missing-id":
+            del row["id"]
+        elif case == "extra-row":
+            payload["results"].append(dict(row))
+        elif case == "no-row":
+            payload["results"] = []
+        elif case == "invalid-response":
+            row["status"] = "invalid_response"
+        elif case == "sum-off":
+            row["probabilities"][selected] = 0.985
+        else:
+            row["probabilities"] = dict.fromkeys(ids, 0.0)
+            row["probabilities"][selected] = 0.5 - 2e-8
+            row["probabilities"][next(i for i in ids if i != selected)] = 0.5 + 2e-8
+        result.content[0].text = json.dumps(payload)
+        return result
+
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "1"}, **{head: corrupt})
+    with pytest.raises(ValueError, match="Invalid TypeSafe"):
+        model.choose(page(), "Synthetic goal", [])
+    assert len(requests) == (1 if head == "operation" else 2)
+
+
+@pytest.mark.parametrize("confidence", [None, "bad", True, 5, float("nan"), float("inf")])
+def test_choice_old_confidence_normalizes(confidence):
+    a = choice(["a", "b"], "a")
+    a["confidence"] = confidence
+    assert model.validate_choice(a, ["a", "b"])["confidence"] is None
+
+
+@pytest.mark.parametrize("probabilities", [{"a": 0.9, "b": 0.09}, {"a": 0.5 - 2e-10, "b": 0.5 + 2e-10}])
+def test_choice_old_tolerance_accepts(probabilities):
+    a = {"choice": "a", "probabilities": probabilities, "confidence": 1.0, "margin": -5}
+    assert model.validate_choice(a, ["a", "b"])["choice"] == "a"
+
+
+@pytest.mark.parametrize("head", ["operation", "click_target"])
+def test_choice_probability_object_required(monkeypatch, head):
+    def corrupt(request_head, ids):
+        selected = "CLICK" if request_head == "operation" else "1"
+        result = gate_result(request_head, selected, ids)
+        payload = json.loads(result.content[0].text)
+        row = payload["results"][0]
+        row["probabilities"] = list(row["probabilities"].items())
+        result.content[0].text = json.dumps(payload)
+        return result
+
+    requests = install_gate(monkeypatch, {"operation": "CLICK", "click_target": "1"}, **{head: corrupt})
+    with pytest.raises(ValueError, match="Invalid TypeSafe"):
+        model.choose(page(), "Synthetic goal", [])
+    assert len(requests) == (1 if head == "operation" else 2)
+
+
+def test_choice_old_confidence_absent():
+    a = choice(["a", "b"], "a")
+    del a["confidence"]
+    assert model.validate_choice(a, ["a", "b"])["confidence"] is None

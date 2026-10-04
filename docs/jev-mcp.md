@@ -175,6 +175,8 @@ promise physical memory erasure.
 The list is outside Git at
 `<config>/verbose-broccoli/education-privacy-gate/registered-list.json`.
 `<config>` is an absolute `XDG_CONFIG_HOME`, otherwise `~/.config`.
+Callers pass only an absolute `XDG_CONFIG_HOME` so the proxy finds the
+configured registered list.
 Its directory is user-owned mode `0700`; the regular file is user-owned mode
 `0600`. Unsafe permissions, ownership or symlink components reject a call.
 

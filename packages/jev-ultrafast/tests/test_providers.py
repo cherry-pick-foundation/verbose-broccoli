@@ -1,5 +1,6 @@
 """Offline contracts for the gated jev-mcp route. No browser, key or network."""
 
+import importlib
 import json
 import os
 from pathlib import Path
@@ -411,3 +412,24 @@ def test_real_gate_still_answers_after_a_refusal():
     with pytest.raises(RuntimeError, match=REFUSAL):
         model.choose(wide_page(251), "Open the first item", [])
     assert model.choose(wide_page(2), "Open one", [])["choice"] == "e1"
+
+
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
+def test_gate_storage_environment(monkeypatch, config):
+    monkeypatch.setattr(model, "GATE", model.GATE)
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
+    importlib.reload(model)
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert model.GATE.env == expected

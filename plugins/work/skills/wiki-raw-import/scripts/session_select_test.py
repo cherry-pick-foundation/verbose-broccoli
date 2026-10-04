@@ -853,9 +853,19 @@ def test_render_timeout_continues_after_failed_session(tmp_path, monkeypatch):
         ("[]", False, False),
     ],
 )
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
 def test_proxy_launcher_and_classification_result_shape(
-    monkeypatch, text, is_error, succeeds
+    monkeypatch, text, is_error, succeeds, config
 ):
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
     launches, calls = [], []
 
     @asynccontextmanager
@@ -903,6 +913,12 @@ def test_proxy_launcher_and_classification_result_shape(
         "--no-sync",
         "jev-mcp",
     ]
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert launches[0].env == expected
     assert calls == [("jev_classify", {**batch, "purpose": "synthetic"})]
 
 

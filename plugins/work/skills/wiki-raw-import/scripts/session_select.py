@@ -463,6 +463,10 @@ async def mcp_classify(batches, purpose, server_command=None):
         command=server_command[0],
         args=server_command[1:],
         cwd=str(ROOT),
+        env={"XDG_CONFIG_HOME": config}
+        if (config := os.environ.get("XDG_CONFIG_HOME"))
+        and Path(config).is_absolute()
+        else None,
     )
     responses = []
     async with stdio_client(server) as (read, write):

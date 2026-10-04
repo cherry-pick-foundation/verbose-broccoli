@@ -710,7 +710,17 @@ def test_verify_rejects_malformed_results(text):
         asyncio.run(profile._verify(SimpleNamespace(call_tool=call_tool), {}))
 
 
-def test_verification_launcher_uses_gated_proxy(monkeypatch):
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
+def test_verification_launcher_uses_gated_proxy(monkeypatch, config):
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
     launches = []
 
     @asynccontextmanager
@@ -739,6 +749,12 @@ def test_verification_launcher_uses_gated_proxy(monkeypatch):
             pass
 
     asyncio.run(launch())
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert launches[0].env == expected
     assert launches[0].command == "uv"
     assert launches[0].args == [
         "--directory",
