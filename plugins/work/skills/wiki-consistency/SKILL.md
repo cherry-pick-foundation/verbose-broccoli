@@ -61,9 +61,10 @@ diagnostics on stderr and exit 1. Invalid command-line arguments exit 2.
 `check` is the separate offline structural, metadata and rule stage; a pass
 does not prove exact sentence evidence or semantic correctness.
 It reports every leftover `wiki/**/*.md` as a migration failure before catalog
-or privacy checks. It rejects executable Quarto cells and includes/shortcodes
-in Wiki source, including active shortcodes inside code examples; escape them
-with `{{{< ... >}}}`. Inert code examples remain allowed. These
+or privacy checks. It rejects executable Quarto cells and executable inline
+code, plus includes/shortcodes in Wiki source, including active shortcodes
+inside code examples; escape them with `{{{< ... >}}}`. Inert code examples
+remain allowed. These
 source checks do not impose Wiki language rules on original-language `text/`.
 `check` needs Vale 3.23.0, Git and lychee; `index` and `prepare` need Node 22
 or later.
@@ -139,7 +140,8 @@ candidate sentence spans, with exact slice and citation-coverage checks.
 Unsupported or ambiguous formatting, headings, tables, callouts, quotes and
 source maps, or lost text/citation coverage, are explicit unresolved failures,
 never skipped into a zero-request success or called sentence-complete.
-Keep source inert without executable cells, heavy includes or shortcodes.
+Keep source inert without executable cells, executable inline code, heavy
+includes or shortcodes.
 
 `prepare` records each unit's `outcome` as `requested` or `unverifiable`, with
 unit/source IDs and reasons in `unverifiable`. Missing inline citations and

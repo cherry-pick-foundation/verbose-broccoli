@@ -12,6 +12,7 @@ from conftest import update_regions
 import pytest
 
 from doc_regions.regions import scan
+from wiki_consistency import lint
 from wiki_consistency.__main__ import main
 
 TOPIC_FAILURES = [
@@ -496,6 +497,43 @@ def test_check_rejects_active_quarto_source(
         "wiki/concepts/alpha.qmd",
         "inert",
     )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "`{python}1+1`\n",
+        "`{r}Sys.time()`\n",
+        "> `{python}1+1`\n",
+        "# `{r}Sys.time()`\n",
+        "- `{python}1+1`\n",
+    ],
+)
+def test_check_cli_rejects_executable_inline_code(
+    tmp_path, monkeypatch, capsys, body
+):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(page.read_text() + "\n" + body)
+    assert_problem(
+        run_check(instance, env, monkeypatch, capsys),
+        "wiki/concepts/alpha.qmd",
+        "executable inline code",
+    )
+
+
+def test_check_cli_allows_literal_inline_code(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text() + "\nLiteral inline code: `print(1 + 1)`.\n"
+    )
+    status, stdout, stderr = run_check(instance, env, monkeypatch, capsys)
+    assert status == 0
+    assert json.loads(stdout)["problems"] == []
+    assert stderr == ""
 
 
 @pytest.mark.parametrize(

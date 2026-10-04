@@ -62,6 +62,18 @@ def _inert_problems(root, targets, markdown):
                         "Wiki source must stay inert: executable code cell",
                     )
                 )
+            for child in token.children or ():
+                if child.type == "code_inline" and re.match(
+                    r"\{\s*[\w+-]+(?=[\s,}])", child.content
+                ):
+                    problems.append(
+                        _problem(
+                            document,
+                            token.map[0] + 1,
+                            "Wiki source must stay inert: executable "
+                            "inline code",
+                        )
+                    )
         # Quarto expands shortcodes in code examples and metadata too.
         for number, line in enumerate(text.split("\n"), 1):
             if re.search(r"(?<!\{)\{\{<(?!/\*)", line):
