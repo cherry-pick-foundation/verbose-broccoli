@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+from typing import get_args
 
 # Set before importing FastMCP: its settings load at import time.
 os.environ.update(
@@ -32,6 +33,7 @@ from mcp_types import CLIENT_CAPABILITIES_META_KEY  # noqa: E402
 from mcp_types import CLIENT_INFO_META_KEY  # noqa: E402
 from mcp_types import LOG_LEVEL_META_KEY  # noqa: E402
 from mcp_types import PROTOCOL_VERSION_META_KEY  # noqa: E402
+from mcp_types import LoggingLevel  # noqa: E402
 from mcp_types import TextContent  # noqa: E402
 
 from education_privacy_gate import roster  # noqa: E402
@@ -91,16 +93,7 @@ class PrivacyGate(Middleware):
                     or (
                         LOG_LEVEL_META_KEY in meta
                         and meta[LOG_LEVEL_META_KEY]
-                        not in {
-                            "debug",
-                            "info",
-                            "notice",
-                            "warning",
-                            "error",
-                            "critical",
-                            "alert",
-                            "emergency",
-                        }
+                        not in get_args(LoggingLevel)
                     )
                     or (
                         "progressToken" in meta
@@ -203,7 +196,9 @@ def _node_command():
         command = subprocess.check_output(
             ["mise", "which", "node"],
             text=True,
-            cwd=Path(__file__).resolve().parents[4],
+            # Neutral cwd: the global Node, and no dependency on this checkout's
+            # mise configuration being trusted.
+            cwd="/",
         ).strip()
     else:
         command = shutil.which("node")

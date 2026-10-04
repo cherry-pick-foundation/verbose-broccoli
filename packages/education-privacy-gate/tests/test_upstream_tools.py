@@ -2,6 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,14 +20,15 @@ from education_privacy_gate.roster import Registry
 ENTRY = Path(
     os.environ.get(
         "JEV_TEST_ENTRY",
-        "/tmp/che86-gate-check/npm/node_modules/@jkudish/jev-mcp/dist/index.js",
+        str(
+            Path(__file__).resolve().parents[1]
+            / "node_modules/@jkudish/jev-mcp/dist/index.js"
+        ),
     )
 ).resolve()
-BASELINE = Path(
-    os.environ.get(
-        "JEV_TEST_TOOL_LIST",
-        "/home/choi-eunchang/.local/state/verbose-broccoli/workspaces/feature-jev-mcp-privacy/jev-mcp-privacy/results/w1-upstream-jev-mcp/attempt-1/tools-list.json",
-    )
+# SHA-256 of the reviewed 0.13.0 name-to-input-schema capture, sorted JSON.
+SCHEMAS_SHA256 = (
+    "713b795740c9aa8662eee1fb6fa79a2b855fca6dcd7b00f3b44d55d9fabbf74a"
 )
 WRAPPER = Path(__file__).with_name("fixture-upstream.mjs").resolve()
 TEXT = " ; ".join(ORIGINALS) + " ; 3학년 2반 2026학년도 85점"
@@ -163,7 +165,7 @@ def capture(monkeypatch):
 @asynccontextmanager
 async def upstream(tmp_path, mode="normal"):
     assert ENTRY.is_file(), (
-        "Prepare the scratch locked npm closure before running"
+        "Run npm run education-privacy-gate:install before running"
     )
     assert WRAPPER.is_file(), "The test wrapper must exist"
     with (tmp_path / ("node-" + mode + ".log")).open("w") as log:
@@ -299,11 +301,14 @@ def test_pinned_list(tmp_path):
     async def run():
         async with upstream(tmp_path) as client:
             actual = await client.list_tools()
-            baseline = json.loads(BASELINE.read_text())["tools"]
             assert len(actual) == 12
-            assert {tool.name: tool.input_schema for tool in actual} == {
-                tool["name"]: tool["inputSchema"] for tool in baseline
-            }
+            schemas = {tool.name: tool.input_schema for tool in actual}
+            assert (
+                hashlib.sha256(
+                    json.dumps(schemas, sort_keys=True).encode()
+                ).hexdigest()
+                == SCHEMAS_SHA256
+            )
             assert all(tool.output_schema is None for tool in actual)
 
     asyncio.run(run())

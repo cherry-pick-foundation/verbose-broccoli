@@ -1,9 +1,9 @@
 # Education privacy gate
 
-The `jev-mcp` executable is the only registered judgment server. Its FastMCP
-proxy applies the privacy gate to every call before the hidden, unmodified
-`@jkudish/jev-mcp` child receives it. No bypass or opt-out exists. Proxy wiring
-is implemented separately; this package skeleton declares its entry point.
+The `jev-mcp` executable runs a FastMCP proxy. It applies the privacy gate to
+every tool call before the hidden, unmodified `@jkudish/jev-mcp` child receives
+it. Register only the proxy; keep the child hidden. No bypass or opt-out exists.
+The console script and `python -m education_privacy_gate` start the proxy.
 
 The operator-maintained list is
 `<config>/verbose-broccoli/education-privacy-gate/registered-list.json`.
@@ -32,8 +32,23 @@ adds only a recursion guard, registry bounds and collision exhaustion bounds.
 Grades, classes, school years and scores remain unchanged. Pattern-constrained
 schema fields containing a covered identifier fail before forwarding.
 
-Install the reviewed npm lock using `npm ci --ignore-scripts`. Python direct
-dependencies are pinned; use the repository's root `.python-version` and MCP
-2.2.0 lock during integration. Register the proxy entry point, never the npm
-child directly. Follow the proxy's controlled environment, stderr, timeout,
-result-type and tools-only policy before enabling it for real education data.
+Run the repository's `mise run setup` to install the locked Python workspace
+and this package's npm closure. `npm run education-privacy-gate:install`
+installs only the reviewed npm lock with `npm ci --ignore-scripts` under this
+package's `node_modules`. The proxy requires that local layout; do not hoist
+or register the npm child directly. Python uses the root `.python-version`
+and MCP 2.2.0 while the legacy PyModel dependency remains. Newly adopted
+Python dependencies are wheel-only.
+
+From the repository root, `npm run test:education-privacy-gate` runs the
+synthetic suite, including all twelve actual pinned upstream schemas and
+mocked provider responses. It reads no real registry or provider file and
+makes no provider call. Upstream schemas are checked against the SHA-256 of
+the reviewed 0.13.0 capture; no external scratch evidence is required.
+
+At startup the proxy reads the existing protected OpenRouter configuration.
+It fixes the upstream provider and model, suppresses logging and background
+update/telemetry features, uses a neutral child directory and a 60-second
+client timeout, and blocks resources, prompts and unsupported continuations.
+External registration and real-list admission remain separately authorized
+operations; passing synthetic tests does not activate either.

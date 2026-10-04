@@ -22,6 +22,7 @@ const ruleNames = [
   'public-api:plugins/work',
   'public-api:packages/backfire',
   'public-api:packages/doc-regions',
+  'public-api:packages/education-privacy-gate',
   'public-api:packages/wiki-consistency',
 ];
 
@@ -47,6 +48,7 @@ void test('clean architecture: every configured rule fires on synthetic imports'
     'plugins/code/skills/clean-code/scripts/cli.ts': 'export const cli = 1;',
     'packages/backfire/private.ts': 'export const backfire = 1;',
     'packages/doc-regions/private.ts': 'export const docRegions = 1;',
+    'packages/education-privacy-gate/private.ts': 'export const gate = 1;',
     'packages/wiki-consistency/private.ts': 'export const wiki = 1;',
     'packages/doc-regions/import.ts':
       "export {code} from '../../plugins/code/src/private.ts';",
@@ -60,6 +62,8 @@ void test('clean architecture: every configured rule fires on synthetic imports'
       "export {backfire} from '../packages/backfire/private.ts';",
     'scripts/public_doc_regions.ts':
       "export {docRegions} from '../packages/doc-regions/private.ts';",
+    'scripts/public_privacy_gate.ts':
+      "export {gate} from '../packages/education-privacy-gate/private.ts';",
     'scripts/public_wiki.ts':
       "export {wiki} from '../packages/wiki-consistency/private.ts';",
     'tests/a.ts': "export {b} from './b.ts';",

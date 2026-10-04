@@ -6,8 +6,13 @@ import json
 from pathlib import Path
 import resource
 import sys
+from types import SimpleNamespace
 
 from fastmcp import Client
+from fastmcp.server.middleware import MiddlewareContext
+from fastmcp.tools.base import ToolResult
+from mcp_types import LOG_LEVEL_META_KEY
+from mcp_types import CallToolRequestParams
 import pytest
 
 from education_privacy_gate import __main__ as proxy_module
@@ -80,6 +85,52 @@ def assert_generic(result):
     assert result.is_error
     assert [block.text for block in result.content] == [GENERIC]
     assert result.structured_content is None
+
+
+@pytest.mark.parametrize(
+    "level",
+    [
+        "debug",
+        "info",
+        "notice",
+        "warning",
+        "error",
+        "critical",
+        "alert",
+        "emergency",
+        "unsupported",
+    ],
+)
+@pytest.mark.usefixtures("isolated")
+def test_sdk_logging_levels(level):
+    async def run():
+        meta = {LOG_LEVEL_META_KEY: level}
+        context = MiddlewareContext(
+            message=CallToolRequestParams(name="echo", arguments={}),
+            fastmcp_context=SimpleNamespace(
+                request_context=SimpleNamespace(meta=meta),
+                input_responses=None,
+                request_state=None,
+            ),
+        )
+        gate = proxy_module.PrivacyGate(None)
+        gate.schemas = {"echo": {"type": "object"}}
+        forwarded = []
+
+        async def next_call(masked):
+            forwarded.append(masked)
+            return ToolResult(content="safe synthetic")
+
+        result = await gate.on_call_tool(context, next_call)
+        if level == "unsupported":
+            assert_generic(result)
+            assert not forwarded
+        else:
+            assert not result.is_error
+            assert len(forwarded) == 1
+            assert meta == {}
+
+    asyncio.run(run())
 
 
 def assert_cleared(created):

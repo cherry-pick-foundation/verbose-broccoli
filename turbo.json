@@ -164,6 +164,21 @@
       "dependsOn": ["doc-regions#test"],
       "cache": false
     },
+    "education-privacy-gate#test": {
+      "command": [
+        "npm",
+        "--prefix",
+        "../..",
+        "run",
+        "test:education-privacy-gate"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "education-privacy-gate#check": {
+      "command": ["true"],
+      "dependsOn": ["education-privacy-gate#test"],
+      "cache": false
+    },
     "jev-ultrafast#test": {
       "command": ["npm", "--prefix", "../..", "run", "test:jev-ultrafast"],
       "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
@@ -189,6 +204,7 @@
         "backfire#check",
         "credit-offers#check",
         "doc-regions#check",
+        "education-privacy-gate#check",
         "jev-ultrafast#check",
         "wiki-consistency#check"
       ],

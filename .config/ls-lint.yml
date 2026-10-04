@@ -40,6 +40,7 @@ ls:
     .*.pyc: snake_case
   packages/credit-offers/src: *python-src
   packages/doc-regions/src: *python-src
+  packages/education-privacy-gate/src: *python-src
   packages/jev-ultrafast/src: *python-src
   packages/wiki-consistency/src: *python-src
 

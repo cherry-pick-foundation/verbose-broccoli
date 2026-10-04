@@ -30,7 +30,7 @@ jobs:
       - name: Prepare frozen dependencies
         run: |
           mise install --locked aqua:astral-sh/uv
-          mise exec -- uv python install --no-bin "$(cat packages/backfire/.python-version)"
+          mise exec -- uv python install --no-bin "$(cat .python-version)"
           npm ci --ignore-scripts --no-audit --no-fund
           mise exec -- uv sync --locked --no-dev --project packages/doc-regions
       - name: Check generated references

@@ -119,6 +119,12 @@
       "to": {"path": "^packages/doc-regions/"}
     },
     {
+      "name": "public-api:packages/education-privacy-gate",
+      "severity": "error",
+      "from": {"pathNot": "^packages/education-privacy-gate/"},
+      "to": {"path": "^packages/education-privacy-gate/"}
+    },
+    {
       "name": "public-api:packages/jev-ultrafast",
       "severity": "error",
       "from": {"pathNot": "^packages/jev-ultrafast/"},

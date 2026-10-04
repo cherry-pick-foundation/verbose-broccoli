@@ -48,6 +48,7 @@ function run(
 const installed = [
   'node_modules/x/index.js',
   'packages/wiki-consistency/node_modules/x/index.js',
+  'packages/education-privacy-gate/node_modules/x/index.js',
   '.venv/lib/python3.14/site-packages/x/__init__.py',
   'tools/ruff/.venv/lib/python3.14/site-packages/x/__init__.py',
   '.venv/lib/python3.14/site-packages/x.pth',
@@ -143,6 +144,22 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
       ['jev-ultrafast#test', 'doc-regions#test'],
     );
 
+    before = after;
+    await appendFile(
+      join(
+        repo,
+        'packages/education-privacy-gate/src/education_privacy_gate/__main__.py',
+      ),
+      '\n',
+    );
+    after = hashes(repo);
+    assertChanged(
+      before,
+      after,
+      ['education-privacy-gate#test'],
+      ['backfire#test'],
+    );
+
     // The Python test commands live in package.json, so editing it reruns
     // every package's tests.
     before = after;
@@ -152,6 +169,7 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
       'backfire#test',
       'credit-offers#test',
       'doc-regions#test',
+      'education-privacy-gate#test',
       'jev-ultrafast#test',
       'wiki-consistency#test',
     ]);
