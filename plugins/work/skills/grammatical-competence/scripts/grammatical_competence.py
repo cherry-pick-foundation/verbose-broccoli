@@ -3,11 +3,11 @@
 import argparse
 import asyncio
 from contextlib import asynccontextmanager
+import hashlib
 import json
 import os
 from pathlib import Path
 import re
-import subprocess
 import sys
 import time
 
@@ -20,6 +20,7 @@ import yaml
 from wiki_consistency import evidence
 from wiki_consistency.evidence import _payload_path
 from wiki_consistency.instance import instance_path
+from wiki_consistency.instance import read_metadata
 from wiki_consistency.instance import revisions
 from wiki_consistency.instance import roots
 
@@ -63,8 +64,14 @@ def _norm(text):
 
 
 def _page(root, page):
-    text = (root / "wiki" / page).read_text(encoding="utf-8")
-    return yaml.safe_load(text.split("---\n", 2)[1])
+    metadata, problems = read_metadata(root, f"wiki/{page}")
+    if problems:
+        raise ValueError(
+            "; ".join(
+                f"{p['document']}:{p['line']}: {p['message']}" for p in problems
+            )
+        )
+    return metadata
 
 
 def _inventory(root, page):
@@ -124,22 +131,77 @@ def _inventory_command(args, root, run):
     _write(run / "inventory.tsv", "\n".join(lines) + "\n", run)
 
 
+def _extractions(run):
+    path = run / "extractions.json"
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def _pin(root, run, source, revision):
+    """Bind a run to exact retained bytes; never infer an earlier extraction."""
+    pins = _extractions(run)
+    found = evidence.read(root, source, revision)
+    identity = {
+        k: found[k]
+        for k in ("source-id", "revision", "sha256", "extraction-sha256")
+    }
+    if source in pins:
+        if any(pins[source].get(k) != v for k, v in identity.items()):
+            raise ValueError(f"{source}: run extraction provenance changed")
+    else:
+        if (run / "checks.jsonl").exists():
+            raise ValueError(f"{source}: missing run extraction provenance")
+        pins[source] = {k: v for k, v in found.items() if k != "text"}
+        _write(run / "extractions.json", json.dumps(pins) + "\n", run)
+    return found
+
+
+def _profile_sources(root, run, rows):
+    """Validate retained and run-copy identities for checks and records."""
+    pins = _extractions(run)
+    sources = []
+    for source in dict.fromkeys(row["source"] for row in rows):
+        if source not in pins:
+            raise ValueError(f"{source}: missing run extraction provenance")
+        revision = pins[source]["revision"]
+        found = _pin(root, run, source, revision)
+        if (run / f"text/{source}.txt").read_bytes() != found["text"].encode():
+            raise ValueError(
+                f"{source}: run text differs from pinned extraction"
+            )
+        sources.append({"id": source, "revision": revision})
+    return sources
+
+
 def _extract_command(args, root, run):
     cache = roots(os.environ)["cache"]
     for source in args.source:
-        item = revisions(root)[source][-1]
-        payload = _payload_path(root, item)
-        if payload.suffix.lower() == ".pdf":
-            text = subprocess.check_output(
-                ["pdftotext", "-raw", payload, "-"], text=True
-            )
+        pins = _extractions(run)
+        if source in pins:
+            revision = pins[source]["revision"]
         else:
-            evidence.convert(root, args.wiki, cache, {source: [item]})
-            found = evidence.read(cache, args.wiki, source, item["revision"])
-            text = found.get("text", "")
+            if (run / f"text/{source}.txt").exists() or any(
+                (run / name).exists()
+                for name in ("proposals.jsonl", "checks.jsonl")
+            ):
+                raise ValueError(f"{source}: missing run extraction provenance")
+            item = revisions(root)[source][-1]
+            revision = item["revision"]
+            if not (root / f"text/{source}/{revision}.qmd").exists():
+                evidence.convert(root, args.wiki, cache, {source: [item]})
+        found = _pin(root, run, source, revision)
+        text = found["text"]
         if not any(c.isalpha() for c in text):
             raise ValueError(f"{source}: no text; a scan needs the user")
-        _write(run / f"text/{source}.txt", text, run)
+        for problem in found["problems"]:
+            print(f"{source}/{revision}: {problem}", file=sys.stderr)
+        copy = run / f"text/{source}.txt"
+        if copy.exists():
+            if copy.read_bytes() != text.encode():
+                raise ValueError(
+                    f"{source}: run text differs from pinned extraction"
+                )
+        else:
+            _write(copy, text, run)
 
 
 @asynccontextmanager
@@ -179,8 +241,26 @@ def _refusals(run, proposals, entries):
 def _sections(root, args, run):
     """Return the reference page, its text's lines and the section index."""
     page = _page(root, args.reference)
-    text = Path(args.reference).parent / page["reference"]["text"]
-    lines = (root / "wiki" / text).read_text(encoding="utf-8").splitlines()
+    text = (
+        root / "wiki" / Path(args.reference).parent / page["reference"]["text"]
+    )
+    if any(p.is_symlink() for p in (text, *text.parents)):
+        raise ValueError("reference text cannot traverse symlinks")
+    # Normalize page-relative .. without following any symlink.
+    text = Path(os.path.abspath(text))
+    if not text.is_relative_to(root / "text"):
+        raise ValueError("reference text must stay in text/ without symlinks")
+    relative = text.relative_to(root / "text")
+    if len(relative.parts) != 2 or relative.suffix != ".qmd":
+        raise ValueError("reference text must name text/source-id/revision.qmd")
+    source, revision = relative.parent.name, relative.stem
+    if {"id": source, "revision": revision} not in page["sources"]:
+        raise ValueError("reference text revision is not declared by the page")
+    found = _pin(root, run, source, revision)
+    content = text.read_bytes()
+    if hashlib.sha256(content).hexdigest() != found["extraction-sha256"]:
+        raise ValueError("reference extraction changed during read")
+    lines = content.decode("utf-8").splitlines()
     index = {}
     for line in (run / "sections.tsv").read_text(encoding="utf-8").splitlines():
         label, first, last, *_ = line.split("\t")  # A title may follow.
@@ -282,6 +362,7 @@ def _refuse(refused):
 def _check_command(args, root, run):
     metadata, entries = _inventory(root, args.inventory)
     proposals = _jsonl(run / "proposals.jsonl")
+    _profile_sources(root, run, proposals)
     if refused := list(_refusals(run, proposals, entries)):
         return _refuse(refused)
     claim = metadata["inventory"]["claim"]
@@ -340,6 +421,8 @@ def _record_command(args, root, run):
     rows = _jsonl(
         run / ("mappings.jsonl" if args.reference else "proposals.jsonl")
     )
+    if not args.reference:
+        source_pins = _profile_sources(root, run, rows)
     if args.reference:
         reference, lines, index = _sections(root, args, run)
         if refused := list(_map_refusals(rows, entries, lines, index)):
@@ -409,10 +492,7 @@ def _record_command(args, root, run):
             for n, (proposal, k, u) in enumerate(zip(rows, kept, unclear), 1)
         ]
         kind, folder, unit = "profile", "profiles", "sentences"
-        sources = [
-            {"id": s, "revision": revisions(root)[s][-1]["revision"]}
-            for s in dict.fromkeys(p["source"] for p in rows)
-        ]
+        sources = source_pins
         sources += metadata["sources"]
         links = {}
         body = f"every sentence and its items, from the {inventory}"
@@ -446,7 +526,9 @@ def _record_command(args, root, run):
     front = yaml.safe_dump(page, sort_keys=False, allow_unicode=True)
     data = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in data)
     _write(root / f"wiki/{folder}/{args.name}.jsonl", data)
-    _write(root / f"wiki/{folder}/{args.name}.md", f"---\n{front}---\n\n{body}")
+    _write(
+        root / f"wiki/{folder}/{args.name}.qmd", f"---\n{front}---\n\n{body}"
+    )
 
 
 def main(argv=None):
@@ -477,7 +559,7 @@ def main(argv=None):
     try:
         root = instance_path(args.wiki, os.environ)
         return args.function(args, root, _run_dir(args.run)) or 0
-    except (OSError, ValueError, LookupError, subprocess.SubprocessError) as e:
+    except (OSError, ValueError, LookupError) as e:
         print(f"grammatical-competence: {e}", file=sys.stderr)
         return 2
 

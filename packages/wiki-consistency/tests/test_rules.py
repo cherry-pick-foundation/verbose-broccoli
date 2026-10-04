@@ -68,7 +68,7 @@ def ready_vault(tmp_path):
 
 
 def write_overview(instance, body):
-    (instance / "wiki" / "overview.md").write_text(
+    (instance / "wiki" / "overview.qmd").write_text(
         f"# Overview\n{body.rstrip()}\n", encoding="utf-8"
     )
 
@@ -141,7 +141,7 @@ def test_page_rules_report_page_and_line_without_the_match(
 
     problems = checked(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, rule, matched)
+    assert_rule(problems, "wiki/overview.qmd", 2, rule, matched)
 
 
 @pytest.mark.parametrize(
@@ -157,7 +157,7 @@ def test_page_rules_report_page_and_line_without_the_match(
 def test_student_page_must_be_named_by_a_roster_id(tmp_path, stem):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "students" / f"{stem}.md"
+    page = instance / "wiki" / "students" / f"{stem}.qmd"
     page.parent.mkdir()
     page.write_text("# Student\n", encoding="utf-8")
 
@@ -171,7 +171,7 @@ def test_student_page_must_be_named_by_a_roster_id(tmp_path, stem):
 def test_student_page_named_by_a_roster_id_passes(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "students" / f"s-{IDS[0]}.md"
+    page = instance / "wiki" / "students" / f"s-{IDS[0]}.qmd"
     page.parent.mkdir()
     page.write_text("# Student\n", encoding="utf-8")
 
@@ -216,7 +216,7 @@ def test_overlong_quote_and_cjk_in_translation_fail(tmp_path):
 
     problems = checked(instance, tmp_path)
 
-    assert has_rule(problems, "english", "wiki/overview.md")
+    assert has_rule(problems, "english", "wiki/overview.qmd")
 
 
 def test_translated_quote_of_100_characters_passes(tmp_path):
@@ -225,7 +225,7 @@ def test_translated_quote_of_100_characters_passes(tmp_path):
     write_overview(instance, f"“{'學' * 100}” (meaning)")
 
     assert not has_rule(
-        checked(instance, tmp_path), "english", "wiki/overview.md"
+        checked(instance, tmp_path), "english", "wiki/overview.qmd"
     )
 
 
@@ -247,14 +247,14 @@ def test_korean_roster_names_fail_even_in_translated_quotes(
 
     problems = checked(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, "student-name", name)
+    assert_rule(problems, "wiki/overview.qmd", 2, "student-name", name)
     assert name not in json.dumps(problems, ensure_ascii=False)
 
 
 def test_korean_roster_name_fails_in_front_matter_and_sources(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     page.write_text(
         f"---\ntitle: {STUDENTS[0]}\nsources:\n  - {GUARDIAN}\n---\n"
         "# Overview\n",
@@ -263,8 +263,8 @@ def test_korean_roster_name_fails_in_front_matter_and_sources(tmp_path):
 
     problems = checked_rules(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, "student-name", STUDENTS[0])
-    assert_rule(problems, "wiki/overview.md", 4, "student-name", GUARDIAN)
+    assert_rule(problems, "wiki/overview.qmd", 2, "student-name", STUDENTS[0])
+    assert_rule(problems, "wiki/overview.qmd", 4, "student-name", GUARDIAN)
 
 
 def test_romanized_roster_names_and_other_hangul_pass_the_name_rule(tmp_path):
@@ -275,7 +275,7 @@ def test_romanized_roster_names_and_other_hangul_pass_the_name_rule(tmp_path):
     problems = checked(instance, tmp_path)
 
     assert not has_rule(problems, "student-name")
-    assert has_rule(problems, "english", "wiki/overview.md")
+    assert has_rule(problems, "english", "wiki/overview.qmd")
 
 
 def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
@@ -283,7 +283,7 @@ def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
     write_roster(tmp_path, [("나[하늘", "", "")])
     write_overview(instance, "나[하늘")
 
-    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.qmd")
 
 
 def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
@@ -291,7 +291,7 @@ def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
     write_roster(tmp_path, [("가.온", "", "")])
     write_overview(instance, "가x온")
 
-    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.qmd")
 
 
 def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
@@ -299,7 +299,7 @@ def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
     write_roster(tmp_path)
     write_overview(instance, f"{STUDENTS[0]}은 good.")
 
-    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.qmd")
 
 
 def test_roster_school_name_is_flagged_but_a_translated_quote_passes(tmp_path):
@@ -309,8 +309,8 @@ def test_roster_school_name_is_flagged_but_a_translated_quote_passes(tmp_path):
 
     problems = checked(instance, tmp_path)
 
-    assert has_rule(problems, "school", "wiki/overview.md")
-    assert has_rule(problems, "english", "wiki/overview.md")
+    assert has_rule(problems, "school", "wiki/overview.qmd")
+    assert has_rule(problems, "english", "wiki/overview.qmd")
     assert SCHOOL not in json.dumps(problems, ensure_ascii=False)
 
     write_overview(instance, f"“{SCHOOL}” (fiction)\n\n學生")
@@ -352,7 +352,7 @@ def test_privacy_and_time_rules_check_code_and_link_targets(
     write_overview(instance, body)
 
     assert_rule(
-        checked(instance, tmp_path), "wiki/overview.md", 2, rule, matched
+        checked(instance, tmp_path), "wiki/overview.qmd", 2, rule, matched
     )
 
 
@@ -367,9 +367,9 @@ def test_language_school_and_date_skip_link_targets(tmp_path):
 
     problems = checked(instance, tmp_path)
 
-    assert not has_rule(problems, "english", "wiki/overview.md")
-    assert not has_rule(problems, "school", "wiki/overview.md")
-    assert not has_rule(problems, "date", "wiki/overview.md")
+    assert not has_rule(problems, "english", "wiki/overview.qmd")
+    assert not has_rule(problems, "school", "wiki/overview.qmd")
+    assert not has_rule(problems, "date", "wiki/overview.qmd")
 
 
 def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
@@ -396,7 +396,7 @@ def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
     problems = checked(instance, tmp_path)
 
     for line in range(9, 9 + len(reported)):
-        assert_rule(problems, "wiki/overview.md", line, "phone")
+        assert_rule(problems, "wiki/overview.qmd", line, "phone")
     assert sum(has_rule([item], "phone") for item in problems) == len(reported)
 
 
@@ -407,7 +407,7 @@ def test_hangul_link_text_still_fails_english(tmp_path):
         instance, f"[{SCHOOL}](https://example.invalid/original.pdf)"
     )
 
-    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "english", "wiki/overview.qmd")
 
 
 @pytest.mark.parametrize(
@@ -424,7 +424,7 @@ def test_text_rules_skip_code(tmp_path, rule, body):
     write_roster(tmp_path)
     write_overview(instance, body)
 
-    assert not has_rule(checked(instance, tmp_path), rule, "wiki/overview.md")
+    assert not has_rule(checked(instance, tmp_path), rule, "wiki/overview.qmd")
 
 
 def test_date_rule_flags_common_non_iso_forms(tmp_path):
@@ -439,7 +439,7 @@ def test_date_rule_flags_common_non_iso_forms(tmp_path):
 
     problems = checked(instance, tmp_path)
 
-    assert has_rule(problems, "date", "wiki/overview.md")
+    assert has_rule(problems, "date", "wiki/overview.qmd")
 
 
 def test_iso_shaped_impossible_date_passes_and_valid_iso_dates_pass(tmp_path):
@@ -447,7 +447,9 @@ def test_iso_shaped_impossible_date_passes_and_valid_iso_dates_pass(tmp_path):
     write_roster(tmp_path)
     write_overview(instance, "2026-02-30; 2026-09-29")
 
-    assert not has_rule(checked(instance, tmp_path), "date", "wiki/overview.md")
+    assert not has_rule(
+        checked(instance, tmp_path), "date", "wiki/overview.qmd"
+    )
 
 
 def test_fraction_and_partial_dates_pass(tmp_path):
@@ -459,7 +461,9 @@ def test_fraction_and_partial_dates_pass(tmp_path):
         "and 0199a0e2-7c1b-7d3e-9f00-000000000000.",
     )
 
-    assert not has_rule(checked(instance, tmp_path), "date", "wiki/overview.md")
+    assert not has_rule(
+        checked(instance, tmp_path), "date", "wiki/overview.qmd"
+    )
 
 
 def test_invalid_registration_birth_date_is_still_flagged(tmp_path):
@@ -469,7 +473,7 @@ def test_invalid_registration_birth_date_is_still_flagged(tmp_path):
 
     assert_rule(
         checked(instance, tmp_path),
-        "wiki/overview.md",
+        "wiki/overview.qmd",
         2,
         "id-number",
         "990232-1000000",
@@ -496,7 +500,9 @@ def test_time_rule_allows_zoned_forms_and_ranges(tmp_path, body):
     write_roster(tmp_path)
     write_overview(instance, body)
 
-    assert not has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+    assert not has_rule(
+        checked(instance, tmp_path), "time", "wiki/overview.qmd"
+    )
 
 
 @pytest.mark.parametrize(
@@ -518,7 +524,7 @@ def test_time_rule_flags_unzoned_or_invalid_forms(tmp_path, body):
     write_roster(tmp_path)
     write_overview(instance, body)
 
-    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.qmd")
 
 
 def test_fractional_seconds_require_a_zone(tmp_path):
@@ -526,7 +532,7 @@ def test_fractional_seconds_require_a_zone(tmp_path):
     write_roster(tmp_path)
     write_overview(instance, "Retrieved 15:54:00.420.")
 
-    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+    assert has_rule(checked(instance, tmp_path), "time", "wiki/overview.qmd")
 
 
 @pytest.mark.parametrize("zone", ("Z", "+09:00"))
@@ -535,13 +541,15 @@ def test_fractional_iso_seconds_with_zone_pass(tmp_path, zone):
     write_roster(tmp_path)
     write_overview(instance, f"Retrieved 2026-09-27T15:54:00.420{zone}.")
 
-    assert not has_rule(checked(instance, tmp_path), "time", "wiki/overview.md")
+    assert not has_rule(
+        checked(instance, tmp_path), "time", "wiki/overview.qmd"
+    )
 
 
 def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    alpha = instance / "wiki" / "concepts" / "alpha.md"
+    alpha = instance / "wiki" / "concepts" / "alpha.qmd"
     alpha.write_text(
         alpha.read_text(encoding="utf-8").replace(
             "title: Alpha",
@@ -549,7 +557,7 @@ def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
         ),
         encoding="utf-8",
     )
-    (instance / "wiki" / "log.md").write_text(
+    (instance / "wiki" / "log.qmd").write_text(
         "010-0000-0000 synthetic@example.invalid 2026.09.29\n",
         encoding="utf-8",
     )
@@ -560,7 +568,7 @@ def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
 def test_non_privacy_rules_skip_front_matter(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "---\ntitle: 2026.09.29 14:30 學生 가상별학교\n---\n# Overview\n",
         encoding="utf-8",
@@ -569,13 +577,13 @@ def test_non_privacy_rules_skip_front_matter(tmp_path):
     problems = checked_rules(instance, tmp_path)
 
     for rule in ("date", "time", "english", "school"):
-        assert not has_rule(problems, rule, "wiki/overview.md")
+        assert not has_rule(problems, rule, "wiki/overview.qmd")
 
 
 def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
     instance = ready_vault(tmp_path)
     write_roster(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "---\ntitle: 010-0000-0000\nsources:\n"
         "  - 010-0000-0000\n---\n# Overview\n",
@@ -584,9 +592,9 @@ def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
 
     problems = checked_rules(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
+    assert_rule(problems, "wiki/overview.qmd", 2, "phone", "010-0000-0000")
     assert not any(
-        item["document"] == "wiki/overview.md"
+        item["document"] == "wiki/overview.qmd"
         and item["line"] == 4
         and item["message"].startswith("page rule phone:")
         for item in problems
@@ -595,7 +603,7 @@ def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
 
 def test_privacy_rules_skip_unindented_sources_list(tmp_path):
     instance = ready_vault(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     # PyYAML writes a list under a key without indenting its items.
     page.write_text(
         "---\ntitle: Overview\nsources:\n- id: 010-0000-0000\n"
@@ -605,9 +613,9 @@ def test_privacy_rules_skip_unindented_sources_list(tmp_path):
 
     problems = checked_rules(instance, tmp_path)
 
-    assert_rule(problems, "wiki/overview.md", 5, "phone", "010-0000-0000")
+    assert_rule(problems, "wiki/overview.qmd", 5, "phone", "010-0000-0000")
     assert not any(
-        item["document"] == "wiki/overview.md"
+        item["document"] == "wiki/overview.qmd"
         and item["line"] == 4
         and item["message"].startswith("page rule phone:")
         for item in problems
@@ -618,7 +626,7 @@ def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
     monkeypatch, tmp_path
 ):
     instance = ready_vault(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "---\ntitle: 010-0000-0000\n---\n\n"
         "<!-- [[[cog synthetic ]]] -->\n010-0000-0000\n<!-- [[[end]]] -->\n",
@@ -628,13 +636,13 @@ def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
 
     problems = rules.check(instance)
 
-    assert_rule(problems, "wiki/overview.md", 2, "phone", "010-0000-0000")
-    assert_rule(problems, "wiki/overview.md", 6, "phone", "010-0000-0000")
+    assert_rule(problems, "wiki/overview.qmd", 2, "phone", "010-0000-0000")
+    assert_rule(problems, "wiki/overview.qmd", 6, "phone", "010-0000-0000")
 
 
 def test_cog_regions_are_skipped_but_malformed_markers_are_checked(tmp_path):
     instance = ready_vault(tmp_path)
-    page = instance / "wiki" / "overview.md"
+    page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "# Overview\n<!-- [[[cog synthetic ]]] -->\n"
         "010-0000-0000\n<!-- [[[end]]] -->\n",
@@ -784,12 +792,12 @@ def test_canary_output_never_contains_synthetic_phone_or_name(tmp_path):
 
 def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
     instance = ready_vault(tmp_path)
-    outside = tmp_path / "outside.md"
+    outside = tmp_path / "outside.qmd"
     outside.write_text("Call 010-0000-0000.", encoding="utf-8")
-    (instance / "wiki" / "linked.md").symlink_to(outside)
+    (instance / "wiki" / "linked.qmd").symlink_to(outside)
     outside_dir = tmp_path / "outside"
     outside_dir.mkdir()
-    (outside_dir / "nested.md").write_text(
+    (outside_dir / "nested.qmd").write_text(
         "Call 010-0000-0000.", encoding="utf-8"
     )
     (instance / "wiki" / "linked-dir").symlink_to(outside_dir)
@@ -799,11 +807,49 @@ def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
 
 def test_a_link_leaving_the_wiki_does_not_skip_the_other_pages(tmp_path):
     instance = ready_vault(tmp_path)
-    outside = tmp_path / "outside.md"
+    outside = tmp_path / "outside.qmd"
     outside.write_text("Nothing here.", encoding="utf-8")
-    (instance / "wiki" / "linked.md").symlink_to(outside)
+    (instance / "wiki" / "linked.qmd").symlink_to(outside)
     write_overview(instance, "Call 010-0000-0000.")
 
     assert has_rule(
-        checked_rules(instance, tmp_path), "phone", "wiki/overview.md"
+        checked_rules(instance, tmp_path), "phone", "wiki/overview.qmd"
     )
+
+
+def test_real_vale_checks_identical_md_and_qmd_negative_canary(tmp_path):
+    instance = ready_vault(tmp_path)
+    text = "# Canary\n\nCall 010-0000-0000.\n"
+    documents = {f"wiki/canary.{suffix}": text for suffix in ("md", "qmd")}
+    for document, content in documents.items():
+        (instance / document).write_text(content)
+    before = tree_hash(instance)
+    problems = rules._run(instance, documents, rules._CONFIG)
+    assert tree_hash(instance) == before
+    for document in documents:
+        assert_rule(problems, document, 3, "phone", "010-0000-0000")
+
+
+def test_original_language_text_is_excluded_from_wiki_rules(
+    tmp_path, monkeypatch
+):
+    instance = ready_vault(tmp_path)
+    (instance / "text").mkdir()
+    (instance / "text/original.qmd").write_text("原文 한국어 010-0000-0000\n")
+    monkeypatch.setattr(
+        rules, "load_roster", lambda: pytest.fail("text read as Wiki")
+    )
+    assert checked_rules(instance, tmp_path) == []
+
+
+def test_vale_start_failure_cannot_pass_as_no_findings(tmp_path, monkeypatch):
+    instance = ready_vault(tmp_path)
+    monkeypatch.setattr(
+        rules.subprocess,
+        "run",
+        lambda *unused_args, **unused_kwargs: SimpleNamespace(
+            returncode=1, stdout="", stderr="Synthetic tool start failure"
+        ),
+    )
+    with pytest.raises(RuntimeError, match="Vale could not check"):
+        rules.check(instance)

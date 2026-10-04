@@ -24,7 +24,7 @@ success, 1 means a proposal was refused or a backfire result was invalid, and
 2 means an error stopped the command, such as a backfire failure during
 `check`.
 
-- `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`
+- `inventory --inventory inventories/<inventory>.qmd` writes `inventory.tsv`
   for the proposer from the inventory page's first source, the spreadsheet,
   at the revision the page cites. Each line has four tab-separated columns:
   the key, the level, the label and the statement. The key is the item's
@@ -36,13 +36,30 @@ success, 1 means a proposal was refused or a backfire result was invalid, and
   its lowest tier's key and inventory ID, its levels are joined with `/`, its
   statements with `; `, and its examples hold every tier's examples. Its
   other rows' keys are not in the file.
-- `extract --source <source-id> ...` writes `text/<source-id>.txt` from each
-  source's latest revision: PDF through `pdftotext -raw`, everything else
-  through `wiki_consistency.evidence.convert` and `read`. `-raw` keeps the
-  content-stream order, which keeps sentences whole across the columns of a
-  two-column exam paper; the default reading order split 13 sentences of the
-  pilot's paper. A source with no letters in its text, such as a scanned PDF,
-  stops the command; the user decides.
+- `extract --source <source-id> ...` reuses
+  `text/<source-id>/<revision>.qmd` through `wiki_consistency.evidence.read`.
+  A fresh run selects the source's latest revision and calls the shared
+  `evidence.convert` only when retained text is absent and conversion is
+  authorized. Shared PDF conversion uses `pdftotext -raw` to preserve
+  content-stream order, recording its actual version; there is no separate
+  grammar-only bypass. The run's `text/<source-id>.txt`
+  is a body copy; `extractions.json` pins the exact revision, raw SHA-256 and
+  full `.qmd` extraction SHA-256. Resumption validates both retained and copied
+  bytes, and later raw revisions cannot silently retarget the recorded profile.
+  Legacy runs without provenance are refused/unresolved, never repaired by a
+  paid rerun. A source with no letters, such as a scanned PDF, stops the command.
+  New real conversion and student-bearing decisions stay held with main.
+
+Retained text keeps the full returned original-language output and known
+converter/raw provenance. `conversion-status: extracted` means backend output,
+not completeness or original review. Report partial/unknown status and missing
+markers honestly. `checked-against-original: true` requires actual caller review
+bound to raw `sha256`, full-file `extraction-sha256` and nonempty `evidence`;
+corrections invalidate earlier review evidence. Do not invent a receipt.
+
+All page reads use shared `read_metadata` and `_metadata.yml` defaults. Preserve
+meaningful page overrides, including `profile.checker: none`, when consolidating
+defaults; inventory/reference paths remain relative to the consuming page.
 
 ## Proposals
 
@@ -70,7 +87,7 @@ whatever the word's own level; never judge which tier a word belongs to.
 
 ## Check
 
-`check --inventory inventories/<inventory>.md` first tests every row: its
+`check --inventory inventories/<inventory>.qmd` first tests every row: its
 text must hold no Hangul, because everything sent to backfire is English;
 after whitespace is normalized, it must occur in the extracted text of its
 source; and every key must be in the inventory. If any row fails, the command
@@ -112,9 +129,9 @@ The command prints one JSON object over all recorded results: `rows`,
 
 ## Record and finish
 
-`record --inventory inventories/<inventory>.md --name <material> --title
+`record --inventory inventories/<inventory>.qmd --name <material> --title
 <title> --summary <line> --proposer '<agent, model and effort>'
-[--auto-accept <t> | --unchecked]` writes `wiki/profiles/<material>.md` and
+[--auto-accept <t> | --unchecked]` writes `wiki/profiles/<material>.qmd` and
 `<material>.jsonl`, and replaces both when they exist; the vault's Git keeps
 the earlier record. It stops with exit code 2 unless `checks.jsonl` covers
 every proposal, unless `--unchecked` is given.
@@ -134,11 +151,11 @@ items kept at 0.5 had 0.97 and 0.77.
 
 Nobody reviews unclear items: each stays in its row's `unclear` list. The
 `checker` field lists the distinct provider and model pairs in
-`checks.jsonl`. `sources` lists each proposal source at its latest revision,
+`checks.jsonl`. `sources` lists each proposal source at its pinned extraction revision,
 then the inventory page's sources; `topics` come from the inventory page.
 
 After recording, use the work plugin's `wiki-consistency` skill: run `update`
-and `check`, fix failures, append the required entry to `wiki/log.md`, and
+and `check`, fix failures, append the required entry to `wiki/log.qmd`, and
 commit the page, data file, index and log in the vault. Delete the run folder
 after the record commit. A failed or interrupted run keeps its folder for a
 rerun.
@@ -150,7 +167,7 @@ All records live in the work vault's `wiki/`, use the declared topic
 also requires `title`, `summary`, `topics` and `sources`. Paths in a block are
 relative to its page.
 
-### Inventory: `wiki/inventories/<inventory>.md`
+### Inventory: `wiki/inventories/<inventory>.qmd`
 
 The spreadsheet stays in `raw/`; the page names it as its first source and
 describes the inventory. Its block records the spreadsheet's own headers and
@@ -181,7 +198,7 @@ inventory:
 
 The body says what the inventory is, its terms of use and its counts.
 
-### Profile: `wiki/profiles/<material>.md` and `<material>.jsonl`
+### Profile: `wiki/profiles/<material>.qmd` and `<material>.jsonl`
 
 ```yaml
 ---
@@ -193,7 +210,7 @@ sources:                        # the material's raw sources, then the inventory
   - id: <source ID>
     revision: <revision>
 profile:
-  inventory: ../inventories/<inventory>.md
+  inventory: ../inventories/<inventory>.qmd
   data: <material>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>
@@ -213,47 +230,48 @@ inventory link and the data link. Data rows, one per sentence, in order:
 ones. Dropped items are not recorded. In `counts`, `kept` counts the items of
 all rows, `unclear` the unclear ones, and `dropped` every other proposal.
 
-### Reference: `wiki/references/<reference>.md` and `<reference>.markdown`
+### Reference: `wiki/references/<reference>.qmd`
 
-A reference book's original PDF is its raw source. Its Markdown extraction
-is agent-made output, so it goes into the Wiki layer unchanged, byte for
-byte and with its own front matter, as `<reference>.markdown` beside the
-page; check that its SHA-256 equals the extraction's and that the
-`source_sha256` in its front matter equals the PDF bag's digest. The text
-file is not a page: `wiki-consistency` reads only `wiki/**/*.md`, and book
-text would fail the page rules and cost thousands of judgments. Name both
-in kebab-case with the edition, for example
-`english-grammar-in-use-5th-edition`.
-
-The page cites the PDF's revision, says what the book is, which edition,
-and how the text was extracted and whether it is verified, and links the
-text file:
+A reference book's original PDF stays in raw. Its full original-language
+extraction is `text/<source-id>/<revision>.qmd`, versioned in vault-local Git
+with no remote. It is not an English Wiki page; English page lint does not
+apply to the source body. The approved student-data privacy boundary still applies. The reference page cites the exact PDF bag
+revision, records known converter and review facts without guessing missing
+legacy provenance, and links the retained extraction:
 
 ```yaml
 reference:
-  text: <reference>.markdown
+  text: ../../text/<source-id>/<revision>.qmd
 ```
 
-### Mapping: `wiki/mappings/<inventory>--<reference>.md` and `.jsonl`
+The reader validates the declared revision, raw hash and full extraction hash,
+then pins the run in `extractions.json`. Existing legacy side-file bodies must
+be preserved when moved; a header or move that shifts lines requires verified
+section-index reconciliation, never guessed offsets or new paid proposals.
+Name the reference page in kebab-case with the edition.
+
+### Mapping: `wiki/mappings/<inventory>--<reference>.qmd` and `.jsonl`
 
 A mapping links each item of an inventory to at most three sections of one
 reference that explain it. Build it in its own run folder:
 
-1. `inventory --inventory inventories/<inventory>.md` writes `inventory.tsv`.
+1. `inventory --inventory inventories/<inventory>.qmd` writes `inventory.tsv`.
 2. A section index worker, chosen with `model-choice`, writes `sections.tsv`:
    one line per section of the reference's text file, with tab-separated
    columns: the label, the first line and the last line (one-based, inclusive),
    and optionally the section's title for the proposer. Sections are the book's
    own units or numbered sections, labeled in English as the book labels them,
    such as `Unit 12`, and each holds at most 20,000 characters; split a longer
-   one at its subsections. The extraction's heading levels are not reliable;
-   its `## PDF Page <n>` lines are.
+   one at its subsections. Count exact full-file lines, including the retained
+   `.qmd` front matter. Use only verified source boundaries; neither guessed
+   offsets nor PDF formfeeds establish original page markers. Missing or
+   ambiguous source maps remain unresolved.
 3. A proposer, chosen the same way, writes `mappings.jsonl`: one row per
    line of `inventory.tsv`, in key order,
    `{"item": <key>, "sections": [<label>, ...]}`, with at most three labels
    and an empty list when no section explains the item.
-4. `map --inventory inventories/<inventory>.md --reference
-   references/<reference>.md` first refuses a file that does not list every
+4. `map --inventory inventories/<inventory>.qmd --reference
+   references/<reference>.qmd` first refuses a file that does not list every
    inventory key exactly once, and rows whose key is not in the inventory, that
    name more than three sections, a label not in the index or with Hangul,
    lines outside the text, or a section over 20,000 characters, as `mapping
@@ -265,14 +283,14 @@ reference that explain it. Build it in its own run folder:
    a reference holds no student data; education mode refused a practice book's
    example that looked like an identifier. Results, resumption and the printed
    counts work as in `check`, with `section` in place of `item`.
-5. `record` with `--reference references/<reference>.md`, which refuses the
+5. `record` with `--reference references/<reference>.qmd`, which refuses the
    same rows as `map`, and `--name <inventory>--<reference>` writes the mapping
    record instead of a profile.
 
 ```yaml
 mapping:
-  inventory: ../inventories/<inventory>.md
-  reference: ../references/<reference>.md
+  inventory: ../inventories/<inventory>.qmd
+  reference: ../references/<reference>.qmd
   data: <inventory>--<reference>.jsonl
   proposer: <agent, model and effort>
   checker: <backfire provider and model>

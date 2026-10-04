@@ -1,4 +1,4 @@
-"""qmd indexing and batched local search for Wiki Markdown."""
+"""qmd indexing and batched local search for Wiki and retained Quarto text."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from mcp.client.stdio import StdioServerParameters
 from mcp.client.stdio import stdio_client
 import yaml
 
-from wiki_consistency import evidence
 from wiki_consistency.evidence import _clean_on_signals
 from wiki_consistency.evidence import _component
 from wiki_consistency.evidence import _tree_size
@@ -49,6 +48,9 @@ def _environment(cache: Path) -> dict[str, str]:
         env.pop(name, None)
     env.update(
         XDG_CACHE_HOME=str(root),
+        XDG_CONFIG_HOME=str(qmd / "config"),
+        XDG_DATA_HOME=str(qmd / "data"),
+        XDG_STATE_HOME=str(qmd / "state"),
         QMD_CONFIG_DIR=str(qmd / "config"),
         QMD_EMBED_MODEL=EMBED_MODEL,
         QMD_FORCE_CPU="1",
@@ -98,14 +100,29 @@ def _collections(path):
 def _ensure_collections(wiki_id, cache, expected):
     _, _, config_path = _paths(wiki_id, cache)
     configured = _collections(config_path)
+    for name in sorted(set(configured) - set(expected)):
+        _collection(wiki_id, cache, "remove", name)
     for name, path in expected.items():
         path = path.resolve()
         current = configured.get(name)
-        if current and Path(current["path"]).resolve() == path:
+        if (
+            current
+            and Path(current["path"]).resolve() == path
+            and current.get("pattern") == "**/*.qmd"
+        ):
             continue
         if current:
             _collection(wiki_id, cache, "remove", name)
-        _collection(wiki_id, cache, "add", str(path), "--name", name)
+        _collection(
+            wiki_id,
+            cache,
+            "add",
+            str(path),
+            "--name",
+            name,
+            "--mask",
+            "**/*.qmd",
+        )
 
 
 def _model_is_cached(cache: Path) -> bool:
@@ -117,8 +134,24 @@ def _model_is_cached(cache: Path) -> bool:
     )
 
 
-def _markdown_count(root: Path) -> int:
-    return sum(path.is_file() for path in root.rglob("*.md"))
+def _collection_roots(wiki_id, cache, *, expected_pages_root=None):
+    _, _, config_path = _paths(wiki_id, cache)
+    configured = _collections(config_path)
+    if set(configured) != {"pages", "evidence"}:
+        raise LookupError("qmd collections changed; reindex")
+    if any(item.get("pattern") != "**/*.qmd" for item in configured.values()):
+        raise LookupError("qmd collection mask changed; reindex")
+    roots = {
+        name: Path(item["path"]).resolve() for name, item in configured.items()
+    }
+    if roots["pages"].name != "wiki" or (
+        expected_pages_root is not None
+        and roots["pages"] != Path(expected_pages_root).resolve()
+    ):
+        raise LookupError("qmd pages root changed; reindex")
+    if roots["evidence"] != roots["pages"].parent / "text":
+        raise LookupError("qmd retained text root changed; reindex")
+    return roots
 
 
 def _remove_index(index: Path) -> None:
@@ -150,6 +183,8 @@ async def _mcp_search(parameters, queries, model_cached):
             vector_ready = model_cached and status["needsEmbedding"] == 0
             hits = []
             for query in queries:
+                if query.get("semantic_only") and not vector_ready:
+                    continue
                 text = " ".join(str(query["text"]).split())
                 limit = (
                     100000
@@ -172,6 +207,7 @@ def _run_mcp_search(wiki_id, cache, queries):
     qmd_root, index, _ = _paths(wiki_id, cache)
     if not index.is_file():
         raise LookupError(f"missing qmd index for {wiki_id}; run index")
+    _collection_roots(wiki_id, cache)
     _secure_qmd(qmd_root, "MCP search")
     parameters = StdioServerParameters(
         command="/bin/sh",
@@ -199,8 +235,7 @@ def index(instance, wiki_id, cache, *, download):
     wiki_id = _component(wiki_id)
     instance, cache = Path(instance), Path(cache).resolve()
     wiki_root = instance / "wiki"
-    evidence_root = cache / "wiki-evidence" / wiki_id
-    evidence_root /= f"markitdown-{evidence.CONVERTER_VERSION}"
+    evidence_root = instance / "text"
     evidence_root.mkdir(parents=True, exist_ok=True)
     _, index_path, _ = _paths(wiki_id, cache)
     _ensure_collections(
@@ -262,7 +297,8 @@ def _hits(results, query, mode, root):
             continue
         try:
             if (
-                not document.is_file()
+                document.suffix != ".qmd"
+                or not document.is_file()
                 or not document.read_text(encoding="utf-8").strip()
             ):
                 continue
@@ -281,28 +317,25 @@ def _hits(results, query, mode, root):
     return hits
 
 
-def search(wiki_id, cache, queries, *, expected_pages_root=None):
+def search(
+    wiki_id, cache, queries, *, expected_pages_root=None, search_status=None
+):
     """Search queries through one qmd MCP session."""
     wiki_id, cache = _component(wiki_id), Path(cache).resolve()
-    _, index_path, config_path = _paths(wiki_id, cache)
+    _, index_path, _ = _paths(wiki_id, cache)
     if not index_path.is_file():
         raise LookupError(f"missing qmd index for {wiki_id}; run index")
-    configured = _collections(config_path)
-    roots = {
-        name: Path(configured[name]["path"]) for name in ("pages", "evidence")
-    }
-    if (
-        expected_pages_root is not None
-        and roots["pages"].resolve() != Path(expected_pages_root).resolve()
-    ):
-        raise LookupError("qmd pages root changed; reindex")
-    evidence_root = cache / "wiki-evidence" / wiki_id
-    evidence_root /= f"markitdown-{evidence.CONVERTER_VERSION}"
-    evidence_root = evidence_root.resolve()
-    if roots["evidence"].resolve() != evidence_root:
-        raise LookupError("evidence converter changed; reindex")
+    roots = _collection_roots(
+        wiki_id,
+        cache,
+        expected_pages_root=expected_pages_root,
+    )
     _update_index(wiki_id, cache, index_path)
-    results = _run_mcp_search(wiki_id, cache, queries)[1]
+    status, results = _run_mcp_search(wiki_id, cache, queries)
+    if search_status is not None:
+        search_status["semantic"] = (
+            _model_is_cached(cache) and status["needsEmbedding"] == 0
+        )
     return [
         hit
         for query, mode, hits in results

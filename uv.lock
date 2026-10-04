@@ -1442,6 +1442,14 @@ wheels = [
 ]
 
 [[package]]
+name = "pysbd"
+version = "0.3.4"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/0a/c99fb7d7e176f8b176ef19704a32e6a9c6aafdf19ef75a187f701fc15801/pysbd-0.3.4-py3-none-any.whl", hash = "sha256:cd838939b7b0b185fcf86b0baf6636667dfb6e474743beeff878e9f42e022953", size = 71082 },
+]
+
+[[package]]
 name = "pytest"
 version = "9.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1848,6 +1856,7 @@ dependencies = [
     { name = "markitdown", extra = ["docx", "pdf", "pptx", "xlsx"] },
     { name = "python-hwpx" },
     { name = "pyyaml" },
+    { name = "pysbd" },
 ]
 
 [package.dev-dependencies]
@@ -1865,6 +1874,7 @@ requires-dist = [
     { name = "markitdown", extras = ["docx", "pdf", "pptx", "xlsx"], specifier = "==0.1.8" },
     { name = "python-hwpx", specifier = "==6.6.0" },
     { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "pysbd", specifier = "==0.3.4" },
 ]
 
 [package.metadata.requires-dev]

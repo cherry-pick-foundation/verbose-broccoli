@@ -12,7 +12,10 @@ them. The originals stay where they are and are only read. Each copy becomes a
 read-only BagIt bag that records the original path, the original's
 modification time, the admission time and the SHA-256 digest. The instance's
 `AGENTS.md`, copied from [assets/AGENTS.md](assets/AGENTS.md), describes the
-layout.
+raw, retained original-language text, English `.qmd` Wiki and derived Korean
+site roles. Admission does not authorize conversion or publication; new real
+conversion and student/audience choices stay with main. Raw stays outside Git,
+while schema, text and Wiki use vault-local Git with no remote.
 
 `CONFIG`, `DATA`, `STATE` and `CACHE` below are the `verbose-broccoli` folders
 under the XDG configuration, data, state and cache roots (by default
@@ -82,7 +85,7 @@ was written.
    manifest names; nothing is published for it. Report it to the user.
 7. **Check.** Run `verify`. If it reports an invalid revision, stop and tell
    the user; do not edit or delete anything in `raw/`.
-8. **Log and commit.** Append one entry to the instance's `wiki/log.md`:
+8. **Log and commit.** Append one entry to the instance's `wiki/log.qmd`:
 
    ```markdown
    ## [YYYY-MM-DD] raw-import | <location>

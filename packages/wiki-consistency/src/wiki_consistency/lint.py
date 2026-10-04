@@ -1,6 +1,7 @@
 """Run offline consistency checks and mechanical-region updates."""
 
 from pathlib import Path
+import re
 import subprocess
 from urllib.parse import unquote
 from urllib.parse import urlsplit
@@ -30,25 +31,75 @@ def _problem(document, line, message):
 def _targets(root):
     return [
         path.relative_to(root).as_posix()
-        for path in files(root, "wiki/**/*.md")
+        for path in files(root, "wiki/**/*.qmd")
     ]
 
 
+def _migration_problems(root):
+    return [
+        _problem(
+            path.relative_to(root).as_posix(),
+            1,
+            "Wiki migration required: .md page must be migrated to .qmd",
+        )
+        for path in sorted((root / "wiki").rglob("*.md"))
+        if path.is_file() or path.is_symlink()
+    ]
+
+
+def _inert_problems(root, targets, markdown):
+    problems = []
+    for document in targets:
+        text = (root / document).read_bytes().decode("utf-8")
+        for token in markdown.parse(mask_front_matter(text)):
+            if token.type == "fence" and re.match(
+                r"\{\s*[\w+-]+(?=[\s,}])", token.info.strip()
+            ):
+                problems.append(
+                    _problem(
+                        document,
+                        token.map[0] + 1,
+                        "Wiki source must stay inert: executable code cell",
+                    )
+                )
+        # Quarto preprocesses raw spans, including R metadata and code examples.
+        for match in re.finditer(r"(?<!`)`\{[^{}\s,=]+\}[ \t][^`]+`", text):
+            problems.append(
+                _problem(
+                    document,
+                    text.count("\n", 0, match.start()) + 1,
+                    "Wiki source must stay inert: executable inline code",
+                )
+            )
+        # Quarto expands shortcodes in code examples and metadata too.
+        for number, line in enumerate(text.split("\n"), 1):
+            if re.search(r"(?<!\{)\{\{<(?!/\*)", line):
+                problems.append(
+                    _problem(
+                        document,
+                        number,
+                        "Wiki source must stay inert: include or shortcode",
+                    )
+                )
+    return problems
+
+
 def _index_shape(root):
-    path = root / "wiki" / "index.md"
+    path = root / "wiki" / "index.qmd"
     try:
+        files(root, "wiki/index.qmd")
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError) as error:
-        return [_problem("wiki/index.md", 1, str(error))]
-    spans, marker_problems = scan("wiki/index.md", text)
+    except (OSError, UnicodeError, ValueError) as error:
+        return [_problem("wiki/index.qmd", 1, str(error))]
+    spans, marker_problems = scan("wiki/index.qmd", text)
     if marker_problems:
         return []
     if len(spans) != 1:
         return [
             _problem(
-                "wiki/index.md",
+                "wiki/index.qmd",
                 1,
-                "index.md must contain one page_catalog region "
+                "index.qmd must contain one page_catalog region "
                 "and nothing else",
             )
         ]
@@ -57,9 +108,9 @@ def _index_shape(root):
     if span["start"] != 0 or span["end"] != line_count:
         return [
             _problem(
-                "wiki/index.md",
+                "wiki/index.qmd",
                 1,
-                "index.md must contain one page_catalog region "
+                "index.qmd must contain one page_catalog region "
                 "and nothing else",
             )
         ]
@@ -67,12 +118,21 @@ def _index_shape(root):
         function, sources = shape(span["code"], GENERATORS)
     except ValueError:
         return []
-    if function != "page_catalog" or sources != ["wiki/**/*.md"]:
+    if (
+        function != "page_catalog"
+        or sources[0] != "wiki/**/*.qmd"
+        or any(
+            Path(source).name != "_metadata.yml"
+            or not source.startswith("wiki/")
+            or any(character in source for character in "*?[")
+            for source in sources[1:]
+        )
+    ):
         return [
             _problem(
-                "wiki/index.md",
+                "wiki/index.qmd",
                 span["start"] + 1,
-                'index.md must call page_catalog("wiki/**/*.md")',
+                'index.qmd must call page_catalog("wiki/**/*.qmd")',
             )
         ]
     return []
@@ -116,7 +176,11 @@ def _page_findings(root, page_list, revision_map):
         if page["special"]:
             continue
         problems.extend(
-            _problem(page["path"], item["line"], item["message"])
+            _problem(
+                item.get("document", page["path"]),
+                item["line"],
+                item["message"],
+            )
             for item in page["problems"]
         )
         for citation in page["sources"]:
@@ -211,14 +275,14 @@ def _orphans(page_list, markdown, root):
     content_pages = [
         page["path"]
         for page in page_list
-        if not page["special"] and page["path"] != "wiki/index.md"
+        if not page["special"] and page["path"] != "wiki/index.qmd"
     ]
     pages_by_path = set(content_pages)
     inbound = {path: set() for path in content_pages}
     for page in page_list:
         for target in _link_targets(root, page, markdown) or ():
             path = f"wiki/{target}"
-            if path in pages_by_path and page["path"] != "wiki/index.md":
+            if path in pages_by_path and page["path"] != "wiki/index.qmd":
                 inbound[path].add(page["path"])
     return sorted(
         path for path, sources in inbound.items() if not (sources - {path})
@@ -235,11 +299,11 @@ def _log_prefix(root):
             check=False,
         )
     except OSError as error:
-        return [_problem("wiki/log.md", 1, f"git is unavailable: {error}")]
+        return [_problem("wiki/log.qmd", 1, f"git is unavailable: {error}")]
     if inside.returncode:
         return [
             _problem(
-                "wiki/log.md",
+                "wiki/log.qmd",
                 1,
                 f"git repository check failed: {inside.stderr.strip()}",
             )
@@ -254,22 +318,32 @@ def _log_prefix(root):
     if head.returncode:
         return []
     committed = subprocess.run(
-        ["git", "show", "HEAD:wiki/log.md"],
+        ["git", "show", "HEAD:wiki/log.qmd"],
         cwd=root,
         capture_output=True,
         check=False,
     )
     if committed.returncode:
+        committed = subprocess.run(
+            ["git", "show", "HEAD:wiki/log.md"],
+            cwd=root,
+            capture_output=True,
+            check=False,
+        )
+    if committed.returncode:
         message = committed.stderr.decode("utf-8", errors="replace").strip()
         return [
             _problem(
-                "wiki/log.md", 1, f"git show HEAD:wiki/log.md failed: {message}"
+                "wiki/log.qmd",
+                1,
+                f"cannot read HEAD:wiki/log.qmd or HEAD:wiki/log.md: {message}",
             )
         ]
     try:
-        current = (root / "wiki" / "log.md").read_bytes()
-    except OSError as error:
-        return [_problem("wiki/log.md", 1, str(error))]
+        files(root, "wiki/log.qmd")
+        current = (root / "wiki" / "log.qmd").read_bytes()
+    except (OSError, ValueError) as error:
+        return [_problem("wiki/log.qmd", 1, str(error))]
     original = committed.stdout
     if current.startswith(original):
         return []
@@ -285,9 +359,9 @@ def _log_prefix(root):
     )
     return [
         _problem(
-            "wiki/log.md",
+            "wiki/log.qmd",
             line,
-            f"committed log.md is not a prefix of the current file "
+            f"committed log.qmd is not a prefix of the current file "
             f"at line {line}",
         )
     ]
@@ -296,13 +370,17 @@ def _log_prefix(root):
 def check(instance):
     """Check local links, metadata, citations, and source-derived regions."""
     root = Path(instance).resolve()
-    problems = []
+    problems = _migration_problems(root)
+    if problems:
+        return {"problems": problems, "orphans": [], "stale_citations": []}
+    markdown = MarkdownIt("commonmark")
     try:
         targets = _targets(root)
     except (OSError, ValueError) as error:
         targets = []
         problems.append(_problem("wiki", 1, str(error)))
     if targets:
+        problems.extend(_inert_problems(root, targets, markdown))
         try:
             problems.extend(
                 check_regions(
@@ -311,6 +389,7 @@ def check(instance):
                     GENERATORS,
                     Path(__file__).resolve().parent.parent,
                     fix_command=FIX_COMMAND,
+                    link_view_roots=("wiki", "text"),
                 )
             )
         except (OSError, ValueError, subprocess.SubprocessError) as error:
@@ -327,7 +406,6 @@ def check(instance):
     problems.sort(
         key=lambda item: (item["document"], item["line"], item["message"])
     )
-    markdown = MarkdownIt("commonmark")
     return {
         "problems": problems,
         "orphans": _orphans(page_list, markdown, root),
@@ -345,10 +423,15 @@ def check(instance):
 def update(instance):
     """Regenerate the Wiki index and other source-derived regions."""
     root = Path(instance).resolve()
+    migration_problems = _migration_problems(root)
+    if migration_problems:
+        return {"problems": migration_problems}
     page_list = pages(root)
     topic_problems = _topic_problems(root, page_list)
     topic_problems.extend(
-        _problem(page["path"], item["line"], item["message"])
+        _problem(
+            item.get("document", page["path"]), item["line"], item["message"]
+        )
         for page in page_list
         if not page["special"] and not page["topics"]
         for item in page["problems"]

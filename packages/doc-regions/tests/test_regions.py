@@ -1,9 +1,12 @@
+import hashlib
 import json
+from pathlib import Path
 import subprocess
 import sys
 
 import pytest
 
+import doc_regions.regions as regions
 from doc_regions.regions import check
 from doc_regions.regions import update
 
@@ -172,6 +175,114 @@ def test_update_changes_only_output_and_is_idempotent(workspace):
     assert updated == original.replace(b"fresh\n", b"changed\n")
     assert update(*workspace) == []
     assert (root / "doc.md").read_bytes() == updated
+
+
+@pytest.mark.parametrize(
+    "target, broken",
+    (
+        ("../../text/source/target.qmd#natural-heading", False),
+        ("../../text/source/target.qmd#sec-custom", False),
+        ("#self-heading", False),
+        ("../../text/source/space%20target.qmd#natural-heading", False),
+        ("original-uri", False),
+        ("../plain.md#plain-heading", False),
+        ("../original.txt", False),
+        ("https://does-not-exist.invalid/external.qmd", False),
+        ("../../text/source/missing.qmd", True),
+        ("../../text/source/target.qmd#absent-heading", True),
+        ("#absent-self-heading", True),
+    ),
+)
+def test_real_lychee_qmd_views_preserve_bytes_and_original_references(
+    workspace, unchanged, monkeypatch, target, broken
+):
+    root, _, module, generators = workspace
+    (root / "wiki/concepts").mkdir(parents=True)
+    (root / "text/source").mkdir(parents=True)
+    body = b"# Natural heading\r\n\r\n## Explicit {#sec-custom}\r\n"
+    for name in ("target.qmd", "space target.qmd"):
+        (root / "text/source" / name).write_bytes(body)
+    original = root / "text/source/target.qmd"
+    (root / "wiki/plain.md").write_text("# Plain heading\n")
+    (root / "wiki/original.txt").write_text("Original bytes.\n")
+    if target == "original-uri":
+        target = original.as_uri() + "#natural-heading"
+    document = "wiki/concepts/source.qmd"
+    (root / document).write_bytes(
+        f"# Self heading\r\n\r\n[Link]({target})\r\n".encode()
+    )
+    originals = {
+        path: path.read_bytes() for path in root.rglob("*") if path.is_file()
+    }
+    hashes = {
+        path: hashlib.sha256(data).hexdigest()
+        for path, data in originals.items()
+    }
+    real_run = regions.run
+    views = []
+
+    def capture(directory, arguments):
+        if arguments[0] == "lychee":
+            view = Path(arguments[-1])
+            views.append(view)
+            assert view.read_bytes() == originals[root / document]
+            assert (
+                arguments[arguments.index("--base-url") + 1]
+                == (root / document).as_uri()
+            )
+            remaps = [
+                arguments[index + 1]
+                for index, option in enumerate(arguments)
+                if option == "--remap"
+            ]
+            assert len(remaps) == 2 and all(
+                item.startswith("^file://") for item in remaps
+            )
+            view_root = view.parents[2]
+            assert (view_root / "text/source/target.md").read_bytes() == body
+            assert (
+                view_root / "text/source/space target.md"
+            ).read_bytes() == body
+        return real_run(directory, arguments)
+
+    monkeypatch.setattr(regions, "run", capture)
+    with unchanged(root.parent):
+        problems = check(
+            root,
+            [document],
+            module,
+            generators,
+            link_view_roots=("wiki", "text"),
+        )
+    assert bool(problems) == broken, problems
+    assert views and all(not view.exists() for view in views)
+    assert {
+        path: hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in originals
+    } == hashes
+    if broken:
+        assert problems[0]["document"] == document and problems[0]["line"] == 3
+        assert "doc-regions-links-" not in problems[0]["message"]
+
+
+def test_qmd_view_refuses_escaping_source(workspace, unchanged):
+    root = workspace[0]
+    (root / "wiki").mkdir()
+    outside = root.parent / "outside.qmd"
+    outside.write_text("Must not read.\n")
+    (root / "wiki/linked.qmd").symlink_to(outside)
+    with unchanged(root.parent), pytest.raises(ValueError, match="leaves root"):
+        check(*workspace, link_view_roots=("wiki", "text"))
+
+
+def test_qmd_requires_explicit_view_roots(workspace, unchanged):
+    root, _, module, generators = workspace
+    (root / "doc.qmd").write_text("[Bad](missing.qmd)\n")
+    with (
+        unchanged(root.parent),
+        pytest.raises(ValueError, match="no named link view"),
+    ):
+        check(root, ["doc.qmd"], module, generators)
 
 
 def test_update_validates_all_targets_before_writing(workspace, unchanged):

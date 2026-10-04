@@ -63,7 +63,12 @@ conversation and Claude Code/Codex session exceptions do not admit every
 generated derivative. Student-bearing sessions belong only in work. Do not
 treat worksheets, dated or selected lists, or marked-up and trimmed exams as
 original evidence; cite the original instead. Keep a book's original PDF in
-raw and its Markdown extraction in Wiki, citing the PDF's raw revision.
+raw and its full original-language extraction in
+`text/<source-id>/<revision>.qmd`, citing that exact raw revision. The vault
+schema owns the raw, text, English Wiki and Korean site roles. Retain text and
+English `.qmd` pages in vault-local Git with no remote; site derives from chosen
+English versions, with freshness and publishing owned by F2/CHE-12. New real
+conversion, student and audience decisions stay with main.
 Past cleanup permission never authorizes deleting an admitted raw revision.
 
 ## Profiles and reference mappings

@@ -1,7 +1,10 @@
 from contextlib import asynccontextmanager
+from contextlib import contextmanager
+import hashlib
 import json
 from pathlib import Path
 import shutil
+import subprocess
 from types import SimpleNamespace
 
 from conftest import REVISIONS
@@ -16,34 +19,118 @@ from jev_judge_mcp.tools.find import TOOL as FIND_TOOL
 from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
+import yaml
 
 from wiki_consistency import evidence
+from wiki_consistency import instance as storage
 from wiki_consistency import requests
 from wiki_consistency import search
-from wiki_consistency.instance import revisions
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SCHEMAS = {
     name: json.loads(
-        (FIXTURES / f"{name.replace('_', '-')}-input-schema.json").read_text(
-            encoding="utf-8"
-        )
+        (FIXTURES / f"{name.replace('_', '-')}-input-schema.json").read_text()
     )
     for name in ("jev_verify", "jev_find", "jev_classify")
 }
+KEY = f"{SOURCE_ID}/{REVISIONS[-1]}"
+BODY = (
+    "First result [@" + KEY + ", p. 25]. Second result [@" + KEY + ", p. 26].\n"
+)
+TEXT = (
+    "## Page 25 {#p-25}\nFirst result.\n\n"
+    "## Page 26 {#p-26}\nSecond result.\n\n"
+    "## Page 27 {#p-27}\nOUTSIDE-SENTINEL-4d9c.\n"
+    "## Purpose {#sec-purpose}\nThe purpose holds.\n"
+    "## Next section\nANOTHER-OUTSIDE-SENTINEL.\n"
+)
+
+
+def _retain(
+    instance,
+    revision=REVISIONS[-1],
+    *,
+    source_id=SOURCE_ID,
+    body=TEXT,
+    **overrides,
+):
+    record = next(
+        item
+        for item in storage.revisions(instance)[source_id]
+        if item["revision"] == revision
+    )
+    _, digest, _ = evidence._raw_record(instance, record)
+    metadata = {
+        "source-id": source_id,
+        "revision": revision,
+        "sha256": digest,
+        "converter": {"name": "synthetic", "version": "1"},
+        "checked-against-original": False,
+        "conversion-status": "extracted",
+        **overrides,
+    }
+    path = instance / "text" / source_id / f"{revision}.qmd"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("---\n" + yaml.safe_dump(metadata) + "---\n" + body)
+    return path
+
+
+def _page(instance, body=BODY, *, name="alpha", sources=None):
+    metadata = {
+        "title": name.title(),
+        "summary": "Synthetic evidence page.",
+        "topics": ["Algebra"],
+        "sources": sources or [{"id": SOURCE_ID, "revision": REVISIONS[-1]}],
+    }
+    path = instance / "wiki" / "concepts" / f"{name}.qmd"
+    path.write_text("---\n" + yaml.safe_dump(metadata) + "---\n" + body)
+    return path
 
 
 def _ready(tmp_path, *, commit=False, wiki_id="work"):
-    instance, env = make_instance(tmp_path, commit=commit, wiki_id=wiki_id)
+    instance, env = make_instance(tmp_path, wiki_id=wiki_id)
+    _page(instance)
+    _retain(instance)
     assert update_regions(instance) == []
+    if commit:
+        _commit(instance)
     cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, wiki_id, cache, revisions(instance))
     search.index(instance, wiki_id, cache, download=False)
     return instance, cache, env
 
 
+def _commit(instance):
+    commit_instance(instance)
+    subprocess.run(
+        ["git", "add", "text"], cwd=instance, check=True, capture_output=True
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Synthetic",
+            "-c",
+            "user.email=synthetic@example.invalid",
+            "commit",
+            "--quiet",
+            "--allow-empty",
+            "-m",
+            "synthetic retained evidence",
+        ],
+        cwd=instance,
+        check=True,
+        capture_output=True,
+    )
+
+
 def _prepare(
-    instance, cache, *, scope="changed", max_evidence_chars=40000, candidates=3
+    instance,
+    cache,
+    *,
+    scope="changed",
+    max_evidence_chars=40000,
+    candidates=3,
+    reviews=None,
 ):
     return requests.prepare(
         instance,
@@ -52,6 +139,7 @@ def _prepare(
         scope=scope,
         max_evidence_chars=max_evidence_chars,
         candidates=candidates,
+        reviews=reviews,
     )
 
 
@@ -60,1033 +148,623 @@ def _assert_schemas(result):
         jsonschema.validate(request["arguments"], SCHEMAS[request["tool"]])
 
 
-def _evidence_units(result):
+def _evidence(result, page="wiki/concepts/alpha.qmd"):
+    ids = {unit["id"] for unit in result["units"] if unit["page"] == page}
     return [
-        unit
-        for request in result["requests"]
-        if request["kind"] == "evidence"
-        for unit in request["units"]
+        r
+        for r in result["requests"]
+        if r["kind"] == "evidence" and ids.intersection(r["units"])
     ]
 
 
-def _add_candidate_page(instance, name):
-    path = instance / "wiki" / "concepts" / f"{name}.md"
-    path.write_text(
-        f"---\ntitle: {name}\nsummary: Synthetic candidate {name}.\n"
-        "topics:\n  - Algebra\nsources:\n"
-        f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
-        f"# {name}\n\nSynthetic candidate content.\n",
-        encoding="utf-8",
-    )
-    return path
-
-
-def _line_of(path, text):
-    return next(
-        index
-        for index, line in enumerate(
-            path.read_text(encoding="utf-8").splitlines(), 1
-        )
-        if line == text
-    )
+def _units(result, page="wiki/concepts/alpha.qmd"):
+    return [unit for unit in result["units"] if unit["page"] == page]
 
 
 def test_schema_fixtures_copy_jev_verbatim():
-    tools = {
+    for name, tool in {
         "jev_verify": VERIFY_TOOL,
         "jev_find": FIND_TOOL,
         "jev_classify": CLASSIFY_TOOL,
-    }
-    for name, schema in SCHEMAS.items():
+    }.items():
         assert (
-            schema
-            == tools[name].definition.model_dump(by_alias=True)["inputSchema"]
+            SCHEMAS[name]
+            == tool.definition.model_dump(by_alias=True)["inputSchema"]
         )
 
 
-def test_changed_scope_uses_line_diff_and_classifies_added_units(tmp_path):
-    instance, cache, _ = _ready(tmp_path, commit=True)
-    page = instance / "wiki" / "concepts" / "alpha.md"
-    page.write_text(
-        page.read_text(encoding="utf-8").replace(
-            "See [the source](../sources/source.md).",
-            "The quadratic formula solves equations.",
-        ),
-        encoding="utf-8",
-    )
-    search.index(instance, instance.name, cache, download=False)
-
+def test_two_sentences_receive_distinct_exact_spans_and_no_sentinel(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    before = tree_hash(instance)
     result = _prepare(instance, cache)
-
-    alpha = [
-        unit
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/alpha.md"
+    found = _evidence(result)
+    assert len(found) == 2
+    assert [r["arguments"]["claims"][0] for r in found] == [
+        BODY[: BODY.index("Second")],
+        BODY[BODY.index("Second") :],
     ]
-    assert len(alpha) == 1
-    assert alpha[0]["kind"] == "paragraph"
-    assert alpha[0]["added"] is True
-    assert alpha[0]["outcome"] == "requested"
-    classified = [
-        unit
-        for request in result["requests"]
-        if request["kind"] == "classify"
-        for unit in request["units"]
+    assert [r["arguments"]["evidence"][0]["text"] for r in found] == [
+        "First result.\n\n",
+        "Second result.\n\n",
     ]
-    assert alpha[0]["id"] in classified
+    assert "OUTSIDE-SENTINEL" not in json.dumps(found)
+    for request in found:
+        item = request["arguments"]["evidence"][0]
+        span = result["evidence_spans"][item["id"]]
+        assert span["source-id"] == SOURCE_ID
+        assert span["revision"] == REVISIONS[-1]
+        assert len(span["sha256"]) == len(span["extraction-sha256"]) == 64
+        assert span["first_line"] <= span["last_line"]
+        assert span["locator_ids"] in [["p-25"], ["p-26"]]
+    assert tree_hash(instance) == before
+    assert not list(cache.rglob("sources.json"))
     _assert_schemas(result)
 
 
-def test_changed_page_request_can_use_unchanged_candidate_units(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    beta = instance / "wiki" / "concepts" / "beta.md"
-    beta.write_text(
-        f"---\ntitle: Beta\nsummary: A synthetic quadratic page.\n"
-        "topics:\n  - Algebra\nsources:\n"
-        f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
-        "# Beta\n\nQuadratic equations have roots.\n",
-        encoding="utf-8",
+def test_uncited_opening_is_reported_while_cited_ending_is_requested(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    _page(
+        instance, "Uncited opening. Supported ending [@" + KEY + ", p. 25].\n"
     )
-    assert update_regions(instance) == []
-    commit_instance(instance)
-    alpha = instance / "wiki" / "concepts" / "alpha.md"
-    alpha.write_text(
-        alpha.read_text(encoding="utf-8").replace(
-            "See [the source](../sources/source.md).",
-            "Quadratic equations have roots.",
-        ),
-        encoding="utf-8",
-    )
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-
-    alpha_unit = next(
-        unit
-        for unit in requests._collect(instance, "changed")[2]
-        if unit["page"] == "wiki/concepts/alpha.md"
-        and unit["kind"] == "paragraph"
-    )
-
-    def semantic_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
-        page_query = next(
-            query for query in queries if query["collection"] == "pages"
-        )
-        return [
-            {
-                "query": page_query["id"],
-                "collection": "pages",
-                "path": "concepts/beta.md",
-                "line": _line_of(beta, "Quadratic equations have roots."),
-                "score": 0.0,
-                "mode": "vec",
-            }
-        ]
-
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
-    )
-    monkeypatch.setattr(requests.search, "search", semantic_search)
-
     result = _prepare(instance, cache)
-
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "pages" and alpha_unit["id"] in request["units"]
+    assert [unit["outcome"] for unit in _units(result)] == [
+        "unverifiable",
+        "requested",
+    ]
+    assert any(
+        item["reason"] == "missing sentence citation"
+        for item in result["unverifiable"]
     )
-    assert request["arguments"]["evidence"][0]["id"].startswith(
-        "wiki/concepts/beta.md:"
+    assert [r["arguments"]["claims"] for r in _evidence(result)] == [
+        ["Supported ending [@" + KEY + ", p. 25].\n"]
+    ]
+
+
+def test_range_section_and_multi_source_forms_resolve_exactly(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    other = "0199a0e2-7c1b-7d3e-9f00-000000000001"
+    add_revision(instance, "r2", "synthetic second original", source_id=other)
+    _retain(instance, "r2", source_id=other)
+    _page(
+        instance,
+        "Range [@" + KEY + ", pp. 25-26; @" + other + "/r2, sec. purpose].\n",
+        sources=[
+            {"id": SOURCE_ID, "revision": REVISIONS[-1]},
+            {"id": other, "revision": "r2"},
+        ],
     )
+    result = _prepare(instance, cache)
+    found = _evidence(result)
+    assert len(found) == 1
+    texts = [item["text"] for item in found[0]["arguments"]["evidence"]]
+    assert len(texts) == 2
+    assert any(
+        "First result." in text and "Second result." in text for text in texts
+    )
+    assert "The purpose holds.\n" in texts
+    assert "SENTINEL" not in json.dumps(found)
+    _assert_schemas(result)
 
 
-def test_changed_scope_includes_all_stale_page_units_and_latest_evidence(
+@pytest.mark.parametrize(
+    "change",
+    [
+        "absent",
+        "hash",
+        "revision",
+        "source",
+        "partial",
+        "converter",
+        "unknown-review",
+        "missing-locator",
+        "duplicate",
+        "range-gap",
+        "section-missing",
+        "range-reversed",
+    ],
+)
+def test_evidence_failures_never_broaden_or_guess(
+    tmp_path, change, monkeypatch
+):
+    instance, cache, _ = _ready(tmp_path)
+    retained = instance / "text" / SOURCE_ID / f"{REVISIONS[-1]}.qmd"
+    if change == "absent":
+        retained.unlink()
+    elif change == "hash":
+        _retain(instance, sha256="0" * 64)
+    elif change == "revision":
+        retained.write_text(
+            retained.read_text().replace(
+                "revision: " + REVISIONS[-1], "revision: wrong"
+            )
+        )
+    elif change == "source":
+        _retain(instance, **{"source-id": "wrong"})
+    elif change == "partial":
+        _retain(instance, **{"conversion-status": "partial"})
+    elif change == "converter":
+        _retain(instance, converter={"name": None, "version": None})
+    elif change == "unknown-review":
+        _retain(instance, **{"checked-against-original": None})
+    elif change == "missing-locator":
+        _retain(
+            instance, body="Unlocated full extraction with OUTSIDE-SENTINEL.\n"
+        )
+    elif change == "duplicate":
+        _retain(instance, body=TEXT + "## Duplicate {#p-25}\nDuplicate.\n")
+    elif change == "range-gap":
+        _retain(instance, body=TEXT.replace("{#p-26}", "{#p-99}"))
+        _page(instance, "Result [@" + KEY + ", pp. 25-26].\n")
+    elif change == "section-missing":
+        _page(instance, "Result [@" + KEY + ", sec. absent].\n")
+    else:
+        _page(instance, "Result [@" + KEY + ", pp. 26-25].\n")
+    # Proves no search-based evidence fallback exists even when one is offered.
+    monkeypatch.setattr(
+        search, "search", lambda *unused_args, **unused_kwargs: []
+    )
+    result = _prepare(instance, cache)
+    assert all(unit["outcome"] == "unverifiable" for unit in _units(result))
+    assert not _evidence(result)
+    assert "OUTSIDE-SENTINEL" not in json.dumps(result["requests"])
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["unknown/r1", SOURCE_ID + "/missing", SOURCE_ID + "/" + REVISIONS[0]],
+)
+def test_citations_require_exact_declared_bag_revisions(tmp_path, key):
+    instance, cache, _ = _ready(tmp_path)
+    _page(instance, f"Result [@{key}, p. 25].\n")
+    result = _prepare(instance, cache)
+    assert not _evidence(result)
+    assert "declared bag revision" in result["unverifiable"][0]["reason"]
+
+
+def test_stale_citation_selects_units_without_adding_latest_evidence(tmp_path):
+    instance, cache, _ = _ready(tmp_path, commit=True)
+    latest = "20261001T000000000000Z"
+    add_revision(instance, latest, "Newer raw revision.")
+    _retain(instance, latest, body="## Page 25 {#p-25}\nLATEST-SENTINEL.\n")
+    result = _prepare(instance, cache)
+    assert len(_units(result)) == 2
+    assert _evidence(result)
+    assert "LATEST-SENTINEL" not in json.dumps(result["requests"])
+    assert all(
+        span["revision"] == REVISIONS[-1]
+        for span in result["evidence_spans"].values()
+    )
+    selected = requests.revisions_for_scope(instance, "changed")
+    assert [item["revision"] for item in selected[SOURCE_ID]] == [REVISIONS[-1]]
+
+
+def test_original_review_requires_actual_byte_bound_receipt(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    path = _retain(instance, **{"checked-against-original": True})
+    result = _prepare(instance, cache)
+    assert not _evidence(result)
+    assert any(
+        "review evidence" in item["reason"] for item in result["unverifiable"]
+    )
+    record = storage.revisions(instance)[SOURCE_ID][-1]
+    receipt = {
+        "sha256": evidence._raw_record(instance, record)[1],
+        "extraction-sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "evidence": "/private/review/SYNTHETIC-RECEIPT-REFERENCE",
+    }
+    result = _prepare(instance, cache, reviews={KEY: receipt})
+    assert _evidence(result)
+    assert "SYNTHETIC-RECEIPT-REFERENCE" not in json.dumps(result)
+    receipt["extraction-sha256"] = "0" * 64
+    assert not _evidence(_prepare(instance, cache, reviews={KEY: receipt}))
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "page-metadata",
+        "ancestor-added",
+        "ancestor-deleted",
+        "ancestor-changed",
+        "retained-correction",
+    ],
+)
+def test_changed_scope_invalidates_metadata_and_retained_evidence(
+    tmp_path, change
+):
+    instance, cache, _ = _ready(tmp_path)
+    default = instance / "wiki" / "_metadata.yml"
+    if change in {"ancestor-deleted", "ancestor-changed"}:
+        default.write_text("custom:\n  status: old\n")
+    _commit(instance)
+    assert _prepare(instance, cache)["units"] == []
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
+    before_body = storage.mask_front_matter(page.read_text())
+    if change == "page-metadata":
+        page.write_text(
+            page.read_text().replace(
+                "summary: Synthetic evidence page.",
+                "summary: Corrected metadata.",
+            )
+        )
+    elif change == "ancestor-deleted":
+        default.unlink()
+    elif change in {"ancestor-added", "ancestor-changed"}:
+        default.write_text("custom:\n  status: corrected\n")
+    else:
+        retained = instance / "text" / SOURCE_ID / f"{REVISIONS[-1]}.qmd"
+        retained.write_text(
+            retained.read_text().replace(
+                "First result.", "Corrected first result."
+            )
+        )
+    result = _prepare(instance, cache)
+    assert len(_units(result)) == 2
+    assert all(not unit["added"] for unit in _units(result))
+    assert storage.mask_front_matter(page.read_text()) == before_body
+    if change == "retained-correction":
+        assert "Corrected first result." in json.dumps(_evidence(result))
+
+
+def test_head_metadata_uses_historical_ancestors_and_same_merge_helpers(
     tmp_path,
 ):
-    instance, cache, _ = _ready(tmp_path, commit=True)
-    latest = "20260929T000000000000Z"
-    add_revision(instance, latest, "A newer synthetic source revision.\n")
-    assert update_regions(instance) == []
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-
-    result = _prepare(instance, cache)
-
-    alpha = [
-        unit
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/alpha.md"
-    ]
-    assert {unit["kind"] for unit in alpha} == {"heading", "paragraph"}
-    evidence_requests = [
-        request
-        for request in result["requests"]
-        if request["kind"] == "evidence" and alpha[0]["id"] in request["units"]
-    ]
-    items = evidence_requests[0]["arguments"]["evidence"]
-    assert [item["id"] for item in items] == [
-        f"{SOURCE_ID}/{REVISIONS[-1]}",
-        f"{SOURCE_ID}/{latest}",
-    ]
-    assert "newer synthetic source revision" in items[1]["text"]
-
-
-def test_changed_scope_without_head_selects_every_agent_unit(tmp_path):
     instance, cache, _ = _ready(tmp_path)
-
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
+    metadata, _ = storage._front_matter_mapping(page.read_text())
+    metadata.pop("sources")
+    page.write_text("---\n" + yaml.safe_dump(metadata) + "---\n" + BODY)
+    default = instance / "wiki" / "_metadata.yml"
+    default.write_text(
+        yaml.safe_dump(
+            {
+                "sources": [{"id": SOURCE_ID, "revision": REVISIONS[-1]}],
+                "custom": {"x": [1, 2], "y": 1},
+            }
+        )
+    )
+    _commit(instance)
+    old_text = page.read_text()
+    default.write_text(
+        yaml.safe_dump(
+            {
+                "sources": [{"id": SOURCE_ID, "revision": REVISIONS[0]}],
+                "custom": {"x": [3], "y": 2},
+            }
+        )
+    )
+    old, problems = requests._head_metadata(
+        instance, "wiki/concepts/alpha.qmd", old_text
+    )
+    assert not problems
+    assert old["sources"] == [{"id": SOURCE_ID, "revision": REVISIONS[-1]}]
+    assert old["custom"] == {"x": [1, 2], "y": 1}
     result = _prepare(instance, cache)
+    assert len(_units(result)) == 2
+    assert all(unit["outcome"] == "unverifiable" for unit in _units(result))
 
-    assert result["head"] is None
-    assert result["units"]
+
+def test_md_to_qmd_rename_uses_old_body_and_head_defaults(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
+    old = page.with_suffix(".md")
+    page.rename(old)
+    _commit(instance)
+    old.rename(page)
+    result = _prepare(instance, cache)
+    assert _units(result) == []
+    page.write_text(
+        page.read_text().replace("First result", "Corrected first result")
+    )
+    result = _prepare(instance, cache)
+    assert len(_units(result)) == 2
+
+
+def test_overview_uses_linked_english_pages_and_log_catalog_stay_out(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    result = _prepare(instance, cache)
+    found = _evidence(result, "wiki/overview.qmd")
+    assert found
     assert all(
-        unit["outcome"] in {"requested", "unverifiable"}
+        r["arguments"]["evidence"][0]["id"] == "wiki/concepts/alpha.qmd"
+        for r in found
+    )
+    assert all(r["arguments"]["evidence"][0]["text"] == BODY for r in found)
+    assert all(
+        unit["page"] not in {"wiki/index.qmd", "wiki/log.qmd"}
         for unit in result["units"]
     )
+    payload = json.dumps(result["requests"])
+    assert "1 admitted." not in payload
+    assert "Source `" not in payload
+
+
+def test_overview_without_links_is_unverifiable(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    (instance / "wiki" / "overview.qmd").write_text("No linked pages.\n")
+    result = _prepare(instance, cache)
     assert all(
-        unit["page"] not in {"wiki/index.md", "wiki/log.md"}
-        for unit in result["units"]
+        unit["outcome"] == "unverifiable"
+        for unit in _units(result, "wiki/overview.qmd")
     )
-    assert "Source `" not in json.dumps(result["requests"], ensure_ascii=False)
-    assert "1 admitted." not in json.dumps(
-        result["requests"], ensure_ascii=False
-    )
-    expected = {unit["id"] for unit in result["units"]}
-    accounted = set(_evidence_units(result)) | {
-        item["unit"] for item in result["unverifiable"]
-    }
-    assert accounted == expected
-    _assert_schemas(result)
 
 
-def test_prepare_without_model_skips_pages_and_crossrefs_but_searches_evidence(
+def test_bibliography_is_fresh_private_cache_and_never_reused_after_exit(
     tmp_path, monkeypatch
 ):
-    instance, env = make_instance(tmp_path)
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
-    )
-    source.write_text("Synthetic supporting evidence. " * 100, encoding="utf-8")
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
+    instance, cache, _ = _ready(tmp_path)
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "wrong-cache"))
+    paths, entries = [], []
+    real = evidence.bibliography
+
+    @contextmanager
+    def record(*args, **kwargs):
+        with real(*args, **kwargs) as path:
+            paths.append(path)
+            entries.append(json.loads(path.read_text()))
+            assert path.stat().st_mode & 0o777 == 0o600
+            assert path.is_relative_to(cache)
+            yield path
+
+    monkeypatch.setattr(evidence, "bibliography", record)
+    first = _prepare(instance, cache)
+    second = _prepare(instance, cache)
+    assert first == second
+    assert len(paths) >= 2 and len(set(paths)) == len(paths)
+    assert all(not path.exists() for path in paths)
+    assert all(entry["type"] == "document" for run in entries for entry in run)
+    assert not (tmp_path / "wrong-cache").exists()
+
+
+def test_keyword_only_preparation_never_searches_for_citation_evidence(
+    tmp_path, monkeypatch
+):
+    instance, cache, _ = _ready(tmp_path)
     captured = []
+    real = search.search
 
-    def capture_queries(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
+    def record(wiki_id, root, queries, **kwargs):
         captured.extend(queries)
-        return []
+        return real(wiki_id, root, queries, **kwargs)
 
-    monkeypatch.setattr(requests.search, "search", capture_queries)
-
-    result = _prepare(instance, cache, scope="lint", max_evidence_chars=32)
-
-    assert any(query["collection"] == "evidence" for query in captured)
-    assert all(query["collection"] == "evidence" for query in captured)
+    monkeypatch.setattr(search, "search", record)
+    result = _prepare(instance, cache)
+    assert captured == []
     assert result["search"] == {
         "keyword": True,
         "semantic": False,
         "not_searched": ["crossref", "pages"],
     }
-    assert not any(
-        request["kind"] in {"pages", "crossref"}
-        for request in result["requests"]
-    )
+    assert _evidence(result)
 
 
-def test_prepare_skips_semantic_queries_for_pending_embeddings(
+def test_cross_page_candidates_remain_separate_and_rank_before_sorting(
     tmp_path, monkeypatch
 ):
-    instance, env = make_instance(tmp_path)
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    monkeypatch.setattr(search, "EMBED_MODEL", "hf:synthetic/pending.gguf")
-    model_dir = cache / "qmd" / "models"
-    model_dir.mkdir(parents=True, exist_ok=True)
-    (model_dir / "pending.gguf").touch()
-    captured = []
+    instance, cache, _ = _ready(tmp_path)
+    _page(instance, "Best candidate [@" + KEY + ", p. 26].\n", name="z-best")
+    _page(instance, "Later candidate [@" + KEY + ", p. 26].\n", name="a-later")
+    monkeypatch.setattr(search, "_model_is_cached", lambda *unused_args: True)
 
-    def capture_queries(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
-        captured.extend(queries)
-        return []
+    def hits(unused_wiki_id, unused_cache, queries, **kwargs):
+        kwargs["search_status"]["semantic"] = True
+        return [
+            {
+                "query": query["id"],
+                "path": f"concepts/{name}.qmd",
+                "line": 10,
+                "mode": "lex",
+            }
+            for query in queries
+            if query["id"].startswith("pages:wiki/concepts/alpha")
+            for name in ("z-best", "a-later")
+        ]
 
-    monkeypatch.setattr(requests.search, "search", capture_queries)
-
-    result = _prepare(instance, cache, scope="lint", max_evidence_chars=32)
-
-    assert result["search"] == {
-        "keyword": True,
-        "semantic": False,
-        "not_searched": ["crossref", "pages"],
-    }
-    assert all(query["collection"] == "evidence" for query in captured)
-    assert any(request["kind"] == "evidence" for request in result["requests"])
-    assert not any(
-        request["kind"] in {"pages", "crossref"}
-        for request in result["requests"]
+    monkeypatch.setattr(search, "search", hits)
+    result = _prepare(instance, cache, candidates=1)
+    source_evidence = _evidence(result)
+    assert source_evidence
+    assert all(
+        "candidate" not in json.dumps(r["arguments"]["evidence"]).lower()
+        for r in source_evidence
     )
-
-
-def test_large_evidence_uses_matching_converted_passages(tmp_path):
-    instance, env = make_instance(tmp_path, commit=True)
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    assert update_regions(instance) == []
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
+    candidate_requests = [r for r in result["requests"] if r["kind"] == "pages"]
+    assert candidate_requests
+    assert all(
+        "z-best.qmd" in r["arguments"]["evidence"][0]["id"]
+        for r in candidate_requests
     )
-    source.write_text(
-        "Unrelated background. "
-        + "padding " * 30
-        + "\n\nThe quadratic formula has two roots.\n",
-        encoding="utf-8",
-    )
-    page = instance / "wiki" / "concepts" / "alpha.md"
-    page.write_text(
-        page.read_text(encoding="utf-8").replace(
-            "See [the source](../sources/source.md).",
-            "The quadratic formula has two roots.",
-        ),
-        encoding="utf-8",
-    )
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-
-    result = _prepare(instance, cache, max_evidence_chars=60)
-
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "evidence"
-        and "quadratic formula" in request["arguments"]["claims"][0]
-    )
-    passage = request["arguments"]["evidence"][0]
-    assert passage["id"] == f"{SOURCE_ID}/{REVISIONS[-1]}#1"
-    assert passage["text"].strip() == "The quadratic formula has two roots."
-    assert len(passage["text"]) <= 60
     _assert_schemas(result)
 
 
-def test_page_candidates_keep_best_search_rank_before_sorting(
+def test_lint_crossrefs_keep_two_unlinked_candidates_and_metadata_titles(
     tmp_path, monkeypatch
 ):
-    instance, env = make_instance(tmp_path)
-    lexical = _add_candidate_page(instance, "aaa-lexical")
-    vector = _add_candidate_page(instance, "zzz-vector")
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    target = next(
-        unit
-        for unit in requests._collect(instance, "changed")[2]
-        if unit["page"] == "wiki/concepts/alpha.md"
-        and unit["kind"] == "paragraph"
-    )
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
-    )
+    instance, cache, _ = _ready(tmp_path)
+    for name in ("beta", "gamma"):
+        _page(instance, BODY, name=name)
+    monkeypatch.setattr(search, "_model_is_cached", lambda *unused_args: True)
 
-    def stub_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, queries, kwargs  # Unused.
+    def hits(unused_wiki_id, unused_cache, queries, **kwargs):
+        kwargs["search_status"]["semantic"] = True
         return [
             {
-                "query": f"pages:{target['id']}",
-                "collection": "pages",
-                "path": "concepts/alpha.md",
-                "line": target["first_line"],
-                "score": 0.0,
+                "query": query["id"],
+                "path": f"concepts/{name}.qmd",
+                "line": 10,
                 "mode": "lex",
-            },
-            {
-                "query": f"pages:{target['id']}",
-                "collection": "pages",
-                "path": "concepts/aaa-lexical.md",
-                "line": _line_of(lexical, "Synthetic candidate content."),
-                "score": 10.0,
-                "mode": "lex",
-            },
-            {
-                "query": f"pages:{target['id']}",
-                "collection": "pages",
-                "path": "concepts/zzz-vector.md",
-                "line": _line_of(vector, "Synthetic candidate content."),
-                "score": 0.01,
-                "mode": "vec",
-            },
+            }
+            for query in queries
+            if query["id"] == "crossref:wiki/concepts/alpha.qmd"
+            for name in ("beta", "gamma")
         ]
 
-    monkeypatch.setattr(requests.search, "search", stub_search)
-
-    result = requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=40000,
-        candidates=1,
-    )
-
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "pages" and target["id"] in request["units"]
-    )
-    selected = request["arguments"]["evidence"]
-    assert [item["id"] for item in selected] == [
-        next(
-            unit["id"]
-            for unit in result["units"]
-            if unit["page"] == "wiki/concepts/zzz-vector.md"
-            and unit["kind"] == "paragraph"
-        )
+    monkeypatch.setattr(search, "search", hits)
+    result = _prepare(instance, cache, scope="lint")
+    found = [r for r in result["requests"] if r["kind"] == "crossref"]
+    assert len(found) == 1
+    assert [item["id"] for item in found[0]["arguments"]["candidates"]] == [
+        "wiki/concepts/beta.qmd",
+        "wiki/concepts/gamma.qmd",
     ]
+    assert found[0]["arguments"]["candidates"][0]["text"].startswith("Beta\n")
+    _assert_schemas(result)
 
 
-def test_crossref_candidates_keep_best_search_rank_before_sorting(
-    tmp_path, monkeypatch
+def test_deterministic_packing_keeps_exact_evidence_sets_and_claim_order(
+    tmp_path,
 ):
-    instance, env = make_instance(tmp_path)
-    paths = [
-        _add_candidate_page(instance, f"p{index:02}") for index in range(21)
-    ]
-    best = _add_candidate_page(instance, "z-best")
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    hits = [
-        {
-            "query": "crossref:wiki/concepts/alpha.md",
-            "collection": "pages",
-            "path": f"concepts/{path.stem}.md",
-            "line": _line_of(path, "Synthetic candidate content."),
-            "score": float(21 - index),
-            "mode": "lex",
-        }
-        for index, path in enumerate([best, *paths])
-    ]
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
+    instance, cache, _ = _ready(tmp_path)
+    body = "\n\n".join(
+        f"Result {index:03} [@{KEY}, p. 25]." for index in range(230)
     )
-    monkeypatch.setattr(
-        requests.search,
-        "search",
-        lambda unused_wiki_id, unused_cache, unused_queries, **unused_kwargs: (
-            hits
-        ),
-    )
-
-    result = requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="lint",
-        max_evidence_chars=40000,
-        candidates=3,
-    )
-
-    alpha_units = {
-        unit["id"]
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/alpha.md"
-    }
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "crossref"
-        and alpha_units.intersection(request["units"])
-    )
-    selected = [item["id"] for item in request["arguments"]["candidates"]]
-    assert len(selected) == 20
-    assert "wiki/concepts/z-best.md" in selected
-    assert "wiki/concepts/p19.md" not in selected
-    assert selected == sorted(selected)
-
-
-def test_passage_selection_uses_best_ranked_fitting_passage(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    latest = "20260929T000000000000Z"
-    add_revision(
-        instance,
-        latest,
-        "This oversized synthetic passage cannot fit this evidence budget.\n\n"
-        "Earlier matching synthetic passage.\n\nBest ranked passage.\n",
-    )
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    target = next(
-        unit
-        for unit in requests._collect(instance, "changed")[2]
-        if unit["page"] == "wiki/concepts/alpha.md"
-        and unit["kind"] == "paragraph"
-    )
-
-    def stub_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, queries, kwargs  # Unused.
-        return [
-            {
-                "query": f"evidence:{target['id']}",
-                "collection": "evidence",
-                "path": f"{SOURCE_ID}/{latest}.md",
-                "line": 1,
-                "score": 100.0,
-                "mode": "lex",
-            },
-            {
-                "query": f"evidence:{target['id']}",
-                "collection": "evidence",
-                "path": f"{SOURCE_ID}/{latest}.md",
-                "line": 3,
-                "score": 100.0,
-                "mode": "lex",
-            },
-            {
-                "query": f"evidence:{target['id']}",
-                "collection": "evidence",
-                "path": f"{SOURCE_ID}/{latest}.md",
-                "line": 5,
-                "score": 0.01,
-                "mode": "vec",
-            },
-        ]
-
-    monkeypatch.setattr(requests.search, "search", stub_search)
-
-    result = requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=40,
-        candidates=3,
-    )
-
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "evidence" and target["id"] in request["units"]
-    )
-    passage = request["arguments"]["evidence"][0]
-    assert passage["text"].strip() == "Best ranked passage."
-
-
-def test_passage_selection_adds_more_ranked_passages_within_budget():
-    passages = [
-        "Oversized passage " + "padding " * 20,
-        "Second ranked passage.",
-        "Best ranked passage.",
+    _page(instance, body)
+    first = _prepare(instance, cache)
+    second = _prepare(instance, cache)
+    assert first == second
+    found = _evidence(first)
+    claims = [
+        claim for request in found for claim in request["arguments"]["claims"]
     ]
-    text = "\n\n".join(passages)
-    job = {
-        "texts": {(SOURCE_ID, "r1"): text},
-        "units": [{"id": "unit", "text": "synthetic claim"}],
-    }
-    hits = [
-        {
-            "query": "evidence:unit",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": line,
-            "mode": "lex",
-        }
-        for line in (1, 3, 5)
-    ]
-
-    groups, assigned = requests._passages_for_group(job, hits, 60)
-
-    assert assigned == {"unit"}
-    assert [item["text"].strip() for item in groups[0][1]] == [
-        "Second ranked passage.",
-        "Best ranked passage.",
-    ]
-
-
-def test_passage_groups_pack_units_at_249_evidence_items_without_loss():
-    passages = [
-        f"Synthetic evidence passage {index:03}." for index in range(250)
-    ]
-    text = "\n\n".join(passages)
-    units = [
-        {"id": f"unit-{index:03}", "text": f"synthetic claim {index}"}
-        for index in range(250)
-    ]
-    job = {"texts": {(SOURCE_ID, "r1"): text}, "units": units}
-    hits = [
-        {
-            "query": f"evidence:unit-{index:03}",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": index * 2 + 1,
-            "mode": "lex",
-        }
-        for index in range(250)
-    ]
-
-    groups, assigned = requests._passages_for_group(job, hits, 20000)
-
-    assert [len(evidence_items) for _, evidence_items in groups] == [249, 1]
-    assert all(len(evidence_items) <= 249 for _, evidence_items in groups)
-    grouped_units = [
-        unit["id"] for group_units, _ in groups for unit in group_units
-    ]
-    assert grouped_units == [unit["id"] for unit in units]
-    assert len(grouped_units) == len(set(grouped_units))
-    assert assigned == {unit["id"] for unit in units}
-
-
-def test_one_unit_keeps_its_249_best_ranked_passages():
-    passages = [
-        f"Synthetic evidence passage {index:03}." for index in range(250)
-    ]
-    text = "\n\n".join(passages)
-    job = {
-        "texts": {(SOURCE_ID, "r1"): text},
-        "units": [{"id": "unit", "text": "synthetic claim"}],
-    }
-    hits = [
-        {
-            "query": "evidence:unit",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": index * 2 + 1,
-            "mode": "lex",
-        }
-        for index in reversed(range(250))
-    ]
-
-    groups, assigned = requests._passages_for_group(job, hits, 20000)
-
-    assert len(groups) == 1
-    assert len(groups[0][1]) == 249
-    assert [unit["id"] for unit in groups[0][0]] == ["unit"]
-    assert assigned == {"unit"}
-    assert "Synthetic evidence passage 000." not in [
-        item["text"] for item in groups[0][1]
-    ]
-    assert "Synthetic evidence passage 249." in [
-        item["text"] for item in groups[0][1]
-    ]
-
-
-def test_shared_passage_is_in_each_batch_that_uses_it():
-    passages = ["Shared passage.", "Unique first passage."]
-    passages.extend(f"Filler passage {index:03}." for index in range(247))
-    passages.append("New passage for final unit.")
-    text = "\n\n".join(passages)
-    units = [
-        {"id": f"unit-{index:03}", "text": f"synthetic claim {index}"}
-        for index in range(1, 250)
-    ]
-    hits = [
-        {
-            "query": "evidence:unit-001",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": 1,
-            "mode": "lex",
-        },
-        {
-            "query": "evidence:unit-001",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": 3,
-            "mode": "lex",
-        },
-    ]
-    hits.extend(
-        {
-            "query": f"evidence:unit-{index:03}",
-            "path": f"{SOURCE_ID}/r1.md",
-            "line": index * 2 + 1,
-            "mode": "lex",
-        }
-        for index in range(2, 249)
-    )
-    hits.extend(
-        [
-            {
-                "query": "evidence:unit-249",
-                "path": f"{SOURCE_ID}/r1.md",
-                "line": 1,
-                "mode": "lex",
-            },
-            {
-                "query": "evidence:unit-249",
-                "path": f"{SOURCE_ID}/r1.md",
-                "line": 499,
-                "mode": "lex",
-            },
-        ]
-    )
-    job = {"texts": {(SOURCE_ID, "r1"): text}, "units": units}
-
-    groups, assigned = requests._passages_for_group(job, hits, 20000)
-
-    assert [len(evidence_items) for _, evidence_items in groups] == [249, 2]
-    assert [len(group_units) for group_units, _ in groups] == [248, 1]
+    assert len(claims) == 230
+    assert [int(claim.split()[1]) for claim in claims] == list(range(230))
+    assert all(len(request["arguments"]["claims"]) <= 110 for request in found)
     assert all(
-        any(
-            item["text"].strip() == "Shared passage." for item in evidence_items
-        )
-        for _, evidence_items in groups
+        sum(len(claim) for claim in request["arguments"]["claims"]) <= 12000
+        for request in found
     )
-    assert assigned == {unit["id"] for unit in units}
+    _assert_schemas(first)
 
 
-def test_passage_search_splits_each_evidence_file_once(monkeypatch):
-    job = {
-        "texts": {(SOURCE_ID, "r1"): "First passage.\n\nSecond passage."},
-        "units": [{"id": "unit", "text": "synthetic claim"}],
-    }
-    real_split = requests.split
-    calls = []
-
-    def count_split(*args, **kwargs):
-        calls.append(args[0])
-        return real_split(*args, **kwargs)
-
-    monkeypatch.setattr(requests, "split", count_split)
-    requests._passages_for_group(
-        job,
-        [
-            {
-                "query": "evidence:unit",
-                "path": f"{SOURCE_ID}/r1.md",
-                "line": 1,
-                "mode": "lex",
-            },
-            {
-                "query": "evidence:unit",
-                "path": f"{SOURCE_ID}/r1.md",
-                "line": 3,
-                "mode": "lex",
-            },
-        ],
-        100,
-    )
-
-    assert calls == [f"{SOURCE_ID}/r1.md"]
-
-
-def test_collection_query_ids_keep_page_candidate_ranks_independent(
-    tmp_path, monkeypatch
+def test_exact_evidence_budget_is_unverifiable_without_search_fallback(
+    tmp_path,
 ):
-    instance, env = make_instance(tmp_path)
-    lexical = _add_candidate_page(instance, "aaa-lexical")
-    vector = _add_candidate_page(instance, "zzz-vector")
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
-    )
-    source.write_text(
-        "Oversized "
-        + "padding " * 30
-        + "\n\nFirst supporting passage.\n\nSecond supporting passage.\n",
-        encoding="utf-8",
-    )
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    target = next(
-        unit
-        for unit in requests._collect(instance, "changed")[2]
-        if unit["page"] == "wiki/concepts/alpha.md"
-        and unit["kind"] == "paragraph"
-    )
-    captured = []
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
-    )
-
-    def stub_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
-        captured.extend(queries)
-        evidence_id = f"evidence:{target['id']}"
-        page_id = f"pages:{target['id']}"
-        evidence_query = next(
-            query for query in queries if query["id"] == evidence_id
-        )
-        page_query = next(query for query in queries if query["id"] == page_id)
-        assert evidence_query["collection"] == "evidence"
-        assert page_query["collection"] == "pages"
-        return [
-            {
-                "query": query["id"],
-                "collection": "evidence",
-                "path": f"{SOURCE_ID}/{REVISIONS[-1]}.md",
-                "line": line,
-                "mode": "lex",
-            }
-            for query in queries
-            if query["collection"] == "evidence"
-            for line in (1, 3, 5)
-        ] + [
-            {
-                "query": page_id,
-                "collection": "pages",
-                "path": "concepts/aaa-lexical.md",
-                "line": _line_of(lexical, "Synthetic candidate content."),
-                "mode": "lex",
-            },
-            {
-                "query": page_id,
-                "collection": "pages",
-                "path": "concepts/zzz-vector.md",
-                "line": _line_of(vector, "Synthetic candidate content."),
-                "mode": "vec",
-            },
-        ]
-
-    monkeypatch.setattr(requests.search, "search", stub_search)
-    result = requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=100,
-        candidates=1,
-    )
-
-    request = next(
-        request
-        for request in result["requests"]
-        if request["kind"] == "pages" and target["id"] in request["units"]
-    )
-    expected = next(
-        unit["id"]
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/aaa-lexical.md"
-        and unit["kind"] == "paragraph"
-    )
-    assert request["arguments"]["evidence"][0]["id"] == expected
-    assert any(query["id"] == f"evidence:{target['id']}" for query in captured)
-    assert any(query["id"] == f"pages:{target['id']}" for query in captured)
-
-
-def test_evidence_queries_cover_the_full_collection_limit(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
-    )
-    source.write_text(
-        "Oversized " + "padding " * 30 + "\n\nCited supporting passage.\n",
-        encoding="utf-8",
-    )
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    evidence_root = (
-        cache
-        / "wiki-evidence"
-        / instance.name
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-    )
-    decoys = evidence_root / "unrelated"
-    decoys.mkdir(parents=True)
-    for index in range(25):
-        (decoys / f"decoy-{index:02}.md").write_text(
-            f"Synthetic unrelated evidence {index}.\n", encoding="utf-8"
-        )
-    search.index(instance, instance.name, cache, download=False)
-    document_count = sum(path.is_file() for path in evidence_root.rglob("*.md"))
-    captured = []
-
-    def stub_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
-        captured.extend(queries)
-        return [
-            {
-                "query": query["id"],
-                "collection": "evidence",
-                "path": f"{SOURCE_ID}/{REVISIONS[-1]}.md",
-                "line": 3,
-                "mode": "lex",
-            }
-            for query in queries
-            if query["collection"] == "evidence"
-        ]
-
-    monkeypatch.setattr(requests.search, "search", stub_search)
-    requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=100,
-        candidates=3,
-    )
-
-    evidence_queries = [
-        query for query in captured if query["collection"] == "evidence"
-    ]
-    assert evidence_queries
-    assert all(query["limit"] >= document_count for query in evidence_queries)
-
-
-def test_evidence_search_finds_cited_hit_beyond_request_limit(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    latest = "20260929T000000000000Z"
-    add_revision(
-        instance,
-        latest,
-        "\n\n".join(
-            [
-                *(
-                    f"Unrelated synthetic passage {index}."
-                    for index in range(50)
-                ),
-                "Cited synthetic passage.",
-            ]
-        ),
-    )
-    page = instance / "wiki" / "concepts" / "alpha.md"
-    page.write_text(
-        page.read_text(encoding="utf-8")
-        .replace(REVISIONS[-1], latest)
-        .replace(
-            "See [the source](../sources/source.md).",
-            "Cited synthetic passage.",
-        ),
-        encoding="utf-8",
-    )
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    captured = []
-    real_search = search.search
-
-    def add_decoys_then_search(wiki_id, cache_root, queries, **kwargs):
-        evidence_queries = [
-            query for query in queries if query["collection"] == "evidence"
-        ]
-        captured.extend(evidence_queries)
-        assert evidence_queries
-        root = (
-            cache_root
-            / "wiki-evidence"
-            / wiki_id
-            / f"markitdown-{evidence.CONVERTER_VERSION}"
-            / "decoys"
-        )
-        root.mkdir(parents=True)
-        for index in range(25):
-            (root / f"decoy-{index:02}.md").write_text(
-                "\n".join(
-                    str(query["text"]) * 10 for query in evidence_queries
-                ),
-                encoding="utf-8",
-            )
-        return real_search(wiki_id, cache_root, queries, **kwargs)
-
-    monkeypatch.setattr(requests.search, "search", add_decoys_then_search)
-
-    result = _prepare(instance, cache, scope="lint", max_evidence_chars=80)
-
-    cited_path = f"{SOURCE_ID}/{latest}.md"
-    assert all(query["limit"] < 25 for query in captured)
-    assert all(cited_path in query["allowed_paths"] for query in captured)
+    instance, cache, _ = _ready(tmp_path)
+    _retain(instance, body="## Page 25 {#p-25}\n" + "padding " * 100 + "\n")
+    result = _prepare(instance, cache, max_evidence_chars=32)
+    assert not _evidence(result)
     assert any(
-        "Cited synthetic passage." in item["text"]
-        for request in result["requests"]
-        if request["kind"] == "evidence"
-        for item in request["arguments"]["evidence"]
+        "oversized located span" in item["reason"]
+        for item in result["unverifiable"]
     )
 
 
-def test_vector_evidence_search_returns_all_cited_chunks_past_limit(
-    tmp_path, monkeypatch
+def test_prepare_requires_correct_index_root_and_reports_absent_evidence(
+    tmp_path,
 ):
-    instance, env = make_instance(tmp_path)
-    latest = "20260929T000000000000Z"
-    add_revision(
-        instance,
-        latest,
-        "\n\n".join(
-            [
-                *(
-                    f"Unrelated synthetic passage {index}."
-                    for index in range(50)
-                ),
-                "Cited synthetic passage.",
-            ]
-        ),
-    )
-    page = instance / "wiki" / "concepts" / "alpha.md"
-    page.write_text(
-        page.read_text(encoding="utf-8")
-        .replace(REVISIONS[-1], latest)
-        .replace(
-            "See [the source](../sources/source.md).",
-            "Cited synthetic passage.",
-        ),
-        encoding="utf-8",
-    )
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    target_path = f"{SOURCE_ID}/{latest}.md"
-    evidence_file = (
-        cache
-        / "wiki-evidence"
-        / instance.name
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-        / target_path
-    )
-    passage_lines = [
-        index
-        for index, line in enumerate(
-            evidence_file.read_text(encoding="utf-8").splitlines(), 1
-        )
-        if line.startswith("Unrelated synthetic passage ")
-        or line == "Cited synthetic passage."
-    ]
-    assert len(passage_lines) == 51
-    monkeypatch.setattr(search, "_model_is_cached", lambda unused_cache: True)
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
-    )
-    queries = []
-    tool_calls = []
-    servers = []
+    instance, cache, _ = _ready(tmp_path)
+    other = tmp_path / "other-instance"
+    shutil.copytree(instance, other, ignore=shutil.ignore_patterns(".git"))
+    search.index(other, instance.name, cache, download=False)
+    with pytest.raises(ValueError, match="prepare requires index"):
+        _prepare(instance, cache)
+    (cache / "qmd" / f"{instance.name}.sqlite").unlink()
+    with pytest.raises(ValueError, match="prepare requires index"):
+        _prepare(instance, cache)
 
-    class FakeSession:
-        def __init__(self, read, write):
-            del read, write
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("max_evidence_chars", 0),
+        ("max_evidence_chars", True),
+        ("candidates", 0),
+        ("reviews", []),
+    ],
+)
+def test_prepare_validates_boundary_inputs(tmp_path, field, value):
+    with pytest.raises(ValueError):
+        _prepare(tmp_path, tmp_path / "cache", **{field: value})
+
+
+def test_alternating_evidence_sets_preserve_claim_order(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    body = " ".join(
+        [
+            f"First [@{KEY}, p. 25].",
+            f"Second [@{KEY}, p. 26].",
+            f"Third [@{KEY}, p. 25].",
+        ]
+    )
+    _page(instance, body)
+    result = _prepare(instance, cache)
+    found = _evidence(result)
+    assert [
+        claim.split()[0]
+        for item in found
+        for claim in item["arguments"]["claims"]
+    ] == ["First", "Second", "Third"]
+    assert len(found) == 3
+
+
+def test_full_serialized_payload_is_measured_without_inventing_a_cap(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    _retain(instance, body="## Page 25 {#p-25}\n" + "café " * 5000 + "\n")
+    _page(instance, BODY.replace("p. 26", "p. 25"))
+    found = _evidence(_prepare(instance, cache))
+    assert found
+    serialized = json.dumps(
+        found[0]["arguments"], ensure_ascii=False, sort_keys=True
+    )
+    assert len(serialized) > 12000
+    assert len(serialized.encode("utf-8")) > len(serialized)
+    assert (
+        sum(len(item["text"]) for item in found[0]["arguments"]["evidence"])
+        <= 40000
+    )
+
+
+def test_oversized_suggestion_items_fail_without_upstream_truncation(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    _page(instance, "Long " + "word " * 410 + f"[@{KEY}, p. 25].\n")
+    with pytest.raises(
+        ValueError, match="classification item exceeds exact text limit"
+    ):
+        _prepare(instance, cache)
+
+
+def test_ambiguous_bags_and_changed_raw_hash_fail_explicitly(tmp_path):
+    instance, cache, _ = _ready(tmp_path)
+    bag = instance / "raw" / "files" / SOURCE_ID / REVISIONS[-1]
+    duplicate = instance / "raw" / "notes" / SOURCE_ID / REVISIONS[-1]
+    shutil.copytree(bag, duplicate)
+    with pytest.raises(ValueError, match="ambiguous raw revision"):
+        _prepare(instance, cache)
+    shutil.rmtree(duplicate)
+    (bag / "data" / "document.txt").write_text("Altered synthetic raw bytes.")
+    with pytest.raises(ValueError, match="raw SHA-256 changed"):
+        _prepare(instance, cache)
+
+
+def test_retained_symlink_cannot_send_outside_sentinel(tmp_path, monkeypatch):
+    instance, cache, _ = _ready(tmp_path)
+    outside = tmp_path / "outside.qmd"
+    outside.write_text("OUTSIDE-PRIVATE-SENTINEL-948f")
+    retained = instance / "text" / SOURCE_ID / f"{REVISIONS[-1]}.qmd"
+    retained.unlink()
+    retained.symlink_to(outside)
+    monkeypatch.setattr(
+        search, "search", lambda *unused_args, **unused_kwargs: []
+    )
+    result = _prepare(instance, cache)
+    assert not _evidence(result)
+    assert "OUTSIDE-PRIVATE-SENTINEL" not in json.dumps(result)
+    assert any("symlink" in item["reason"] for item in result["unverifiable"])
+    assert outside.read_text() == "OUTSIDE-PRIVATE-SENTINEL-948f"
+
+
+@pytest.mark.parametrize("pending", [False, True])
+def test_prepare_status_and_candidate_queries_use_one_mcp_session(
+    tmp_path, monkeypatch, pending
+):
+
+    instance, cache, _ = _ready(tmp_path)
+    calls, servers = [], []
+    monkeypatch.setattr(search, "_model_is_cached", lambda *unused_args: True)
+
+    class Session:
+        def __init__(self, *unused_args):
+            pass
 
         async def __aenter__(self):
             return self
@@ -1098,455 +776,25 @@ def test_vector_evidence_search_returns_all_cited_chunks_past_limit(
             return None
 
         async def call_tool(self, name, arguments):
-            tool_calls.append((name, arguments))
-            if name == "status":
-                return SimpleNamespace(
-                    is_error=False,
-                    structured_content={
-                        "needsEmbedding": 0,
-                        "collections": [
-                            {
-                                "name": "pages",
-                                "path": str(instance / "wiki"),
-                                "documents": 2,
-                            },
-                            {
-                                "name": "evidence",
-                                "path": str(
-                                    cache
-                                    / "wiki-evidence"
-                                    / instance.name
-                                    / f"markitdown-{evidence.CONVERTER_VERSION}"
-                                ),
-                                "documents": 1,
-                            },
-                        ],
-                    },
-                )
-            results = []
-            if arguments["collections"] == ["evidence"]:
-                results = [
-                    {
-                        "file": (
-                            f"qmd://evidence/{target_path}?index={instance.name}"
-                        ),
-                        "line": line,
-                        "score": 1.0 if line == passage_lines[-1] else 0.1,
-                    }
-                    for line in passage_lines
-                ]
-            return SimpleNamespace(
-                is_error=False, structured_content={"results": results}
+            calls.append((name, arguments))
+            value = (
+                {"needsEmbedding": 1 if pending else 0}
+                if name == "status"
+                else {"results": []}
             )
+            return SimpleNamespace(is_error=False, structured_content=value)
 
     @asynccontextmanager
-    async def fake_stdio_client(server):
+    async def stdio(server):
         servers.append(server)
         yield object(), object()
 
-    monkeypatch.setattr(search, "ClientSession", FakeSession)
-    monkeypatch.setattr(search, "stdio_client", fake_stdio_client)
-    real_search = search.search
-
-    def capture_search(wiki_id, cache_root, search_queries, **kwargs):
-        queries.extend(
-            query
-            for query in search_queries
-            if query["collection"] == "evidence"
-        )
-        return real_search(wiki_id, cache_root, search_queries, **kwargs)
-
-    monkeypatch.setattr(requests.search, "search", capture_search)
-
-    result = _prepare(instance, cache, scope="lint", max_evidence_chars=80)
-
-    assert queries
-    assert all(query["limit"] < len(passage_lines) for query in queries)
-    assert all(target_path in query["allowed_paths"] for query in queries)
-    assert len(servers) == 2
-    mcp_queries = [
-        arguments
-        for name, arguments in tool_calls
-        if name == "query" and arguments["collections"] == ["evidence"]
-    ]
-    assert mcp_queries
-    assert all(query["limit"] == 100000 for query in mcp_queries)
-    assert all(query["rerank"] is False for query in mcp_queries)
-    assert {
-        search["type"] for query in mcp_queries for search in query["searches"]
-    } == {"lex", "vec"}
-    assert any(
-        "Cited synthetic passage." in item["text"]
-        for request in result["requests"]
-        if request["kind"] == "evidence"
-        for item in request["arguments"]["evidence"]
-    )
-
-
-def test_evidence_search_is_limited_to_cited_files(tmp_path, monkeypatch):
-    instance, env = make_instance(tmp_path)
-    assert update_regions(instance) == []
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
-    )
-    source.write_text("Synthetic cited claim. " * 100, encoding="utf-8")
-    page = instance / "wiki" / "concepts" / "alpha.md"
-    page.write_text(
-        page.read_text(encoding="utf-8").replace(
-            "See [the source](../sources/source.md).", "Synthetic cited claim."
-        ),
-        encoding="utf-8",
-    )
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    evidence_root = (
-        cache
-        / "wiki-evidence"
-        / instance.name
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-    )
-    decoy = evidence_root / "decoy" / "extra.md"
-    decoy.parent.mkdir(parents=True)
-    decoy.write_text("Synthetic cited claim. " * 100, encoding="utf-8")
-    search.index(instance, instance.name, cache, download=False)
-    captured = []
-    real_search = search.search
-
-    def capture_search(wiki_id, cache, queries, **kwargs):
-        captured.extend(queries)
-        return real_search(wiki_id, cache, queries, **kwargs)
-
-    monkeypatch.setattr(requests.search, "search", capture_search)
-
-    requests.prepare(
-        instance,
-        instance.name,
-        cache,
-        scope="changed",
-        max_evidence_chars=10,
-        candidates=3,
-    )
-
-    evidence_queries = [
-        query for query in captured if query["collection"] == "evidence"
-    ]
-    cited_path = f"{SOURCE_ID}/{REVISIONS[-1]}.md"
-    assert evidence_queries
-    assert all(
-        query["allowed_paths"] == [cited_path] for query in evidence_queries
-    )
-    hits = real_search(instance.name, cache, evidence_queries)
-    assert hits
-    assert {hit["path"] for hit in hits} == {cited_path}
-
-
-def test_overview_evidence_uses_linked_pages_and_path_ids(tmp_path):
-    instance, cache, _ = _ready(tmp_path)
-
-    result = _prepare(instance, cache)
-
-    overview_units = [
-        unit for unit in result["units"] if unit["page"] == "wiki/overview.md"
-    ]
-    assert overview_units
-    requests_for_overview = [
-        request
-        for request in result["requests"]
-        if request["kind"] == "evidence"
-        and overview_units[0]["id"] in request["units"]
-    ]
-    assert requests_for_overview
-    evidence_items = requests_for_overview[0]["arguments"]["evidence"]
-    assert [item["id"] for item in evidence_items] == ["wiki/concepts/alpha.md"]
-    assert "# Alpha" in evidence_items[0]["text"]
-
-
-def test_overview_without_links_is_unverifiable_with_no_sources(tmp_path):
-    instance, cache, _ = _ready(tmp_path)
-    overview = instance / "wiki" / "overview.md"
-    overview.write_text("# Overview\n\nNo linked pages.\n", encoding="utf-8")
-    search.index(instance, instance.name, cache, download=False)
-
-    result = _prepare(instance, cache)
-
-    overview_ids = {
-        unit["id"]
-        for unit in result["units"]
-        if unit["page"] == "wiki/overview.md"
-    }
-    assert overview_ids
-    assert {
-        item["unit"]
-        for item in result["unverifiable"]
-        if item["unit"] in overview_ids
-    } == overview_ids
-    assert all(
-        not item["sources"]
-        for item in result["unverifiable"]
-        if item["unit"] in overview_ids
-    )
-
-
-def test_unreadable_sources_are_listed_and_never_sent(tmp_path, monkeypatch):
-    del monkeypatch  # Unused.
-    instance, env = make_instance(tmp_path)
-    assert update_regions(instance) == []
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    source = (
-        instance
-        / "raw"
-        / "files"
-        / SOURCE_ID
-        / REVISIONS[-1]
-        / "data"
-        / "document.txt"
-    )
-    source.rename(source.with_suffix(".hwp"))
-    source.with_suffix(".hwp").write_bytes(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-
+    monkeypatch.setattr(search, "ClientSession", Session)
+    monkeypatch.setattr(search, "stdio_client", stdio)
     result = _prepare(instance, cache, scope="lint")
-
-    alpha_ids = {
-        unit["id"]
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/alpha.md"
-    }
-    unverifiable = [
-        item for item in result["unverifiable"] if item["unit"] in alpha_ids
-    ]
-    assert {item["unit"] for item in unverifiable} == alpha_ids
-    assert all(
-        item["sources"] == [f"{SOURCE_ID}/{REVISIONS[-1]}"]
-        for item in unverifiable
-    )
-    assert not alpha_ids.intersection(
-        unit for request in result["requests"] for unit in request["units"]
-    )
-    _assert_schemas(result)
-
-
-def test_lint_scope_adds_crossrefs_only_with_two_unlinked_candidates(
-    tmp_path, monkeypatch
-):
-    instance, cache, _ = _ready(tmp_path)
-    shared = "Synthetic quadratic formula roots"
-    alpha = instance / "wiki" / "concepts" / "alpha.md"
-    alpha.write_text(
-        alpha.read_text(encoding="utf-8")
-        .replace("title: Alpha", "title: Quadratic")
-        .replace("summary: A synthetic page.", f"summary: {shared}")
-        .replace(
-            "See [the source](../sources/source.md).",
-            f"{shared} describes a synthetic equation.",
-        ),
-        encoding="utf-8",
-    )
-    for name in ("beta", "gamma"):
-        (instance / "wiki" / "concepts" / f"{name}.md").write_text(
-            f"---\ntitle: Quadratic\nsummary: {shared}\n"
-            "topics:\n  - Algebra\nsources:\n"
-            f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
-            f"# Quadratic\n\n{shared} describe a synthetic equation.\n",
-            encoding="utf-8",
-        )
-    (instance / "wiki" / "concepts" / "solo.md").write_text(
-        f"---\ntitle: Solo\nsummary: Unique nebula observation\n"
-        "topics:\n  - Algebra\nsources:\n"
-        f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n"
-        "# Solo\n\nA unique nebula observation.\n",
-        encoding="utf-8",
-    )
-    search.index(instance, instance.name, cache, download=False)
-
-    def semantic_search(wiki_id, cache, queries, **kwargs):
-        del wiki_id, cache, kwargs  # Unused.
-        hits = []
-        for query in queries:
-            if not query["id"].startswith("crossref:"):
-                continue
-            page = query["id"].rsplit("/", 1)[-1].removesuffix(".md")
-            if page == "solo":
-                continue
-            for candidate in ("alpha", "beta", "gamma"):
-                if candidate != page:
-                    hits.append(
-                        {
-                            "query": query["id"],
-                            "collection": "pages",
-                            "path": f"concepts/{candidate}.md",
-                            "line": 1,
-                            "score": 1.0,
-                            "mode": "vec",
-                        }
-                    )
-        return hits
-
-    monkeypatch.setattr(
-        search, "semantic_ready", lambda unused_wiki_id, unused_cache: True
-    )
-    monkeypatch.setattr(requests.search, "search", semantic_search)
-
-    result = _prepare(instance, cache, scope="lint")
-
-    assert result["search"] == {
-        "keyword": True,
-        "semantic": True,
-        "not_searched": [],
-    }
-    expected_units = [unit["id"] for unit in result["units"]]
-    accounted = _evidence_units(result) + [
-        item["unit"] for item in result["unverifiable"]
-    ]
-    assert sorted(accounted) == sorted(expected_units)
-    crossrefs = [
-        request
-        for request in result["requests"]
-        if request["kind"] == "crossref"
-    ]
-    for name in ("alpha", "beta", "gamma"):
-        page = f"wiki/concepts/{name}.md"
-        unit = next(unit for unit in result["units"] if unit["page"] == page)
-        request = next(
-            request for request in crossrefs if unit["id"] in request["units"]
-        )
-        paths = {
-            candidate["id"] for candidate in request["arguments"]["candidates"]
-        }
-        assert len(paths) >= 2
-        expected_target = {
-            "alpha": "beta",
-            "beta": "alpha",
-            "gamma": "alpha",
-        }[name]
-        assert f"wiki/concepts/{expected_target}.md" in paths
-        assert all(
-            "Synthetic quadratic formula roots" in candidate["text"]
-            for candidate in request["arguments"]["candidates"]
-        )
-    solo = next(
-        unit
-        for unit in result["units"]
-        if unit["page"] == "wiki/concepts/solo.md"
-    )
-    assert all(solo["id"] not in request["units"] for request in crossrefs)
-    assert result["calls"] == {
-        "jev_verify": sum(
-            request["tool"] == "jev_verify" for request in result["requests"]
-        ),
-        "jev_find": sum(
-            request["tool"] == "jev_find" for request in result["requests"]
-        ),
-        "jev_classify": sum(
-            request["tool"] == "jev_classify" for request in result["requests"]
-        ),
-    }
-    _assert_schemas(result)
-
-
-def test_prepare_batches_verify_and_classify_deterministically(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    body = "\n\n".join(
-        f"Synthetic claim number {index} uses evidence." for index in range(230)
-    )
-    page = instance / "wiki" / "concepts" / "many.md"
-    page.write_text(
-        f"---\ntitle: Many\nsummary: Many synthetic claims\n"
-        "topics:\n  - Algebra\nsources:\n"
-        f"  - id: {SOURCE_ID}\n    revision: {REVISIONS[-1]}\n---\n{body}\n",
-        encoding="utf-8",
-    )
-    assert update_regions(instance) == []
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    search.index(instance, instance.name, cache, download=False)
-    monkeypatch.setattr(
-        requests.search,
-        "search",
-        lambda unused_wiki_id, unused_cache, unused_queries, **unused_kwargs: (
-            []
-        ),
-    )
-    before = tree_hash(instance), tree_hash(cache)
-
-    first = _prepare(instance, cache)
-    second = _prepare(instance, cache)
-
-    assert json.dumps(first, ensure_ascii=False, sort_keys=True) == json.dumps(
-        second, ensure_ascii=False, sort_keys=True
-    )
-    assert (tree_hash(instance), tree_hash(cache)) == before
-    verify = [
-        request
-        for request in first["requests"]
-        if request["kind"] == "evidence"
-    ]
-    classify = [
-        request
-        for request in first["requests"]
-        if request["kind"] == "classify"
-    ]
-    assert len(verify) >= 2
-    assert all(
-        len(request["arguments"]["claims"]) * 3 <= 672 for request in verify
-    )
-    assert len(classify) >= 4
-    assert all(len(request["arguments"]["items"]) <= 64 for request in classify)
-    assert first["calls"] == {
-        "jev_verify": sum(
-            request["tool"] == "jev_verify" for request in first["requests"]
-        ),
-        "jev_find": sum(
-            request["tool"] == "jev_find" for request in first["requests"]
-        ),
-        "jev_classify": sum(
-            request["tool"] == "jev_classify" for request in first["requests"]
-        ),
-    }
-    _assert_schemas(first)
-
-
-def test_prepare_names_missing_convert_and_index_steps(tmp_path):
-    instance, env = make_instance(tmp_path)
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    with pytest.raises(ValueError, match="convert"):
-        _prepare(instance, cache)
-
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    with pytest.raises(ValueError, match="index"):
-        _prepare(instance, cache)
-
-
-def test_prepare_refuses_missing_index_when_model_is_cached(
-    tmp_path, monkeypatch
-):
-    instance, env = make_instance(tmp_path)
-    cache = Path(env["XDG_CACHE_HOME"]) / "verbose-broccoli"
-    evidence.convert(instance, instance.name, cache, revisions(instance))
-    model_name = "synthetic-pending.gguf"
-    model_dir = cache / "qmd" / "models"
-    model_dir.mkdir(parents=True)
-    (model_dir / model_name).touch()
-    monkeypatch.setattr(search, "EMBED_MODEL", f"hf:synthetic/{model_name}")
-
-    with pytest.raises(ValueError, match="prepare requires index"):
-        _prepare(instance, cache)
-
-
-def test_prepare_refuses_index_from_another_pages_root(tmp_path):
-    instance, cache, _ = _ready(tmp_path)
-    old_instance = tmp_path / "old-instance"
-    shutil.copytree(instance / "wiki", old_instance / "wiki")
-    search.index(old_instance, instance.name, cache, download=False)
-
-    with pytest.raises(ValueError, match="index"):
-        _prepare(instance, cache)
+    assert len(servers) == 1
+    assert [name for name, _ in calls].count("status") == 1
+    assert result["search"]["semantic"] is not pending
+    assert bool([name for name, _ in calls if name == "query"]) is not pending
+    assert all(not args["rerank"] for name, args in calls if name == "query")
+    assert _evidence(result)

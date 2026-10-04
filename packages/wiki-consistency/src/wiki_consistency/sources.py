@@ -5,18 +5,25 @@ from pathlib import Path
 import re
 
 from doc_regions.config import files
-from wiki_consistency.instance import SPECIAL_PAGES
-from wiki_consistency.instance import _metadata
+from wiki_consistency import instance
 
 
-def page_catalog(source_glob):
-    """Return sorted links for ordinary Wiki pages in a source glob."""
+def page_catalog(source_glob, *metadata_files):
+    """Return sorted page links using only named page and metadata sources."""
     root = Path.cwd().resolve()
     wiki = root / "wiki"
+    for name in metadata_files:
+        if (
+            Path(name).name != "_metadata.yml"
+            or any(character in name for character in "*?[")
+            or not name.startswith("wiki/")
+        ):
+            raise ValueError(f"expected a literal Wiki metadata source: {name}")
+        files(root, name)
     grouped = {}
     for path in files(root, source_glob):
         relative = path.relative_to(root).as_posix()
-        if relative in SPECIAL_PAGES:
+        if relative in instance.SPECIAL_PAGES:
             continue
         try:
             page_path = path.relative_to(wiki).as_posix()
@@ -24,11 +31,13 @@ def page_catalog(source_glob):
             raise ValueError(
                 f"page_catalog source is outside wiki/: {relative}"
             ) from error
-        metadata, problems = _metadata(path.read_text(encoding="utf-8"))
+        metadata, problems = instance.read_metadata(
+            root, relative, named_defaults=metadata_files
+        )
         if problems:
             problem = problems[0]
             raise ValueError(
-                f"{relative}:{problem['line']}: {problem['message']}"
+                f"{problem['document']}:{problem['line']}: {problem['message']}"
             )
         row = (page_path, metadata["title"], metadata["summary"])
         for topic in metadata["topics"]:

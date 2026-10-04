@@ -19,7 +19,7 @@ SOURCE_ID = "0199a0e2-7c1b-7d3e-9f00-000000000000"
 REVISIONS = ("20260927T000000000000Z", "20260928T000000000000Z")
 INDEX = (
     "<!-- [[[cog import wiki_consistency.sources; "
-    'cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.md")) ]]] -->\n'
+    'cog.out(wiki_consistency.sources.page_catalog("wiki/**/*.qmd")) ]]] -->\n'
     "<!-- [[[end]]] -->\n"
 )
 
@@ -101,22 +101,22 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
         encoding="utf-8",
     )
     (instance / ".gitignore").write_text("/raw/\n", encoding="utf-8")
-    (instance / "wiki" / "index.md").write_text(INDEX, encoding="utf-8")
-    (instance / "wiki" / "overview.md").write_text(
-        "# Overview\n\nSee [alpha](concepts/alpha.md).\n", encoding="utf-8"
+    (instance / "wiki" / "index.qmd").write_text(INDEX, encoding="utf-8")
+    (instance / "wiki" / "overview.qmd").write_text(
+        "# Overview\n\nSee [alpha](concepts/alpha.qmd).\n", encoding="utf-8"
     )
-    (instance / "wiki" / "log.md").write_text(
+    (instance / "wiki" / "log.qmd").write_text(
         "## [2026-09-28] raw-import | synthetic\n\n1 admitted.\n",
         encoding="utf-8",
     )
     add_revision(instance, REVISIONS[0], "first synthetic revision\n")
     add_revision(instance, REVISIONS[1], "latest synthetic revision\n")
-    (instance / "wiki" / "concepts" / "alpha.md").write_text(
+    (instance / "wiki" / "concepts" / "alpha.qmd").write_text(
         _page(
             "Alpha",
             "A synthetic page.",
             REVISIONS[-1],
-            "# Alpha\n\nSee [the source](../sources/source.md).\n",
+            "# Alpha\n\nSee [the source](../sources/source.qmd).\n",
         ),
         encoding="utf-8",
     )
@@ -127,7 +127,7 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
         f'"raw/files/{SOURCE_ID}/*/manifest-sha256.txt")) ]]] -->\n'
         "<!-- [[[end]]] -->\n"
     )
-    (instance / "wiki" / "sources" / "source.md").write_text(
+    (instance / "wiki" / "sources" / "source.qmd").write_text(
         _page(
             "Source",
             "A synthetic source.",
@@ -179,7 +179,7 @@ def update_regions(instance):
     """Regenerate source regions for the synthetic Wiki."""
     targets = [
         path.relative_to(instance).as_posix()
-        for path in files(instance, "wiki/**/*.md")
+        for path in files(instance, "wiki/**/*.qmd")
     ]
     generators = Path(__file__).parents[1] / "src"
     return update(instance, targets, "wiki_consistency.sources", generators)
