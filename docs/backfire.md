@@ -145,31 +145,53 @@ keys out of `config.toml`, plugin files and client environment entries.
 
 ### Refresh the key files from Bitwarden Secrets Manager
 
-The key files can be rewritten from a Bitwarden Secrets Manager project, so
-one place holds the keys ([spec](../specs/041-provider-secrets/spec.md)).
-`npm run secrets:refresh` runs `bws` (pinned by mise, reviewed in
-[`security/bws-2.1.0.md`](../specs/041-provider-secrets/security/bws-2.1.0.md))
-as a machine account and rewrites each key file listed in
-`$XDG_CONFIG_HOME/verbose-broccoli/secrets.json`:
+`npm run secrets:refresh` refreshes key files from several Bitwarden Secrets
+Manager sources ([spec](../specs/052-secrets-refresh-sources/spec.md)). It reuses
+`bws`, pinned by mise and reviewed in
+[`security/bws-2.1.0.md`](../specs/041-provider-secrets/security/bws-2.1.0.md).
+The operator file remains `<config>/verbose-broccoli/secrets.json`, where
+`<config>` is absolute `XDG_CONFIG_HOME`, otherwise `~/.config`:
 
 ```json
-{"project": "<project id>", "files": {"hive.env": ["HIVE_API_KEY"]}}
+{
+  "sources": {
+    "org-a": {"token_file": "<path-to-token-a>", "project": "<org-a-project-id>"}
+  },
+  "files": {
+    "hive.env": {"source": "org-a", "variables": {"HIVE_API_KEY": "HIVE_API_KEY"}}
+  }
+}
 ```
 
-An optional `"server"` names Bitwarden's server (for example
-`https://vault.bitwarden.eu`); it defaults to `https://vault.bitwarden.com`.
-Each file name must be a plain name, not a path, and never `bitwarden.env`.
+Each source names an absolute token-file path and a project, plus an optional
+HTTPS `server` (default `https://vault.bitwarden.com`). All token files must be
+regular files you own, mode `0600`, without symlink components, and hold one
+non-empty `BWS_ACCESS_TOKEN=` line. Every token is checked before any bws call;
+every configured source is then listed once. The child receives only `PATH`,
+`HOME`, its token and an explicit `BWS_SERVER_URL`, with umask `077`. Tokens
+never enter arguments; child stderr and exception details are suppressed.
 
-A secret's name in the project is the variable in the file, and the list's
-order is the order of the file's lines. The machine account's access token is
-the line `BWS_ACCESS_TOKEN=...` in `providers/bitwarden.env` (a regular file,
-mode `0600`, yours), which the command refuses to read otherwise. The command
-passes the token to `bws` in the environment, never as an argument, writes each
-file with mode `0600` through a temporary file and a rename, and prints file
-names only. It changes nothing when a mapped secret is missing, empty,
-duplicated or holds a line break, or when `bws` fails. Agents may run it at any
-time; backfire reads the new key when it first uses a profile. Do not run `bws secret
-list` or `bws secret get` in a terminal: they print values.
+A plain target name resolves to `providers/`. Variable targets also allow
+only `~/.omp/agent/.env`, `<config>/ocis-mcp/client.env` and
+`<config>/ocis-mcp/cloudflare-client.env`, written as absolute JSON keys.
+Mappings can alias one secret into several variables or files. Refresh changes
+mapped assignments in place and preserves every unmapped byte, including
+comments and identifiers; missing variables append in configured order.
+Duplicate mapped assignments refuse the run. The optional `content` target is
+only `<config>/gws/client_secret.json`, whose non-empty secret is written
+exactly, including line breaks. Token/operator aliases, symlinks, unsafe
+parents and other paths refuse.
+
+All requested values and targets are validated before writing; all private
+temporary files are prepared before renaming. Written files are mode `0600`,
+owned by you. Configuration, token, fetch or validation failures leave target
+bytes and modes unchanged. There is no multi-file rollback after renames begin.
+Success prints target names/paths and counts only; failure prints a generic
+message. Backfire's readers are unchanged and read the new key when first
+using a profile. Do not run `bws secret list` or `bws secret get` in a terminal:
+they print values. The old single-project configuration is unsupported; see
+[the placeholder quickstart](../specs/052-secrets-refresh-sources/quickstart.md)
+and [operator contract](../specs/052-secrets-refresh-sources/contracts/operator-config.md).
 
 ## Work plugin
 
