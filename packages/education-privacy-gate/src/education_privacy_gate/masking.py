@@ -179,7 +179,6 @@ class Masker:
     def _collision(self, candidate):
         texts = (
             *self.registry.spellings,
-            *self.originals,
             *(
                 token
                 for token in self.reverse
@@ -189,6 +188,10 @@ class Masker:
         return (
             not candidate
             or bool(self._spans(candidate))
+            or any(
+                candidate.casefold() in text.casefold()
+                for text in self.originals
+            )
             or any(
                 candidate.casefold() in text.casefold()
                 or text.casefold() in candidate.casefold()

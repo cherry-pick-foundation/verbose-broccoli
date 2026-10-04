@@ -428,3 +428,24 @@ def test_cancelled_context_clears_maps():
         masker.mask("가라온")
         raise asyncio.CancelledError()
     assert not masker.reverse and not masker.anchors and not masker.assigned
+
+
+def test_ordinary_short_keys_do_not_collide_with_fixed_labels():
+    original = {"id": "991399-1234567", "action": "ok", "value": "1234567890"}
+    with gate() as masker:
+        masked = masker.mask(original)
+        assert masked == {
+            "id": "Resident number 01",
+            "action": "ok",
+            "value": "EduOK 01",
+        }
+        assert masker.restore(masked) == original
+
+
+def test_literal_request_standins_still_redraw_or_refuse():
+    with gate("Avery", "Blair") as masker:
+        assert masker.mask(["가라온", "xAveryx"]) == ["Blair", "xAveryx"]
+        assert masker.faker.calls == 2
+    for text in ("991399-1234567 Resident number 01", "1234567890 EduOK 01"):
+        with gate() as masker, pytest.raises(GateError):
+            masker.mask(text)
