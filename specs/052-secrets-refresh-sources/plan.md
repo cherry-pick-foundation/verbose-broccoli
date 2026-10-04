@@ -47,7 +47,7 @@ scripts/secrets-refresh.ts and scripts/secrets-refresh-test.ts remain the comman
 2. Tasks and read-only consistency analysis before script edits.
 3. Offline regression tests, implementation, documentation.
 4. Narrow tests, ESLint, TypeScript and workflow scope evidence, diff review and local commit.
-5. Coordinator full verify, independent review and integration, left unticked.
+5. Coordinator full verify, independent review and integration; develop owns final task ticks.
 
 ## Split review
 

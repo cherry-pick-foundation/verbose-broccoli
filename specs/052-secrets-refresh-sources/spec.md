@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-04
 
-**Status**: In progress
+**Status**: Repository implementation merged into develop on 2026-10-04; live setup remains with main.
 
 **Linear issue**: CHE-85
 
