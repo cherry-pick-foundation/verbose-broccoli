@@ -178,3 +178,20 @@ measurement replaces it. The existing split decision remains adapter-first
 within F1; no line cap or additional feature is introduced. Current develop has
 advanced with unrelated secrets-refresh work; synchronization and combined
 frozen verification/review are still required before integration.
+
+
+The synchronized source is648f87f against clean develop447f3f70. Its fresh final
+review requested four scoped corrections; tasks.md records their exact ownership,
+actual model choices and operational migration milestones. Full attempt03 was
+not started after findings superseded its grant. A repaired freeze, fresh review
+and new serialized verification are required. Future container/pointer changes
+are separate features, preserving this scope's current paths and full schema.
+
+
+Review remediation is committed as05464bc with net96 additional implementation
+lines. The measured implementation total is now net1061; the existing split
+review remains adapter-first within F1, with the remaining format/consumer
+transition kept atomic. All176 existing Wiki pages and four text moves are locally
+committed with preservation receipts; T025 and new conversion/semantic/original
+review stay held. Renewed independent review and current-source operational
+readback precede the fresh serialized combined verify and integration request.

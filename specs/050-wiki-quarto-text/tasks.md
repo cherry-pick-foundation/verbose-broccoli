@@ -158,6 +158,7 @@ needs repository narrow checks and develop's confirmed vault writer window.
   metadata, committed log and side-file provenance. Check against first inventory.
   Owner: own-account scoped worker; next action: develop confirms writer window; code additionally needs main's
   selected review to settle its 11 staged edits first.
+  - Current owner/next action: Feature coordinator; next: seal all-four preservation and repaired-source read-only acceptance.
   - 2026-10-04: Read-only concrete preview `task_aadaf3ea6040` /
     `ctx_a9e61da859c2`, sol/high (.78/.74; 60-minute estimate .56/.48),
     reuses completed inventory and adds needed private action/page-shape
@@ -165,12 +166,15 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T016 [US3] Migrate all existing `wiki/**/*.md` including index/overview/log
   to `.qmd`, correct necessary references, consolidate only equivalent defaults
   in `_metadata.yml`, preserve unchecked status, every body and foreign edits.
+  - Current owner/next action: Feature coordinator; next: seal all-four preservation and repaired-source read-only acceptance.
 - [ ] T017 [US1] Move the four existing `wiki/references/*.markdown` conversions
   into `text/` with body/provenance preservation and honest unknown fields;
   reuse existing conversions only. No new conversion batch.
+  - Current owner/next action: Feature coordinator; next: retain four-text preservation receipts in final handoff.
 - [ ] T018 [US3] Read back every migrated page/text, catalog, metadata and log;
   prove raw and foreign index preservation, scope only authorized own commits
   and retain before/after receipts. Report unresolved semantic evidence separately.
+  - Current owner/next action: Feature coordinator; next: collect code commit/readback and run repaired-source read-only acceptance.
 - [ ] T019 [US1] Convert and review newly selected raw revisions only after main
   notifies develop of completed selection/admission. **Held**: main owns the
   checkpoint `~/.local/state/verbose-broccoli/workspaces/main/wiki-raw-selection/`;
@@ -182,10 +186,12 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T020 Integrate scoped worker output, run narrow tests and full synthetic
   acceptance from `quickstart.md`; retain real readback/no-network/catalog/log
   evidence and exact command/results, resolve actionable findings through workers.
+  - Current owner/next action: Feature coordinator; next: integrate repaired-source verification and renew independent review.
 - [ ] T021 Measure own implementation and total diff against develop; review a
   split if the existing 1,000-line trigger is reached. Commit current records,
   clean only receipt-owned setup config before own commits, and prepare/audit
   current document judgments under workflow with retained results.
+  - Current owner/next action: Feature coordinator; next: rebind scoped document evidence after repairs and refresh exact size.
   - 2026-10-04: Split assessed in plan.md: settled production +890/-251 and
     tests +1315/-209; the separable two-file doc-regions adapter is 220 changed
     lines with retained 124-test evidence and a private patch/hash receipt.
@@ -194,12 +200,15 @@ needs repository narrow checks and develop's confirmed vault writer window.
 - [ ] T022 Merge current develop into this feature without guessed conflict
   resolution, freeze commit/tree and obtain develop's serialized full verify
   grant; retain start/exit and same Turbo summary and inspect actual outputs.
+  - Current owner/next action: Feature coordinator/develop; next: freeze repaired synchronized source and obtain a fresh full-verify grant.
 - [ ] T023 Obtain fresh final review from another provider on the frozen scope
   and requirements only; resolve findings, rerun affected checks and renew review
   on material change. Never final-approve the implementing provider's change.
+  - Current owner/next action: Feature coordinator; next: choose a fresh other-provider reviewer for repaired scope and requirements.
 - [ ] T024 Request integration through develop with reviewed commit/tree, exact
   verify/migration evidence, measured size and unticked held tasks. Develop owns
   review state, final ledger ticks and finish; mark worktree completed after finish.
+  - Current owner/next action: Feature coordinator/develop; next: submit reviewed commit/tree and exact acceptance, keeping operational holds explicit.
 
 ## Dependencies and parallel examples
 
@@ -311,8 +320,8 @@ and diff checks apply. Final task ticks remain develop-owned.
 exact requests/search `9e644bb` (T010/T011/T013), namespace repair `6fc65f6`
 (T020), current roles/procedures `383b960` (T007/T014). Normal hooks passed;
 all scoped source/test/dependency/doc bytes match the passing full snapshot.
-Current develop still starts at the approved base; develop will relay F2's
-integration commit before the final combined synchronization and verification.
+This source-commit checkpoint preceded develop's later secrets-refresh
+integration; the synchronized revision is recorded below.
 
 Document scope is now explicitly approved in develop `msg_7210360cb8e2`, main
 `msg_6f82e84fd076`: use exact old/new hunks and affected contracts, retaining all
@@ -342,3 +351,95 @@ exec and3.23.0 without source/settings changes. Concrete one-append logs and
 exact reviewed patches are retained; local vault commits await develop's explicit
 disposition. Work lint and sentence-semantic acceptance remain unticked, not
 reported as passing. Required next action and owner stay visible after migration.
+
+
+2026-10-04 completed three-vault milestone: `ctx_93552312dec8` settled/released
+with local work `abd651f`, chat `b18efc6`, default `4b8f935`; exact commit/tree
+and sealed receipts are in its `report.md` and `local-commits.json`. All140 pages,
+four text bodies,109 effective profiles,113 JSONL/41,628 rows and4,671 spans
+preserve their agreed bytes/status. Full raw/cache/grammar/code-tree/index
+preservation passes. One approved append preserves each full log prefix. Main
+`msg_702ece67919e` approved keeping six pre-existing work failures and115 orphan
+notices; explicit extension `msg_e2be545956fc` ended08:31UTC. No writes crossed
+the original cutoff while approval/extension were pending. No push/new conversion.
+
+- [ ] T025 Resolve the six pre-existing work lint failures and115 orphan notices
+  only in a separately authorized maintenance scope. Owner: develop/main;
+  next action: decide the old date/link/source maintenance scope. Current F1
+  preserves bodies and records exact pre-migration reproduction; it does not
+  authorize repairs or claim clean work lint, semantic or original review.
+
+Code cleanup independently approved by native Sonnet/high `ctx_e9760ec8a685`:
+actual assistant model/effort/perTurnEffort all matched. Local cleanup commit
+`d54279e`, tree `2d3b527`, contains only the exact11 staged paths, with all38
+working files unchanged; raw39/39 and fixed-base Markdown check pass. Historical
+26-unverifiable log count matches its original33-unit receipt; current25 is a
+later snapshot, so no log rewrite or paid rerun occurred. Authority and exact
+review/patch/hash receipts are `code-cleanup-local-commit.json` in planning state.
+
+Main `msg_8e6757ef6887`, develop `msg_7a1680ffcff7`, grants code-only migration
+08:34-09:04UTC. Fresh native `task_8a71652e23a7` / `ctx_51191dc34d50` is
+sol/medium (.81/.77; five-minute checkpoint .70/.65). It uses independently
+identified frozen648 tooling/templates (898 regular files, archived hash and
+module-origin proof), fresh code39-raw/cache/Git baselines and exact36 proposals;
+public source repair code is not read mid-edit. Current-source read-only checks
+follow after repairs settle. No code-qmd commit is yet claimed by this record.
+
+Develop447f3f70 synchronized cleanly as `648f87f`, tree `105f33c`; same F1
+implementation bytes remain, incoming secrets-refresh bytes are retained.
+Fresh source reviewer `task_55d21f8871e0` / `ctx_17b1e7517e30`, actual Sonnet/high
+(.35/.22;60-minute checkpoint .71/.66), settled/released with REQUEST CHANGES:
+four mandatory source/spec-fit findings, seven advisory lows. Focused tests pass;
+review is not approval. Its complete report and combined-snapshot applicability
+are retained. Unstarted full attempt03 grant was superseded; no full run launched.
+
+Source remediation `task_651da6dfa79e` / `ctx_0f9e169f96b0`, actual sol/high
+(.51/.41;60-minute checkpoint .59/.50), owns the17-file exact scope at base648.
+It resolves unused whole-vault bibliography work, executable-cell/shortcode and
+legacy.md checks, and restores the existing pdftotext-raw behavior through retained
+text. Prior specs028/044 measurements are reused; only a meaningful synthetic
+column-order regression is needed. Small source-boundary/import/temp-ignore
+corrections are included. No raw/private/paid operation or substantial fallback.
+
+Advisory dispositions: no new per-citation cache, convert-receipt redesign or
+shared link-copy optimization is added in this scope; correctness and explicit
+conversion/locator failures stay intact. Revisit performance with the authorized
+selected-source pilot before introducing more machinery. Standalone installed
+schemas/skills retain essential invariant descriptions; no new documentation
+framework or pointer feature. Contract keyword-only signature is corrected here.
+Existing real-vault temporary-file ignore policy is a future conversion prerequisite,
+not permission to write outside the completed migration windows.
+
+Changed-contract evidence `ctx_ba6062874f70` settled/released: original358
+objects/flags/order,409 exact spans and full evidence retained;22,331 artifact
+assertions pass. Final delta-attempt07 has47 held arguments (31 source behavior,
+15 policy agreement, original four-item classification), covering46 spans in21
+units,14 added=false. Maximum107,265 default-serializer characters/bytes;
+provider acceptance remains unknown. All363 unproposed spans have explicit
+unjudged dispositions. Source repairs require exact changed-support rebinding
+before any submission; no old successful result is repeated or evidence truncated.
+Future container/terminology/pointer changes are separately scheduled after F1;
+current paths, schema and historical receipts stay unchanged.
+
+
+2026-10-04 all existing pages migrated: code `ctx_51191dc34d50` settled with
+local `a6b4506`, tree `5b8c47b`, at08:59:32UTC before09:04 hard end. All36
+pages/one schema/one catalog/33 effective maps and one whole-prefix log append
+read back exactly;39 raw revisions/195 payload-tag files and865 conversion-cache
+files preserve bytes/modes/stat fields. Code Git is clean and pinned offline check
+has zero problems/orphans/stale. Combined corpus is now176 qmd pages and four
+retained text files; no source/private content, new conversion or semantic review
+was fabricated. Authoritative `ctx_51191dc34d50/report.md`, local-commit and sealed
+receipts retain the exact operation; repaired-source read-only acceptance remains.
+
+Mandatory source corrections settled/released and entered `05464bc` after own
+scoped diff/hash review, normal hooks and task trailers. All17 hashes match the
+worker's verified snapshot. Meaningful old-source regressions fail and450 Wiki,
+18 grammar and45 raw-import tests pass, plus lint/import/document checks.
+Source +158/-62 net96, tests +280/-2, docs +39/-4. New PDF extraction reuses the
+already adopted pdftotext-raw path/version and preserves synthetic stream order;
+no large/private batch or new converter dependency. Untouched records/template
+paths remain as currently approved; future container/pointer changes are separate.
+The renewed review choice is fresh Sonnet/high (.68/.62;45-minute checkpoint
+.45/.34); actual new session proof and disposition are still required before
+final combined verification/integration. No final self-approval is given.

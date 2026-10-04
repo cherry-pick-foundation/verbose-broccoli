@@ -108,7 +108,7 @@ XDG cache attempt, never persist a bibliography in text/Wiki/site Git. The only
 source registry is raw. Entries expose an exact key, source ID, revision, hash
 and bag-derived title/metadata; no author/date is invented. Cache output is
 rebuildable and stale previous output is never treated as current evidence.
-`evidence.bibliography(instance, revisions, budget_bytes, env=None)` yields a
+`evidence.bibliography(instance, revisions, *, budget_bytes, env=None)` yields a
 fresh private cache `sources.json` Path inside a context, removed on successful,
 failed or catchably interrupted exit. CSL entries contain id, type=document,
 title=BagIt payload filename and `custom` source/revision/hash/raw provenance.
