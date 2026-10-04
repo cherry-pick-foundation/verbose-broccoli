@@ -466,7 +466,10 @@ void test('git-flow: finish from develop creates the default no-ff merge and kee
 void test('git-flow: each successful feature finish prints its retained tip and worktree cleanup steps', async () => {
   await temporary(async (tempRoot, develop, feature) => {
     const firstTip = await addReviewRecord(feature);
-    const quotedFeature = join(tempRoot, `feature '"$\``);
+    const quotedFeature = join(
+      tempRoot,
+      ['feature ', "'", '"', '$', '`'].join(''),
+    );
     await git(develop, 'worktree', 'move', feature, quotedFeature);
     const first = await attemptFinish(develop);
     assertEquals(first.code, 0, first.output);
@@ -643,7 +646,7 @@ void test('git-flow: cleanup command is withheld unless the source worktree is c
 });
 
 void test('git-flow: missing finish result asks for inspection without suggesting cleanup', async () => {
-  await temporary(async (_root, develop, _feature) => {
+  await temporary(async (_root, develop) => {
     const result = commandOutput(postHook, {
       args: [],
       cwd: develop,
