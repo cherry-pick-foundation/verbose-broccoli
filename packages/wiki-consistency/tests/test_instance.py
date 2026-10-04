@@ -8,7 +8,9 @@ from wiki_consistency.instance import _metadata
 from wiki_consistency.instance import declared_topics
 from wiki_consistency.instance import instance_path
 from wiki_consistency.instance import mask_front_matter
+from wiki_consistency.instance import metadata_sources
 from wiki_consistency.instance import pages
+from wiki_consistency.instance import read_metadata
 from wiki_consistency.instance import revisions
 from wiki_consistency.instance import roots
 
@@ -67,15 +69,15 @@ def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):
     result = pages(instance)
 
     assert [page["path"] for page in result] == [
-        "wiki/concepts/alpha.md",
-        "wiki/index.md",
-        "wiki/log.md",
-        "wiki/overview.md",
-        "wiki/sources/source.md",
+        "wiki/concepts/alpha.qmd",
+        "wiki/index.qmd",
+        "wiki/log.qmd",
+        "wiki/overview.qmd",
+        "wiki/sources/source.qmd",
     ]
     alpha = result[0]
     assert alpha == {
-        "path": "wiki/concepts/alpha.md",
+        "path": "wiki/concepts/alpha.qmd",
         "title": "Alpha",
         "summary": "A synthetic page.",
         "topics": ["Algebra"],
@@ -84,9 +86,9 @@ def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):
         "problems": [],
     }
     assert [page["path"] for page in result if page["special"]] == [
-        "wiki/index.md",
-        "wiki/log.md",
-        "wiki/overview.md",
+        "wiki/index.qmd",
+        "wiki/log.qmd",
+        "wiki/overview.qmd",
     ]
 
 
@@ -108,7 +110,7 @@ def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):
 )
 def test_metadata_rejects_invalid_topics(tmp_path, field):
     instance, _ = make_instance(tmp_path)
-    page = instance / "wiki" / "concepts" / "alpha.md"
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
     replace_page_topics(page, field)
 
     metadata, problems = _metadata(page.read_text(encoding="utf-8"))
@@ -191,3 +193,117 @@ def test_revisions_are_discovered_from_raw_and_sorted_by_name(tmp_path):
         }
         for revision in REVISIONS
     ]
+
+
+def test_metadata_inherits_nested_defaults_and_keeps_full_page_mapping(
+    tmp_path,
+):
+    instance, _ = make_instance(tmp_path)
+    (instance / "wiki/_metadata.yml").write_text(
+        "summary: Root default.\ntopics: [Algebra]\n"
+        f"sources: [{{id: {SOURCE_ID}, revision: {REVISIONS[-1]}}}]\n"
+        "profile:\n  inventory: ../inventories/shared.qmd\n"
+        "  checker: checked\n  flags: [base, common]\n"
+        "  clear: [base]\n  nullable: [base]\n"
+        "  scalar: [base]\n  options: {keep: true, override: root}\n"
+    )
+    (instance / "wiki/concepts/_metadata.yml").write_text(
+        "summary: Folder default.\ntopics: [Reference]\n"
+        "profile:\n  options: {override: folder}\n"
+    )
+    document = "wiki/concepts/alpha.qmd"
+    (instance / document).write_text(
+        "---\ntitle: Page override\nsummary: Page summary.\n"
+        "topics: [Algebra, Unused]\nprofile:\n  checker: none\n"
+        "  flags: [common, page]\n  clear: []\n  nullable: null\n"
+        "  scalar: page\n  options: {extra: page}\n---\nOriginal body.\n"
+    )
+    before = (instance / document).read_bytes()
+    metadata, problems = read_metadata(instance, document)
+    assert problems == []
+    assert metadata["summary"] == "Page summary."
+    assert metadata["topics"] == ["Algebra", "Reference", "Unused"]
+    assert metadata["sources"] == [{"id": SOURCE_ID, "revision": REVISIONS[-1]}]
+    assert metadata["profile"] == {
+        "inventory": "../inventories/shared.qmd",
+        "checker": "none",
+        "flags": ["base", "common", "page"],
+        "clear": ["base"],
+        "nullable": ["base"],
+        "scalar": ["base", "page"],
+        "options": {"keep": True, "override": "folder", "extra": "page"},
+    }
+    assert metadata_sources(instance, document) == [
+        "wiki/_metadata.yml",
+        "wiki/concepts/_metadata.yml",
+    ]
+    assert (instance / document).read_bytes() == before
+
+
+@pytest.mark.parametrize("value", ("[]\n", "profile: [\n", "", "null\n"))
+def test_metadata_reports_bad_default_at_its_source(tmp_path, value):
+    instance, _ = make_instance(tmp_path)
+    (instance / "wiki/_metadata.yml").write_text(value)
+    metadata, problems = read_metadata(instance, "wiki/concepts/alpha.qmd")
+    assert metadata == {}
+    assert problems and problems[0]["document"] == "wiki/_metadata.yml"
+    assert problems[0]["line"] >= 1
+
+
+@pytest.mark.parametrize(
+    "document",
+    (
+        "../outside.qmd",
+        "/outside.qmd",
+        "text/original.qmd",
+        "wiki/**/*.qmd",
+        "wiki/concepts/alpha.md",
+        "wiki/missing.qmd",
+    ),
+)
+def test_metadata_refuses_unsafe_or_missing_page_paths(tmp_path, document):
+    instance, _ = make_instance(tmp_path)
+    assert read_metadata(instance, document)[1]
+
+
+def test_metadata_refuses_escaping_defaults_before_reading(
+    tmp_path, monkeypatch
+):
+    instance, _ = make_instance(tmp_path)
+    outside = tmp_path / "outside.yml"
+    outside.write_text("secret: unread\n")
+    (instance / "wiki/_metadata.yml").symlink_to(outside)
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            type(outside), "read_bytes", lambda *_: pytest.fail("unsafe read")
+        )
+        assert "leaves root" in str(
+            read_metadata(instance, "wiki/concepts/alpha.qmd")[1]
+        )
+
+
+def test_qmd_discovery_ignores_other_roles_and_reports_suffix_collision(
+    tmp_path,
+):
+    instance, _ = make_instance(tmp_path)
+    (instance / "text").mkdir()
+    (instance / "text/original.qmd").write_text("Original-language text.\n")
+    (instance / "wiki/legacy.md").write_text("Old page.\n")
+    assert len(pages(instance)) == 5
+    (instance / "wiki/concepts/alpha.md").write_text("Old page.\n")
+    assert "collision" in str(pages(instance)[0]["problems"])
+
+
+def test_full_metadata_cannot_override_discovery_bookkeeping(tmp_path):
+    instance, _ = make_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text().replace(
+            "title: Alpha",
+            "title: Alpha\npath: outside\nspecial: true\nproblems: []",
+        )
+    )
+    metadata, problems = read_metadata(instance, "wiki/concepts/alpha.qmd")
+    assert problems == [] and metadata["path"] == "outside"
+    found = pages(instance)[0]
+    assert found["path"] == "wiki/concepts/alpha.qmd" and not found["special"]

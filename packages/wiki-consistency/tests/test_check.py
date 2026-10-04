@@ -12,58 +12,59 @@ from conftest import update_regions
 import pytest
 
 from doc_regions.regions import scan
+from wiki_consistency import lint
 from wiki_consistency.__main__ import main
 
 TOPIC_FAILURES = [
     pytest.param(
-        "page", "", "wiki/concepts/alpha.md", "topics", id="page-missing"
+        "page", "", "wiki/concepts/alpha.qmd", "topics", id="page-missing"
     ),
     pytest.param(
         "page",
         "topics: Algebra\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-not-a-list",
     ),
     pytest.param(
         "page",
         "topics: []\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-empty-list",
     ),
     pytest.param(
         "page",
         "topics:\n  - 7\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-non-string-name",
     ),
     pytest.param(
         "page",
         "topics:\n  - ''\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-empty-name",
     ),
     pytest.param(
         "page",
         'topics:\n  - "Algebra\\nvariant"\n',
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-multi-line-name",
     ),
     pytest.param(
         "page",
         "topics:\n  - Algebra\n  - Algebra\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "topics",
         id="page-duplicate-name",
     ),
     pytest.param(
         "page",
         "topics:\n  - Unlisted\n",
-        "wiki/concepts/alpha.md",
+        "wiki/concepts/alpha.qmd",
         "Unlisted",
         id="undeclared-page-topic",
     ),
@@ -122,7 +123,7 @@ TOPIC_FAILURES = [
 
 def set_topic_failure(instance, target, value):
     if target == "page":
-        replace_page_topics(instance / "wiki" / "concepts" / "alpha.md", value)
+        replace_page_topics(instance / "wiki" / "concepts" / "alpha.qmd", value)
     elif value is None:
         (instance / "AGENTS.md").unlink()
     else:
@@ -212,9 +213,9 @@ def test_update_refuses_topic_problems_without_writing(
 def test_check_passes_for_an_empty_vault(tmp_path, monkeypatch, capsys):
     instance, env = ready_instance(tmp_path)
     for folder in ("concepts", "sources"):
-        for page in (instance / "wiki" / folder).glob("*.md"):
+        for page in (instance / "wiki" / folder).glob("*.qmd"):
             page.unlink()
-    (instance / "wiki" / "overview.md").write_text(
+    (instance / "wiki" / "overview.qmd").write_text(
         "# Overview\n", encoding="utf-8"
     )
     assert update_regions(instance) == []
@@ -237,12 +238,12 @@ def test_check_fails_on_stale_region_and_names_update(
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/sources/source.md", "wiki-consistency update")
+    assert_problem(result, "wiki/sources/source.qmd", "wiki-consistency update")
 
 
 def test_check_fails_on_malformed_region(tmp_path, monkeypatch, capsys):
     instance, env = ready_instance(tmp_path)
-    source = instance / "wiki" / "sources" / "source.md"
+    source = instance / "wiki" / "sources" / "source.qmd"
     source.write_text(
         source.read_text(encoding="utf-8").replace(
             "<!-- [[[end]]] -->", "<!-- [[end]] -->"
@@ -252,7 +253,7 @@ def test_check_fails_on_malformed_region(tmp_path, monkeypatch, capsys):
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/sources/source.md", "unclosed Cog region")
+    assert_problem(result, "wiki/sources/source.qmd", "unclosed Cog region")
 
 
 @pytest.mark.parametrize(
@@ -266,7 +267,7 @@ def test_check_fails_on_missing_region_source_or_generator(
     tmp_path, monkeypatch, capsys, mutation, message
 ):
     instance, env = ready_instance(tmp_path)
-    source = instance / "wiki" / "sources" / "source.md"
+    source = instance / "wiki" / "sources" / "source.qmd"
     text = source.read_text(encoding="utf-8")
     if mutation == "raw/files":
         text = text.replace(f"raw/files/{SOURCE_ID}", "raw/files/missing")
@@ -276,29 +277,29 @@ def test_check_fails_on_missing_region_source_or_generator(
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/sources/source.md", message)
+    assert_problem(result, "wiki/sources/source.qmd", message)
 
 
 @pytest.mark.parametrize(
     "target, message",
     [
-        ("missing.md", "missing.md"),
-        ("../sources/source.md#missing-heading", "missing-heading"),
+        ("missing.qmd", "missing.qmd"),
+        ("../sources/source.qmd#missing-heading", "missing-heading"),
     ],
 )
 def test_check_fails_on_missing_local_link_or_heading(
     tmp_path, monkeypatch, capsys, target, message
 ):
     instance, env = ready_instance(tmp_path)
-    page = instance / "wiki" / "concepts" / "alpha.md"
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
     text = page.read_text(encoding="utf-8").replace(
-        "../sources/source.md", target
+        "../sources/source.qmd", target
     )
     page.write_text(text, encoding="utf-8")
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/concepts/alpha.md", message)
+    assert_problem(result, "wiki/concepts/alpha.qmd", message)
 
 
 @pytest.mark.parametrize(
@@ -313,7 +314,7 @@ def test_check_fails_when_page_metadata_is_missing(
     tmp_path, monkeypatch, capsys, field, field_line
 ):
     instance, env = ready_instance(tmp_path)
-    page = instance / "wiki" / "concepts" / "alpha.md"
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
     lines = page.read_text(encoding="utf-8").splitlines()
     remove = {"title": {1}, "summary": {2}, "sources": {5, 6, 7}}[field]
     page.write_text(
@@ -326,7 +327,7 @@ def test_check_fails_when_page_metadata_is_missing(
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/concepts/alpha.md", field_line)
+    assert_problem(result, "wiki/concepts/alpha.qmd", field_line)
 
 
 @pytest.mark.parametrize(
@@ -340,7 +341,7 @@ def test_check_fails_when_citation_names_no_bag(
     tmp_path, monkeypatch, capsys, citation
 ):
     instance, env = ready_instance(tmp_path)
-    page = instance / "wiki" / "concepts" / "alpha.md"
+    page = instance / "wiki" / "concepts" / "alpha.qmd"
     text = (
         page.read_text(encoding="utf-8")
         .replace(f"id: {SOURCE_ID}", f"id: {citation[0]}")
@@ -350,7 +351,7 @@ def test_check_fails_when_citation_names_no_bag(
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/concepts/alpha.md", "citation")
+    assert_problem(result, "wiki/concepts/alpha.qmd", "citation")
 
 
 def test_check_fails_when_cited_bag_fails_fast_validation(
@@ -370,7 +371,7 @@ def test_check_fails_when_cited_bag_fails_fast_validation(
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/concepts/alpha.md", "BagIt")
+    assert_problem(result, "wiki/concepts/alpha.qmd", "BagIt")
 
 
 @pytest.mark.parametrize(
@@ -384,24 +385,24 @@ def test_check_fails_when_committed_log_text_changes_or_is_removed(
     tmp_path, monkeypatch, capsys, replacement
 ):
     instance, env = ready_instance(tmp_path, commit=True)
-    (instance / "wiki" / "log.md").write_text(replacement, encoding="utf-8")
+    (instance / "wiki" / "log.qmd").write_text(replacement, encoding="utf-8")
 
     result = run_check(instance, env, monkeypatch, capsys)
 
-    assert_problem(result, "wiki/log.md", "prefix")
+    assert_problem(result, "wiki/log.qmd", "prefix")
 
 
 def test_check_accepts_appended_log_entry_and_lists_findings(
     tmp_path, monkeypatch, capsys
 ):
     instance, env = ready_instance(tmp_path, commit=True)
-    log = instance / "wiki" / "log.md"
+    log = instance / "wiki" / "log.qmd"
     log.write_text(
         log.read_text(encoding="utf-8")
         + "## [2026-09-28] lint | synthetic\n\n0 changed pages.\n",
         encoding="utf-8",
     )
-    orphan = instance / "wiki" / "concepts" / "orphan.md"
+    orphan = instance / "wiki" / "concepts" / "orphan.qmd"
     orphan.write_text(
         "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\n"
         "topics:\n  - Algebra\nsources:\n"
@@ -414,13 +415,13 @@ def test_check_accepts_appended_log_entry_and_lists_findings(
 
     assert status == 0, stderr
     result = json.loads(stdout)
-    assert result["orphans"] == ["wiki/concepts/orphan.md"]
-    assert result["stale_citations"][0]["page"] == "wiki/concepts/orphan.md"
+    assert result["orphans"] == ["wiki/concepts/orphan.qmd"]
+    assert result["stale_citations"][0]["page"] == "wiki/concepts/orphan.qmd"
 
 
 def _outside_regions(instance):
     result = {}
-    for path in sorted((instance / "wiki").rglob("*.md")):
+    for path in sorted((instance / "wiki").rglob("*.qmd")):
         data = path.read_bytes()
         spans, _ = scan(
             path.relative_to(instance).as_posix(), data.decode("utf-8")
@@ -463,3 +464,144 @@ def test_invalid_wiki_name_is_an_argument_error(tmp_path, monkeypatch, capsys):
         with pytest.raises(SystemExit) as error:
             main(["check", "--wiki", "../invalid"])
     assert error.value.code == 2
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "```{python}\nraise RuntimeError('inert')\n```\n",
+        "~~~{r, echo=FALSE}\nstop('inert')\n~~~\n",
+        "> ```{julia}\n> error(1)\n> ```\n",
+        "{{< include missing.qmd >}}\n",
+        "{{< video synthetic >}}\n",
+        "```python\n{{< include missing.qmd >}}\n```\n",
+        "`{{< video synthetic >}}`\n",
+        "    {{< include missing.qmd >}}\n",
+        "---\ntitle: '{{< meta title >}}'\n---\n",
+    ],
+)
+def test_check_rejects_active_quarto_source(
+    tmp_path, monkeypatch, capsys, body
+):
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    text = page.read_text()
+    if body.startswith("---\n"):
+        page.write_text(
+            text.replace("title: Alpha", "title: '{{< meta title >}}'")
+        )
+    else:
+        page.write_text(text + "\n" + body)
+    assert_problem(
+        run_check(instance, env, monkeypatch, capsys),
+        "wiki/concepts/alpha.qmd",
+        "inert",
+    )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "`{python} 1+1`\n",
+        "`{r} Sys.time()`\n",
+        "> `{python} 1+1`\n",
+        "# `{r} Sys.time()`\n",
+        "- `{python} 1+1`\n",
+        "intro\nsecond\nthird `{python} 1+1`\n",
+        "`literal\ncode`\nthird `{r} 1+1`\n",
+        "\\`{python} 1+1`\n",
+        "`{python} 1+1``\n",
+        "![`{python} 1+1`](#alpha)\n",
+        "<!-- `{python} 1+1` -->\n",
+        "```python\n`{python} 1+1`\n```\n",
+    ],
+)
+def test_check_cli_rejects_executable_inline_code(
+    tmp_path, monkeypatch, capsys, body
+):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    prefix = page.read_text() + "\n"
+    page.write_text(prefix + body)
+    result = run_check(instance, env, monkeypatch, capsys)
+    assert_problem(
+        result,
+        "wiki/concepts/alpha.qmd",
+        "executable inline code",
+    )
+    line = prefix.count("\n") + body.count("\n", 0, body.index("`{")) + 1
+    assert result[2] == (
+        f"wiki/concepts/alpha.qmd:{line}: "
+        "Wiki source must stay inert: executable inline code\n"
+    )
+
+
+@pytest.mark.parametrize("language", ("r", "python"))
+def test_check_cli_rejects_inline_metadata(
+    tmp_path, monkeypatch, capsys, language
+):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text().replace(
+            "title: Alpha", f"title: Alpha\nexample: '`{{{language}}} 1`'"
+        )
+    )
+    result = run_check(instance, env, monkeypatch, capsys)
+    assert_problem(result, "wiki/concepts/alpha.qmd", "executable inline code")
+    assert result[2] == (
+        "wiki/concepts/alpha.qmd:3: "
+        "Wiki source must stay inert: executable inline code\n"
+    )
+
+
+def test_check_cli_allows_literal_inline_code(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(lint, "check_page_rules", lambda _: [])
+    instance, env = ready_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text().replace(
+            "title: Alpha", "title: Alpha\nexample: '``{r} 1``'"
+        )
+        + "\nLiteral inline code: `print(1 + 1)`, `{notcode}`, `{a,b}`, "
+        "`{r, echo=FALSE} 1`, `{python}1`, and ``{python} 1``.\n"
+        "\n```text\n``{python} 1``\n```\n"
+        "<!-- ``{python} 1`` -->\n"
+    )
+    status, stdout, stderr = run_check(instance, env, monkeypatch, capsys)
+    assert status == 0
+    assert json.loads(stdout)["problems"] == []
+    assert stderr == ""
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        "wiki/concepts/alpha.md",
+        "wiki/concepts/stray.md",
+        "wiki/index.md",
+        "wiki/overview.md",
+        "wiki/log.md",
+        "wiki/students/stray.md",
+    ],
+)
+def test_check_rejects_legacy_pages_before_other_checks(
+    tmp_path, monkeypatch, capsys, document
+):
+    instance, env = ready_instance(tmp_path)
+    page = instance / document
+    page.parent.mkdir(exist_ok=True)
+    page.write_bytes(b"Unmigrated bytes.\r\n")
+    assert_problem(
+        run_check(instance, env, monkeypatch, capsys),
+        document,
+        "migration",
+    )
+    before = tree_hash(instance)
+    with monkeypatch.context() as patcher:
+        for name, value in env.items():
+            patcher.setenv(name, value)
+        assert main(["update", "--wiki", instance.name]) == 1
+    assert tree_hash(instance) == before

@@ -32,12 +32,12 @@ _QUOTES = (('"', '"'), ("“", "”"), ("‘", "’"), ("「", "」"), ("『", "
 
 def _pages(root):
     pages = {}
-    for path in sorted(root.glob("wiki/**/*.md")):
+    for path in sorted(root.glob("wiki/**/*.qmd")):
         document = path.relative_to(root).as_posix()
         # A symbolic link, or a file under a linked folder, is skipped alone,
         # so the other pages are still checked.
         if (
-            document == "wiki/log.md"
+            document == "wiki/log.qmd"
             or not path.is_file()
             or path.resolve() != path
         ):
@@ -110,7 +110,9 @@ def _run(root, pages, config):
         text=True,
         check=False,
     )
-    if result.returncode not in (0, 1):
+    if result.returncode not in (0, 1) or (
+        result.returncode == 1 and not result.stdout.strip()
+    ):
         raise RuntimeError("Vale could not check Wiki pages")
     problems, seen = [], set()
     for line in result.stdout.splitlines():
@@ -190,7 +192,7 @@ def _school_rule(identifiers, styles):
 
 
 def check(root):
-    """Return page-rule violations for regular Markdown files in a Wiki."""
+    """Return page-rule violations for regular Quarto pages in a Wiki."""
     root = Path(root).resolve()
     pages = _pages(root)
     if not pages:

@@ -60,19 +60,30 @@ def wiki_name(value):
 
 def initialize(instance):
     """Create the Wiki folder layout and report created paths."""
+    for name in ("index", "overview", "log"):
+        legacy = instance / "wiki" / f"{name}.md"
+        if legacy.exists() or legacy.is_symlink():
+            raise ValueError(
+                f"Wiki migration required: {legacy} must be migrated "
+                "before initialization"
+            )
     created = []
     for path in (
         instance,
         instance / "raw",
         *(instance / "raw" / kind for kind in KINDS),
+        instance / "text",
         instance / "wiki",
     ):
         if not path.exists():
             path.mkdir(parents=True)
             created.append(str(path))
-    files = {"AGENTS.md": None, ".gitignore": b"/raw/\n"}
+    files = {
+        "AGENTS.md": None,
+        ".gitignore": b"/raw/\n/text/**/.*.wiki-consistency-tmp\n",
+    }
     files.update(
-        {f"wiki/{name}.md": b"" for name in ("index", "overview", "log")}
+        {f"wiki/{name}.qmd": b"" for name in ("index", "overview", "log")}
     )
     for name, content in files.items():
         path = instance / name

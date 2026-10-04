@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 
@@ -65,6 +66,7 @@ def _parser():
         "--max-evidence-chars", type=_positive_int, default=40000
     )
     prepare_command.add_argument("--candidates", type=_positive_int, default=3)
+    prepare_command.add_argument("--review-receipts", type=Path)
     return parser
 
 
@@ -98,6 +100,13 @@ def main(argv=None):
                     scope=args.scope,
                     max_evidence_chars=args.max_evidence_chars,
                     candidates=args.candidates,
+                    reviews=(
+                        json.loads(
+                            args.review_receipts.read_text(encoding="utf-8")
+                        )
+                        if args.review_receipts is not None
+                        else None
+                    ),
                 )
     except (
         OSError,
@@ -116,7 +125,7 @@ def main(argv=None):
             )
         return 1
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-    return 0
+    return 1 if result.get("unverifiable") else 0
 
 
 if __name__ == "__main__":

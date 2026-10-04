@@ -6,11 +6,13 @@ import signal
 import subprocess
 from types import SimpleNamespace
 
+from conftest import add_revision
 import pytest
 import yaml
 
 from wiki_consistency import evidence
 from wiki_consistency import search
+from wiki_consistency.instance import revisions
 
 MODEL = "hf:Qwen/Qwen3-Embedding-0.6B-GGUF/Qwen3-Embedding-0.6B-Q8_0.gguf"
 
@@ -20,21 +22,15 @@ def _wiki(tmp_path):
     wiki = instance / "wiki"
     wiki.mkdir(parents=True)
     (wiki / "concepts").mkdir()
-    (wiki / "concepts" / "quad.md").write_text(
+    (wiki / "concepts" / "quad.qmd").write_text(
         "# Quadratic formula\n\n"
         "The quadratic formula solves a quadratic equation.\n\n"
         "An ellipse has a major axis and a minor axis.\n"
     )
     cache = tmp_path / "cache"
-    evidence_root = (
-        cache
-        / "wiki-evidence"
-        / "wiki-a"
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-        / "source"
-    )
+    evidence_root = instance / "text" / "source"
     evidence_root.mkdir(parents=True)
-    (evidence_root / "r1.md").write_text(
+    (evidence_root / "r1.qmd").write_text(
         "Evidence discusses quadratic equations and ellipses.\n"
     )
     return instance, cache
@@ -121,7 +117,7 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     assert result["pages"] == 1
     assert result["evidence"] == 1
     assert any(
-        hit["path"] == "concepts/quad.md" and hit["mode"] == "lex"
+        hit["path"] == "concepts/quad.qmd" and hit["mode"] == "lex"
         for hit in hits
     )
     assert all(hit["line"] >= 1 for hit in hits)
@@ -130,14 +126,7 @@ def test_index_and_keyword_search_use_cache_only(tmp_path, monkeypatch):
     config = cache / "qmd" / "config" / "wiki-a.yml"
     collections = yaml.safe_load(config.read_text())["collections"]
     assert collections["pages"]["path"] == str((instance / "wiki").resolve())
-    assert collections["evidence"]["path"] == str(
-        (
-            cache
-            / "wiki-evidence"
-            / "wiki-a"
-            / f"markitdown-{evidence.CONVERTER_VERSION}"
-        ).resolve()
-    )
+    assert collections["evidence"]["path"] == str((instance / "text").resolve())
     for command, env, umask in calls:
         assert {
             key: env[key] for key in _qmd_environment(cache)
@@ -205,7 +194,7 @@ def test_index_and_search_match_qmd_trim_rules(
     tmp_path, content, expected_pages
 ):
     instance, cache = _wiki(tmp_path)
-    (instance / "wiki" / "concepts" / "trim.md").write_text(
+    (instance / "wiki" / "concepts" / "trim.qmd").write_text(
         content, encoding="utf-8"
     )
 
@@ -217,9 +206,9 @@ def test_index_and_search_match_qmd_trim_rules(
 
 def test_index_and_search_skip_symlinked_pages(tmp_path):
     instance, cache = _wiki(tmp_path)
-    target = tmp_path / "outside.md"
+    target = tmp_path / "outside.qmd"
     target.write_text("Synthetic outside page.\n", encoding="utf-8")
-    (instance / "wiki" / "concepts" / "linked.md").symlink_to(target)
+    (instance / "wiki" / "concepts" / "linked.qmd").symlink_to(target)
 
     result = search.index(instance, "wiki-a", cache, download=False)
 
@@ -230,8 +219,8 @@ def test_index_and_search_skip_symlinked_pages(tmp_path):
 @pytest.mark.parametrize(
     ("change", "text", "expected_paths"),
     [
-        ("modified", "fresh changed phrase", {"concepts/quad.md"}),
-        ("added", "fresh added phrase", {"concepts/new.md"}),
+        ("modified", "fresh changed phrase", {"concepts/quad.qmd"}),
+        ("added", "fresh added phrase", {"concepts/new.qmd"}),
         ("deleted", "quadratic formula", set()),
         ("empty", "quadratic formula", set()),
     ],
@@ -241,11 +230,11 @@ def test_search_refreshes_stale_index_with_qmd_update(
 ):
     instance, cache = _wiki(tmp_path)
     search.index(instance, "wiki-a", cache, download=False)
-    page = instance / "wiki" / "concepts" / "quad.md"
+    page = instance / "wiki" / "concepts" / "quad.qmd"
     if change == "modified":
         page.write_text("# Changed page\n\nFresh changed phrase.\n")
     elif change == "added":
-        (instance / "wiki" / "concepts" / "new.md").write_text(
+        (instance / "wiki" / "concepts" / "new.qmd").write_text(
             "# New page\n\nFresh added phrase.\n"
         )
     elif change == "deleted":
@@ -273,20 +262,14 @@ def test_search_refreshes_stale_index_with_qmd_update(
 
 def test_evidence_allowed_paths_return_hits_beyond_limit(tmp_path, monkeypatch):
     instance, cache = _wiki(tmp_path)
-    evidence_root = (
-        cache
-        / "wiki-evidence"
-        / "wiki-a"
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-        / "source"
-    )
+    evidence_root = instance / "text" / "source"
     for index in range(5):
-        (evidence_root / f"a-{index}.md").write_text(
+        (evidence_root / f"a-{index}.qmd").write_text(
             "# Synthetic evidence\n\n" + "rarephrase " * 50,
             encoding="utf-8",
         )
-    target_path = "source/z-late.md"
-    (evidence_root / "z-late.md").write_text(
+    target_path = "source/z-late.qmd"
+    (evidence_root / "z-late.qmd").write_text(
         "# Synthetic evidence\n\nrarephrase\n", encoding="utf-8"
     )
     search.index(instance, "wiki-a", cache, download=False)
@@ -394,7 +377,7 @@ def test_search_uses_keyword_when_cached_model_needs_embeddings(
     )
 
     assert any(
-        hit["path"] == "concepts/quad.md" and hit["mode"] == "lex"
+        hit["path"] == "concepts/quad.qmd" and hit["mode"] == "lex"
         for hit in hits
     )
     assert not any(hit["mode"] == "vec" for hit in hits)
@@ -467,19 +450,19 @@ def test_index_and_search_match_qmd_document_scan_rules(tmp_path):
     instance, cache = _wiki(tmp_path)
     wiki = instance / "wiki"
     ignored = [
-        "concepts/build/x.md",
-        "node_modules/x.md",
-        ".cache/x.md",
-        "vendor/x.md",
-        "dist/x.md",
-        ".hidden.md",
-        "concepts/.hidden/x.md",
+        "concepts/build/x.qmd",
+        "node_modules/x.qmd",
+        ".cache/x.qmd",
+        "vendor/x.qmd",
+        "dist/x.qmd",
+        ".hidden.qmd",
+        "concepts/.hidden/x.qmd",
     ]
     for relative in ignored:
         path = wiki / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("# Synthetic ignored page\n", encoding="utf-8")
-    blank = wiki / "concepts" / "blank.md"
+    blank = wiki / "concepts" / "blank.qmd"
     blank.write_text(" \n\t\n", encoding="utf-8")
 
     result = search.index(instance, "wiki-a", cache, download=False)
@@ -498,17 +481,67 @@ def test_index_and_search_match_qmd_document_scan_rules(tmp_path):
         ],
     )
 
-    assert any(hit["path"] == "concepts/quad.md" for hit in hits)
+    assert any(hit["path"] == "concepts/quad.qmd" for hit in hits)
 
 
-def test_search_refuses_stale_evidence_converter_version(tmp_path, monkeypatch):
+def test_search_refuses_stale_retained_text_root(tmp_path):
     instance, cache = _wiki(tmp_path)
-    monkeypatch.setattr(evidence, "CONVERTER_VERSION", "synthetic-old-version")
     search.index(instance, "wiki-a", cache, download=False)
-    monkeypatch.setattr(evidence, "CONVERTER_VERSION", "synthetic-new-version")
-
+    config = cache / "qmd" / "config" / "wiki-a.yml"
+    value = yaml.safe_load(config.read_text())
+    value["collections"]["evidence"]["path"] = str(tmp_path / "old-text")
+    config.write_text(yaml.safe_dump(value))
     with pytest.raises(LookupError, match="index"):
         search.search("wiki-a", cache, [])
+
+
+@pytest.mark.parametrize("collection", ["pages", "evidence"])
+def test_search_refuses_stale_masks_before_update(tmp_path, collection):
+    instance, cache = _wiki(tmp_path)
+    search.index(instance, "wiki-a", cache, download=False)
+    config = cache / "qmd" / "config" / "wiki-a.yml"
+    value = yaml.safe_load(config.read_text())
+    value["collections"][collection]["pattern"] = "**/*.md"
+    config.write_text(yaml.safe_dump(value))
+    with pytest.raises(LookupError, match="mask.*reindex"):
+        search.search("wiki-a", cache, [])
+
+
+def test_index_replaces_same_path_md_mask_and_removes_stale_docs(tmp_path):
+    instance, cache = _wiki(tmp_path)
+    old = instance / "wiki" / "concepts" / "old.md"
+    old.write_text("Obsolete sentinelnoun.\n")
+    search._collection(
+        "wiki-a",
+        cache,
+        "add",
+        str(instance / "wiki"),
+        "--name",
+        "pages",
+        "--mask",
+        "**/*.md",
+    )
+    result = search.index(instance, "wiki-a", cache, download=False)
+    config = cache / "qmd" / "config" / "wiki-a.yml"
+    value = yaml.safe_load(config.read_text())["collections"]
+    assert all(item["pattern"] == "**/*.qmd" for item in value.values())
+    assert result["pages"] == result["evidence"] == 1
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [
+            {"id": "old", "text": "sentinelnoun", "collection": "pages"},
+            {"id": "new", "text": "quadratic", "collection": "pages"},
+            {"id": "text", "text": "ellipses", "collection": "evidence"},
+        ],
+    )
+    assert not any(hit["query"] == "old" for hit in hits)
+    assert {hit["path"] for hit in hits if hit["query"] == "new"} == {
+        "concepts/quad.qmd"
+    }
+    assert {hit["path"] for hit in hits if hit["query"] == "text"} == {
+        "source/r1.qmd"
+    }
 
 
 def test_model_cache_accepts_qmd_filename_and_rejects_partial_or_directory(
@@ -717,19 +750,16 @@ def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
                             },
                             {
                                 "name": "evidence",
-                                "path": str(
-                                    cache
-                                    / "wiki-evidence"
-                                    / "wiki-a"
-                                    / f"markitdown-{evidence.CONVERTER_VERSION}"
-                                ),
+                                "path": str(instance / "text"),
                             },
                         ],
                     },
                 )
             collection = arguments["collections"][0]
             path = (
-                "concepts/quad.md" if collection == "pages" else "source/r1.md"
+                "concepts/quad.qmd"
+                if collection == "pages"
+                else "source/r1.qmd"
             )
             return SimpleNamespace(
                 is_error=False,
@@ -767,7 +797,7 @@ def test_batched_vector_search_uses_one_mcp_process(tmp_path, monkeypatch):
                 "text": "a semantic evidence query",
                 "collection": "evidence",
                 "limit": 1,
-                "allowed_paths": ["source/r1.md"],
+                "allowed_paths": ["source/r1.qmd"],
             },
         ],
     )
@@ -809,9 +839,7 @@ def test_search_uses_converter_version_from_evidence(tmp_path, monkeypatch):
         (cache / "qmd" / "config" / "wiki-a.yml").read_text()
     )
     assert config["collections"]["evidence"]["path"] == str(
-        (
-            cache / "wiki-evidence" / "wiki-a" / "markitdown-synthetic-version"
-        ).resolve()
+        (instance / "text").resolve()
     )
 
 
@@ -819,3 +847,43 @@ def test_search_reuses_evidence_helpers():
     assert search._component is evidence._component
     assert search._tree_size is evidence._tree_size
     assert search._clean_on_signals is evidence._clean_on_signals
+
+
+@pytest.mark.parametrize("damage", ["hash", "extra-payload"])
+def test_index_and_search_isolate_unrelated_raw_bag(tmp_path, damage):
+    instance, cache = _wiki(tmp_path)
+    bag = add_revision(instance, "r1", "Unrelated original.", source_id="other")
+    add_revision(instance, "r1", "Selected original.", source_id="selected")
+    search.index(instance, "wiki-a", cache, download=False)
+    if damage == "hash":
+        (bag / "data/document.txt").write_text("Changed unrelated raw.")
+    else:
+        (bag / "data/extra.txt").write_text("Extra unrelated payload.")
+    before = _snapshot(instance)
+    hits = search.search(
+        "wiki-a",
+        cache,
+        [{"id": "q", "text": "quadratic", "collection": "pages"}],
+    )
+    assert any(hit["path"] == "concepts/quad.qmd" for hit in hits)
+    result = search.index(instance, "wiki-a", cache, download=False)
+    assert result["pages"] == result["evidence"] == 1
+    assert _snapshot(instance) == before
+    with evidence.bibliography(
+        instance,
+        {"selected": revisions(instance)["selected"]},
+        budget_bytes=10000,
+        env={"XDG_CACHE_HOME": str(cache)},
+    ) as bibliography:
+        assert [
+            item["id"] for item in json.loads(bibliography.read_text())
+        ] == ["selected/r1"]
+    # Consumers of this bag still validate it; search never makes it evidence.
+    with pytest.raises(ValueError, match="SHA-256|exactly one"):
+        with evidence.bibliography(
+            instance,
+            revisions(instance),
+            budget_bytes=10000,
+            env={"XDG_CACHE_HOME": str(cache)},
+        ):
+            pytest.fail("damaged selected bag must fail")

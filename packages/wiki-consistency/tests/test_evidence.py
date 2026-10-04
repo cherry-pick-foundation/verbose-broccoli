@@ -4,9 +4,11 @@ import json
 import os
 import signal
 import socket
+import subprocess
 import warnings
 import zipfile
 
+import bagit
 from hwpx import Hwp5ConversionWarning
 from hwpx import HwpxDocument
 from openpyxl import Workbook
@@ -93,9 +95,14 @@ def _pdf_bytes(stream):
 
 def _revision(instance, source_id, revision, filename, payload):
     bag = instance / "raw" / "files" / source_id / revision
-    payload_path = bag / "data" / filename
+    payload_path = bag / filename
     payload_path.parent.mkdir(parents=True, exist_ok=True)
     payload_path.write_bytes(payload)
+    bagit.make_bag(
+        str(bag),
+        bag_info={"External-Identifier": source_id, "Admission-Time": revision},
+        checksums=["sha256"],
+    )
     return {
         "kind": "files",
         "id": source_id,
@@ -108,13 +115,9 @@ def _revisions(*items):
     return {item["id"]: [item] for item in items}
 
 
-def _evidence_root(cache, wiki_id):
-    return (
-        cache
-        / "wiki-evidence"
-        / wiki_id
-        / f"markitdown-{evidence.CONVERTER_VERSION}"
-    )
+def _evidence_root(instance, wiki_id):
+    del wiki_id
+    return instance / "text"
 
 
 def _chatgpt_conversation(number=1):
@@ -219,27 +222,23 @@ def test_convert_supported_files_and_pass_through(tmp_path, monkeypatch):
     assert result["unreadable"] == []
     assert (
         "Synthetic DOCX evidence"
-        in evidence.read(cache, "wiki-a", "docx", "r1")["text"]
+        in evidence.read(instance, "docx", "r1")["text"]
     )
     assert (
         "Synthetic PPTX evidence"
-        in evidence.read(cache, "wiki-a", "pptx", "r1")["text"]
+        in evidence.read(instance, "pptx", "r1")["text"]
     )
     assert (
-        "Synthetic PDF evidence"
-        in evidence.read(cache, "wiki-a", "pdf", "r1")["text"]
+        "Synthetic PDF evidence" in evidence.read(instance, "pdf", "r1")["text"]
     )
     assert (
-        evidence.read(cache, "wiki-a", "text", "r1")["text"]
-        == "Plain text evidence"
+        evidence.read(instance, "text", "r1")["text"] == "Plain text evidence"
     )
     assert (
-        evidence.read(cache, "wiki-a", "markdown", "r1")["text"]
+        evidence.read(instance, "markdown", "r1")["text"]
         == "# Markdown evidence\n"
     )
-    assert {path.relative_to(cache).parts[0] for path in cache.rglob("*")} == {
-        "wiki-evidence"
-    }
+    assert not cache.exists()
 
 
 def test_convert_xlsx_hwp_and_hwpx_sources(tmp_path, monkeypatch):
@@ -276,7 +275,7 @@ def test_convert_xlsx_hwp_and_hwpx_sources(tmp_path, monkeypatch):
     for source_id in ("xlsx", "hwp", "hwpx"):
         assert (
             f"Synthetic {source_id.upper()} evidence"
-            in evidence.read(cache, "wiki-a", source_id, "r1")["text"]
+            in evidence.read(instance, source_id, "r1")["text"]
         )
 
 
@@ -324,15 +323,16 @@ def test_unreadable_revisions_record_the_reason(tmp_path):
         "damaged": "conversion_failed",
     }
     for source_id, reason in reasons.items():
-        mark = (
-            _evidence_root(cache, "wiki-a") / source_id / "r1.unreadable.json"
+        mark = next(
+            (cache / "wiki-evidence/wiki-a/retained-text" / source_id).glob(
+                "*.unreadable.json"
+            )
         )
         stored = json.loads(mark.read_text())
         assert stored["reason"] == reason
         assert isinstance(stored["detail"], str)
-        assert evidence.read(cache, "wiki-a", source_id, "r1") == {
-            "unreadable": reason
-        }
+        with pytest.raises(LookupError, match="absent"):
+            evidence.read(instance, source_id, "r1")
 
 
 def test_hwp5_conversion_warning_is_marked_and_reused(tmp_path, monkeypatch):
@@ -367,15 +367,16 @@ def test_hwp5_conversion_warning_is_marked_and_reused(tmp_path, monkeypatch):
 
     first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
     partial = [{"id": "hwp", "revision": "r1.2", "detail": detail}]
-    partial_mark = _evidence_root(cache, "wiki-a") / "hwp" / "r1.2.partial.json"
+    retained = evidence.read(instance, "hwp", "r1.2")
 
     assert first["partial"] == partial
     assert first["unreadable"] == []
-    assert write_order == ["r1.2.partial.json", "r1.2.md"]
-    assert json.loads(partial_mark.read_text()) == {"detail": detail}
+    assert write_order == ["r1.2.qmd"]
+    assert retained["conversion-status"] == "partial"
+    assert retained["conversion-warning"] == detail
     assert (
         "Synthetic partial HWP evidence"
-        in evidence.read(cache, "wiki-a", "hwp", "r1.2")["text"]
+        in evidence.read(instance, "hwp", "r1.2")["text"]
     )
 
     second = evidence.convert(instance, "wiki-a", cache, _revisions(item))
@@ -394,18 +395,17 @@ def test_convert_never_rewrites_and_reads_unconverted_as_missing(tmp_path):
     assert (
         evidence.convert(instance, "wiki-a", cache, revisions)["converted"] == 1
     )
-    target = _evidence_root(cache, "wiki-a") / "source" / "r1.md"
+    target = _evidence_root(instance, "wiki-a") / "source" / "r1.qmd"
     original = target.read_bytes()
     item_path = instance / item["path"] / "data" / "source.txt"
     item_path.write_text("changed content")
 
-    result = evidence.convert(instance, "wiki-a", cache, revisions)
+    with pytest.raises(ValueError, match="raw SHA-256 changed"):
+        evidence.convert(instance, "wiki-a", cache, revisions)
 
-    assert result["converted"] == 0
-    assert result["present"] == 1
     assert target.read_bytes() == original
     with pytest.raises(LookupError):
-        evidence.read(cache, "wiki-a", "missing", "r1")
+        evidence.read(instance, "missing", "r1")
 
 
 def test_budget_is_checked_before_each_write(tmp_path):
@@ -417,14 +417,16 @@ def test_budget_is_checked_before_each_write(tmp_path):
         _revision(instance, "b", "r1", "source.txt", b"bravo"),
     ]
 
-    with pytest.raises(ValueError, match="wiki-evidence.*budget"):
+    evidence.convert(instance, "wiki-a", cache, _revisions(items[0]))
+    used = (instance / "text/a/r1.qmd").stat().st_size
+    with pytest.raises(ValueError, match="budget"):
         evidence.convert(
-            instance, "wiki-a", cache, _revisions(*items), budget_bytes=7
+            instance, "wiki-a", cache, _revisions(*items), budget_bytes=used + 7
         )
 
-    assert (_evidence_root(cache, "wiki-a") / "a" / "r1.md").exists()
-    assert not (_evidence_root(cache, "wiki-a") / "b" / "r1.md").exists()
-    assert not list(cache.rglob("*.wiki-consistency-tmp"))
+    assert (_evidence_root(instance, "wiki-a") / "a" / "r1.qmd").exists()
+    assert not (_evidence_root(instance, "wiki-a") / "b" / "r1.qmd").exists()
+    assert not list(instance.rglob("*.wiki-consistency-tmp"))
 
 
 @pytest.mark.parametrize("signum", [signal.SIGINT, signal.SIGTERM])
@@ -436,16 +438,18 @@ def test_interrupted_write_cleans_temporary_files(
     instance.mkdir()
     item = _revision(instance, "source", "r1", "source.txt", b"source evidence")
 
-    def interrupt_rename(*args):
+    def interrupt_link(*args):
         del args  # Unused.
         os.kill(os.getpid(), signum)
 
-    monkeypatch.setattr(evidence.os, "rename", interrupt_rename)
+    monkeypatch.setattr(evidence.os, "link", interrupt_link)
     with pytest.raises(SystemExit):
         evidence.convert(instance, "wiki-a", cache, _revisions(item))
 
-    assert not list(cache.rglob("*.wiki-consistency-tmp"))
-    assert not (_evidence_root(cache, "wiki-a") / "source" / "r1.md").exists()
+    assert not list(instance.rglob("*.wiki-consistency-tmp"))
+    assert not (
+        _evidence_root(instance, "wiki-a") / "source" / "r1.qmd"
+    ).exists()
 
 
 def test_failed_rename_cleans_temporary_files(tmp_path, monkeypatch):
@@ -454,22 +458,22 @@ def test_failed_rename_cleans_temporary_files(tmp_path, monkeypatch):
     instance.mkdir()
     item = _revision(instance, "source", "r1", "source.txt", b"source evidence")
 
-    def fail_rename(*args):
+    def fail_link(*args):
         del args  # Unused.
-        raise OSError("synthetic rename failure")
+        raise OSError("synthetic link failure")
 
-    monkeypatch.setattr(evidence.os, "rename", fail_rename)
-    with pytest.raises(OSError, match="synthetic rename failure"):
+    monkeypatch.setattr(evidence.os, "link", fail_link)
+    with pytest.raises(OSError, match="synthetic link failure"):
         evidence.convert(instance, "wiki-a", cache, _revisions(item))
 
-    assert not list(cache.rglob("*.wiki-consistency-tmp"))
+    assert not list(instance.rglob("*.wiki-consistency-tmp"))
 
 
 def test_next_convert_removes_abandoned_temporary_files(tmp_path):
     instance = tmp_path / "instance"
     cache = tmp_path / "cache"
     instance.mkdir()
-    stale = cache / "wiki-evidence" / ".abandoned.wiki-consistency-tmp"
+    stale = instance / "text" / ".abandoned.wiki-consistency-tmp"
     stale.parent.mkdir(parents=True)
     stale.write_text("partial")
 
@@ -491,7 +495,7 @@ def test_chatgpt_export_unescapes_korean_and_english_messages(tmp_path):
     item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
-    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+    text = evidence.read(instance, "chatgpt-export", "r1")["text"]
 
     assert result["unreadable"] == []
     assert "합성 질문 1: Where is a library?" in text
@@ -508,7 +512,7 @@ def test_chatgpt_export_with_direct_characters_keeps_messages(tmp_path):
     item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
-    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+    text = evidence.read(instance, "chatgpt-export", "r1")["text"]
 
     assert result["unreadable"] == []
     assert "합성 질문 1: Where is a library?" in text
@@ -528,7 +532,7 @@ def test_chatgpt_export_with_numbered_conversation_json_files(tmp_path):
     item = _revision(instance, "chatgpt-export", "r1", "export.zip", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
-    text = evidence.read(cache, "wiki-a", "chatgpt-export", "r1")["text"]
+    text = evidence.read(instance, "chatgpt-export", "r1")["text"]
 
     assert result["unreadable"] == []
     for number in (1, 2):
@@ -546,7 +550,7 @@ def test_jsonl_unescapes_records_and_keeps_blank_lines(tmp_path):
     item = _revision(instance, "jsonl", "r1", "source.jsonl", payload)
 
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
-    text = evidence.read(cache, "wiki-a", "jsonl", "r1")["text"]
+    text = evidence.read(instance, "jsonl", "r1")["text"]
 
     assert result["unreadable"] == []
     assert text == '{"text": "한국 Alpha"}\n\n{"text": "영어 Bravo"}\n'
@@ -564,16 +568,100 @@ def test_invalid_json_returns_plain_text_converter_output(tmp_path):
     result = evidence.convert(instance, "wiki-a", cache, _revisions(item))
 
     assert result["unreadable"] == []
-    assert (
-        evidence.read(cache, "wiki-a", "invalid-json", "r1")["text"]
-        == plain_text
-    )
+    assert evidence.read(instance, "invalid-json", "r1")["text"] == plain_text
 
 
 def test_evidence_cache_path_uses_a_local_converter_revision(tmp_path):
-    path = _evidence_root(tmp_path, "wiki-a")
-
-    assert path.name != f"markitdown-{version('markitdown')}"
+    assert _evidence_root(tmp_path, "wiki-a") == tmp_path / "text"
     assert evidence.CONVERTER_VERSION == (
         f"{version('markitdown')}-hwpx-{version('python-hwpx')}-json-2"
     )
+
+
+def test_pdf_retains_content_stream_order_once(tmp_path, monkeypatch):
+    instance, cache = tmp_path / "instance", tmp_path / "cache"
+    stream = (
+        b"BT /F1 10 Tf 10 110 Td (Left sentence begins) Tj "
+        b"0 -15 Td (and ends here.) Tj ET "
+        b"BT /F1 10 Tf 160 110 Td (Right sentence begins) Tj "
+        b"0 -15 Td (and ends there.) Tj ET"
+    )
+    payload = _pdf_bytes(stream)
+    item = _revision(instance, "pdf", "r1", "columns.pdf", payload)
+    raw = instance / item["path"] / "data/columns.pdf"
+    run = subprocess.run
+    expected = run(
+        ["pdftotext", "-raw", raw, "-"], check=True, capture_output=True
+    ).stdout.decode("utf-8")
+    layout = run(
+        ["pdftotext", "-layout", raw, "-"], check=True, capture_output=True
+    ).stdout.decode("utf-8")
+    assert expected.index("and ends here.") < expected.index("Right sentence")
+    assert layout.index("Right sentence") < layout.index("and ends here.")
+    calls = []
+
+    def record(*args, **kwargs):
+        calls.append(args[0])
+        return run(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", record)
+    first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    retained = evidence.read(instance, "pdf", "r1")
+    assert first["converted"] == 1
+    assert retained["text"] == expected
+    assert retained["converter"]["name"] == "pdftotext -raw"
+    actual_version = run(["pdftotext", "-v"], check=True, capture_output=True)
+    assert retained["converter"]["version"] in actual_version.stderr.decode()
+    assert retained["checked-against-original"] is False
+    assert retained["problems"] == ["missing locator evidence"]
+    target = instance / "text/pdf/r1.qmd"
+    before = target.read_bytes()
+    second = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert second["present"] == 1
+    assert calls == [["pdftotext", "-v"], ["pdftotext", "-raw", raw, "-"]]
+    assert target.read_bytes() == before and raw.read_bytes() == payload
+
+
+@pytest.mark.parametrize("failure", ["missing", "failed", "warning"])
+def test_pdf_backend_failure_or_warning_is_honest(
+    tmp_path, monkeypatch, failure
+):
+    instance, cache = tmp_path / "instance", tmp_path / "cache"
+    item = _revision(instance, "pdf", "r1", "source.pdf", b"synthetic")
+    calls = []
+
+    def backend(command, **unused_kwargs):
+        calls.append(command)
+        if failure == "missing":
+            raise FileNotFoundError("pdftotext unavailable")
+        if command == ["pdftotext", "-v"]:
+            return subprocess.CompletedProcess(
+                command, 0, "", "pdftotext version 1.2\n"
+            )
+        if failure == "failed":
+            raise subprocess.CalledProcessError(1, command, stderr=b"bad PDF")
+        return subprocess.CompletedProcess(
+            command, 0, b"Partial text.\n", b"Syntax Warning: damaged PDF\n"
+        )
+
+    monkeypatch.setattr(subprocess, "run", backend)
+    first = evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert calls and calls[0] == ["pdftotext", "-v"]
+    if failure == "warning":
+        assert first["partial"] == [
+            {
+                "id": "pdf",
+                "revision": "r1",
+                "detail": "Syntax Warning: damaged PDF",
+            }
+        ]
+        assert (
+            evidence.read(instance, "pdf", "r1")["conversion-status"]
+            == "partial"
+        )
+    else:
+        assert first["unreadable"][0]["reason"] == "conversion_failed"
+        assert not (instance / "text/pdf/r1.qmd").exists()
+    count = len(calls)
+    evidence.convert(instance, "wiki-a", cache, _revisions(item))
+    assert len(calls) == count
