@@ -112,6 +112,21 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Joey Kudish.
   [MIT license](../plugins/code/skills/backfire-code/LICENSE).
 
+## jkudish/jev-mcp — portable jev skills
+
+- Source:
+  <https://github.com/jkudish/jev-mcp/tree/5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93/skills/jev>
+- Revision: `5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93` (version 0.13.0).
+- Reused: `SKILL.md`, `reference/tools.md` and `LICENSE`, copied into
+  `plugins/code/skills/jev/` and `plugins/work/skills/jev/`.
+- Adaptations: remove the direct unpinned `mcpServers.jev` launch block;
+  add a pointer to shared local privacy and provider guidance in
+  `references/verbose-broccoli.md`. Each copy's `upstream.json` records
+  the original and adapted file hashes. Both copies have identical bytes.
+- Copyright (c) 2026 Joey Kudish.
+  MIT licenses shipped with the [Code copy](../plugins/code/skills/jev/LICENSE)
+  and the [Work copy](../plugins/work/skills/jev/LICENSE).
+
 ## typesafe-ai/skills — model-choice
 
 - Source:
