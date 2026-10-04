@@ -188,10 +188,14 @@ class Registry:
                 patterns = [_EDGE.format(re.escape(spelling))]
             else:
                 patterns = [re.escape(spelling)]
-            patterns += [
-                variant
+            patterns = [
+                "".join(
+                    f"(?:{char}|{decomposed})"
+                    if (decomposed := normalize("NFD", char)) != char
+                    else char
+                    for char in pattern
+                )
                 for pattern in patterns
-                if (variant := normalize("NFD", pattern)) != pattern
             ]
             matches.extend(
                 Match(re.compile(p, re.IGNORECASE), identity, rank)

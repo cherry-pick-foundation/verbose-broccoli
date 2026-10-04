@@ -2,6 +2,7 @@
 
 import json
 import os
+from unicodedata import normalize
 
 import pytest
 
@@ -271,3 +272,28 @@ def test_missing_registry_and_nested_duplicate(tmp_path):
     )
     with pytest.raises(GateError):
         load_registry(directory)
+
+
+def test_canonical_pattern_length_is_linear():
+    lengths = []
+    for size in (64, 128, 256):
+        spelling = "각" * size
+        registry = Registry.from_data(
+            {
+                "version": 1,
+                "entries": [{"kind": "school", "spellings": [spelling]}],
+            }
+        )
+        assert len(registry.matches) == 1
+        pattern = registry.matches[0].pattern
+        lengths.append(len(pattern.pattern))
+        assert len(pattern.pattern) <= 12 * size
+        for text in (
+            spelling,
+            normalize("NFD", spelling),
+            normalize("NFD", spelling[: size // 2]) + spelling[size // 2 :],
+        ):
+            assert pattern.fullmatch(text)
+        assert not pattern.search(normalize("NFD", "간") + spelling[1:])
+    assert lengths[1] == 2 * lengths[0]
+    assert lengths[2] == 2 * lengths[1]

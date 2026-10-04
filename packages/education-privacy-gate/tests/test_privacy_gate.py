@@ -510,3 +510,50 @@ def test_canonical_latin_alias():
         original = normalize("NFD", spelling)
         assert masker.mask(original) == "Avery"
         assert masker.restore("Avery") == original
+
+
+@pytest.mark.parametrize(
+    "spelling,bits",
+    [
+        (name, bits)
+        for name in ("가라온", "남궁누리")
+        for bits in range(1 << len(name))
+    ],
+)
+def test_mixed_syllables_mask_whole_name_once_and_restore(spelling, bits):
+    text = "".join(
+        normalize("NFD", char) if bits & (1 << index) else char
+        for index, char in enumerate(spelling)
+    )
+    with gate("Avery") as masker:
+        masked = masker.mask({"text": text})
+        assert masked == {"text": "Avery"}
+        assert masker.faker.calls == 1
+        assert masker.restore(masked) == {"text": text}
+
+
+@pytest.mark.parametrize(
+    "spelling", ["라온", "별누리", "가상별빛고등학교", "Fictional Éçho"]
+)
+def test_mixed_syllables_given_alias_and_school(spelling):
+    for index in range(len(spelling)):
+        text = (
+            spelling[:index]
+            + normalize("NFD", spelling[index])
+            + spelling[index + 1 :]
+        )
+        with gate(
+            "Avery",
+            extra=[
+                {
+                    "kind": "person",
+                    "full": "다새봄",
+                    "aliases": ["Fictional Éçho"],
+                }
+            ],
+        ) as masker:
+            masked = masker.mask(text)
+            assert masked == (
+                "School 01" if spelling == "가상별빛고등학교" else "Avery"
+            )
+            assert masker.restore(masked) == text
