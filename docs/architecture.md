@@ -305,14 +305,15 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   from the roster's `id` column, reports the Korean spelling of a roster
   student, given or guardian name anywhere in a page, quotes and front matter
   included, and gives Vale the roster's schools through a private temporary
-  folder in the cache that it removes afterwards. Vale runs offline with
+  folder that it removes afterwards. Vale runs offline with
   `--no-global` and line output, on regular files only (symbolic links are
   skipped), and a failure never repeats the matched text. The rules are
   patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
   passes, a registration-number shape is flagged even with an impossible
   birth date, phone and email detection is Vale's, not backfire's, and only
   the student-name rule reads the front matter's title and summary. The
-  check writes nothing outside that temporary folder and uses no network.
+  check creates temporary rule and link-check files, leaves maintained vault
+  source unchanged, and uses no network.
   `update` regenerates stale regions. `check` is the offline structural,
   metadata and rule stage; it does not prove exact sentence evidence or
   semantic correctness.
@@ -396,7 +397,7 @@ use `evidence.read_located(..., locator, max_chars=..., review=...)`, never a
 whole-source, latest-revision or search fallback. Page/section headings and page
 fenced div markers are supported; PDF formfeeds do not establish missing markers.
 Arbitrary inline markers, section divs and lone-CR mappings remain unresolved.
-Full text remains readable locally when exact judgment fails. Native Pandoc
+Existing valid retained text remains available for direct local reading when a locator cannot resolve. Native Pandoc
 parsing uses restricted literal alignment of plain paragraphs and simple list
 items; pySBD proposes candidate spans checked against exact source slices and
 citation coverage. Unsupported or ambiguous formatting, headings, tables,
