@@ -11,6 +11,7 @@ from conftest import update_regions
 import pytest
 
 from wiki_consistency.lint import check
+from wiki_consistency.lint import update
 from wiki_consistency.sources import page_catalog
 from wiki_consistency.sources import source_provenance
 
@@ -20,11 +21,11 @@ def test_page_catalog_groups_sorted_pages_by_topic_without_reading_schema(
 ):
     instance, _ = make_instance(tmp_path)
     monkeypatch.chdir(instance)
-    alpha = instance / "wiki" / "concepts" / "alpha.md"
+    alpha = instance / "wiki" / "concepts" / "alpha.qmd"
     replace_page_topics(alpha, "topics:\n  - Algebra\n  - Geometry\n")
-    source = instance / "wiki" / "sources" / "source.md"
+    source = instance / "wiki" / "sources" / "source.qmd"
     replace_page_topics(source, "topics:\n  - Algebra\n")
-    (instance / "wiki" / "concepts" / "beta.md").write_text(
+    (instance / "wiki" / "concepts" / "beta.qmd").write_text(
         _page(
             "Beta",
             "A third synthetic page.",
@@ -37,15 +38,15 @@ def test_page_catalog_groups_sorted_pages_by_topic_without_reading_schema(
 
     expected = (
         "## Algebra\n\n"
-        "- [Alpha](concepts/alpha.md) — A synthetic page.\n"
-        "- [Source](sources/source.md) — A synthetic source.\n\n"
+        "- [Alpha](concepts/alpha.qmd) — A synthetic page.\n"
+        "- [Source](sources/source.qmd) — A synthetic source.\n\n"
         "## Geometry\n\n"
-        "- [Alpha](concepts/alpha.md) — A synthetic page.\n\n"
+        "- [Alpha](concepts/alpha.qmd) — A synthetic page.\n\n"
         "## Reference\n\n"
-        "- [Beta](concepts/beta.md) — A third synthetic page.\n"
+        "- [Beta](concepts/beta.qmd) — A third synthetic page.\n"
     )
-    assert page_catalog("wiki/**/*.md") == expected
-    assert page_catalog("wiki/**/*.md") == expected
+    assert page_catalog("wiki/**/*.qmd") == expected
+    assert page_catalog("wiki/**/*.qmd") == expected
 
 
 def test_page_catalog_is_empty_when_the_vault_has_no_pages(
@@ -53,24 +54,24 @@ def test_page_catalog_is_empty_when_the_vault_has_no_pages(
 ):
     instance, _ = make_instance(tmp_path)
     monkeypatch.chdir(instance)
-    (instance / "wiki" / "concepts" / "alpha.md").unlink()
-    (instance / "wiki" / "sources" / "source.md").unlink()
+    (instance / "wiki" / "concepts" / "alpha.qmd").unlink()
+    (instance / "wiki" / "sources" / "source.qmd").unlink()
     (instance / "AGENTS.md").unlink()
 
-    assert page_catalog("wiki/**/*.md") == ""
+    assert page_catalog("wiki/**/*.qmd") == ""
 
 
 def test_check_finds_stale_index_after_page_topics_change(tmp_path):
     instance, _ = make_instance(tmp_path)
     assert update_regions(instance) == []
     replace_page_topics(
-        instance / "wiki" / "concepts" / "alpha.md", "topics:\n  - Reference\n"
+        instance / "wiki" / "concepts" / "alpha.qmd", "topics:\n  - Reference\n"
     )
 
     result = check(instance)
 
     assert any(
-        problem["document"] == "wiki/index.md"
+        problem["document"] == "wiki/index.qmd"
         and "wiki-consistency update" in problem["message"]
         for problem in result["problems"]
     )
@@ -105,7 +106,7 @@ def test_source_provenance_renders_sorted_revisions_from_named_files(
 @pytest.mark.parametrize(
     "generator, arguments",
     [
-        (page_catalog, ("wiki/missing/**/*.md",)),
+        (page_catalog, ("wiki/missing/**/*.qmd",)),
         (
             source_provenance,
             ("raw/missing/*/bag-info.txt", "raw/missing/*/manifest-sha256.txt"),
@@ -136,8 +137,77 @@ def test_generators_do_not_read_environment_or_clock(tmp_path, monkeypatch):
     with monkeypatch.context() as patcher:
         patcher.setattr(os, "environ", ForbiddenEnvironment())
         patcher.setattr(time, "time", forbidden_clock)
-        assert page_catalog("wiki/**/*.md")
+        assert page_catalog("wiki/**/*.qmd")
         assert source_provenance(
             f"raw/files/{SOURCE_ID}/*/bag-info.txt",
             f"raw/files/{SOURCE_ID}/*/manifest-sha256.txt",
         )
+
+
+def test_cog_catalog_consumes_actual_named_defaults_and_detects_changes(
+    tmp_path,
+):
+    instance, _ = make_instance(tmp_path)
+    page = instance / "wiki/concepts/alpha.qmd"
+    page.write_text(
+        page.read_text().replace("summary: A synthetic page.\n", "")
+    )
+    defaults = instance / "wiki/concepts/_metadata.yml"
+    defaults.write_text("summary: Inherited summary.\n")
+    index = instance / "wiki/index.qmd"
+    index.write_text(
+        index.read_text().replace(
+            'page_catalog("wiki/**/*.qmd")',
+            'page_catalog("wiki/**/*.qmd", "wiki/concepts/_metadata.yml")',
+        )
+    )
+    assert update(instance) == {"problems": []}
+    assert "Inherited summary." in index.read_text()
+    assert check(instance)["problems"] == []
+    defaults.write_text("summary: Changed inherited summary.\n")
+    assert any(
+        item["document"] == "wiki/index.qmd"
+        for item in check(instance)["problems"]
+    )
+    assert update(instance) == {"problems": []}
+    assert "Changed inherited summary." in index.read_text()
+
+
+def test_catalog_refuses_unnamed_default_before_any_content_read(
+    tmp_path, monkeypatch
+):
+    instance, _ = make_instance(tmp_path)
+    monkeypatch.chdir(instance)
+    (instance / "wiki/_metadata.yml").write_text("profile: {checker: none}\n")
+    with monkeypatch.context() as patcher:
+        patcher.setattr(
+            type(instance), "read_bytes", lambda *_: pytest.fail("unnamed read")
+        )
+        patcher.setattr(
+            type(instance),
+            "read_text",
+            lambda *unused_args, **unused_kwargs: pytest.fail("unnamed read"),
+        )
+        with pytest.raises(
+            ValueError, match="unnamed metadata source: wiki/_metadata.yml"
+        ):
+            page_catalog("wiki/**/*.qmd")
+
+
+@pytest.mark.parametrize(
+    "name",
+    (
+        "wiki/**/_metadata.yml",
+        "wiki/absent/_metadata.yml",
+        "../_metadata.yml",
+        "/_metadata.yml",
+        "AGENTS.md",
+    ),
+)
+def test_catalog_refuses_nonliteral_or_missing_defaults(
+    tmp_path, monkeypatch, name
+):
+    instance, _ = make_instance(tmp_path)
+    monkeypatch.chdir(instance)
+    with pytest.raises(ValueError):
+        page_catalog("wiki/**/*.qmd", name)

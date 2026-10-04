@@ -3,11 +3,13 @@ from pathlib import Path
 from conftest import REVISIONS
 from conftest import SOURCE_ID
 from conftest import add_revision
+from conftest import commit_instance
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
 import pytest
 
+from wiki_consistency.lint import _log_prefix
 from wiki_consistency.lint import check
 
 
@@ -30,7 +32,7 @@ def checked(instance, env):
 def test_check_lists_orphans_and_stale_citations_without_writing(tmp_path):
     instance, env = make_instance(tmp_path)
     assert update_regions(instance) == []
-    orphan = instance / "wiki" / "concepts" / "orphan.md"
+    orphan = instance / "wiki" / "concepts" / "orphan.qmd"
     orphan.write_text(
         "---\ntitle: Orphan\nsummary: An unlinked synthetic page.\n"
         "topics:\n  - Algebra\nsources:\n"
@@ -41,10 +43,10 @@ def test_check_lists_orphans_and_stale_citations_without_writing(tmp_path):
     result = checked(instance, env)
 
     assert result["problems"] == []
-    assert result["orphans"] == ["wiki/concepts/orphan.md"]
+    assert result["orphans"] == ["wiki/concepts/orphan.qmd"]
     assert result["stale_citations"] == [
         {
-            "page": "wiki/concepts/orphan.md",
+            "page": "wiki/concepts/orphan.qmd",
             "source_id": SOURCE_ID,
             "cited_revision": REVISIONS[0],
             "latest_revision": REVISIONS[-1],
@@ -55,7 +57,7 @@ def test_check_lists_orphans_and_stale_citations_without_writing(tmp_path):
 def test_log_prefix_is_checked_only_after_a_commit(tmp_path):
     instance, env = make_instance(tmp_path, commit=True)
     assert update_regions(instance) == []
-    (instance / "wiki" / "log.md").write_text(
+    (instance / "wiki" / "log.qmd").write_text(
         "## [2026-09-28] raw-import | synthetic\n\n1 admitted.\n"
         "## [2026-09-28] lint | synthetic\n\n0 changed pages.\n",
         encoding="utf-8",
@@ -73,7 +75,7 @@ def test_index_must_have_one_page_catalog_region_and_no_text_outside_it(
 ):
     instance, env = make_instance(tmp_path)
     assert update_regions(instance) == []
-    index = instance / "wiki" / "index.md"
+    index = instance / "wiki" / "index.qmd"
     index.write_text(
         "Manual text.\n" + index.read_text(encoding="utf-8"), encoding="utf-8"
     )
@@ -81,7 +83,32 @@ def test_index_must_have_one_page_catalog_region_and_no_text_outside_it(
     result = checked(instance, env)
 
     assert any(
-        problem["document"] == "wiki/index.md"
+        problem["document"] == "wiki/index.qmd"
         and "one page_catalog region" in problem["message"]
         for problem in result["problems"]
     )
+
+
+@pytest.mark.parametrize("legacy", (False, True))
+@pytest.mark.parametrize("change", ("append", "edit", "remove"))
+def test_log_prefix_preserves_committed_bytes_across_rename(
+    tmp_path, legacy, change
+):
+    instance, _ = make_instance(tmp_path)
+    current = instance / "wiki/log.qmd"
+    original = b"## Earlier log\r\n\r\nExact history.\r\n"
+    current.write_bytes(original)
+    if legacy:
+        current.rename(instance / "wiki/log.md")
+    commit_instance(instance)
+    if legacy:
+        (instance / "wiki/log.md").rename(current)
+    if change == "append":
+        current.write_bytes(original + b"\nNew entry.\n")
+    elif change == "edit":
+        current.write_bytes(original.replace(b"Exact", b"Changed"))
+    else:
+        current.unlink()
+    before = tree_hash(instance)
+    assert bool(_log_prefix(instance)) == (change != "append")
+    assert tree_hash(instance) == before
