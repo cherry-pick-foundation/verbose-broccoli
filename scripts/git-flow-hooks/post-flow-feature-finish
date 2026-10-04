@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+[ "${EXIT_CODE:-1}" = 0 ] || exit 0
+
+branch=${BRANCH:-${3-}}
+if [ -z "${branch}" ]; then
+  printf '%s\n' 'Post-merge cleanup: git-flow did not provide the source branch; inspect the finish manually.'
+  exit 0
+fi
+
+if ! tip=$(git rev-parse --verify --quiet "refs/heads/${branch}^{commit}"); then
+  printf 'Post-merge cleanup: cannot resolve the retained tip of %s; do not remove its worktree until inspected.\n' "${branch}"
+  exit 0
+fi
+
+worktree=$(git worktree list --porcelain | awk -v branch="refs/heads/${branch}" '
+  /^worktree / {path = substr($0, 10)}
+  $1 == "branch" && $2 == branch {print path; exit}
+')
+printf '\nPost-merge cleanup for %s\n' "${branch}"
+printf 'Source branch tip: %s\n' "${tip}"
+if [ -z "${worktree}" ]; then
+  printf '%s\n' 'Source worktree: not found; inspect Orca and Git worktree state before cleanup.'
+else
+  printf 'Source worktree: "%s"\n' "${worktree}"
+  if [ ! -d "${worktree}" ]; then
+    printf '%s\n' 'The source directory is missing; inspect it before removing any worktree metadata.'
+  elif ! status=$(git -C "${worktree}" status --porcelain --untracked-files=all); then
+    printf '%s\n' 'The source worktree status could not be checked; do not remove it.'
+  elif [ -n "${status}" ]; then
+    printf '%s\n' 'The source worktree is dirty; preserve it and inspect its changes.'
+  else
+    printf '%s\n' 'The source worktree is clean.'
+  fi
+  printf 'Orca removal command (only when complete and clean): orca worktree rm --worktree "path:%s"\n' "${worktree}"
+fi
+cat <<'EOF'
+Before removal, record the source tip above. In Orca, settle workers first and
+close only idle feature sessions and terminals. Preserve active or unsettled
+workers, unrelated tabs, dirty or unmerged worktrees, and source evidence. Use
+Orca to remove only the completed clean source worktree. If Orca deleted its
+branch, recreate it at the recorded tip with: git branch <source-branch> <tip>.
+EOF
