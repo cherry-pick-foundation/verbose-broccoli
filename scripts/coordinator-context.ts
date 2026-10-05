@@ -103,11 +103,9 @@ async function main() {
     instructions += `Unavailable source: ${state}. Only an assigned coordinator may establish missing state from current decisions; do not invent past contents.\n`;
   if (owned && ['compact', 'resume'].includes(input.source)) {
     try {
-      const count = await compactions(
-        input.transcript_path,
-        client,
-        input.session_id,
-      );
+      const count =
+        (await compactions(input.transcript_path, client, input.session_id)) +
+        Number(client === 'claude' && input.source === 'compact');
       instructions += `This session has ${count} compactions; ${role} threshold is ${threshold}.\n`;
       if (count >= threshold) {
         instructions += `Update ${state} now with decisions, holds/reasons, live owners, questions and next steps. Start no new work. Wait for the user to start a fresh coordinator; do not restart or kill any session.\n`;

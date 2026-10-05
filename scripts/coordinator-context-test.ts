@@ -117,7 +117,7 @@ void test('both client hooks restore context and isolate coordinator thresholds'
       const saveTranscript = (count: number, session = 'current') =>
         writeFileSync(
           transcript,
-          records(count, session)
+          records(client === 'claude' ? Math.max(0, count - 1) : count, session)
             .map(record => JSON.stringify(record))
             .join('\n') + '\n',
         );
@@ -230,6 +230,15 @@ void test('both client hooks restore context and isolate coordinator thresholds'
       const context = run('codex');
       assert.equal(context.includes('Start no new work'), role === 'main');
     }
+    testConfig.worktreeAliases['feature-example'] = 'main';
+    configure();
+    writeFileSync(
+      join(stateHome, config.stateDirectory, 'main', config.stateFile),
+      'Coordinator session: claude/current\n',
+    );
+    writeFileSync(transcript, '{"type":"user","sessionId":"current"}\n');
+    assert.ok(run('claude').includes('1 compactions'));
+    assert.ok(run('claude').includes('Start no new work'));
     const command = JSON.parse(readFileSync('.claude/settings.json', 'utf8'))
       .hooks.SessionStart[0].hooks[0].command;
     const native = spawnSync('/bin/sh', ['-c', command], {
