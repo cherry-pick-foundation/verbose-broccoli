@@ -7,7 +7,6 @@ import {
   mkdtemp,
   readFile,
   rm,
-  symlink,
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -159,14 +158,6 @@ async function temporary(
     await writeFile(join(repo, 'package.json'), JSON.stringify(packageConfig));
     for (const file of ['.gitignore', 'package-lock.json'])
       await copyFile(join(root, file), join(repo, file));
-    await symlink(
-      join(root, 'node_modules'),
-      join(repo, 'node_modules'),
-      'dir',
-    );
-    await writeFile(join(repo, '.gitignore'), '\nnode_modules\n', {
-      flag: 'a',
-    });
     await writeFile(join(repo, 'seed.txt'), 'seed\n');
     await git(
       repo,
@@ -701,6 +692,34 @@ void test('git-flow: cleanup command is withheld unless the source worktree is c
     assertMatch(unreadable, /status could not be checked; do not remove it/i);
     assert(!unreadable.includes('orca-ide worktree rm'), unreadable);
     await writeFile(join(feature, '.git'), gitFile);
+
+    const gitExclude = await git(
+      feature,
+      'rev-parse',
+      '--path-format=absolute',
+      '--git-path',
+      'info/exclude',
+    );
+    await writeFile(gitExclude, 'ignored.txt\n');
+    await writeFile(join(feature, 'ignored.txt'), 'keep me\n');
+    assertEquals(
+      await git(feature, 'status', '--porcelain', '--untracked-files=all'),
+      '',
+    );
+    assertMatch(
+      await git(
+        feature,
+        'status',
+        '--porcelain',
+        '--untracked-files=all',
+        '--ignored=matching',
+      ),
+      /^!! ignored\.txt$/m,
+    );
+    const ignored = runHook();
+    assertMatch(ignored, /worktree is dirty; preserve it/i);
+    assert(!ignored.includes('orca-ide worktree rm'), ignored);
+    await rm(join(feature, 'ignored.txt'));
 
     await rm(feature, {recursive: true});
     const missing = runHook();

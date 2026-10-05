@@ -34,7 +34,7 @@ else
     printf '%s\n' 'The source directory is missing; inspect it before removing any worktree metadata.'
   elif [ ! -e "${worktree}/.git" ]; then
     printf '%s\n' 'The source worktree metadata is missing; inspect and preserve it.'
-  elif ! status=$(git -C "${worktree}" status --porcelain --untracked-files=all); then
+  elif ! status=$(git -C "${worktree}" status --porcelain --untracked-files=all --ignored=matching); then
     printf '%s\n' 'The source worktree status could not be checked; do not remove it.'
   elif [ -n "${status}" ]; then
     printf '%s\n' 'The source worktree is dirty; preserve it and inspect its changes.'
