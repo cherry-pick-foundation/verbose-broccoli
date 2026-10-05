@@ -949,15 +949,25 @@ from `conventional-changelog-conventionalcommits` 10.4.0, pinned in
   passes the preset's parser options directly.
 - lefthook installs its hooks into the Git hooks folder that all worktrees
   share, and each hook reads the running worktree's `.config/lefthook.yml` and runs
-  its `node_modules/lefthook`. When a worktree lacks that binary, the hook
+  its npm-installed native `node_modules/lefthook-<os>-<arch>/bin/lefthook`,
+  without requiring Node to launch. When a worktree lacks that binary, the hook
   refuses the commit (`assert_lefthook_installed`) instead of skipping the
-  check, and lefthook never installs itself (`no_auto_install`). Because the
+  check, and lefthook never installs itself (`no_auto_install`). Checkout
+  and merge hooks quietly skip when that native binary is missing;
+  new worktrees still use the existing setup
+  and manual trust path until dependencies are installed. Because the
   hooks are shared, they are installed once, by hand, from the `develop`
   worktree with `./node_modules/.bin/lefthook install` (again only when
-  lefthook changes); Orca's setup script does not install them, and `npm run
+  lefthook, its launcher or configured hook names change); Orca's setup script does not install them, and `npm run
   doctor` checks the installation.
 - `npm run test:commit-msg` checks commit messages through lefthook in
-  temporary repositories.
+  temporary repositories, including linked worktrees. It also checks guarded
+  mise trust with Node and Python unavailable: post-checkout and post-merge
+  renew trust for `.config/mise.toml` only when its current regular-file bytes
+  equal committed local `develop`. Branch checkout and merge skip unchanged
+  configuration; file-only checkout has no prior-byte snapshot and safely
+  renews matching trust even when unchanged. Differing feature or dirty bytes,
+  missing develop and symlinks remain manually trusted.
 
 ### Linear — 2026-09-27
 

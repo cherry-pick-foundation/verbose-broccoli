@@ -1,6 +1,19 @@
-lefthook: node_modules/lefthook/bin/index.js
+lefthook: >-
+  hook_bin=node_modules/lefthook-$(uname | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/;s/x86_64/x64/')/bin/lefthook;
+  if [ ! -x "${hook_bin}" ] && { [ "${2}" = post-checkout ] || [ "${2}" = post-merge ]; }; then return 0; fi;
+  "${hook_bin}"
 no_auto_install: true
 assert_lefthook_installed: true
+
+post-checkout:
+  commands:
+    guarded-mise-trust:
+      run: sh scripts/guarded-mise-trust.sh {1} {2} {3}
+
+post-merge:
+  commands:
+    guarded-mise-trust:
+      run: sh scripts/guarded-mise-trust.sh ORIG_HEAD
 
 commit-msg:
   commands:
