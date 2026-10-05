@@ -4,31 +4,31 @@ Feature: CHE-88, spec055. Develop owns final task ticks. Unchecked boxes describ
 
 ## Phase 1: Setup and design
 
-- [ ] T001 Check both installed clients' hook capability and write spec/plan/research/data-model/quickstart plus checklist under specs/055-compaction-continuity/.
+- [x] T001 Check both installed clients' hook capability and write spec/plan/research/data-model/quickstart plus checklist under specs/055-compaction-continuity/.
   2026-10-05: Approved brief and all standing notes read fully; hook input/output and Codex context limit checked against official docs and version-matched source. Develop approved explicit session ownership in state. Native Codex gpt-6.1-sol/medium was selected through Jev typesafe/jev-1.13 (probability 0.68, confidence 0.63); receipts are in develop/compaction-continuity/attempt-20261005T0225Z under approved state storage. The 60-minute advisory checkpoint is not a stopping deadline.
 
 ## Phase 2: Foundation
 
-- [ ] T002 Define central notes/state paths and thresholds in .config/coordinator-context.json and read-only hook input handling in scripts/coordinator-context.ts.
+- [x] T002 Define central notes/state paths and thresholds in .config/coordinator-context.json and read-only hook input handling in scripts/coordinator-context.ts.
 
 ## Phase 3: User story 1 — restore context
 
-- [ ] T003 [US1] Add full context/fallback and explicit coordinator ownership in scripts/coordinator-context.ts; test both clients, full content, source events, missing sources and unchanged files in scripts/coordinator-context-test.ts.
-- [ ] T004 [US1] Register the hook in .codex/hooks.json and .claude/settings.json, preserving Ponytail; test native command definitions in scripts/coordinator-context-test.ts.
+- [x] T003 [US1] Add full context/fallback and explicit coordinator ownership in scripts/coordinator-context.ts; test both clients, full content, source events, missing sources and unchanged files in scripts/coordinator-context-test.ts.
+- [x] T004 [US1] Register the hook in .codex/hooks.json and .claude/settings.json, preserving Ponytail; test native command definitions in scripts/coordinator-context-test.ts.
 
 ## Phase 4: User story 2 — compaction thresholds
 
-- [ ] T005 [US2] Count owned-session compactions and issue threshold context plus desktop notification in scripts/coordinator-context.ts; test role thresholds, replacement/session separation, damaged transcripts and notification failure in scripts/coordinator-context-test.ts.
+- [x] T005 [US2] Count owned-session compactions and issue threshold context plus desktop notification in scripts/coordinator-context.ts; test role thresholds, replacement/session separation, damaged transcripts and notification failure in scripts/coordinator-context-test.ts.
 
 ## Phase 5: User story 3 — useful coordination
 
-- [ ] T006 [US3] Add the short main/develop message rule to AGENTS.md and verify no project memories override is introduced.
+- [x] T006 [US3] Add the short main/develop message rule to AGENTS.md and verify no project memories override is introduced.
 
 ## Phase 6: Acceptance and integration
 
-- [ ] T007 Register runnable checks in package.json/turbo.json and regenerate only the command table in docs/reference/commands.md; run narrow checks and full same-run verification.
-- [ ] T008 Commit the feature records in specs/055-compaction-continuity/, run document prepare/audit, measure owned size and request independent native Claude /code-review plus Linear In Review through develop.
-- [ ] T009 Align current develop, resolve review findings, renew verification/review as needed and create the content-free review-record tip; request develop's git flow finish.
+- [x] T007 Register runnable checks in package.json/turbo.json and regenerate only the command table in docs/reference/commands.md; run narrow checks and full same-run verification.
+- [x] T008 Commit the feature records in specs/055-compaction-continuity/, run document prepare/audit, measure owned size and request independent native Claude /code-review plus Linear In Review through develop.
+- [x] T009 Align current develop, resolve review findings, renew verification/review as needed and create the content-free review-record tip; request develop's git flow finish.
 
 2026-10-05 checkpoint: T002–T006 implementation is present; T007 narrow tests (2/2), scoped ESLint and TypeScript passed. Full verification, final document judgments and independent review remain unrun. Develop holds new work until CHE-86 privacy merges; next merge updated develop, rerun workflow and continue acceptance. Reviewer choice: Claude Code claude-sonnet-5-5 medium, Jev probability 0.88/confidence 0.85; no reviewer started.
 
@@ -49,3 +49,5 @@ The one mutable coordinator file is ~/.local/state/verbose-broccoli/workspaces/f
 2026-10-05 isolation follow-up: The unmatched-checkpoint regression failed before the owner filter and passes after it; matched coordinators retain full restoration and assigned replacements get conditional full-read/claim instructions. The native Claude command also failed outside the checkout with a bogus Codex Node path before its project-root anchor and now passes. Next: affected full verification and fresh neutral review; earlier receipts stay immutable.
 
 2026-10-05 timing follow-up: Installed Claude source confirms compact hooks precede the current boundary record. The pre-boundary first-compaction regression failed before the Claude-only current-event adjustment and now passes; resume and session separation remain covered. Next: full verification and renewed neutral review of this material timing fix.
+
+2026-10-05 develop finish: merge bf7d657, content-free review record f8e0233 over independently reviewed source 903f5d9. Feature and merged develop each passed all 46 verification tasks with retained same-run summaries. Root accepted the source-backed remaining review observations and low-confidence advisory disposition. All five reviewers and the feature owner are settled/released; branch is retained. Next: fresh feature-session rollout; main/develop are user-started. Live desktop display and compacted model responses were not exercised and remain accurately described in the report.
