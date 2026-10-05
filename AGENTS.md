@@ -110,7 +110,7 @@ that removes the copy or replaces it with an installed dependency.
   Turborepo and passes on their exit status and the same run's summary.
 - The agent, model and reasoning effort of each worker, reviewer and
   orchestrator come from the code plugin's `model-choice` skill; each time
-  budget comes from the code plugin's backfire judgments.
+  budget comes from the code plugin's jev-mcp judgments.
 
 ## Review
 
@@ -121,7 +121,7 @@ that removes the copy or replaces it with an installed dependency.
   feature, and give it only the review scope and the requirements, not
   suspected defects, prior findings, or expected outcomes.
 - Workers and reviewers that read student data (the work vault's student
-  pages, backfire's roster or raw student sources) run only on Claude Code or
+  pages, the gate's registered list or raw student sources) run only on Claude Code or
   Codex, the user's own Claude and ChatGPT accounts, never on another agent;
   this overrides the Copilot preference above.
 - Resolve actionable findings, rerun the affected verification, and repeat the
@@ -132,6 +132,12 @@ that removes the copy or replaces it with an installed dependency.
   line), review whether to split it before the `develop` merge review.
 - A review before merging into `develop` favors speed; one before merging into
   `main` favors accuracy.
+
+## Coordinator messages
+
+Develop messages main only with questions or user-relevant merges, user blocks and finished features.
+Main answers by convention and relays user decisions; it does not re-verify develop evidence or reply to routine status.
+Heartbeats need acknowledgment only.
 
 ## Records
 

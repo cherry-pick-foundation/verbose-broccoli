@@ -53,6 +53,457 @@ const receiptPath = (root: string) =>
     'plugin-discovery/plugin-discovery.json',
   );
 
+async function sharedJevCheckout(root: string) {
+  await syntheticCheckout(
+    root,
+    '# personal setting\n[features]\nhooks = true\n',
+  );
+  const server = {
+    type: 'stdio',
+    command: 'uv',
+    args: [
+      '--directory',
+      '${PLUGIN_ROOT}/../../packages/education-privacy-gate',
+      'run',
+      '--frozen',
+      '--offline',
+      '--no-sync',
+      'jev-mcp',
+    ],
+    env: {SYNTHETIC: 'only'},
+    cwd: '${PLUGIN_ROOT}/../../packages/education-privacy-gate',
+  };
+  for (const plugin of ['code', 'work']) {
+    const path = join(root, 'plugins', plugin);
+    const declaration = JSON.parse(
+      await readFile(join(path, 'mcp.json'), 'utf8'),
+    );
+    declaration.mcpServers = {
+      'jev-mcp': server,
+      ...(plugin === 'work'
+        ? {'reference-library': declaration.mcpServers['reference-library']}
+        : {}),
+    };
+    await writeFile(join(path, 'mcp.json'), JSON.stringify(declaration));
+    await mkdir(join(path, 'skills/jev/reference'), {recursive: true});
+    await writeFile(
+      join(path, 'skills/jev/SKILL.md'),
+      '---\nname: jev\n---\nSynthetic shared skill\n',
+    );
+    await writeFile(
+      join(path, 'skills/jev/reference/tools.md'),
+      'Synthetic tools\n',
+    );
+  }
+  await writeFile(
+    join(root, '.mcp.json'),
+    JSON.stringify({
+      extra: 'keep',
+      mcpServers: {personal: {command: 'user-owned'}},
+    }),
+  );
+}
+
+void test('shared jev: single-plugin selection and disabling either owner preserve the remaining route', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'shared-jev-'));
+  try {
+    for (const disabled of ['code', 'work']) {
+      for (const initiallyBoth of [false, true]) {
+        const root = join(temp, `${disabled}-${initiallyBoth}`);
+        await sharedJevCheckout(root);
+        if (!initiallyBoth) {
+          await mkdir(join(root, '.agents/skills'), {recursive: true});
+          await symlink(
+            `../../plugins/${disabled}/skills/jev`,
+            join(root, '.agents/skills/jev'),
+          );
+        }
+        if (initiallyBoth) {
+          preparePluginDiscovery(root);
+          const owned = JSON.parse(await readFile(receiptPath(root), 'utf8'));
+          assertEquals(owned.serverOwners['jev-mcp'], ['code', 'work']);
+          assertEquals(owned.skillOwners.jev, [
+            'plugins/code/skills/jev',
+            'plugins/work/skills/jev',
+          ]);
+          assertEquals(
+            await readlink(join(root, '.agents/skills/jev')),
+            '../../plugins/code/skills/jev',
+          );
+          const copied = preparePluginClients(root);
+          const declarations = await Promise.all(
+            ['code', 'work'].map(async plugin =>
+              JSON.parse(
+                await readFile(
+                  join(copied, 'plugins', plugin, 'mcp.json'),
+                  'utf8',
+                ),
+              ),
+            ),
+          );
+          assertEquals(
+            declarations[0].mcpServers['jev-mcp'],
+            declarations[1].mcpServers['jev-mcp'],
+          );
+        }
+        const declaration = join(root, 'plugins', disabled, 'mcp.json');
+        const mcp = JSON.parse(await readFile(declaration, 'utf8'));
+        delete mcp.mcpServers['jev-mcp'];
+        await writeFile(declaration, JSON.stringify(mcp));
+        await rm(join(root, 'plugins', disabled, 'skills/jev'), {
+          recursive: true,
+        });
+        preparePluginDiscovery(root);
+        const remaining = disabled === 'code' ? 'work' : 'code';
+        const owned = JSON.parse(await readFile(receiptPath(root), 'utf8'));
+        assertEquals(owned.serverOwners['jev-mcp'], [remaining]);
+        assertEquals(owned.skillOwners.jev, [
+          `plugins/${remaining}/skills/jev`,
+        ]);
+        assertEquals(
+          await readlink(join(root, '.agents/skills/jev')),
+          `../../plugins/${remaining}/skills/jev`,
+        );
+        const copied = preparePluginClients(root);
+        for (const plugin of ['code', 'work']) {
+          const declaration = JSON.parse(
+            await readFile(join(copied, 'plugins', plugin, 'mcp.json'), 'utf8'),
+          );
+          assertEquals(
+            Object.hasOwn(declaration.mcpServers, 'jev-mcp'),
+            plugin === remaining,
+          );
+        }
+        const live = JSON.parse(
+          await readFile(join(root, '.mcp.json'), 'utf8'),
+        );
+        assertEquals(Object.keys(live.mcpServers).sort(), [
+          'jev-mcp',
+          'personal',
+          'reference-library',
+        ]);
+        assertEquals(live.extra, 'keep');
+        assertEquals(live.mcpServers.personal, {command: 'user-owned'});
+        assertEquals(
+          live.mcpServers['jev-mcp'].cwd,
+          join(root, 'packages/education-privacy-gate'),
+        );
+        const config = await readFile(join(root, '.codex/config.toml'), 'utf8');
+        assertEquals(config.match(/\[mcp_servers\."jev-mcp"\]/g)?.length, 1);
+        assert(
+          config.startsWith('# personal setting\n[features]\nhooks = true\n'),
+        );
+        assert(
+          config.includes(
+            'disabled_tools = ["zotero_delete_items","zotero_delete_collection","zotero_empty_trash"]',
+          ),
+        );
+        const bytes = await readFile(receiptPath(root));
+        preparePluginDiscovery(root);
+        assertEquals(await readFile(receiptPath(root)), bytes);
+        cleanPluginCodex(root);
+        assertEquals(
+          await readFile(join(root, '.codex/config.toml'), 'utf8'),
+          '# personal setting\n[features]\nhooks = true\n',
+        );
+        // Re-enabling an equal source keeps the still-owned link in place.
+        await cp(
+          join(root, 'plugins', remaining, 'skills/jev'),
+          join(root, 'plugins', disabled, 'skills/jev'),
+          {recursive: true},
+        );
+        const remainingDeclaration = JSON.parse(
+          await readFile(join(root, 'plugins', remaining, 'mcp.json'), 'utf8'),
+        );
+        mcp.mcpServers['jev-mcp'] = remainingDeclaration.mcpServers['jev-mcp'];
+        await writeFile(declaration, JSON.stringify(mcp));
+        preparePluginDiscovery(root);
+        assertEquals(
+          await readlink(join(root, '.agents/skills/jev')),
+          `../../plugins/${remaining}/skills/jev`,
+        );
+        assertEquals(
+          JSON.parse(await readFile(receiptPath(root), 'utf8')).serverOwners[
+            'jev-mcp'
+          ],
+          ['code', 'work'],
+        );
+        for (const plugin of ['code', 'work']) {
+          const path = join(root, 'plugins', plugin, 'mcp.json');
+          const removed = JSON.parse(await readFile(path, 'utf8'));
+          delete removed.mcpServers['jev-mcp'];
+          await writeFile(path, JSON.stringify(removed));
+          await rm(join(root, 'plugins', plugin, 'skills/jev'), {
+            recursive: true,
+          });
+        }
+        preparePluginDiscovery(root);
+        assert(!existsSync(join(root, '.agents/skills/jev')));
+        assert(
+          !Object.hasOwn(
+            JSON.parse(await readFile(join(root, '.mcp.json'), 'utf8'))
+              .mcpServers,
+            'jev-mcp',
+          ),
+        );
+      }
+    }
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('shared jev: complete launch differences and skill divergence reject before writes', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'shared-jev-conflict-'));
+  try {
+    for (const field of [
+      'command',
+      'args',
+      'env',
+      'cwd',
+      'other',
+      'body',
+      'resource',
+      'file-set',
+    ]) {
+      const root = join(temp, field);
+      await sharedJevCheckout(root);
+      if (field === 'body' || field === 'resource') {
+        await writeFile(
+          join(
+            root,
+            'plugins/work/skills/jev',
+            field === 'body' ? 'SKILL.md' : 'reference/tools.md',
+          ),
+          field === 'body' ? '---\nname: jev\n---\nDiverged\n' : 'Diverged\n',
+        );
+      } else if (field === 'file-set') {
+        await writeFile(
+          join(root, 'plugins/work/skills/jev/extra.txt'),
+          'extra',
+        );
+      } else {
+        const path = join(root, 'plugins/work/mcp.json');
+        const mcp = JSON.parse(await readFile(path, 'utf8'));
+        mcp.mcpServers['jev-mcp'][field] =
+          field === 'env'
+            ? {SYNTHETIC: 'different'}
+            : field === 'args'
+              ? ['different']
+              : 'different';
+        await writeFile(path, JSON.stringify(mcp));
+      }
+      const before = await Promise.all(
+        ['.mcp.json', '.codex/config.toml'].map(path =>
+          readFile(join(root, path)),
+        ),
+      );
+      for (const prepare of [preparePluginDiscovery, preparePluginClients]) {
+        assertThrows(
+          () => prepare(root),
+          Error,
+          field === 'body' || field === 'resource' || field === 'file-set'
+            ? 'Duplicate skill: jev'
+            : 'Duplicate plugin server: jev-mcp',
+        );
+        assertEquals(
+          await Promise.all(
+            ['.mcp.json', '.codex/config.toml'].map(path =>
+              readFile(join(root, path)),
+            ),
+          ),
+          before,
+        );
+        assert(!existsSync(receiptPath(root)));
+        assert(!existsSync(join(root, '.agents')));
+        assert(
+          !existsSync(
+            join(
+              storageHome,
+              'cache/verbose-broccoli/workspaces',
+              checkoutName(root),
+            ),
+          ),
+        );
+      }
+    }
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
+void test('shared jev: interrupted preparation recovers both owners and one registration', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'shared-jev-interrupted-'));
+  try {
+    await sharedJevCheckout(root);
+    const child = spawnSync(
+      process.execPath,
+      [
+        '--input-type=module',
+        '-e',
+        `
+      import fs from 'node:fs';
+      import {syncBuiltinESMExports} from 'node:module';
+      const rename = fs.renameSync;
+      fs.renameSync = (...args) => { const result = rename(...args); if (args[1] === ${JSON.stringify(join(root, '.mcp.json'))}) process.exit(86); return result; };
+      syncBuiltinESMExports();
+      const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+      preparePluginDiscovery(${JSON.stringify(root)});
+    `,
+      ],
+      {env: process.env, encoding: 'utf8'},
+    );
+    assertEquals(child.status, 86, child.stderr);
+    const intent = JSON.parse(
+      await readFile(`${receiptPath(root)}.pending`, 'utf8'),
+    );
+    assertEquals(intent.intended.serverOwners['jev-mcp'], ['code', 'work']);
+    preparePluginDiscovery(root);
+    assertEquals(
+      JSON.parse(await readFile(receiptPath(root), 'utf8')),
+      intent.intended,
+    );
+    assert(!existsSync(`${receiptPath(root)}.pending`));
+    assertEquals(
+      Object.keys(
+        JSON.parse(await readFile(join(root, '.mcp.json'), 'utf8')).mcpServers,
+      ).sort(),
+      ['jev-mcp', 'personal', 'reference-library'],
+    );
+  } finally {
+    await rm(root, {recursive: true, force: true});
+  }
+});
+
+void test('shared jev: object order is structural and foreign links are never retargeted', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'shared-jev-order-'));
+  try {
+    await sharedJevCheckout(root);
+    const workPath = join(root, 'plugins/work/mcp.json');
+    const work = JSON.parse(await readFile(workPath, 'utf8'));
+    work.mcpServers['jev-mcp'] = Object.fromEntries(
+      Object.entries(work.mcpServers['jev-mcp']).reverse(),
+    );
+    await writeFile(workPath, JSON.stringify(work));
+    await mkdir(join(root, '.agents/skills'), {recursive: true});
+    const link = join(root, '.agents/skills/jev');
+    await symlink('../../foreign/jev', link);
+    assertThrows(
+      () => preparePluginDiscovery(root),
+      Error,
+      'Conflict: .agents/skills/jev',
+    );
+    assertEquals(await readlink(link), '../../foreign/jev');
+    assert(!existsSync(receiptPath(root)));
+    await rm(link);
+    preparePluginDiscovery(root);
+    assertEquals(await readlink(link), '../../plugins/code/skills/jev');
+    const output = preparePluginClients(root);
+    const code = JSON.parse(
+      await readFile(join(output, 'plugins/code/mcp.json'), 'utf8'),
+    );
+    const copiedWork = JSON.parse(
+      await readFile(join(output, 'plugins/work/mcp.json'), 'utf8'),
+    );
+    assertEquals(code.mcpServers['jev-mcp'], copiedWork.mcpServers['jev-mcp']);
+  } finally {
+    await rm(root, {recursive: true, force: true});
+  }
+});
+
+void test('shared skills: canonical targets retarget with journaled interruption recovery', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'shared-skill-retarget-'));
+  try {
+    for (const disabled of ['code', 'work']) {
+      for (const cut of ['present', 'removed', 'replaced']) {
+        const root = join(temp, `${disabled}-${cut}`);
+        await sharedJevCheckout(root);
+        const oldOwner = cut === 'present' ? 'work' : disabled;
+        const selected = oldOwner === 'code' ? 'work' : 'code';
+        const oldTarget = `../../plugins/${oldOwner}/skills/jev`;
+        const target = `../../plugins/${selected}/skills/jev`;
+        const link = join(root, '.agents/skills/jev');
+        await mkdir(join(root, '.agents/skills/personal'), {recursive: true});
+        await writeFile(
+          join(root, '.agents/skills/personal/keep.txt'),
+          'foreign',
+        );
+        await symlink(oldTarget, link);
+        if (cut !== 'present') {
+          await rm(join(root, 'plugins', disabled, 'skills/jev'), {
+            recursive: true,
+          });
+        }
+        if (cut === 'present') {
+          preparePluginDiscovery(root);
+        } else {
+          const child = spawnSync(
+            process.execPath,
+            [
+              '--input-type=module',
+              '-e',
+              `
+            import fs from 'node:fs';
+            import {syncBuiltinESMExports} from 'node:module';
+            const method = ${JSON.stringify(cut)} === 'removed' ? 'rmSync' : 'symlinkSync';
+            const original = fs[method];
+            fs[method] = (...args) => {
+              const result = original(...args);
+              if (args[method === 'rmSync' ? 0 : 1] === ${JSON.stringify(link)}) process.exit(86);
+              return result;
+            };
+            syncBuiltinESMExports();
+            const {preparePluginDiscovery} = await import(${JSON.stringify(new URL('./plugin-clients.ts', import.meta.url).href)});
+            preparePluginDiscovery(${JSON.stringify(root)});
+          `,
+            ],
+            {env: process.env, encoding: 'utf8'},
+          );
+          assertEquals(child.status, 86, child.stderr);
+          const intent = JSON.parse(
+            await readFile(`${receiptPath(root)}.pending`, 'utf8'),
+          );
+          assertEquals(intent.old.links['.agents/skills/jev'], oldTarget);
+          assertEquals(intent.intended.links['.agents/skills/jev'], target);
+          assertEquals(intent.intended.skillOwners.jev, [
+            `plugins/${selected}/skills/jev`,
+          ]);
+          if (cut === 'removed') assert(!existsSync(link));
+          else assertEquals(await readlink(link), target);
+          preparePluginDiscovery(root);
+          assert(!existsSync(`${receiptPath(root)}.pending`));
+        }
+        assertEquals(await readlink(link), target);
+        const owned = JSON.parse(await readFile(receiptPath(root), 'utf8'));
+        assertEquals(owned.links['.agents/skills/jev'], target);
+        assertEquals(
+          owned.skillOwners.jev,
+          cut === 'present'
+            ? ['plugins/code/skills/jev', 'plugins/work/skills/jev']
+            : [`plugins/${selected}/skills/jev`],
+        );
+        for (const plugin of ['code', 'work']) {
+          await rm(join(root, 'plugins', plugin, 'skills/jev'), {
+            recursive: true,
+            force: true,
+          });
+        }
+        preparePluginDiscovery(root);
+        await rejects(lstat(link), {code: 'ENOENT'});
+        assertEquals(
+          await readFile(
+            join(root, '.agents/skills/personal/keep.txt'),
+            'utf8',
+          ),
+          'foreign',
+        );
+      }
+    }
+  } finally {
+    await rm(temp, {recursive: true, force: true});
+  }
+});
+
 async function checkDiscoveryTree(root: string) {
   const expected: Record<string, string> = {
     '.claude/skills': '../.agents/skills',
@@ -61,6 +512,7 @@ async function checkDiscoveryTree(root: string) {
   for (const plugin of ['chat', 'code', 'work']) {
     for (const name of await readdir(join(root, 'plugins', plugin, 'skills'))) {
       const path = `.agents/skills/${name}`;
+      if (name === 'jev' && Object.hasOwn(expected, path)) continue;
       assert(!Object.hasOwn(expected, path), `Duplicate skill: ${name}`);
       expected[path] = `../../plugins/${plugin}/skills/${name}`;
     }
@@ -217,17 +669,20 @@ void test('plugin skills: isolated packages retain resources and executable help
         assertEquals(
           Object.keys(mcp.mcpServers),
           pluginDirectory === 'work'
-            ? ['backfire-education', 'reference-library']
-            : ['backfire-code'],
+            ? ['jev-mcp', 'reference-library']
+            : ['jev-mcp'],
         );
-        const backfire =
-          mcp.mcpServers[
-            pluginDirectory === 'work' ? 'backfire-education' : 'backfire-code'
-          ];
-        assertEquals(
-          backfire.args.includes('--education'),
-          pluginDirectory === 'work',
-        );
+        const proxy = mcp.mcpServers['jev-mcp'];
+        assertEquals(proxy.command, 'uv');
+        assertEquals(proxy.args, [
+          '--directory',
+          '${PLUGIN_ROOT}/../../packages/education-privacy-gate',
+          'run',
+          '--frozen',
+          '--offline',
+          '--no-sync',
+          'jev-mcp',
+        ]);
       }
       for (const component of ['skills', 'hooks', 'tests']) {
         if (!existsSync(join(source, component))) continue;
@@ -247,6 +702,10 @@ void test('plugin skills: isolated packages retain resources and executable help
       for (const skill of await readdir(join(target, 'skills'))) {
         const skillDirectory = join(target, 'skills', skill);
         const text = await readFile(join(skillDirectory, 'SKILL.md'), 'utf8');
+        if (skill === 'jev') {
+          assert(text.includes('references/verbose-broccoli.md'));
+          continue;
+        }
         assert(
           text.includes(
             `Read [the ${pluginDirectory} plugin rules](../../AGENTS.md) before using this skill.`,
@@ -280,91 +739,57 @@ void test('plugin skills: isolated packages retain resources and executable help
   }
 });
 
-void test('plugin skills: work Backfire shares code tool reference and license', async () => {
-  for (const path of ['reference/tools.md', 'LICENSE']) {
+void test('plugin skills: portable Jev copies share every resource and local privacy guidance', async () => {
+  const code = join(ROOT, 'plugins/code/skills/jev');
+  const work = join(ROOT, 'plugins/work/skills/jev');
+  const files = await readdir(code, {recursive: true});
+  assertEquals(await readdir(work, {recursive: true}), files);
+  for (const path of files) {
+    if (!(await lstat(join(code, path))).isFile()) continue;
     assertEquals(
-      await readFile(
-        join(ROOT, 'plugins/work/skills/backfire-education', path),
-        'utf8',
-      ),
-      await readFile(
-        join(ROOT, 'plugins/code/skills/backfire-code', path),
-        'utf8',
-      ),
+      await readFile(join(code, path)),
+      await readFile(join(work, path)),
     );
   }
+  const guidance = await readFile(
+    join(code, 'references/verbose-broccoli.md'),
+    'utf8',
+  );
+  for (const boundary of [
+    'always-on',
+    'Never send secrets or credentials',
+    'Model training must be off',
+    'Unknown names and school spellings pass unchanged',
+  ])
+    assert(guidance.includes(boundary), boundary);
 });
 
-void test('plugin skills: canonical Backfire metadata exposes distinct data boundaries', async () => {
-  const guidance = await readFile(
+void test('plugin skills: canonical Jev metadata and linked rules preserve plugin ownership', async () => {
+  const claude = await readFile(
     join(ROOT, '.claude/rules/claude-code.md'),
     'utf8',
   );
-  const resolution = guidance
-    .split('\n- ')
-    .find(rule => rule.includes('`realpath`'));
-  assert(
-    resolution,
-    'Shared Claude rule must resolve skill symlinks before relative paths',
-  );
   assert(
     /`realpath`.*before constructing.*relative (Read|Bash)/.test(
-      resolution.replace(/\s+/g, ' '),
+      claude.replace(/\s+/g, ' '),
     ),
   );
-  for (const pointer of ['../../AGENTS.md', '.claude/skills', '.agents/skills'])
-    assert(resolution.includes(pointer), pointer);
-  const descriptions: string[] = [];
-  for (const [plugin, name] of [
-    ['code', 'backfire-code'],
-    ['work', 'backfire-education'],
-  ]) {
-    const text = await readFile(
-      join(ROOT, 'plugins', plugin, 'skills', name, 'SKILL.md'),
+  for (const plugin of ['code', 'work']) {
+    const skill = join(ROOT, 'plugins', plugin, 'skills/jev');
+    const text = await readFile(join(skill, 'SKILL.md'), 'utf8');
+    assert(/^name: jev$/m.test(text));
+    assert(/^description: \S.+$/m.test(text));
+    assert(text.includes('references/verbose-broccoli.md'));
+    const guidance = await readFile(
+      join(skill, 'references/verbose-broccoli.md'),
       'utf8',
     );
-    const front = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(text)?.[1];
-    assert(front, name);
-    assertEquals(front.match(/^name:\s*([a-z0-9-]+)\s*$/m)?.[1], name);
-    assert(name.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name));
-    // Both canonical sources use a JSON-compatible quoted YAML scalar.
-    const description = JSON.parse(
-      front.match(/^description:\s*(".*")\s*$/m)?.[1] ?? 'null',
+    assert(guidance.includes('../../../AGENTS.md'));
+    assertEquals(
+      await realpath(join(skill, 'references/../../../AGENTS.md')),
+      join(ROOT, 'plugins', plugin, 'AGENTS.md'),
     );
-    assert(typeof description === 'string' && description.trim().length > 0);
-    assert(description.length <= 1024 && !/[<>]/.test(description));
-    const pointer = text.match(/Read \[[^\]]+plugin rules\]\(([^)]+)\)/)?.[1];
-    assert(pointer, name);
-    const expectedRules = join(ROOT, 'plugins', plugin, 'AGENTS.md');
-    for (const alias of ['.agents/skills', '.claude/skills']) {
-      const directory = join(ROOT, alias, name);
-      assert(resolve(directory, pointer) !== expectedRules);
-      const canonicalRules = resolve(await realpath(directory), pointer);
-      assertEquals(canonicalRules, expectedRules);
-      assertEquals(
-        await readFile(canonicalRules),
-        await readFile(expectedRules),
-      );
-    }
-    if (plugin === 'code') {
-      assert(/development/i.test(description));
-      assert(
-        /never.*student data.*private personal records/i.test(description),
-      );
-      assert(description.includes('backfire-education'));
-    } else {
-      assert(
-        /education/i.test(description) && /privacy gate/i.test(description),
-      );
-      assert(
-        /identifier-detection/i.test(description) &&
-          /account-training/i.test(description),
-      );
-      assert(/never.*credentials/i.test(description));
-    }
-    descriptions.push(description);
   }
-  assert(descriptions[0] !== descriptions[1]);
 });
 
 void test('plugin clients: shared declarations survive copying, changes and failed preparation', async () => {
@@ -382,10 +807,10 @@ void test('plugin clients: shared declarations survive copying, changes and fail
           join(ROOT, 'plugins', name, 'mcp.json'),
           join(target, 'mcp.json'),
         );
-      await mkdir(join(target, 'skills/demo'), {recursive: true});
+      await mkdir(join(target, `skills/demo-${name}`), {recursive: true});
       await writeFile(
-        join(target, 'skills/demo/SKILL.md'),
-        `Synthetic ${name} skill\n`,
+        join(target, `skills/demo-${name}/SKILL.md`),
+        `---\nname: demo-${name}\n---\nSynthetic ${name} skill\n`,
       );
       await mkdir(join(target, 'node_modules'), {recursive: true});
       await writeFile(
@@ -407,19 +832,12 @@ void test('plugin clients: shared declarations survive copying, changes and fail
       JSON.parse(await readFile(path, 'utf8'));
     const code = await readJson(join(output, 'plugins/code/mcp.json'));
     const work = await readJson(join(output, 'plugins/work/mcp.json'));
-    assertEquals(Object.keys(code.mcpServers), ['backfire-code']);
+    assertEquals(Object.keys(code.mcpServers), ['jev-mcp']);
     assertEquals(Object.keys(work.mcpServers), [
-      'backfire-education',
+      'jev-mcp',
       'reference-library',
     ]);
-    assertEquals(
-      code.mcpServers['backfire-code'].args.includes('--education'),
-      false,
-    );
-    assertEquals(
-      work.mcpServers['backfire-education'].args.includes('--education'),
-      true,
-    );
+    assertEquals(code.mcpServers['jev-mcp'], work.mcpServers['jev-mcp']);
     assertEquals(work.mcpServers['reference-library'].args, [
       join(temp, 'plugins/work/node_modules/zotero-native-mcp/build/index.js'),
     ]);
@@ -435,8 +853,8 @@ void test('plugin clients: shared declarations survive copying, changes and fail
         name === 'chat' ? undefined : './mcp.json',
       );
       assertEquals(
-        await readFile(join(plugin, 'skills/demo/SKILL.md'), 'utf8'),
-        `Synthetic ${name} skill\n`,
+        await readFile(join(plugin, `skills/demo-${name}/SKILL.md`), 'utf8'),
+        `---\nname: demo-${name}\n---\nSynthetic ${name} skill\n`,
       );
       await rejects(lstat(join(plugin, 'node_modules')), {code: 'ENOENT'});
     }
@@ -466,21 +884,20 @@ void test('plugin clients: shared declarations survive copying, changes and fail
     );
     await rejects(lstat(`${output}.next`), {code: 'ENOENT'});
     await rejects(lstat(`${output}.previous`), {code: 'ENOENT'});
-    changed.mcpServers['backfire-code'] =
-      changed.mcpServers['backfire-education'];
+    changed.mcpServers['jev-mcp'].command = 'conflicting';
     await writeFile(sourcePath, JSON.stringify(changed));
     assertThrows(
       () => preparePluginClients(temp),
       Error,
-      'Duplicate plugin server: backfire-code',
+      'Duplicate plugin server: jev-mcp',
     );
     assertEquals(
       await readFile(join(output, 'plugins/work/mcp.json'), 'utf8'),
       latest,
     );
-    delete changed.mcpServers['backfire-code'];
+    changed.mcpServers['jev-mcp'].command = 'uv';
     await writeFile(sourcePath, JSON.stringify(changed));
-    const resource = join(temp, 'plugins/work/skills/demo/linked.txt');
+    const resource = join(temp, 'plugins/work/skills/demo-work/linked.txt');
     await symlink(sourcePath, resource);
     assertThrows(
       () => preparePluginClients(temp),
@@ -542,6 +959,7 @@ void test('live discovery: source edits, resources, reruns and moved checkout', 
       for (const name of await readdir(
         join(temp, 'plugins', plugin, 'skills'),
       )) {
+        if (name === 'jev' && plugin === 'work') continue;
         assertEquals(
           await realpath(join(index, name)),
           join(temp, 'plugins', plugin, 'skills', name),
@@ -577,14 +995,8 @@ void test('live discovery: source edits, resources, reruns and moved checkout', 
     );
     const mcp = JSON.parse(await readFile(join(temp, '.mcp.json'), 'utf8'));
     assertEquals(mcp.mcpServers.custom.command, 'user-owned');
-    assertEquals(
-      mcp.mcpServers['backfire-code'].args.includes('--education'),
-      false,
-    );
-    assertEquals(
-      mcp.mcpServers['backfire-education'].args.includes('--education'),
-      true,
-    );
+    assertEquals(mcp.mcpServers['jev-mcp'].args.includes('--education'), false);
+    assert(!Object.hasOwn(mcp.mcpServers, 'backfire-education'));
     assert(
       before.includes(
         'disabled_tools = ["zotero_delete_items","zotero_delete_collection","zotero_empty_trash"]',
@@ -707,6 +1119,10 @@ void test('live discovery: unsafe conflicts and duplicate declarations fail befo
       join(temp, 'plugins/chat/skills/ponytail'),
       {recursive: true},
     );
+    await writeFile(
+      join(temp, 'plugins/chat/skills/ponytail/divergence.txt'),
+      'different',
+    );
     assertThrows(() => preparePluginDiscovery(temp), Error, 'Duplicate skill');
     await rm(join(temp, 'plugins/chat/skills/ponytail'), {recursive: true});
     const skill = join(temp, 'plugins/chat/skills/web-agent/SKILL.md');
@@ -718,7 +1134,12 @@ void test('live discovery: unsafe conflicts and duplicate declarations fail befo
     assertThrows(() => preparePluginDiscovery(temp), Error, 'Skill name');
     await writeFile(skill, original);
     const declaration = join(temp, 'plugins/chat/mcp.json');
-    await cp(join(temp, 'plugins/code/mcp.json'), declaration);
+    await writeFile(
+      declaration,
+      JSON.stringify({
+        mcpServers: {'jev-mcp': {type: 'stdio', command: 'different'}},
+      }),
+    );
     assertThrows(
       () => preparePluginDiscovery(temp),
       Error,
@@ -728,15 +1149,14 @@ void test('live discovery: unsafe conflicts and duplicate declarations fail befo
     preparePluginDiscovery(temp);
     const config = join(temp, '.mcp.json');
     const mcp = JSON.parse(await readFile(config, 'utf8'));
-    mcp.mcpServers['backfire-code'].command = 'user-edit';
+    mcp.mcpServers['jev-mcp'].command = 'user-edit';
     await writeFile(config, JSON.stringify(mcp));
     assertThrows(() => preparePluginDiscovery(temp), Error, 'Conflict');
     assertEquals(
-      JSON.parse(await readFile(config, 'utf8')).mcpServers['backfire-code']
-        .command,
+      JSON.parse(await readFile(config, 'utf8')).mcpServers['jev-mcp'].command,
       'user-edit',
     );
-    mcp.mcpServers['backfire-code'].command = 'uv';
+    mcp.mcpServers['jev-mcp'].command = 'uv';
     await writeFile(config, JSON.stringify(mcp));
     const receipt = receiptPath(temp);
     const receiptText = await readFile(receipt, 'utf8');
@@ -807,7 +1227,7 @@ void test('live discovery: legacy ownership survives migration and disposable de
     const config = join(temp, '.mcp.json');
     const generated = await readFile(config, 'utf8');
     const changed = JSON.parse(generated);
-    changed.mcpServers['backfire-code'].command = 'user-edit';
+    changed.mcpServers['jev-mcp'].command = 'user-edit';
     await writeFile(config, JSON.stringify(changed));
     assertThrows(() => preparePluginDiscovery(temp), Error, 'Conflict');
     assertEquals(await readFile(legacy, 'utf8'), original);
@@ -898,8 +1318,12 @@ void test('live discovery: durable intent recovers interrupted first preparation
         const previous = update ? await readFile(receipt) : undefined;
         const declaration = join(root, 'plugins/code/mcp.json');
         const changed = JSON.parse(await readFile(declaration, 'utf8'));
-        changed.mcpServers['backfire-code'].command = 'synthetic-updated';
+        changed.mcpServers['jev-mcp'].command = 'synthetic-updated';
         await writeFile(declaration, JSON.stringify(changed));
+        const workDeclaration = join(root, 'plugins/work/mcp.json');
+        const work = JSON.parse(await readFile(workDeclaration, 'utf8'));
+        work.mcpServers['jev-mcp'] = changed.mcpServers['jev-mcp'];
+        await writeFile(workDeclaration, JSON.stringify(work));
         const faultPath = {
           mcp: mcpPath,
           codex: codexPath,
@@ -946,7 +1370,7 @@ void test('live discovery: durable intent recovers interrupted first preparation
         }
         const output = await readFile(mcpPath, 'utf8');
         const edited = JSON.parse(output);
-        edited.mcpServers['backfire-code'].command = 'user-edit';
+        edited.mcpServers['jev-mcp'].command = 'user-edit';
         await writeFile(mcpPath, JSON.stringify(edited));
         assertThrows(() => preparePluginDiscovery(root), Error, 'Conflict');
         assertEquals(await readFile(mcpPath, 'utf8'), JSON.stringify(edited));
@@ -961,10 +1385,7 @@ void test('live discovery: durable intent recovers interrupted first preparation
         const mcp = JSON.parse(await readFile(mcpPath, 'utf8'));
         assertEquals(mcp.extra, 'keep');
         assertEquals(mcp.mcpServers.personal, {command: 'user-owned'});
-        assertEquals(
-          mcp.mcpServers['backfire-code'].command,
-          'synthetic-updated',
-        );
+        assertEquals(mcp.mcpServers['jev-mcp'].command, 'synthetic-updated');
         assertEquals(
           await readFile(codexPath, 'utf8'),
           '[features]\nhooks = true\n' + intent.intended.codex,
@@ -1010,7 +1431,7 @@ void test('live discovery: torn client staging preserves original bytes and reco
               join(source, 'mcp.json'),
               JSON.stringify({
                 mcpServers: {
-                  'backfire-code': {type: 'stdio', command: 'synthetic'},
+                  'synthetic-server': {type: 'stdio', command: 'synthetic'},
                 },
               }),
             );
@@ -1184,7 +1605,7 @@ void test('live discovery: receipt-owned Codex cleanup preserves user edits and 
     await writeFile(
       join(root, 'plugins/code/mcp.json'),
       JSON.stringify({
-        mcpServers: {'backfire-code': {type: 'stdio', command: 'synthetic'}},
+        mcpServers: {'synthetic-server': {type: 'stdio', command: 'synthetic'}},
       }),
     );
     await mkdir(join(root, '.codex'));

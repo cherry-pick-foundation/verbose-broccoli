@@ -9,9 +9,9 @@ import subprocess
 from tempfile import TemporaryDirectory
 import unicodedata
 
-from backfire.failures import JudgmentError
-from backfire_education.roster import load_roster
 from doc_regions.regions import scan
+from wiki_consistency.roster import RosterError
+from wiki_consistency.roster import load_roster
 
 _STYLE = Path(__file__).parents[2] / "vale" / "styles"
 _CONFIG = Path(__file__).parents[2] / "vale" / ".vale.ini"
@@ -206,8 +206,8 @@ def check(root):
     ):
         try:
             identifiers = load_roster()
-        except JudgmentError as error:
-            roster_error = error.detail
+        except RosterError as error:
+            roster_error = str(error)
     with TemporaryDirectory(prefix="wiki-consistency-vale-") as temp:
         private = Path(temp)
         styles = private / "styles"

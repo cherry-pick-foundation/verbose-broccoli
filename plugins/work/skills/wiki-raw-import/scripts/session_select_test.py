@@ -1,6 +1,7 @@
 """Synthetic coverage for wiki-raw-import session selection."""
 
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import os
 from pathlib import Path
@@ -10,24 +11,35 @@ import sys
 import textwrap
 import time
 
+from mcp.types import CallToolResult
+from mcp.types import TextContent
 import pytest
+
+from education_privacy_gate.roster import Registry
 
 sys.path.insert(0, str(Path(__file__).parent))
 import session_select as selector  # noqa: E402
 
 
-def roster_fixture(tmp_path, monkeypatch):
-    config = tmp_path / "config" / "verbose-broccoli" / "backfire"
-    config.mkdir(parents=True)
-    roster = tmp_path / "SYNTHETIC-roster.csv"
-    roster.write_text(
-        "name,school,guardians\nSYNTHETIC_STUDENT,SYNTHETIC_SCHOOL,SYNTHETIC_GUARDIAN\n",
-        encoding="utf-8",
+def roster_fixture(unused_path, monkeypatch):
+    registry = Registry.from_data(
+        {
+            "version": 1,
+            "entries": [
+                {"kind": "person", "full": "SYNTHETIC_STUDENT"},
+                {"kind": "person", "full": "SYNTHETIC_GUARDIAN"},
+                {"kind": "school", "spellings": ["SYNTHETIC_SCHOOL"]},
+            ],
+        }
     )
-    (config / "education.toml").write_text(
-        f"roster = {json.dumps(str(roster))}\n", encoding="utf-8"
+    monkeypatch.setattr(selector, "load_registry", lambda: registry)
+    monkeypatch.setattr(
+        selector,
+        "load_domain_roster",
+        lambda: {
+            "1234567890": ("student", "SYNTHETIC_STUDENT"),
+        },
     )
-    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
 
 
 def add_rendered(
@@ -402,7 +414,7 @@ def test_digest_holds_scan_findings_before_classification(
         selector.read_jsonl(stage / "labels.jsonl")[0]["id"]
         == "clear-synthetic"
     )
-    assert counts["backfire_calls"] == 1
+    assert counts["jev_calls"] == 1
 
 
 def test_digest_holds_no_user_and_tags_orca_roster_match(tmp_path, monkeypatch):
@@ -598,7 +610,7 @@ def test_classify_samples_and_batches_at_most_sixty_four(tmp_path):
     assert [item["id"] for item in labels] == expected
     assert [len(batch["items"]) for batch in batches] == [64, 6]
     assert counts == {
-        "backfire_calls": 2,
+        "jev_calls": 2,
         "input_tokens": 6,
         "output_tokens": 4,
     }
@@ -777,8 +789,12 @@ def test_digest_rejects_empty_roster(tmp_path, monkeypatch):
     stage = selector.stage_dir(tmp_path / "stage")
     add_rendered(stage, "claude", "empty-roster", markdown("SYNTHETIC"))
     empty_scan(stage)
-    monkeypatch.setattr(selector, "load_roster", lambda: [])
-    with pytest.raises(ValueError, match="roster is empty"):
+    monkeypatch.setattr(
+        selector,
+        "load_registry",
+        lambda: Registry.from_data({"version": 1, "entries": []}),
+    )
+    with pytest.raises(ValueError, match="registry is empty"):
         selector.digest(stage)
 
 
@@ -826,3 +842,173 @@ def test_render_timeout_continues_after_failed_session(tmp_path, monkeypatch):
         "failed": 1,
     }
     assert calls == [300, 300]
+
+
+@pytest.mark.parametrize(
+    ("text", "is_error", "succeeds"),
+    [
+        ('{"results": []}', False, True),
+        ("SYNTHETIC_ERROR", True, False),
+        ("not JSON", False, False),
+        ("[]", False, False),
+    ],
+)
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
+def test_proxy_launcher_and_classification_result_shape(
+    monkeypatch, text, is_error, succeeds, config
+):
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
+    launches, calls = [], []
+
+    @asynccontextmanager
+    async def transport(server):
+        launches.append(server)
+        yield None, None
+
+    class Client:
+        def __init__(self, *unused):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *unused):
+            pass
+
+        async def initialize(self):
+            pass
+
+        async def call_tool(self, name, arguments):
+            calls.append((name, arguments))
+            return CallToolResult(
+                content=[TextContent(type="text", text=text)],
+                is_error=is_error,
+            )
+
+    monkeypatch.setattr(selector, "stdio_client", transport)
+    monkeypatch.setattr(selector, "ClientSession", Client)
+    batch = {"items": [], "classes": []}
+    if succeeds:
+        assert asyncio.run(selector.mcp_classify([batch], "synthetic")) == [
+            {"results": []}
+        ]
+    else:
+        with pytest.raises(RuntimeError, match="jev-mcp classification failed"):
+            asyncio.run(selector.mcp_classify([batch], "synthetic"))
+    assert launches[0].command == "uv"
+    assert launches[0].args == [
+        "--directory",
+        str(selector.ROOT / "packages/education-privacy-gate"),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ]
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert launches[0].env == expected
+    assert calls == [("jev_classify", {**batch, "purpose": "synthetic"})]
+
+
+def test_classify_rejects_out_of_scope_student_label(tmp_path):
+    stage = selector.stage_dir(tmp_path / "stage")
+    selector.write_jsonl(
+        stage / "digests.jsonl",
+        [
+            {
+                "id": "synthetic",
+                "tags": ["student_data"],
+                "text": "synthetic",
+            }
+        ],
+    )
+
+    async def wrong_label(*unused_args):
+        return [{"results": [{"classification": "code", "decision": "auto"}]}]
+
+    with pytest.raises(ValueError, match="unexpected class"):
+        selector.classify(stage, synthetic_catalog(tmp_path), call=wrong_label)
+    assert not (stage / "labels.jsonl").exists()
+
+
+def test_student_number_only_session_stays_work_only(tmp_path, monkeypatch):
+    roster_fixture(tmp_path, monkeypatch)
+    stage = selector.stage_dir(tmp_path / "stage")
+    add_rendered(stage, "codex", "number-only", markdown("s-1234567890"))
+    empty_scan(stage)
+    assert selector.digest(stage) == {"digests": 1, "held": 0}
+    assert selector.read_jsonl(stage / "digests.jsonl")[0]["tags"] == [
+        "student_data"
+    ]
+
+
+@pytest.mark.parametrize("status", ["invalid_response", None])
+def test_classify_null_review_rejects_only_invalid_response(tmp_path, status):
+    stage = selector.stage_dir(tmp_path / "stage")
+    selector.write_jsonl(
+        stage / "digests.jsonl",
+        [{"id": "synthetic", "tags": [], "text": "synthetic"}],
+    )
+
+    async def invoke(*unused_args):
+        row = {"classification": None, "decision": "review"}
+        if status is not None:
+            row["status"] = status
+        return [{"results": [row]}]
+
+    if status == "invalid_response":
+        with pytest.raises(
+            ValueError, match="^jev-mcp returned an invalid response$"
+        ):
+            selector.classify(stage, synthetic_catalog(tmp_path), call=invoke)
+        assert not (stage / "labels.jsonl").exists()
+    else:
+        selector.classify(stage, synthetic_catalog(tmp_path), call=invoke)
+        labels = selector.read_jsonl(stage / "labels.jsonl")
+        assert len(labels) == 1
+        assert labels[0]["label"] is None
+        assert labels[0]["decision"] == "review"
+
+
+@pytest.mark.parametrize(
+    "usage",
+    [
+        "synthetic",
+        {"input_tokens": {"nested": 1}, "output_tokens": "synthetic"},
+    ],
+)
+def test_classify_does_not_treat_text_usage_as_token_counts(tmp_path, usage):
+    stage = selector.stage_dir(tmp_path / "stage")
+    selector.write_jsonl(
+        stage / "digests.jsonl",
+        [
+            {
+                "id": "synthetic",
+                "tags": [],
+                "text": "synthetic",
+            }
+        ],
+    )
+
+    async def invoke(*unused_args):
+        return [
+            {
+                "results": [{"classification": "work", "decision": "review"}],
+                "usage": usage,
+            }
+        ]
+
+    counts = selector.classify(stage, synthetic_catalog(tmp_path), call=invoke)
+    assert counts == {"jev_calls": 1, "input_tokens": 0, "output_tokens": 0}

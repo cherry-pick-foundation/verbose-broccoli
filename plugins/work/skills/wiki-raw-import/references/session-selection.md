@@ -2,7 +2,7 @@
 
 Offer the local Claude Code and Codex sessions to the Wiki vaults. The
 sessions are rendered to Markdown, filtered, scanned for secrets and
-classified by backfire; the user approves the lists, and the raw import
+classified by Jev through the gated `jev-mcp` proxy; the user approves the lists, and the raw import
 (steps 5 to 9 of [SKILL.md](../SKILL.md)) admits the rendered Markdown as
 `files`. Exported Claude Code and Codex sessions are raw evidence in any
 vault they belong to, but a session that names a student, guardian or school
@@ -44,7 +44,7 @@ below; the script's path is absolute because `--directory` changes the
 working folder:
 
 ```sh
-uv --directory packages/backfire run --frozen --offline --no-sync \
+uv --directory packages/education-privacy-gate run --frozen --offline --no-sync \
   python "$PWD/plugins/work/skills/wiki-raw-import/scripts/session_select.py"
 ```
 
@@ -79,37 +79,37 @@ uv --directory packages/backfire run --frozen --offline --no-sync \
 
    Exit 1 means it found secrets. Never add `--validation`, which sends
    found secrets to provider APIs. A session with a finding is held back in
-   the next step and never sent to backfire. Tell the user how many sessions
+   the next step and never sent to Jev. Tell the user how many sessions
    were held; do not show findings in any message.
 3. **Digest.** Run `SELECT digest --stage STAGE --scan STAGE/scan.json`. It
    holds back sessions without a user message, those with a finding, and
    Codex's own approval reviews, which Codex starts by itself to judge an
    agent's action (`auto_review`); it tags
-   Orca worker sessions and sessions in which backfire's roster finds a
-   student, guardian or school (`student_data`), and writes one digest of at
-   most 2,000 characters per session to `STAGE/digests.jsonl`. The roster check
-   runs on this machine; an empty roster stops the step. It also stops when
-   the scan report is missing or older than a rendered file, so run step 2
-   again after every render. A roster match counts only at a word start, and a
-   Latin-letter match only as a whole word, so a short given name inside a
-   longer word does not tag a session; backfire still replaces every match
-   before sending. Then translate each digest into English yourself, in your
-   own session: replace the `text` of every record in `STAGE/digests.jsonl`
-   with its English translation and leave the other fields as they are.
-   Backfire refuses a digest that still contains Hangul, so the classification
-   in step 5 stops on one.
+   Orca worker sessions and sessions in which the privacy registry finds a
+   registered person or school, or the work-owned domain roster finds a
+   student number (`student_data`), and writes one digest of at
+   most 2,000 characters per session to `STAGE/digests.jsonl`. This local scan
+   restricts destination vaults; the proxy masks identifiers independently.
+   An empty registry stops the step. It also stops when the scan report is
+   missing or older than a rendered file, so run step 2 again after every
+   render. A match counts only at a word start, and a Latin-letter match only
+   as a whole word, so a short given name inside a longer word does not tag
+   a session. Korean digests are allowed; no translation is required by Jev.
 4. **Sample.** Before the first full run, run `SELECT classify --stage STAGE
    --catalog CATALOG --limit 64`, where `CATALOG` is
    `"$PWD/plugins/work/skills/wiki-raw-import/references/session-catalog.json"`.
-   Report the backfire call count and the input and output tokens it prints,
+   Report the Jev call count (`jev_calls`) and the input and output tokens it prints,
    with an estimate for all digests, and wait for the user's go.
 5. **Classify.** Run `SELECT classify --stage STAGE --catalog CATALOG`.
-   Backfire runs in education mode, so
-   identifiers are replaced with English stand-ins before a digest leaves the
-   machine.
+   The only registered server, `jev-mcp`, always runs the privacy gate. It
+   swaps registered person and school spellings, phone numbers, e-mail
+   addresses, EduOK student numbers and resident numbers for fresh per-call
+   stand-ins, then restores result text. Korean text is allowed. Unregistered
+   names and school spellings remain a known risk; masking does not establish
+   safe disclosure. Follow the upstream `jev` skill and work privacy rules.
    Sessions tagged `student_data` are classified only as `work` or `none`.
    Each result in `STAGE/labels.jsonl` has a label, its confidence and a
-   decision: `auto`, or `review` when backfire is not sure.
+   decision: `auto`, or `review` when Jev is not sure.
 6. **Decide with the user.** Show the counts per label and decision. Every
    `review` result is open: show its label, confidence and project path, and
    let the user choose a vault or `none`. The user may also change any `auto`
@@ -125,7 +125,7 @@ uv --directory packages/backfire run --frozen --offline --no-sync \
 
 ## Catalog
 
-[session-catalog.json](session-catalog.json) gives backfire the purpose and
+[session-catalog.json](session-catalog.json) gives Jev the purpose and
 the five labels: `work`, `code`, `default`, `chat` and `none` (no lasting
 value). Its descriptions carry the decision: each says what belongs, what
 does not and which label wins where they overlap. Change them only with the

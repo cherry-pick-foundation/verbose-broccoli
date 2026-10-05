@@ -6,8 +6,6 @@ from pathlib import PurePosixPath
 import re
 import subprocess
 
-from anyascii import anyascii
-
 from doc_regions.config import load
 from doc_regions.units import split
 
@@ -30,22 +28,10 @@ CLASSES = [
     },
 ]
 
-# Hangul syllables and Jamo, composed or decomposed; backfire refuses a request
-# that holds any (`hangul_remaining`).
-_HANGUL_RUN = re.compile(
-    r"[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]+"
-)
-
-
-def latin(text):
-    """Spell each run of Hangul in Latin letters, so a request can be sent."""
-    return _HANGUL_RUN.sub(lambda run: anyascii(run[0]).lower(), text)
-
-
 # A request of about 45,800 claim characters (106 claims) and one of 224
 # short claims drew OpenRouter's `400 max_tokens_exceeded`; 110 claims and
-# four hand-split requests of about 11,500 characters were answered. Neither
-# jev-judge-mcp nor backfire splits requests. Evidence is the same in every
+# four hand-split requests of about 11,500 characters were answered. The
+# caller splits requests; evidence is the same in every
 # request of a group, so it does not count here.
 MAX_CLAIMS = 110
 MAX_CLAIM_CHARS = 12000
@@ -154,9 +140,6 @@ def prepare(root, config_path, *, base, max_evidence_chars):
         for unit in split(document, source, base_text):
             unit["report_only"] = document in config["report_only"]
             units.append(unit)
-    # The units keep their Hangul; the requests carry it spelled in Latin
-    # letters, in claims and evidence alike.
-    sendable = [{**unit, "text": latin(unit["text"])} for unit in units]
 
     # -B -M pairs a file moved onto another moved file as two renames, not as
     # a whole deletion, modification and addition of each.
@@ -199,26 +182,24 @@ def prepare(root, config_path, *, base, max_evidence_chars):
             for path in paths
         ):
             continue
-        diff = latin(segment)
+        diff = segment
         chunks = [
             diff[index : index + max_evidence_chars]
             for index in range(0, len(diff), max_evidence_chars)
         ]
         evidence.extend(
             {
-                "id": latin(document)
-                if len(chunks) == 1
-                else f"{latin(document)}#{index}",
+                "id": document if len(chunks) == 1 else f"{document}#{index}",
                 "text": chunk,
             }
             for index, chunk in enumerate(chunks, 1)
         )
 
-    requests = verify_requests([(sendable, evidence)]) if evidence else []
+    requests = verify_requests([(units, evidence)]) if evidence else []
     for document in config["targets"]:
         added = [
             unit
-            for unit in sendable
+            for unit in units
             if unit["document"] == document and unit["added"]
         ]
         requests.extend(

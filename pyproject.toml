@@ -1,7 +1,41 @@
 [tool.uv]
+# The new privacy-gate closure was reviewed as wheels only.
+no-build-package = [
+  "aiofile",
+  "authlib",
+  "beartype",
+  "cachetools",
+  "caio",
+  "cyclopts",
+  "dnspython",
+  "docstring-parser",
+  "email-validator",
+  "exceptiongroup",
+  "faker",
+  "fastmcp",
+  "fastmcp-slim",
+  "griffelib",
+  "jaraco-classes",
+  "jaraco-context",
+  "jaraco-functools",
+  "jeepney",
+  "joserfc",
+  "jsonref",
+  "jsonschema-path",
+  "keyring",
+  "more-itertools",
+  "openapi-pydantic",
+  "pathable",
+  "platformdirs",
+  "py-key-value-aio",
+  "pyperclip",
+  "pywin32-ctypes",
+  "rich-rst",
+  "secretstorage",
+  "uncalled-for",
+  "watchfiles",
+]
 constraint-dependencies = [
-  # Backfire's test_package_dependency_versions rejects 0.7.2; uv applies this pin only from the workspace root.
-  "typesafe-sdk==0.7.1",
   # Preserve magika 0.6.2 in the lock for Windows.
   "magika<=0.6.3",
 ]
@@ -11,10 +45,9 @@ members = ["packages/*"]
 
 [tool.importlinter]
 root_packages = [
-  "backfire",
-  "backfire_education",
   "credit_offers",
   "doc_regions",
+  "education_privacy_gate",
   "jev_ultrafast",
   "wiki_consistency",
 ]
@@ -24,22 +57,17 @@ name = "Workspace package layers"
 type = "layers"
 layers = [
   "wiki_consistency",
-  "backfire_education",
-  "backfire | doc_regions",
-]
-ignore_imports = [
-  # Backfire imports this optional adapter only when education is configured.
-  "backfire.providers -> backfire_education.pseudonymize",
+  "doc_regions",
+  "education_privacy_gate",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Python package sibling cycles"
 type = "acyclic_siblings"
 ancestors = [
-  "backfire",
-  "backfire_education",
   "credit_offers",
   "doc_regions",
+  "education_privacy_gate",
   "jev_ultrafast",
   "wiki_consistency",
 ]
@@ -295,9 +323,8 @@ single-line-exclusions = ["typing", "collections.abc", "typing_extensions"]
 section-order = ["future", "standard-library", "third-party", "first-party"]
 known-third-party = ["absl", "enchant"]
 known-first-party = [
-  "backfire",
-  "backfire_education",
   "doc_regions",
+  "education_privacy_gate",
   "wiki_consistency",
 ]
 

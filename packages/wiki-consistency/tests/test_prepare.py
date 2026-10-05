@@ -14,9 +14,6 @@ from conftest import commit_instance
 from conftest import make_instance
 from conftest import tree_hash
 from conftest import update_regions
-from jev_judge_mcp.tools.classify import TOOL as CLASSIFY_TOOL
-from jev_judge_mcp.tools.find import TOOL as FIND_TOOL
-from jev_judge_mcp.tools.verify import TOOL as VERIFY_TOOL
 import jsonschema
 import pytest
 import yaml
@@ -161,15 +158,26 @@ def _units(result, page="wiki/concepts/alpha.qmd"):
     return [unit for unit in result["units"] if unit["page"] == page]
 
 
-def test_schema_fixtures_copy_jev_verbatim():
-    for name, tool in {
-        "jev_verify": VERIFY_TOOL,
-        "jev_find": FIND_TOOL,
-        "jev_classify": CLASSIFY_TOOL,
-    }.items():
+def test_schema_fixtures_match_pinned_upstream_capture():
+    # SHA-256 of sorted JSON schemas captured from @jkudish/jev-mcp 0.13.0.
+    expected = {
+        "jev_verify": (
+            "772d715a0a13c7560836909588cf888046669ec4cda8bcdc1386df2581864e48"
+        ),
+        "jev_find": (
+            "8a66c80477a60d46d7139f1547deb4ce5af5b38bbb0b66d025bf67125c48f525"
+        ),
+        "jev_classify": (
+            "4ce6e0c1ec7b1f002dab541398f288ac973b2b153565fb9fb15b3f7e0f0e54ab"
+        ),
+    }
+    for name, schema in SCHEMAS.items():
+        jsonschema.Draft202012Validator.check_schema(schema)
         assert (
-            SCHEMAS[name]
-            == tool.definition.model_dump(by_alias=True)["inputSchema"]
+            hashlib.sha256(
+                json.dumps(schema, sort_keys=True).encode()
+            ).hexdigest()
+            == expected[name]
         )
 
 
@@ -798,3 +806,24 @@ def test_prepare_status_and_candidate_queries_use_one_mcp_session(
     assert bool([name for name, _ in calls if name == "query"]) is not pending
     assert all(not args["rerank"] for name, args in calls if name == "query")
     assert _evidence(result)
+
+
+@pytest.mark.parametrize("text", ["한국어 근거.", "가나 ㄴ."])
+def test_exact_korean_evidence_is_preserved(tmp_path, text):
+    instance, cache, _ = _ready(tmp_path)
+    _retain(instance, body=f"## Page 25 {{#p-25}}\n{text}\n")
+    claim = f"The original supports this result [@{KEY}, p. 25].\n"
+    _page(instance, claim)
+    result = _prepare(instance, cache)
+    found = _evidence(result)
+    assert [r["arguments"]["claims"] for r in found] == [[claim]]
+    assert found[0]["arguments"]["evidence"][0]["text"] == text + "\n"
+    _assert_schemas(result)
+
+
+@pytest.mark.parametrize(
+    "text, expected", [("가" * 2000, 2000), ("😀" * 1000, 2000)]
+)
+def test_exact_suggestion_limit_counts_utf16_units(text, expected):
+    assert requests._text_units(text) == expected
+    assert requests._text_units(text + "가") > 2000

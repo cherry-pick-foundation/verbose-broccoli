@@ -1,0 +1,11 @@
+{
+  "notes": [
+    "~/.config/agents/preferences.md",
+    "~/.config/agents/verbose-broccoli.md"
+  ],
+  "stateDirectory": "verbose-broccoli/workspaces",
+  "stateFile": "session-state.md",
+  "worktreeAliases": {"verbose-broccoli": "main"},
+  "thresholds": {"main": 1, "develop": 2, "feature": 2},
+  "maxContextBytes": 65536
+}

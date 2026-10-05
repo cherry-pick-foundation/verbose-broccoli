@@ -11,6 +11,18 @@
             "statusMessage": "Loading ponytail mode..."
           }
         ]
+      },
+      {
+        "matcher": "^(startup|resume|clear|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CODEX_MCP_NODE_PATH:-node}\" --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process \"$(git rev-parse --show-toplevel)/scripts/coordinator-context.ts\" codex",
+            "timeout": 5,
+            "additionalContextLimit": 65536,
+            "statusMessage": "Restoring coordinator context..."
+          }
+        ]
       }
     ],
     "SubagentStart": [

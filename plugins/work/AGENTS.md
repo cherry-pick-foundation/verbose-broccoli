@@ -12,12 +12,12 @@ before planning around it; an earlier plan does not establish working access.
 
 ## Education judgments
 
-Keep learning-status and progress judgments working through the approved work
-Backfire privacy gate. Do not impose a blanket prohibition on education data.
+Keep learning-status and progress judgments working through the approved always-on
+`jev-mcp` privacy gate. Do not impose a blanket prohibition on education data.
 The user's provider decisions apply within the current privacy boundary in
-[the Backfire skill](skills/backfire-education/SKILL.md) and
-[its privacy limits](skills/backfire-education/references/verbose-broccoli.md).
-Never send student data to code Backfire or credentials to either mode.
+[the upstream Jev skill](skills/jev/SKILL.md) and
+[the privacy gate contract](../../specs/053-jev-mcp-privacy/contracts/privacy-gate.md).
+Never send identifying student data through an ungated route or credentials to Jev.
 
 Only the user's own Claude and ChatGPT accounts, with training off, may receive
 identifying student data. Other providers receive education judgments only
@@ -27,10 +27,10 @@ Keep scores and learning observations usable within that boundary.
 
 ## English requests and Wiki pages
 
-Plan translation into any feature that sends Korean material to backfire.
-Translate summaries and notices in the user's own Claude or ChatGPT session
-before the request. Preserve raw bytes; translations belong only in the request
-path or English Wiki text.
+Korean material may pass through `jev-mcp`; the privacy gate does not require
+English-only requests. Preserve raw bytes and the English Wiki page rules.
+Registered names and school spellings are masked with fresh per-call stand-ins;
+unregistered spellings remain a known risk.
 
 Read the current vault schema before writing pages or resolving a Korean name
 to a page. The [schema template](skills/wiki-raw-import/assets/AGENTS.md) holds

@@ -8,7 +8,8 @@
   "prettier": "gts/.prettierrc.json",
   "workspaces": [
     "packages/*",
-    "!packages/wiki-consistency"
+    "!packages/wiki-consistency",
+    "!packages/education-privacy-gate"
   ],
   "scripts": {
     "doctor": "mise doctor project",
@@ -43,23 +44,20 @@
     "clean-code": "node --permission --allow-fs-read=* plugins/code/skills/clean-code/scripts/clean-code.ts",
     "clean-code:scope": "npm run clean-code -- --scope",
     "test:clean-code": "node --permission --allow-fs-read=* --allow-fs-write=* --test-isolation=none --test plugins/code/skills/clean-code/scripts/clean-code-test.ts",
-    "backfire:regions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=packages/backfire/src/backfire_education/regions.json scripts/backfire-regions.ts",
-    "test:backfire-regions": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/backfire-regions-test.ts",
-    "backfire:regions:check": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* scripts/backfire-regions.ts --check",
-    "backfire:install": "uv sync --locked --all-packages --extra education --no-build-package grimp",
-    "test:backfire": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package backfire pytest packages/backfire/tests",
     "doc-regions:check": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions check scripts/doc-regions.toml",
     "doc-regions:update": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions update scripts/doc-regions.toml",
     "doc-regions:prepare": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions prepare scripts/doc-regions.toml",
     "doc-regions:audit": "PYTHONDONTWRITEBYTECODE=1 uv run --project packages/doc-regions --frozen --offline --no-sync doc-regions audit scripts/doc-regions.toml",
-    "wiki-consistency:install": "npm run backfire:install && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
+    "wiki-consistency:install": "uv sync --locked --all-packages --no-build-package grimp && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency",
     "test:wiki-consistency": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest packages/wiki-consistency/tests",
     "test:grammatical-competence": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest -p no:cacheprovider plugins/work/skills/grammatical-competence/scripts/grammatical_competence_test.py",
     "test:doc-regions": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package doc-regions pytest -p no:cacheprovider packages/doc-regions/tests scripts/doc_sources_test.py",
     "test:plugins-validate": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/plugins-validate-test.ts",
     "test:jev-ultrafast": "PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=packages/jev-ultrafast uv run --frozen --offline --no-sync --package jev-ultrafast pytest -p no:cacheprovider packages/jev-ultrafast/tests",
+    "education-privacy-gate:install": "npm ci --ignore-scripts --no-audit --no-fund --prefix packages/education-privacy-gate",
+    "test:education-privacy-gate": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package education-privacy-gate pytest -p no:cacheprovider packages/education-privacy-gate/tests",
     "test:credit-offers": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package credit-offers pytest -p no:cacheprovider packages/credit-offers/tests",
-    "test:session-select": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package backfire pytest -p no:cacheprovider plugins/work/skills/wiki-raw-import/scripts/session_select_test.py",
+    "test:session-select": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package education-privacy-gate pytest -p no:cacheprovider plugins/work/skills/wiki-raw-import/scripts/session_select_test.py",
     "turborepo": "umask 077 && turbo_config_dir=\"$(mktemp -d)\" && vercel_config_dir=\"$(mktemp -d)\" && trap 'rm -rf \"$turbo_config_dir\" \"$vercel_config_dir\"' EXIT && env -u TURBO_BINARY_PATH -u TURBO_TOKEN -u TURBO_TEAM -u TURBO_TEAMID -u VERCEL_ARTIFACTS_TOKEN -u VERCEL_ARTIFACTS_OWNER TURBO_TELEMETRY_DISABLED=1 NO_UPDATE_NOTIFIER=1 TURBO_CONFIG_DIR_PATH=\"$turbo_config_dir\" VERCEL_CONFIG_DIR_PATH=\"$vercel_config_dir\" VERBOSE_BROCCOLI_TOOLCHAIN=\"$(sh scripts/toolchain.sh)\" turbo",
     "check": "npm run turborepo -- run check --summarize",
     "lint:fix": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON' gts fix . && uv run --project tools/ruff --frozen --offline --no-sync ruff check --fix --no-cache .",
@@ -69,7 +67,8 @@
     "test": "npm run turborepo -- run test",
     "test:wiki-raw-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/wiki-raw-import-test.ts",
     "test:turbo-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/turbo-cache-test.ts",
-    "test:root-config": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/root-config-test.ts"
+    "test:root-config": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/root-config-test.ts",
+    "test:coordinator-context": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/coordinator-context-test.ts"
   },
   "devDependencies": {
     "@cliffy/command": "npm:@jsr/cliffy__command@1.2.1",

@@ -48,6 +48,7 @@ function run(
 const installed = [
   'node_modules/x/index.js',
   'packages/wiki-consistency/node_modules/x/index.js',
+  'packages/education-privacy-gate/node_modules/x/index.js',
   '.venv/lib/python3.14/site-packages/x/__init__.py',
   'tools/ruff/.venv/lib/python3.14/site-packages/x/__init__.py',
   '.venv/lib/python3.14/site-packages/x.pth',
@@ -122,25 +123,23 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
       before,
       after,
       ['doc-regions#test', '//#lint'],
-      ['backfire#test'],
+      ['wiki-consistency#test'],
     );
 
     before = after;
     await appendFile(
-      join(repo, 'packages/backfire/src/backfire/config.py'),
+      join(
+        repo,
+        'packages/education-privacy-gate/src/education_privacy_gate/__main__.py',
+      ),
       '\n',
     );
     after = hashes(repo);
     assertChanged(
       before,
       after,
-      [
-        'backfire#test',
-        'credit-offers#test',
-        'wiki-consistency#test',
-        '//#typecheck',
-      ],
-      ['jev-ultrafast#test', 'doc-regions#test'],
+      ['education-privacy-gate#test'],
+      ['wiki-consistency#test'],
     );
 
     // The Python test commands live in package.json, so editing it reruns
@@ -149,9 +148,9 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
     await appendFile(join(repo, 'package.json'), '\n');
     after = hashes(repo);
     assertChanged(before, after, [
-      'backfire#test',
       'credit-offers#test',
       'doc-regions#test',
+      'education-privacy-gate#test',
       'jev-ultrafast#test',
       'wiki-consistency#test',
     ]);
@@ -163,7 +162,7 @@ void test('turbo cache: a changed repository file reruns the tasks that read it'
       before,
       after,
       ['//#lint', '//#test:workflow'],
-      ['backfire#test'],
+      ['wiki-consistency#test'],
     );
   });
 });
@@ -191,8 +190,17 @@ void test("turbo cache: Turborepo's own task logs are not inputs", async () => {
   await fixture(async repo => {
     const before = hashes(repo);
     await write(repo, '.turbo/turbo-lint.log', 'Log.\n');
-    await write(repo, 'packages/backfire/.turbo/turbo-test.log', 'Log.\n');
-    assertChanged(before, hashes(repo), [], ['//#lint', 'backfire#test']);
+    await write(
+      repo,
+      'packages/wiki-consistency/.turbo/turbo-test.log',
+      'Log.\n',
+    );
+    assertChanged(
+      before,
+      hashes(repo),
+      [],
+      ['//#lint', 'wiki-consistency#test'],
+    );
   });
 });
 
@@ -210,7 +218,12 @@ void test('turbo cache: a changed installed environment reruns every cached task
     for (const change of changes) {
       await change();
       const after = hashes(repo);
-      assertChanged(before, after, ['backfire#test', '//#typecheck'], []);
+      assertChanged(
+        before,
+        after,
+        ['wiki-consistency#test', '//#typecheck'],
+        [],
+      );
       before = after;
     }
   });
@@ -228,24 +241,24 @@ void test('turbo cache: a changed program or its outside config reruns every cac
     await chmod(join(bin, 'git'), 0o755);
     const path = `${bin}${delimiter}${process.env.PATH ?? ''}`;
     assertChanged(before, hashes(repo, {PATH: path}), [
-      'backfire#test',
+      'wiki-consistency#test',
       '//#lint',
     ]);
 
     const config = join(repo, '.local/gitconfig');
     await write(repo, '.local/gitconfig', '[core]\n\tautocrlf = true\n');
     assertChanged(before, hashes(repo, {GIT_CONFIG_GLOBAL: config}), [
-      'backfire#test',
+      'wiki-consistency#test',
       '//#lint',
     ]);
 
     assertChanged(before, hashes(repo, {NODE_OPTIONS: '--no-warnings'}), [
-      'backfire#test',
+      'wiki-consistency#test',
       '//#lint',
     ]);
 
     assertChanged(before, hashes(repo, {UV_PYTHON: '3.13'}), [
-      'backfire#test',
+      'wiki-consistency#test',
       '//#lint',
     ]);
   });
