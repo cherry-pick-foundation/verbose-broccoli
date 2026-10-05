@@ -41,19 +41,20 @@ The existing `.gitflow` sets `gitflow.path.hooks` to
 `BRANCH`, `BASE_BRANCH` and `EXIT_CODE`, runs post hooks after success or
 failure, and prints their output. The hook exits quietly on failed finishes.
 On success, it resolves the retained branch tip and its worktree from Git,
-checks tracked, untracked, and ignored paths, and prints a manual checklist. The
-Orca removal command appears only when the source worktree and its Git metadata
-exist and Git confirms it is clean. Git shell-quotes the selector, and the
-command uses `orca-ide`. Missing finish status, tip or worktree facts produce a
-preserve-and-inspect message.
+checks that the source tip is merged into `BASE_BRANCH`, and checks tracked,
+untracked, and ignored paths. It prints a manual checklist. The Orca removal
+command appears only when the source worktree and its Git metadata exist, its
+tip is merged into the target base, and Git confirms it is clean. Git
+shell-quotes the selector, and the command uses `orca-ide`. Missing finish
+status, tip, base, or worktree facts produce a preserve-and-inspect message.
 
 ## Reuse
 
-| Need                    | Reused implementation                                   | Owned glue                            |
-| ----------------------- | ------------------------------------------------------- | ------------------------------------- |
-| Finish event            | `.gitflow` hook directory and git-flow-next hook runner | One post-finish shell hook            |
-| Branch tip and worktree | Git `rev-parse`, `worktree list`, and `status`          | Safe output and manual cleanup steps  |
-| Regression              | Existing synthetic real-finish harness                  | Two finishes and a failed finish case |
+| Need                    | Reused implementation                                   | Owned glue                               |
+| ----------------------- | ------------------------------------------------------- | ---------------------------------------- |
+| Finish event            | `.gitflow` hook directory and git-flow-next hook runner | One post-finish shell hook               |
+| Branch tip and worktree | Git `rev-parse`, `worktree list`, and `status`          | Safe output and manual cleanup steps     |
+| Regression              | Existing synthetic real-finish harness                  | Success, failure, and unsafe-state cases |
 
 ## Constitution Check
 
@@ -74,9 +75,10 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ## Validation
 
 1. Add a real-finish regression and confirm it fails without the post hook.
-2. Add the hook and run the focused git-flow harness; inspect its exact output
-   and synthetic Git refs/worktrees, including dirty, missing and unreadable
-   source states and quoted paths.
+2. Add the hook and run the focused git-flow harness; inspect exact output and
+   synthetic Git refs/worktrees, including ignored files, source commits made
+   after finish, missing metadata, dirty, missing and unreadable states, and
+   quoted paths.
 3. Run shell lint, whitespace checks and workflow. Request the coordinator's
    serialized full verification slot; the worker does not start full verify.
 4. Review and commit the exact scoped diff through the normal hooks.
@@ -84,6 +86,6 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ## Split Review
 
 The implementation is a small shell hook plus an existing harness regression;
-no split is needed. Final source is 59 shell lines; the test diff adds 325 and
-removes 11 lines; the three records total 194 lines. The five-file diff adds
-578 and removes 11 lines, with no separate tooling or dependency.
+no split is needed. Final source is 76 shell lines; the test diff adds 379 and
+removes 11 lines; the three records total 196 lines. The five-file diff adds
+651 and removes 11 lines, with no separate tooling or dependency.

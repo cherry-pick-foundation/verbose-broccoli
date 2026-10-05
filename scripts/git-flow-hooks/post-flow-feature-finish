@@ -18,6 +18,17 @@ if ! tip=$(git rev-parse --verify --quiet "refs/heads/${branch}^{commit}"); then
   exit 0
 fi
 
+base_branch=${BASE_BRANCH:-}
+base_tip=
+base_merged=false
+if [ -n "${base_branch}" ]; then
+  if base_tip=$(git rev-parse --verify --quiet "refs/heads/${base_branch}^{commit}"); then
+    if git merge-base --is-ancestor "${tip}" "${base_tip}"; then
+      base_merged=true
+    fi
+  fi
+fi
+
 worktree=$(git worktree list --porcelain | awk -v branch="refs/heads/${branch}" '
   /^worktree / {path = substr($0, 10)}
   $1 == "branch" && $2 == branch {print path; exit}
@@ -38,6 +49,12 @@ else
     printf '%s\n' 'The source worktree status could not be checked; do not remove it.'
   elif [ -n "${status}" ]; then
     printf '%s\n' 'The source worktree is dirty; preserve it and inspect its changes.'
+  elif [ "${base_merged}" != true ]; then
+    if [ -z "${base_branch}" ] || [ -z "${base_tip}" ]; then
+      printf '%s\n' 'The target base branch is missing or unresolved; preserve the source branch and inspect it.'
+    else
+      printf 'The source tip is not merged into %s; preserve the source branch and inspect it.\n' "${base_branch}"
+    fi
   else
     printf '%s\n' 'The source worktree is clean.'
     removal_selector=$(git rev-parse --sq-quote "path:${worktree}")

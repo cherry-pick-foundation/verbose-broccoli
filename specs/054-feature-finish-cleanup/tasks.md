@@ -21,8 +21,8 @@ full verification, independent review, final task ticks, and feature finish.
 
 ## Handoff
 
-The focused git-flow suite passes 24/24. ShellCheck, Prettier, and diff checks
+The focused git-flow suite passes 25/25. Bash syntax, Prettier, and diff checks
 also pass; the current receipts are under
-`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-09/`.
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-14/`.
 The feature branch includes develop at `00ae841`. The develop coordinator owns
 full verification, final task ticks, the review record, and feature finish.

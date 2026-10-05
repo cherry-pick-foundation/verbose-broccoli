@@ -46,6 +46,7 @@ function runPostHook(
     args,
     cwd,
     env: {
+      BASE_BRANCH: 'develop',
       GIT_CONFIG_GLOBAL: join(dirname(cwd), '.gitconfig'),
       GIT_CONFIG_NOSYSTEM: '1',
       HOME: dirname(cwd),
@@ -767,5 +768,58 @@ void test('git-flow: cleanup command is withheld when the source worktree metada
     assert(result.success, output);
     assertMatch(output, /source worktree metadata is missing/i);
     assert(!output.includes('orca-ide worktree rm'), output);
+  });
+});
+
+void test('git-flow: cleanup command is withheld when the source tip is not merged into its base', async () => {
+  await temporary(async (_root, develop, feature) => {
+    await addReviewRecord(feature);
+    const finish = await attemptFinish(develop);
+    assertEquals(finish.code, 0, finish.output);
+    const mergedTip = await git(feature, 'rev-parse', 'HEAD');
+
+    await writeFile(join(feature, 'post-finish.txt'), 'preserve this commit\n');
+    await git(feature, 'add', 'post-finish.txt');
+    await git(feature, 'commit', '-m', 'source advances after finish');
+    const tip = await git(feature, 'rev-parse', 'HEAD');
+    assert(tip !== mergedTip);
+    assertEquals(await git(feature, 'status', '--porcelain'), '');
+    const merged = await runGit(develop, [
+      'merge-base',
+      '--is-ancestor',
+      tip,
+      'develop',
+    ]);
+    assert(!merged.success);
+
+    const result = runPostHook(develop, [], {
+      BRANCH: featureBranch,
+      BASE_BRANCH: 'develop',
+      EXIT_CODE: '0',
+    });
+    const output = `${decoder.decode(result.stdout)}\n${decoder.decode(result.stderr)}`;
+    assert(result.success, output);
+    assertMatch(output, /source tip is not merged into develop/i);
+    assert(!output.includes('orca-ide worktree rm'), output);
+    assertEquals(
+      await git(develop, 'rev-parse', `refs/heads/${featureBranch}`),
+      tip,
+    );
+
+    const missingBase = runPostHook(develop, [], {
+      BRANCH: featureBranch,
+      BASE_BRANCH: '',
+      EXIT_CODE: '0',
+    });
+    const missingBaseOutput = `${decoder.decode(missingBase.stdout)}\n${decoder.decode(missingBase.stderr)}`;
+    assert(missingBase.success, missingBaseOutput);
+    assertMatch(
+      missingBaseOutput,
+      /target base branch is missing or unresolved/i,
+    );
+    assert(
+      !missingBaseOutput.includes('orca-ide worktree rm'),
+      missingBaseOutput,
+    );
   });
 });
