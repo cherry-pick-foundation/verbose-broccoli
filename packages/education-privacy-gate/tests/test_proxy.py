@@ -185,6 +185,38 @@ def test_original_and_masked_schema_both_hold():
     asyncio.run(run())
 
 
+@pytest.mark.usefixtures("isolated")
+def test_numbered_label_collision_forwards_and_restores():
+    async def run():
+        gate = proxy_module.PrivacyGate(None)
+        gate.schemas = {
+            "echo": {
+                "type": "object",
+                "properties": {"text": {"type": "string"}},
+            }
+        }
+        original = "010-2345-6789 Phone 01"
+        forwarded = []
+
+        async def next_call(context):
+            forwarded.append(context.message.arguments)
+            return ToolResult(content=context.message.arguments["text"])
+
+        result = await gate.on_call_tool(
+            MiddlewareContext(
+                message=CallToolRequestParams(
+                    name="echo", arguments={"text": original}
+                )
+            ),
+            next_call,
+        )
+        assert not result.is_error
+        assert forwarded == [{"text": "Phone 02 Phone 01"}]
+        assert result.content[0].text == original
+
+    asyncio.run(run())
+
+
 def snapshot(root):
     return {
         str(path.relative_to(root)): path.read_bytes()

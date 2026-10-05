@@ -232,21 +232,21 @@ class Masker:
                         continue
                     if len(self.assigned) >= 128:
                         raise GateError()
-                    if identity[0] in {"person", "given"}:
-                        for unused_attempt in range(256):
-                            candidate = self.faker.first_name()
-                            if not self._collision(candidate):
-                                break
+                    numbered = identity[0] not in {"person", "given"}
+                    original = identity[1] if numbered else defaults[identity]
+                    for unused_attempt in range(256):
+                        if numbered:
+                            counts[identity[0]] += 1
+                            candidate = (
+                                f"{identity[0]} {counts[identity[0]]:02d}"
+                            )
+                            # Number reversal uses digit boundaries.
                         else:
-                            raise GateError()
-                        original = defaults[identity]
+                            candidate = self.faker.first_name()
+                        if not self._collision(candidate):
+                            break
                     else:
-                        counts[identity[0]] += 1
-                        candidate = f"{identity[0]} {counts[identity[0]]:02d}"
-                        # Numbered tokens use digit boundaries during reversal.
-                        if self._collision(candidate):
-                            raise GateError()
-                        original = identity[1]
+                        raise GateError()
                     self.assigned[identity] = candidate
                     self.reverse[candidate] = original
 

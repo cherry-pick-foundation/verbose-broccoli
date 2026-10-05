@@ -235,8 +235,11 @@ def test_exhaustion_and_clear_on_error():
 
 
 def test_fixed_label_collision_and_reverse_key_collision():
-    with gate() as masker, pytest.raises(GateError):
-        masker.mask("가상별빛고 School 01")
+    original = "가상별빛고 School 01"
+    with gate() as masker:
+        masked = masker.mask(original)
+        assert masked == "School 02 School 01"
+        assert masker.restore(masked) == original
     with gate("Avery") as masker:
         masker.mask("가라온")
         with pytest.raises(GateError):
@@ -443,13 +446,35 @@ def test_ordinary_short_keys_do_not_collide_with_fixed_labels():
         assert masker.restore(masked) == original
 
 
-def test_literal_request_standins_still_redraw_or_refuse():
+def test_literal_request_standins_redraw_people_and_numbered_labels():
     with gate("Avery", "Blair") as masker:
         assert masker.mask(["가라온", "xAveryx"]) == ["Blair", "xAveryx"]
         assert masker.faker.calls == 2
-    for text in ("991399-1234567 Resident number 01", "1234567890 EduOK 01"):
-        with gate() as masker, pytest.raises(GateError):
-            masker.mask(text)
+    for text, expected in (
+        (
+            "991399-1234567 Resident number 01",
+            "Resident number 02 Resident number 01",
+        ),
+        ("1234567890 EduOK 01", "EduOK 02 EduOK 01"),
+    ):
+        with gate() as masker:
+            masked = masker.mask(text)
+            assert masked == expected
+            assert masker.restore(masked) == text
+
+
+def test_numbered_labels_skip_literals_and_exhaust_safely():
+    original = "010-2345-6789 Phone 01 Phone 02"
+    with gate() as masker:
+        masked = masker.mask(original)
+        assert masked == "Phone 03 Phone 01 Phone 02"
+        assert masker.restore(masked) == original
+
+    labels = " ".join(f"Phone {index:02d}" for index in range(1, 257))
+    with gate() as masker, pytest.raises(
+        GateError, match="^Privacy gate rejected the call\\.$"
+    ):
+        masker.mask("010-2345-6789 " + labels)
 
 
 @pytest.mark.parametrize(
