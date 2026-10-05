@@ -7,5 +7,5 @@
   "stateFile": "session-state.md",
   "worktreeAliases": {"verbose-broccoli": "main"},
   "thresholds": {"main": 1, "develop": 2, "feature": 2},
-  "maxContextBytes": 65536
+  "maxContextBytes": {"codex": 200000, "claude": 65536}
 }
