@@ -264,7 +264,44 @@ void test('both client hooks restore context and isolate coordinator thresholds'
         notes,
       ),
     );
-    testConfig.maxContextBytes = 50;
+    delete testConfig.worktreeAliases['feature-example'];
+    configure();
+    for (const client of ['codex', 'claude']) {
+      const owner = `Coordinator session: ${client}/current\nSTATE-MARKER\n`;
+      writeFileSync(state, owner);
+      writeFileSync(join(root, 'notes.md'), 'BOUNDARY');
+      const overhead = Buffer.byteLength(run(client, 'startup')) - 8;
+      const bound = client === 'codex' ? 200000 : 65536;
+      for (const bytes of [bound, bound + 1]) {
+        const boundaryNotes = 'BOUNDARY' + 'x'.repeat(bytes - overhead - 8);
+        writeFileSync(join(root, 'notes.md'), boundaryNotes);
+        const context = run(client, 'startup');
+        assert.equal(context.includes(boundaryNotes), bytes === bound);
+        if (bytes === bound) assert.equal(Buffer.byteLength(context), bound);
+      }
+      for (const [body, included] of [
+        ['x'.repeat(113000), client === 'codex'],
+        ['x'.repeat(62000), true],
+        ['x'.repeat(65000), client === 'codex'],
+        ['x'.repeat(201000), false],
+        ['한'.repeat(70000), false],
+      ] as const) {
+        const largeNotes = `START\n${body.slice(0, body.length / 2)}\nMIDDLE\n${body.slice(body.length / 2)}\nEND`;
+        writeFileSync(join(root, 'notes.md'), largeNotes);
+        const context = run(client, 'startup');
+        assert.ok(context.startsWith('If this output is truncated or spilled'));
+        assert.equal(context.includes(largeNotes), included);
+        for (const marker of ['START', 'MIDDLE', 'END', 'STATE-MARKER'])
+          assert.equal(context.includes(marker), included);
+        if (!included) {
+          assert.ok(
+            context.includes('Read every source in full before continuing'),
+          );
+          assert.ok(context.includes(state));
+        }
+      }
+    }
+    testConfig.maxContextBytes = {...config.maxContextBytes, codex: 50};
     configure();
     const fallback = run('codex', 'startup');
     assert.ok(fallback.includes('Read every source in full'));
@@ -292,8 +329,10 @@ void test('hook definitions preserve Ponytail and match all required sources', (
       assert.ok(new RegExp(entry.matcher).test(source));
     assert.ok(entry.hooks[0].command.endsWith(client));
     if (client === 'codex') {
+      assert.equal(entry.hooks[0].additionalContextLimit, 65536);
       assert.ok(
-        entry.hooks[0].additionalContextLimit >= config.maxContextBytes,
+        entry.hooks[0].additionalContextLimit >=
+          Math.ceil(config.maxContextBytes.codex / 4),
       );
       assert.ok(
         settings.hooks.SessionStart.some((item: {hooks: {command: string}[]}) =>

@@ -57,12 +57,13 @@ async function main() {
   const worktree = config.worktreeAliases[basename(root)] ?? basename(root);
   const role = ['main', 'develop'].includes(worktree) ? worktree : 'feature';
   const threshold = config.thresholds[role];
+  const maxContextBytes = config.maxContextBytes[client];
   if (
     !Number.isInteger(threshold) ||
     threshold < 1 ||
-    !Number.isInteger(config.maxContextBytes) ||
-    config.maxContextBytes < 1 ||
-    config.maxContextBytes > 65536
+    !Number.isInteger(maxContextBytes) ||
+    maxContextBytes < 1 ||
+    maxContextBytes > (client === 'codex' ? 200000 : 65536)
   )
     throw new Error('Invalid threshold or context bound');
   const stateHome = process.env.XDG_STATE_HOME;
@@ -133,7 +134,7 @@ async function main() {
     .map((path, i) => `\n--- ${path} ---\n${contents[i]}`)
     .join('\n');
   const context =
-    Buffer.byteLength(instructions + full) <= config.maxContextBytes
+    Buffer.byteLength(instructions + full) <= maxContextBytes
       ? instructions + full
       : instructions +
         `Read every source in full before continuing, in chunks without omitted middle text:\n${visiblePaths.join('\n')}\n`;
