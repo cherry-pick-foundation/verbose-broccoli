@@ -21,8 +21,11 @@ full verification, independent review, final task ticks, and feature finish.
 
 ## Handoff
 
-The focused git-flow suite passes 25/25. Bash syntax, Prettier, and diff checks
-also pass; the current receipts are under
-`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-14/`.
-The feature branch includes develop at `00ae841`. The develop coordinator owns
-full verification, final task ticks, the review record, and feature finish.
+The focused git-flow suite passes 25/25 on develop `22996c2`. Document checks
+record 11 successful verification requests (333 claims; no contradictions),
+34 target-document review flags for unchanged or weakly evidenced claims, 19
+report-only review flags, and 21 MemoryLint warnings. The changed git-flow
+architecture statement was checked against both hook files. Receipts are under
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-16/`.
+Full verification, final task ticks, the review record, and feature finish
+remain with the develop coordinator.

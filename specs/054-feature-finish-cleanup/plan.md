@@ -30,8 +30,9 @@ path; do not automate session settlement or worktree removal.
 unsettled, unrelated and unmerged state; no upstream patch or new framework.
 
 **Scale/Scope**: One hook, focused additions to its existing integration test,
-and the three standard Spec Kit records. Initial estimate: 35-55 shell and test
-lines, plus records; final measured size is recorded below.
+one architecture note, and the three standard Spec Kit records. Initial
+estimate: 35-55 shell and test lines, plus records; final measured size is
+recorded below.
 
 ## Design
 
@@ -60,15 +61,15 @@ status, tip, base, or worktree facts produce a preserve-and-inspect message.
 
 The change adds the requested post-merge reminder through the existing native
 extension point. It avoids guessing whether Orca workers are settled and avoids
-automated deletion. Only the approved hook, existing test and standard feature
-records are changed. Full verification and independent review remain with the
-coordinator.
+automated deletion. It updates the architecture note to describe both hooks.
+Full verification and independent review remain with the coordinator.
 
 ## Project Structure
 
 ```text
 scripts/git-flow-hooks/post-flow-feature-finish
 scripts/git-flow-test.ts
+docs/architecture.md
 specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ```
 
@@ -87,5 +88,6 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 
 The implementation is a small shell hook plus an existing harness regression;
 no split is needed. Final source is 76 shell lines; the test diff adds 379 and
-removes 11 lines; the three records total 196 lines. The five-file diff adds
-651 and removes 11 lines, with no separate tooling or dependency.
+removes 11 lines; the architecture note changes two lines; the three records
+add 201 lines. The six-file diff adds 658 and removes 13 lines, with no separate
+tooling or dependency.
