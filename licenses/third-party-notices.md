@@ -99,18 +99,20 @@ with the already approved Ajv dependency. Sources:
 - Copyright (c) 2026 Vyctor Brzezowski.
   [MIT license](../plugins/work/skills/session-migrate/LICENSE).
 
-## jkudish/jev-mcp — Backfire skills
+## jkudish/jev-mcp — portable jev skills
 
 - Source:
-  <https://github.com/jkudish/jev-mcp/tree/a1fcc1e47fc696614f081e23a66ff48a890f22fd>
-- Revision: `a1fcc1e47fc696614f081e23a66ff48a890f22fd` (release 0.9.0).
-- Reused: the agent skill `skills/jev`, copied as
-  `plugins/code/skills/backfire-code/` and again as
-  `plugins/work/skills/backfire-education/`, with the changes that each copy's
-  `upstream.json` lists, and the Noul tool's definition, questions and
-  decision logic in `packages/backfire/src/backfire/noul.py`.
+  <https://github.com/jkudish/jev-mcp/tree/5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93/skills/jev>
+- Revision: `5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93` (version 0.13.0).
+- Reused: `SKILL.md`, `reference/tools.md` and `LICENSE`, copied into
+  `plugins/code/skills/jev/` and `plugins/work/skills/jev/`.
+- Adaptations: remove the direct unpinned `mcpServers.jev` launch block;
+  add a pointer to shared local privacy and provider guidance in
+  `references/verbose-broccoli.md`. Each copy's `upstream.json` records
+  the original and adapted file hashes. Both copies have identical bytes.
 - Copyright (c) 2026 Joey Kudish.
-  [MIT license](../plugins/code/skills/backfire-code/LICENSE).
+  MIT licenses shipped with the [Code copy](../plugins/code/skills/jev/LICENSE)
+  and the [Work copy](../plugins/work/skills/jev/LICENSE).
 
 ## typesafe-ai/skills — model-choice
 
@@ -122,16 +124,6 @@ with the already approved Ajv dependency. Sources:
   `references/model-choice.md` is this repository's own text.
 - Copyright (c) 2026 TypeSafe AI.
   [MIT license](../plugins/code/skills/model-choice/LICENSE).
-
-## daviddrysdale/python-phonenumbers — work plugin pseudonymization
-
-- Source: <https://github.com/daviddrysdale/python-phonenumbers>, published on
-  PyPI as `phonenumbers` 9.0.40, a Python port of Google's libphonenumber.
-- Used as a pinned Python dependency of `packages/backfire/`, in its optional
-  `education` extra, locked in the workspace's `uv.lock` and installed by
-  `npm run backfire:install` for the work plugin's `serve-mcp --education`.
-  No source is copied into the repository.
-- Copyright (C) 2009-2011 The Libphonenumber Authors. Apache License 2.0.
 
 ## browser-use/jev-ultrafast — chat web agent
 
@@ -161,14 +153,3 @@ with the already approved Ajv dependency. Sources:
   the title sends the reader to the local `google-workspace` skill first.
 - Copyright 2026 Google LLC. Used under the Apache License 2.0, the same
   license as this repository ([LICENSE](../LICENSE)).
-
-## Ministry of the Interior and Safety — legal-district codes
-
-- Source: <https://www.code.go.kr>, "법정동코드 전체자료" (legal-district
-  code, full data), requested on 2026-09-30 as
-  [`upstream.md`](../packages/backfire/vendor/legal-district-codes/upstream.md)
-  records, with the ZIP's and the text file's SHA-256.
-- Reused: the response ZIP, unmodified, in
-  `packages/backfire/vendor/legal-district-codes/`; backfire's region list is
-  generated from its province and city/county/district names.
-- Public data of a Korean ministry; the site states no license.

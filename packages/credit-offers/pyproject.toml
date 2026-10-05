@@ -7,16 +7,13 @@ name = "credit-offers"
 version = "0.1.0"
 description = "Find new API credit offers in the freetokens tracker."
 requires-python = ">=3.12"
-dependencies = ["backfire", "httpx>=0.28,<1", "jev-judge-mcp==0.6.0"]
+dependencies = ["httpx>=0.28,<1"]
 
 [project.scripts]
 credit-offers = "credit_offers:main"
 
 [dependency-groups]
 dev = ["pytest==9.1.1"]
-
-[tool.uv.sources]
-backfire = { workspace = true }
 
 [tool.uv.build-backend]
 module-name = "credit_offers"

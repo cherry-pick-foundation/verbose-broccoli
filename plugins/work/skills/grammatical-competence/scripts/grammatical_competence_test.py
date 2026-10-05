@@ -139,7 +139,7 @@ def vault(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def backfire(monkeypatch):
+def jev(monkeypatch):
     stub = SimpleNamespace(modes=[], calls=[], reply=lambda _: REPLY)
 
     @asynccontextmanager
@@ -151,12 +151,12 @@ def backfire(monkeypatch):
         stub.calls.append(arguments)
         return stub.reply(arguments)
 
-    monkeypatch.setattr(profile, "_backfire", server)
+    monkeypatch.setattr(profile, "_jev", server)
     monkeypatch.setattr(profile, "_verify", verify)
     return stub
 
 
-def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
+def test_check_sorts_and_record_lists_unclear_items(vault, jev, capsys):
     before = _snapshot(vault)
     assert _run(f"inventory --inventory {INVENTORY}") == 0
     assert _run("extract --source material-source") == 0
@@ -168,8 +168,8 @@ def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
     assert _run(f"check --inventory {INVENTORY}") == 1  # One result is unknown.
     report = json.loads(capsys.readouterr().out)
     assert (report["calls"], report["tokens"], report["invalid"]) == (1, 5, 1)
-    assert backfire.modes == [("--education",)]
-    (call,) = backfire.calls
+    assert jev.modes == [()]
+    (call,) = jev.calls
     assert (
         call["claims"][0]
         == "First sentence. shows Keep / Group: Shows support."
@@ -210,11 +210,10 @@ def test_check_sorts_and_record_lists_unclear_items(vault, backfire, capsys):
 
 
 @pytest.mark.usefixtures("vault")
-def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
+def test_refuses_absent_sentence_and_unknown_key(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
-    # The third sentence is Korean, escaped, so this file sent to Jev as
-    # evidence holds no Hangul.
+    # The Korean sentence is also absent from the synthetic source.
     rows = (
         ("Not extracted.", [1]),
         ("First sentence.", [99]),
@@ -222,35 +221,35 @@ def test_refuses_absent_sentence_and_unknown_key(backfire, capsys):
     )
     _proposals(run, *rows)
     assert _run(f"check --inventory {INVENTORY}") == 1
-    assert not (run / "checks.jsonl").exists() and not backfire.calls
+    assert not (run / "checks.jsonl").exists() and not jev.calls
     err = capsys.readouterr().err
     assert "proposal 1: sentence is absent" in err
     assert "proposal 2: item key is not in the inventory" in err
-    assert "proposal 3: backfire takes English only, no Hangul" in err
+    assert "proposal 3: sentence is absent" in err
 
 
 @pytest.mark.usefixtures("vault")
-def test_failure_stops_the_run_and_a_rerun_resumes(backfire, capsys):
+def test_failure_stops_the_run_and_a_rerun_resumes(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
     _proposals(run, ("First sentence.", [1]), ("Second sentence.", [1]))
     ok = {"results": [{"verdict": "verified", "action": "auto"}]}
 
     def failing(_):
-        if len(backfire.calls) == 2:
+        if len(jev.calls) == 2:
             raise RuntimeError("provider failed")
         return ok
 
-    backfire.reply = failing
+    jev.reply = failing
     assert _run(f"check --inventory {INVENTORY}") == 2
     assert "row 2: provider failed" in capsys.readouterr().err
     checks = run / "checks.jsonl"
     assert [c["row"] for c in _jsonl(checks)] == [1]
     with checks.open("a") as stream:
         stream.write('{"row": 2')  # A torn line from a killed run.
-    backfire.reply = lambda _: ok
+    jev.reply = lambda _: ok
     assert _run(f"check --inventory {INVENTORY}") == 0
-    sent = [c["evidence"].split("\n")[0][10:] for c in backfire.calls]
+    sent = [c["evidence"].split("\n")[0][10:] for c in jev.calls]
     assert sent == ["First sentence.", "Second sentence.", "Second sentence."]
     assert [c["row"] for c in _jsonl(checks)] == [1, 2]
 
@@ -272,18 +271,18 @@ def test_verify_reads_real_tool_results():
 
     reply = asyncio.run(profile._verify(session(False, json.dumps(REPLY)), {}))
     assert reply == REPLY
-    with pytest.raises(ValueError, match="backend_not_configured"):
+    with pytest.raises(ValueError, match="jev-mcp verification failed"):
         asyncio.run(
             profile._verify(session(True, "backend_not_configured"), {})
         )
 
 
 @pytest.mark.usefixtures("vault")
-def test_record_sorts_stored_results_again_at_a_threshold(backfire):
+def test_record_sorts_stored_results_again_at_a_threshold(jev):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
     _proposals(run, ("First sentence.", [1, 2, 3]))
-    backfire.reply = lambda _: {
+    jev.reply = lambda _: {
         "provider": "synthetic",
         "model": "stub",
         "results": [
@@ -305,7 +304,7 @@ def test_record_sorts_stored_results_again_at_a_threshold(backfire):
 
 
 @pytest.mark.usefixtures("vault")
-def test_a_tier_family_is_one_item(backfire):
+def test_a_tier_family_is_one_item(jev):
     assert _run(f"inventory --inventory {INVENTORY}") == 0
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -318,11 +317,11 @@ def test_a_tier_family_is_one_item(backfire):
     _proposals(run, ("First sentence.", [6]))
     assert _run(f"check --inventory {INVENTORY}") == 1
     _proposals(run, ("First sentence.", [7]))
-    backfire.reply = lambda _: {
+    jev.reply = lambda _: {
         "results": [{"verdict": "verified", "action": "auto"}]
     }
     assert _run(f"check --inventory {INVENTORY}") == 0
-    (call,) = backfire.calls
+    (call,) = jev.calls
     assert call["claims"] == [
         "First sentence. shows Range / Two words: Small range.; Wide range."
     ]
@@ -337,7 +336,7 @@ def test_a_tier_family_is_one_item(backfire):
 
 @pytest.mark.usefixtures("vault")
 def test_map_checks_sections_without_hangul_and_records_them(
-    backfire, capsys, monkeypatch
+    jev, capsys, monkeypatch
 ):
     root = instance_path("synthetic", os.environ)
     reference = {
@@ -398,14 +397,14 @@ def test_map_checks_sections_without_hangul_and_records_them(
     assert _run(mapping) == 1
     assert "mapping 1: section is over 5 characters" in capsys.readouterr().err
     monkeypatch.setattr(profile, "SECTION", limit)
-    assert not backfire.calls
+    assert not jev.calls
 
     others = [(key, []) for key in (2, 3, 4, 5, 7, 8)]
     rows((2, []), (1, ["Unit 1", "Unit 2"]), (2, []), *others[2:])
     assert _run(mapping) == 1  # Key 2 twice, key 3 missing.
     assert "exactly once" in capsys.readouterr().err
     rows((1, ["Unit 1", "Unit 2"]), *others)
-    backfire.reply = lambda _: {
+    jev.reply = lambda _: {
         "provider": "synthetic",
         "model": "stub",
         "results": [
@@ -414,8 +413,8 @@ def test_map_checks_sections_without_hangul_and_records_them(
         ],
     }
     assert _run(mapping) == 0
-    (call,) = backfire.calls
-    assert backfire.modes == [()]
+    (call,) = jev.calls
+    assert jev.modes == [()]
     assert call["claims"][0] == (
         "Synthetic reference, section Unit 1, explains Keep / Group: "
         "Shows support."
@@ -466,7 +465,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
 
 
 @pytest.mark.usefixtures("vault")
-def test_record_unchecked_keeps_every_valid_proposal(backfire, capsys):
+def test_record_unchecked_keeps_every_valid_proposal(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
     _proposals(run, ("First sentence.", [2, 1, 1]), ("Not extracted.", [1]))
@@ -476,7 +475,7 @@ def test_record_unchecked_keeps_every_valid_proposal(backfire, capsys):
     assert not (root / "wiki/profiles").exists()
     _proposals(run, ("First sentence.", [2, 1, 1]))
     assert _run(f"{RECORD} --unchecked") == 0
-    assert not backfire.calls and not (run / "checks.jsonl").exists()
+    assert not jev.calls and not (run / "checks.jsonl").exists()
     (row,) = _jsonl(root / "wiki/profiles/sample.jsonl")
     assert (row["items"], row["unclear"]) == (["keep", "drop"], [])
     page = (root / "wiki/profiles/sample.qmd").read_text()
@@ -486,7 +485,7 @@ def test_record_unchecked_keeps_every_valid_proposal(backfire, capsys):
     assert block["counts"] == counts
 
 
-def test_inherited_inventory_and_generated_checker_override(vault, backfire):
+def test_inherited_inventory_and_generated_checker_override(vault, jev):
     defaults = dict(PAGE)
     defaults["inventory"] = {**PAGE["inventory"], "claim": "Ancestor {text}"}
     (vault / "wiki/_metadata.yml").write_text(yaml.safe_dump(defaults))
@@ -548,7 +547,7 @@ def test_inherited_inventory_and_generated_checker_override(vault, backfire):
     assert [r["items"] for r in rows] == [["keep"], [], ["keep"]]
     assert [r["n"] for r in rows] == [1, 2, 3]
     assert (run / "proposals.jsonl").read_bytes() == original
-    assert not backfire.calls
+    assert not jev.calls
 
 
 def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
@@ -661,9 +660,7 @@ def test_metadata_problem_keeps_source_and_line(vault):
         profile._page(vault, INVENTORY)
 
 
-def test_empty_source_refuses_and_empty_profile_stays_unchecked(
-    vault, backfire
-):
+def test_empty_source_refuses_and_empty_profile_stays_unchecked(vault, jev):
     _bag(vault, "empty-source", "empty.txt", b"123\n")
     before = _snapshot(vault)
     assert _run("extract --source empty-source") == 2
@@ -681,4 +678,106 @@ def test_empty_source_refuses_and_empty_profile_stays_unchecked(
         "unclear": 0,
     }
     assert (vault / "wiki/profiles/sample.jsonl").read_bytes() == b""
-    assert not backfire.calls and _snapshot(vault) == before
+    assert not jev.calls and _snapshot(vault) == before
+
+
+def test_korean_proposal_is_checked_when_present_in_source(vault, jev):
+    text = "\uccab \ubb38\uc7a5."
+    _bag(vault, "korean-source", "synthetic.txt", text.encode())
+    assert _run("extract --source korean-source") == 0
+    run = profile._run_dir("run")
+    proposal = {
+        "source": "korean-source",
+        "part": "synthetic",
+        "text": text,
+        "items": [1],
+    }
+    (run / "proposals.jsonl").write_text(json.dumps(proposal) + "\n")
+    jev.reply = lambda _: {
+        "results": [{"verdict": "verified", "action": "auto"}]
+    }
+    assert _run(f"check --inventory {INVENTORY}") == 0
+    assert text in jev.calls[0]["evidence"]
+    assert set(jev.calls[0]) == {"claims", "evidence"}
+
+
+@pytest.mark.parametrize("text", ["not JSON", "[]", "{}"])
+def test_verify_rejects_malformed_results(text):
+    async def call_tool(*unused_args):
+        return CallToolResult(content=[TextContent(type="text", text=text)])
+
+    with pytest.raises(ValueError, match="jev-mcp verification failed"):
+        asyncio.run(profile._verify(SimpleNamespace(call_tool=call_tool), {}))
+
+
+@pytest.mark.parametrize(
+    "config", ["/synthetic/config", None, "relative/config", ""]
+)
+def test_verification_launcher_uses_gated_proxy(monkeypatch, config):
+    if config is None:
+        monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_CONFIG_HOME", config)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-marker")
+    monkeypatch.setenv("JEV_PROVIDER", "synthetic-marker")
+    monkeypatch.setenv("NODE_OPTIONS", "synthetic-marker")
+    launches = []
+
+    @asynccontextmanager
+    async def transport(server):
+        launches.append(server)
+        yield None, None
+
+    class Client:
+        def __init__(self, *unused):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *unused):
+            pass
+
+        async def initialize(self):
+            pass
+
+    monkeypatch.setattr(profile, "stdio_client", transport)
+    monkeypatch.setattr(profile, "ClientSession", Client)
+
+    async def launch():
+        async with profile._jev():
+            pass
+
+    asyncio.run(launch())
+    expected = (
+        {"XDG_CONFIG_HOME": config}
+        if config and config.startswith("/")
+        else None
+    )
+    assert launches[0].env == expected
+    assert launches[0].command == "uv"
+    assert launches[0].args == [
+        "--directory",
+        str(profile.PROXY),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ]
+
+
+@pytest.mark.usefixtures("vault")
+def test_text_usage_is_retained_without_inventing_token_counts(jev, capsys):
+    assert _run("extract --source material-source") == 0
+    run = profile._run_dir("run")
+    _proposals(run, ("First sentence.", [1]))
+    usage = {"input_tokens": "synthetic", "output_tokens": {"nested": 1}}
+    jev.reply = lambda _: {
+        "results": [{"verdict": "verified", "action": "auto"}],
+        "usage": usage,
+    }
+    capsys.readouterr()
+    assert _run(f"check --inventory {INVENTORY}") == 0
+    assert json.loads(capsys.readouterr().out)["tokens"] == 0
+    assert _jsonl(run / "checks.jsonl")[0]["usage"] == usage

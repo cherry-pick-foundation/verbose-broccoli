@@ -101,12 +101,6 @@
       "to": {"path": "^plugins/work/"}
     },
     {
-      "name": "public-api:packages/backfire",
-      "severity": "error",
-      "from": {"pathNot": "^packages/backfire/"},
-      "to": {"path": "^packages/backfire/"}
-    },
-    {
       "name": "public-api:packages/credit-offers",
       "severity": "error",
       "from": {"pathNot": "^packages/credit-offers/"},
@@ -117,6 +111,12 @@
       "severity": "error",
       "from": {"pathNot": "^packages/doc-regions/"},
       "to": {"path": "^packages/doc-regions/"}
+    },
+    {
+      "name": "public-api:packages/education-privacy-gate",
+      "severity": "error",
+      "from": {"pathNot": "^packages/education-privacy-gate/"},
+      "to": {"path": "^packages/education-privacy-gate/"}
     },
     {
       "name": "public-api:packages/jev-ultrafast",

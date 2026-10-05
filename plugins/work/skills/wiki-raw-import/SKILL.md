@@ -130,7 +130,8 @@ the `work` vault, whose pages about students can cite it.
 
 To offer the local Claude Code and Codex sessions to the vaults, follow
 [references/session-selection.md](references/session-selection.md). It
-renders, filters, scans and classifies them and ends with the lists the user
+renders, filters, scans and classifies them through the always-gated `jev-mcp`
+proxy and ends with the lists the user
 approves, which then go through steps 5 to 9 above, one selection per vault.
 
 ## Boundaries

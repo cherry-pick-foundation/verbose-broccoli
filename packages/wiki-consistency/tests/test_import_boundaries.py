@@ -1,33 +1,21 @@
 import os
 from pathlib import Path
 import subprocess
+import tomllib
 
 
 def test_workspace_layers_reject_higher_layer_import(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[3]
-    for name in (
-        "backfire",
-        "backfire_education",
-        "credit_offers",
-        "doc_regions",
-        "jev_ultrafast",
-        "wiki_consistency",
-    ):
+    config = tomllib.loads((root / "pyproject.toml").read_text())
+    for name in config["tool"]["importlinter"]["root_packages"]:
         package = tmp_path / name
         package.mkdir()
         (package / "__init__.py").write_text("", encoding="utf-8")
     (tmp_path / "wiki_consistency" / "__init__.py").write_text(
         "value = 1\n", encoding="utf-8"
     )
-    (tmp_path / "backfire" / "__init__.py").write_text(
+    (tmp_path / "doc_regions" / "__init__.py").write_text(
         "from wiki_consistency import value\n", encoding="utf-8"
-    )
-    (tmp_path / "backfire_education" / "pseudonymize.py").write_text(
-        "def pseudonymize():\n    pass\n", encoding="utf-8"
-    )
-    (tmp_path / "backfire" / "providers.py").write_text(
-        "from backfire_education.pseudonymize import pseudonymize\n",
-        encoding="utf-8",
     )
 
     result = subprocess.run(

@@ -33,21 +33,48 @@ paths show where the files were copied here.
   workspace's `pytest==9.1.1` dev dependency; omit the upstream README path
   because that file is not copied. Keep upstream runtime dependencies and the
   `jev` script.
-- `src/jev_ultrafast/model.py`: select TypeSafe, Vercel, OpenRouter or
-  Cloudflare from `providers.toml`, send OpenRouter's configured model through
-  the upstream system-one protocol, pass configured request headers, adapt
-  Vercel choice answers to Jev's TypeSafe answer shape, and support
-  Cloudflare's `ai-run` protocol. TypeSafe remains the default.
+- `src/jev_ultrafast/model.py`: remove the direct provider route
+  (`request_jev`, `post_json`, provider selection and its `providers.toml`).
+  Send each Choice head as a `jev_classify` call to the repository's gated
+  `jev-mcp` proxy over MCP, in one session per decision: the operation first,
+  then only the chosen operation's targets. A target head with one option is
+  chosen without a call, because `jev_classify` needs two. `validate_choice`,
+  `action_space`, `field_context` and the decision dictionary keep their
+  shape. The text helper is held: `field_text` raises before any model or
+  network use. Each step sends one or two gated calls. The per-step proxy
+  startup was measured at about 1.7 seconds under a mock only, not live.
+  Upstream's internal retries mean gated-call attempts are not provider HTTP
+  attempts or billing counts; a timeout leaves the provider outcome unknown.
+- `src/jev_ultrafast/agent.py`: charge each gated request attempt immediately
+  before dispatch, including failures, refusals, timeouts and cancellations;
+  never refund. Retain the 120-attempt allowance (`MAX_STEPS * 2`) and the
+  separate 60-action guard. Exhaustion before a target request leaves no
+  decision to execute. Record `model_calls` separately from `decisions`,
+  numeric usage (when supplied) and elapsed time.
 - `src/jev_ultrafast/browser.py`: use Orca's private runtime folder and an
   owned Orca tab by default; read that tab's CDP address, attach to its page,
   and close the tab and daemon. `JEV_BROWSER=chrome` retains upstream target
   creation and close behavior.
+- `tests/test_agent.py`: replace the tests of the direct HTTP post and the
+  text helper with tests of the gated route (one request per used head, a lone
+  option, refusal, malformed results, held text), plus attempted-call budget
+  boundaries and callback ordering; retain the existing execution guards.
+
+## Call units
+
+A browser run allows at most 120 gated tool-call attempts (`MAX_STEPS * 2`):
+each operation or target request counts, including failures. The 60-action
+guard is separate. Under the default OpenRouter route, the unmodified upstream
+may make up to 3 fetch attempts per dispatched request, so up to 360 explicit
+fetch attempts per run. `JEV_MCP_MAX_ATTEMPTS` defaults to 3 and is clamped
+1-6; the proxy does not set it. Actual processed requests and billing are
+unknown. The 1.7-second per-step startup figure comes from a mocked run only.
 
 ## Local additions
 
-- `src/jev_ultrafast/providers.toml` holds provider addresses, headers, model
-  and key-variable names.
-- `tests/test_providers.py` and `tests/test_orca_browser.py` contain offline
-  stubs for the added provider and browser behavior.
-- `examples/flights.py` is copied unchanged because the unchanged
-  `tests/test_agent.py` imports it.
+- `tests/test_providers.py` tests the gated route against a synthetic stdio
+  server and against the reviewed gate proxy over its mocked upstream.
+- `tests/test_orca_browser.py` contains offline stubs for the added browser
+  behavior.
+- `examples/flights.py` is copied unchanged because `tests/test_agent.py`
+  imports it.

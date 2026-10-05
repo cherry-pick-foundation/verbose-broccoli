@@ -161,6 +161,18 @@ void test('orca.yaml and the hosted checks call the mise setup task', async () =
   }
 });
 
+void test('Python setup and the documentation runner read the root runtime pin', async () => {
+  for (const file of [
+    '.config/mise.toml',
+    '.github/workflows/docs-check.yml',
+  ]) {
+    const text = await read(file);
+    assert(text.includes('uv python install --no-bin'), file);
+    assert(text.includes('$(cat .python-version)'), file);
+    assert(!text.includes('cat packages/'), file);
+  }
+});
+
 void test('ruff, commitizen and prettier configs live in their owners', async () => {
   const pyproject = await read('pyproject.toml');
   assert(/^\[tool\.ruff\]$/m.test(pyproject));
@@ -255,7 +267,6 @@ void test("mise setup does not install the user's global tools", async () => {
   const dir = await mkdtemp(join(tmpdir(), 'mise-setup-'));
   try {
     await mkdir(join(dir, 'project/.config'), {recursive: true});
-    await mkdir(join(dir, 'project/packages/backfire'), {recursive: true});
     await copyFile(
       join(root, '.config/mise.toml'),
       join(dir, 'project/.config/mise.toml'),
@@ -265,8 +276,8 @@ void test("mise setup does not install the user's global tools", async () => {
       join(dir, 'project/.config/mise.lock'),
     );
     await copyFile(
-      join(root, 'packages/backfire/.python-version'),
-      join(dir, 'project/packages/backfire/.python-version'),
+      join(root, '.python-version'),
+      join(dir, 'project/.python-version'),
     );
     await writeFile(join(dir, 'global.toml'), '[tools]\nbun = "1.3.0"\n');
     const result = spawnSync('mise', ['run', '--dry-run', 'setup'], {

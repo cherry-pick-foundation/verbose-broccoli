@@ -78,10 +78,6 @@
     "//#doc-regions:check": {
       "description": "Check mechanical regions and local links in the target documents, offline and without writing"
     },
-    "//#backfire:regions:check": {
-      "description": "Check that backfire's generated region list matches the vendored legal-district codes, offline and without writing"
-    },
-    "//#test:backfire-regions": {},
     "//#test:ruff": {},
     "//#test:gts": {},
     "//#test:git-flow": {},
@@ -125,20 +121,11 @@
       "cache": false
     },
     "//#doc-regions:prepare": {
-      "description": "Print backfire requests for the agent regions before a develop merge review (pass --base and --max-evidence-chars)",
+      "description": "Print jev-mcp requests for the agent regions before a develop merge review (pass --base and --max-evidence-chars)",
       "cache": false
     },
     "//#doc-regions:audit": {
       "description": "Run MemoryLint's read-only audit on AGENTS.md and the constitution",
-      "cache": false
-    },
-    "backfire#test": {
-      "command": ["npm", "--prefix", "../..", "run", "test:backfire"],
-      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
-    },
-    "backfire#check": {
-      "command": ["true"],
-      "dependsOn": ["backfire#test"],
       "cache": false
     },
     "credit-offers#test": {
@@ -164,6 +151,21 @@
       "dependsOn": ["doc-regions#test"],
       "cache": false
     },
+    "education-privacy-gate#test": {
+      "command": [
+        "npm",
+        "--prefix",
+        "../..",
+        "run",
+        "test:education-privacy-gate"
+      ],
+      "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
+    },
+    "education-privacy-gate#check": {
+      "command": ["true"],
+      "dependsOn": ["education-privacy-gate#test"],
+      "cache": false
+    },
     "jev-ultrafast#test": {
       "command": ["npm", "--prefix", "../..", "run", "test:jev-ultrafast"],
       "inputs": ["$TURBO_DEFAULT$", "../../package.json"]
@@ -186,9 +188,9 @@
       "description": "Check every Python package. Turborepo would otherwise run `uv check` here, which type-checks the workspace and replaces the editable installs with copies",
       "command": ["true"],
       "dependsOn": [
-        "backfire#check",
         "credit-offers#check",
         "doc-regions#check",
+        "education-privacy-gate#check",
         "jev-ultrafast#check",
         "wiki-consistency#check"
       ],
@@ -198,7 +200,6 @@
       "command": ["true"],
       "dependsOn": [
         "//#test:plugins-validate",
-        "//#test:backfire-regions",
         "//#test:ruff",
         "//#test:gts",
         "//#test:git-flow",
@@ -237,7 +238,6 @@
         "//#clean-architecture",
         "//#python:imports",
         "//#doc-regions:check",
-        "//#backfire:regions:check",
         "//#test",
         "verbose-broccoli-python#check"
       ],
