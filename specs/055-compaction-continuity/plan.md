@@ -32,7 +32,7 @@ Use `Coordinator session: <client>/<session_id>` as a single exact owner line in
 
 Codex counts top-level `compacted` records after the matching `session_meta` header. Claude counts unique system/compact_boundary UUIDs bearing the input sessionId. Do not count text mentions, completion events or other sessions. Resume retains that transcript's count; new/clear sessions use their new transcript. Missing or malformed transcripts report unknown counts, never zero as evidence. The source-specific record layout is an installed-client compatibility limit.
 
-Full injection is preferred. Codex's handler limit is set above the script's context byte cap, so supported outputs do not spill. If sources grow beyond the cap, output exact paths and a required full re-read, in chunks with no omitted middle. Missing files are named. Notification failure leaves the save-state instruction visible. Notifications contain only the worktree identifier and count, never notes, state or transcript contents.
+Full injection is preferred. Codex's handler limit is set above the script's context byte cap, so supported outputs do not spill. If sources grow beyond the cap, output exact paths and a required full re-read, in chunks with no omitted middle. A mandatory full re-read instruction with every source path also appears at the start of every output if a client truncates or spills it. Missing files are named. Notification failure leaves the save-state instruction visible. Notifications contain only the worktree identifier and count, never notes, state or transcript contents.
 
 ## Execution and Verification
 
@@ -52,4 +52,4 @@ Owned size before this record: 161 source lines, 261 test lines, 26 hook lines a
 
 Evidence: ~/.local/state/verbose-broccoli/workspaces/feature-compaction-continuity/compaction-continuity/ctx_14adf1f5da09/acceptance-after-privacy-01/ contains document requests, receipts and disposition; acceptance-after-privacy-02/ contains the successful verification log and immutable Turbo summary. Live compacted model responses and desktop display were not exercised; capability/source evidence and synthetic notification checks are recorded accurately. Client activation remains a user-owned rollout after integration.
 
-Independent native Claude built-in review remains pending. The saved choice is claude-sonnet-5-5 medium (probability 0.88, confidence 0.85). Develop owns final ticks, Linear and finish; this record is not the implementer's final approval.
+Independent native Claude built-in review is required before finish. The saved choice is claude-sonnet-5-5 medium (probability 0.88, confidence 0.85). Develop owns final ticks, Linear and finish; this record is not the implementer's final approval.

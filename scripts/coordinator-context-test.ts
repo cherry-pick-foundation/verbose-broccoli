@@ -125,10 +125,20 @@ void test('both client hooks restore context and isolate coordinator thresholds'
       let context = run(client);
       assert.ok(context.includes(notes));
       assert.ok(context.includes(owner));
+      assert.ok(context.slice(0, 1500).includes('truncated or spilled'));
+      assert.ok(context.slice(0, 1500).includes(join(root, 'notes.md')));
+      assert.ok(context.slice(0, 1500).includes(state));
       assert.ok(!context.includes('Start no new work'));
       assert.ok(!context.includes('Notification failed'));
       assert.throws(() => readFileSync(notification));
       saveTranscript(2);
+      if (client === 'codex') {
+        const original = readFileSync(transcript, 'utf8');
+        writeFileSync(
+          transcript,
+          original + JSON.stringify(records(0)[0]) + '\n',
+        );
+      }
       if (client === 'claude') {
         const original = readFileSync(transcript, 'utf8');
         writeFileSync(

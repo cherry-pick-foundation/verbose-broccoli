@@ -22,7 +22,6 @@ async function compactions(path: string, client: string, session: string) {
       if (client === 'codex') {
         if (record.type === 'session_meta') {
           matching = record.payload?.id === session;
-          count = 0;
         }
         if (matching && record.type === 'compacted') count++;
       } else if (record.sessionId === session) {
@@ -91,7 +90,7 @@ async function main() {
     }
   });
   const owner = `Coordinator session: ${client}/${input.session_id}`;
-  let instructions = `Restore the standing notes and current state below in full. Only if your assigned role is this worktree's coordinator, overwrite ${state} in place with decisions, holds/reasons, live owners, open questions and next steps; preserve existing decisions and explicitly set the single owner line to ${owner}. Narrow workers must not claim or write coordinator state. Fresh sessions and every compaction require the complete notes and state, never a summary.\n`;
+  let instructions = `If this output is truncated or spilled, read every source in full before continuing, in chunks without omitted middle text: ${paths.join(', ')}. Restore the standing notes and current state below in full. Only if your assigned role is this worktree's coordinator, before starting other work overwrite ${state} in place with decisions, holds/reasons, live owners, open questions and next steps; preserve existing decisions and explicitly set the single owner line to ${owner}. Narrow workers must not claim or write coordinator state. Fresh sessions and every compaction require the complete notes and state, never a summary.\n`;
   const ownerLines = contents
     .at(-1)!
     .split(/\r?\n/)
