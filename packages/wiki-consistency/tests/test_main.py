@@ -7,6 +7,7 @@ import sys
 
 from conftest import SOURCE_ID
 from conftest import make_instance
+from conftest import tree_hash
 from conftest import update_regions
 import pytest
 from test_prepare import KEY
@@ -60,12 +61,17 @@ def test_each_subcommand_defaults_to_work(args):
     assert _parser().parse_args(args).wiki_id == "work"
 
 
-def test_check_cli_does_not_write_cache_files(tmp_path):
-    instance, env = make_instance(tmp_path)
+@pytest.mark.parametrize("name", ("default", "chat", "code", "work"))
+def test_check_cli_does_not_write_cache_files(tmp_path, name):
+    instance, env = make_instance(tmp_path, wiki_id=name)
     update_regions(instance)
 
+    before = tree_hash(instance)
+    assert instance.parent.name == "llm-wiki"
+    assert not (instance.parent.parent / "vaults").exists()
     result = _run_cli(instance, env, "check")
     assert result.returncode == 0, result.stderr
+    assert tree_hash(instance) == before
 
     cache = Path(env["XDG_CACHE_HOME"])
     assert not [path for path in cache.rglob("*") if path.is_file()]

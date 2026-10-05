@@ -34,7 +34,7 @@ def instance_path(wiki_id, env=None):
         or "\0" in wiki_id
     ):
         raise ValueError("wiki must be a single folder name")
-    return roots(env)["data"] / "vaults" / wiki_id
+    return roots(env)["data"] / "llm-wiki" / wiki_id
 
 
 def _front_matter(text):

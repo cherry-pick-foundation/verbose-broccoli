@@ -30,7 +30,7 @@ OUTCOMES = ("admitted", "already_admitted", "refused", "failed")
 
 
 def roots():
-    """Return configured XDG storage roots for the work vault."""
+    """Return configured XDG storage roots for the work wiki."""
     home = Path.home()
     storage = {}
     configured = {}
@@ -372,7 +372,7 @@ def main():
     args = parser.parse_args()
     try:
         storage = roots()
-        instance = storage["data"] / "vaults" / args.wiki
+        instance = storage["data"] / "llm-wiki" / args.wiki
         if args.command == "init":
             return initialize(instance)
         if not (instance / "raw").is_dir():

@@ -29,7 +29,7 @@ implementation until new features specify them. The package has a small
 The `chat` package contains the `web-agent` and `credit-offers` skills
 (see [Chat web agent and credit offers](#chat-web-agent-and-credit-offers--2026-09-30));
 it has no package manifest, MCP declaration or scripts, and its
-persistent state is the `chat` vault (see [Wiki storage](#wiki-storage)).
+persistent state is the `chat` wiki (see [Wiki storage](#wiki-storage)).
 No release has occurred. Live checkout discovery and copied client distribution
 are separate routes (see [Sharing and distribution](#sharing-and-distribution)).
 
@@ -225,35 +225,35 @@ live data or other external operational or source roots.
 
 ### Wiki storage
 
-The Wiki instances, called vaults, live in
-`$XDG_DATA_HOME/verbose-broccoli/vaults/` (by default under
-`~/.local/share`), outside the repository, one folder per vault:
+The Wiki instances live in
+`$XDG_DATA_HOME/verbose-broccoli/llm-wiki/` (by default under
+`~/.local/share`), outside the repository, one folder per wiki:
 
-| Vault | Holds |
+| Wiki | Holds |
 | --- | --- |
 | `default` | Knowledge that belongs to no single plugin |
 | `chat` | Exported conversations as raw evidence and the pages written from them; the chat package's persistent state |
 | `code` | Coding knowledge for work in any project: libraries, patterns, decisions. It is not this repository's development memory, which stays in the Spec Kit records, code and Git |
 | `work` | Education work: the raw imports, including exported conversations, and the per-student pages |
 
-Each vault's schema `AGENTS.md` owns the roles of `raw/{web,files,notes,assets}/`,
+Each wiki's schema `AGENTS.md` owns the roles of `raw/{web,files,notes,assets}/`,
 `text/`, `wiki/` and `site/`. Raw is immutable create-only BagIt originals outside
-Git. Vault-local Git with no remote versions schema, full original-language
+Git. Wiki-local Git with no remote versions schema, full original-language
 `text/<source-id>/<revision>.qmd` extractions and English `wiki/**/*.qmd` pages
 with topics. `site/` is Korean delivery derived from chosen English versions,
 with tags and no `ko/` tree. F2/CHE-12 owns freshness, rendering and publishing;
 new real conversion, student/audience and publication decisions stay with main.
-A plugin's Wiki skills use the vault named after the plugin
-unless the user selects another; `default` is always selected by name. Vaults
+A plugin's Wiki skills use the wiki named after the plugin
+unless the user selects another; `default` is always selected by name. Wikis
 are the user's shared Wiki storage, not a plugin's private store, so any
-plugin's Wiki tool may write a vault the user selects.
+plugin's Wiki tool may write a wiki the user selects.
 
-The work plugin's `wiki-raw-import` skill creates a vault and copies documents
-the user confirms into its `raw/`, in `work` unless another vault is named.
-Only the `chat` and `work` vaults admit exported conversations; the skill
+The work plugin's `wiki-raw-import` skill creates a wiki and copies documents
+the user confirms into its `raw/`, in `work` unless another wiki is named.
+Only the `chat` and `work` wikis admit exported conversations; the skill
 admits each ChatGPT export into both. Exported Claude Code and Codex
 sessions, rendered to Markdown by SpecStory's command-line tool, may go into
-any vault they belong to; the skill's session selection reference picks
+any wiki they belong to; the skill's session selection reference picks
 them with `jev-mcp`, and the user approves the list. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
@@ -261,7 +261,7 @@ the SHA-256 digest. The bags
 are the only record of sources and revisions. The user's exclusions live in
 `$XDG_CONFIG_HOME/verbose-broccoli/config.toml`; import staging lives under
 the cache root. The import makes each bag with bagit 1.9.0's own `make_bag`;
-it no longer locks out a second run into the same vault, cleans up staging
+it no longer locks out a second run into the same wiki, cleans up staging
 left by a crash, or hashes the original again after copying.
 
 ### Wiki consistency
@@ -279,8 +279,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   the Korean spelling stays only in the roster, a school is written as its
   domain ID, and a short direct quote may stay next to its translation.
 - Pages carry YAML front matter with a title, a one-line summary, the
-  source revisions they cite and one or more topics. A vault groups its
-  pages by topic instead of splitting into more vaults; the front matter of
+  source revisions they cite and one or more topics. A wiki groups its
+  pages by topic instead of splitting into more wikis; the front matter of
   its `AGENTS.md` declares the topics its pages may list, and the layer
   folders stay as they are. `index.qmd` is one mechanical region,
   `page_catalog`, built from that metadata, which lists the pages under a
@@ -312,7 +312,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   passes, a registration-number shape is flagged even with an impossible
   birth date, phone and email detection is Vale's, not the gate's, and only
   the student-name rule reads the front matter's title and summary. The
-  check creates temporary rule and link-check files, leaves maintained vault
+  check creates temporary rule and link-check files, leaves maintained wiki
   source unchanged, and uses no network.
   `update` regenerates stale regions. `check` is the offline structural,
   metadata and rule stage; it does not prove exact sentence evidence or
@@ -410,10 +410,10 @@ fresh private cache run's `sources.json` only within its context, cleaned on
 success, failure and catchable interruption. CSL entries use `id: source-id/revision`,
 `type: document`, the BagIt payload filename as `title`, and custom provenance;
 no invented author/date, sender or absolute paths. Earlier output is never
-new-run authority; no bibliography belongs in vault Git. F2 supplies renderer
+new-run authority; no bibliography belongs in wiki Git. F2 supplies renderer
 source and audience selection.
 `prepare` consumes a bibliography scoped to its selected revisions; index and
-search do not build an unused whole-vault bibliography.
+search do not build an unused whole-wiki bibliography.
 
 The grammatical-competence consumer reads `.qmd` through shared metadata and
 retained evidence, without a separate PDF bypass. Its run's `extractions.json`
@@ -573,7 +573,7 @@ the Python package `packages/education-privacy-gate/` joins the root uv
 workspace; its npm manifest pins the hidden upstream judgment server.
 Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
 another plugin's private files or open another plugin's private operational
-store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
+store; Wiki instances are not such a store (see [Wiki storage](#wiki-storage)).
 
 ### Live checkout discovery
 

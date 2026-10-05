@@ -146,7 +146,7 @@ class Fixture {
     };
     this.instance = join(
       this.env.XDG_DATA_HOME,
-      'verbose-broccoli/vaults/work',
+      'verbose-broccoli/llm-wiki/work',
     );
     this.raw = join(this.instance, 'raw');
   }
@@ -204,7 +204,7 @@ class Fixture {
   async selection(items: unknown[]) {
     const path = join(
       this.env.XDG_STATE_HOME,
-      'verbose-broccoli/vaults/work/selections/test.jsonl',
+      'verbose-broccoli/llm-wiki/work/selections/test.jsonl',
     );
     await mkdir(dirname(path), {recursive: true});
     await writeFile(
@@ -878,10 +878,10 @@ void test('raw import US5: init copies the schema and creates an uncommitted Wik
   });
 });
 
-void test('raw import US5: unnamed commands use the work vault under vaults', async () => {
+void test('raw import US5: unnamed commands use the work wiki under llm-wiki', async () => {
   await fixture(async f => {
     await f.init();
-    const path = await f.file('work-vault.txt');
+    const path = await f.file('work-wiki.txt');
     const [item] = report(await f.admit([path]));
     assertEquals(item.outcome, 'admitted');
     const verified = await f.run('verify');
@@ -890,7 +890,7 @@ void test('raw import US5: unnamed commands use the work vault under vaults', as
 
     const selection = join(
       f.env.XDG_STATE_HOME,
-      'verbose-broccoli/vaults/work/selections/test.jsonl',
+      'verbose-broccoli/llm-wiki/work/selections/test.jsonl',
     );
     const paths = new Set((await snapshot(f.home)).map(entry => entry.path));
     assert(
@@ -904,7 +904,7 @@ void test('raw import US5: unnamed commands use the work vault under vaults', as
           readDir(join(root, 'verbose-broccoli')),
           entry => entry.name,
         ),
-        ['vaults'],
+        ['llm-wiki'],
       );
     }
   });
@@ -964,7 +964,10 @@ void test('raw import US5: named Wiki and all four kinds use their own roots', a
     const initialized = await f.run('--wiki', 'selected', 'init');
     assertEquals(initialized.code, 0, initialized.stderr);
     assertEquals(initialized.stderr, '');
-    f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults/selected');
+    f.instance = join(
+      f.env.XDG_DATA_HOME,
+      'verbose-broccoli/llm-wiki/selected',
+    );
     f.raw = join(f.instance, 'raw');
     const items = await Promise.all(
       ['web', 'files', 'notes', 'assets'].map(async kind => ({
@@ -1124,7 +1127,12 @@ with zipfile.ZipFile(path, "w") as archive:
       ['chat', chatFirst, chatSecond],
       ['work', workFirst, workSecond],
     ] as const) {
-      f.raw = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/vaults', wiki, 'raw');
+      f.raw = join(
+        f.env.XDG_DATA_HOME,
+        'verbose-broccoli/llm-wiki',
+        wiki,
+        'raw',
+      );
       const source = dirname(revisionPath(f, first));
       assertEquals(
         Array.from(readDir(source), entry => entry.name).sort(),
@@ -1172,7 +1180,7 @@ for (const value of ['unset', '', 'relative']) {
           ),
         );
       assertEquals((await command('init')).code, 0);
-      f.instance = join(f.home, '.local/share/verbose-broccoli/vaults/work');
+      f.instance = join(f.home, '.local/share/verbose-broccoli/llm-wiki/work');
       f.raw = join(f.instance, 'raw');
       await stat(join(f.instance, 'AGENTS.md'));
       const path = await f.file('default-roots.txt');
@@ -1226,3 +1234,39 @@ void test('raw import: invalid arguments and Wiki names write nothing', async ()
     }
   });
 });
+
+for (const wiki of ['default', 'chat', 'code', 'work']) {
+  void test(`raw import: ${wiki} works under llm-wiki without a legacy link`, async () => {
+    await fixture(async f => {
+      f.instance = join(f.env.XDG_DATA_HOME, 'verbose-broccoli/llm-wiki', wiki);
+      f.raw = join(f.instance, 'raw');
+      const initialized = await f.run('--wiki', wiki, 'init');
+      assertEquals(initialized.code, 0, initialized.stderr);
+      await stat(join(f.instance, '.git'));
+      const original = await f.file('evidence.txt');
+      const selection = await f.selection([{path: original, kind: 'files'}]);
+      const [item] = report(
+        await f.run('admit', '--wiki', wiki, '--selection', selection),
+      );
+      assertEquals(
+        await readFile(join(revisionPath(f, item), 'data/evidence.txt')),
+        await readFile(original),
+      );
+      const before = await snapshot(f.instance, true);
+      const verified = await f.run('verify', '--wiki', wiki);
+      assertEquals(verified.code, 0, verified.stderr);
+      assertEquals(JSON.parse(verified.stdout), {count: 1, invalid: []});
+      assertEquals(JSON.parse((await f.run('init', '--wiki', wiki)).stdout), {
+        created: [],
+      });
+      assertEquals(await snapshot(f.instance, true), before);
+      assertEquals(
+        Array.from(
+          readDir(join(f.env.XDG_DATA_HOME, 'verbose-broccoli')),
+          entry => entry.name,
+        ),
+        ['llm-wiki'],
+      );
+    });
+  });
+}

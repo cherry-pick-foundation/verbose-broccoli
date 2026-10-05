@@ -27,7 +27,7 @@ BODY = (
 
 
 def retained(tmp_path, body=BODY):
-    root = tmp_path / "vault"
+    root = tmp_path / "wiki"
     add_revision(root, "r1", body)
     selected = revisions(root)
     evidence.convert(root, "synthetic", tmp_path / "cache", selected)
@@ -76,7 +76,7 @@ def test_retention_reuse_original_language_revisions_and_cache_deletion(
 def test_actual_converter_runs_once_and_corrections_are_reused(
     tmp_path, monkeypatch
 ):
-    root = tmp_path / "vault"
+    root = tmp_path / "wiki"
     bag = add_revision(root, "r1", '{"text":"Texte synthétique"}')
     # Select the existing JSON converter using a truthful synthetic manifest.
     payload = bag / "data/document.txt"
@@ -357,7 +357,7 @@ def test_raw_record_identity_mismatch(tmp_path, field, value):
 
 
 def test_ambiguous_raw_identity_fails_before_retaining(tmp_path):
-    root = tmp_path / "vault"
+    root = tmp_path / "wiki"
     bag = add_revision(root, "r1", BODY)
     selected = revisions(root)
     shutil.copytree(bag, root / "raw/another-kind" / SOURCE_ID / "r1")
@@ -401,7 +401,7 @@ def test_atomic_conflict_keeps_winner(tmp_path, monkeypatch):
 
 
 def test_old_cache_is_preserved_without_automatic_promotion(tmp_path):
-    root = tmp_path / "vault"
+    root = tmp_path / "wiki"
     add_revision(root, "r1", BODY)
     old = (
         tmp_path

@@ -108,8 +108,8 @@ def _proposals(run, *rows):
 
 
 @pytest.fixture
-def vault(tmp_path, monkeypatch):
-    """Set up a synthetic vault with an inventory and a one-line material."""
+def wiki(tmp_path, monkeypatch):
+    """Set up a synthetic wiki with an inventory and a one-line material."""
     for name in ("DATA", "STATE", "CACHE"):
         monkeypatch.setenv(f"XDG_{name}_HOME", str(tmp_path / name.lower()))
     root = instance_path("synthetic", os.environ)
@@ -156,8 +156,8 @@ def jev(monkeypatch):
     return stub
 
 
-def test_check_sorts_and_record_lists_unclear_items(vault, jev, capsys):
-    before = _snapshot(vault)
+def test_check_sorts_and_record_lists_unclear_items(wiki, jev, capsys):
+    before = _snapshot(wiki)
     assert _run(f"inventory --inventory {INVENTORY}") == 0
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -184,8 +184,8 @@ def test_check_sorts_and_record_lists_unclear_items(vault, jev, capsys):
     assert not (run / "review.md").exists()
 
     assert _run(RECORD) == 0
-    (row,) = _jsonl(vault / "wiki/profiles/sample.jsonl")
-    page = (vault / "wiki/profiles/sample.qmd").read_text()
+    (row,) = _jsonl(wiki / "wiki/profiles/sample.jsonl")
+    page = (wiki / "wiki/profiles/sample.qmd").read_text()
     front = yaml.safe_load(page.split("---\n", 2)[1])
     assert row == {
         "n": 1,
@@ -206,10 +206,10 @@ def test_check_sorts_and_record_lists_unclear_items(vault, jev, capsys):
         {"id": "material-source", "revision": REVISION},
         {"id": "inventory-source", "revision": REVISION},
     ]
-    assert _snapshot(vault) == before
+    assert _snapshot(wiki) == before
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_refuses_absent_sentence_and_unknown_key(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -228,7 +228,7 @@ def test_refuses_absent_sentence_and_unknown_key(jev, capsys):
     assert "proposal 3: sentence is absent" in err
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_failure_stops_the_run_and_a_rerun_resumes(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -254,7 +254,7 @@ def test_failure_stops_the_run_and_a_rerun_resumes(jev, capsys):
     assert [c["row"] for c in _jsonl(checks)] == [1, 2]
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_budget_refusal_happens_before_any_write(monkeypatch):
     monkeypatch.setattr(profile, "LIMIT", 1)
     assert _run(f"inventory --inventory {INVENTORY}") == 2
@@ -277,7 +277,7 @@ def test_verify_reads_real_tool_results():
         )
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_record_sorts_stored_results_again_at_a_threshold(jev):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -303,7 +303,7 @@ def test_record_sorts_stored_results_again_at_a_threshold(jev):
     assert profile_block["counts"] == counts
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_a_tier_family_is_one_item(jev):
     assert _run(f"inventory --inventory {INVENTORY}") == 0
     assert _run("extract --source material-source") == 0
@@ -334,7 +334,7 @@ def test_a_tier_family_is_one_item(jev):
     assert row["items"] == ["small"]
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_map_checks_sections_without_hangul_and_records_them(
     jev, capsys, monkeypatch
 ):
@@ -464,7 +464,7 @@ def test_map_checks_sections_without_hangul_and_records_them(
     ]
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_record_unchecked_keeps_every_valid_proposal(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")
@@ -485,11 +485,11 @@ def test_record_unchecked_keeps_every_valid_proposal(jev, capsys):
     assert block["counts"] == counts
 
 
-def test_inherited_inventory_and_generated_checker_override(vault, jev):
+def test_inherited_inventory_and_generated_checker_override(wiki, jev):
     defaults = dict(PAGE)
     defaults["inventory"] = {**PAGE["inventory"], "claim": "Ancestor {text}"}
-    (vault / "wiki/_metadata.yml").write_text(yaml.safe_dump(defaults))
-    (vault / "wiki/inventories/_metadata.yml").write_text(
+    (wiki / "wiki/_metadata.yml").write_text(yaml.safe_dump(defaults))
+    (wiki / "wiki/inventories/_metadata.yml").write_text(
         yaml.safe_dump(
             {
                 "inventory": {
@@ -500,11 +500,11 @@ def test_inherited_inventory_and_generated_checker_override(vault, jev):
             }
         )
     )
-    (vault / "wiki" / INVENTORY).write_text(
+    (wiki / "wiki" / INVENTORY).write_text(
         '---\ninventory:\n  claim: "Page {text} {label} {statement}"\n'
         "---\nInventory body.\n"
     )
-    metadata, entries = profile._inventory(vault, INVENTORY)
+    metadata, entries = profile._inventory(wiki, INVENTORY)
     assert entries[1]["id"] == "keep"
     assert metadata["topics"] == ["Teaching materials", "Synthetic topic"]
     assert metadata["inventory"]["claim"].startswith("Page")
@@ -517,8 +517,8 @@ def test_inherited_inventory_and_generated_checker_override(vault, jev):
         ("First sentence.", [1]),
     )
     original = (run / "proposals.jsonl").read_bytes()
-    (vault / "wiki/profiles").mkdir()
-    (vault / "wiki/profiles/_metadata.yml").write_text(
+    (wiki / "wiki/profiles").mkdir()
+    (wiki / "wiki/profiles/_metadata.yml").write_text(
         yaml.safe_dump(
             {
                 "profile": {
@@ -530,15 +530,15 @@ def test_inherited_inventory_and_generated_checker_override(vault, jev):
         )
     )
     assert _run(f"{RECORD} --unchecked") == 0
-    front, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    front, problems = read_metadata(wiki, "wiki/profiles/sample.qmd")
     assert not problems
     assert front["profile"]["checker"] == "none"
     assert front["profile"]["custom"] == {"keep": True}
     assert (
         f"[inventory](../{INVENTORY})"
-        in (vault / "wiki/profiles/sample.qmd").read_text()
+        in (wiki / "wiki/profiles/sample.qmd").read_text()
     )
-    rows = _jsonl(vault / "wiki/profiles/sample.jsonl")
+    rows = _jsonl(wiki / "wiki/profiles/sample.jsonl")
     assert [r["text"] for r in rows] == [
         "First sentence.",
         "Second sentence.",
@@ -551,10 +551,10 @@ def test_inherited_inventory_and_generated_checker_override(vault, jev):
 
 
 def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
-    vault, monkeypatch
+    wiki, monkeypatch
 ):
-    _bag(vault, "retained-source", "book.pdf", b"synthetic PDF payload")
-    path = vault / f"text/retained-source/{REVISION}.qmd"
+    _bag(wiki, "retained-source", "book.pdf", b"synthetic PDF payload")
+    path = wiki / f"text/retained-source/{REVISION}.qmd"
     path.parent.mkdir(parents=True)
     front = {
         "source-id": "retained-source",
@@ -585,7 +585,7 @@ def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
     assert "missing or stale original review evidence" in receipt["problems"]
     assert "missing locator evidence" in receipt["problems"]
     _bag(
-        vault,
+        wiki,
         "retained-source",
         "book.pdf",
         b"new synthetic PDF payload",
@@ -603,7 +603,7 @@ def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
         + "\n"
     )
     assert _run(f"{RECORD} --unchecked") == 0
-    metadata, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    metadata, problems = read_metadata(wiki, "wiki/profiles/sample.qmd")
     assert not problems
     assert metadata["sources"][0] == {
         "id": "retained-source",
@@ -615,7 +615,7 @@ def test_retained_pdf_reuse_pins_revision_and_exact_extraction(
     assert _run(f"{RECORD} --unchecked") == 2
 
 
-def test_legacy_run_refuses_without_touching_paid_results(vault, capsys):
+def test_legacy_run_refuses_without_touching_paid_results(wiki, capsys):
     run = profile._run_dir("run")
     (run / "text").mkdir(parents=True)
     (run / "text/material-source.txt").write_text("First sentence.")
@@ -626,7 +626,7 @@ def test_legacy_run_refuses_without_touching_paid_results(vault, capsys):
     assert "provenance" in capsys.readouterr().err
     assert _run("extract --source material-source") == 2
     assert (run / "checks.jsonl").read_bytes() == checks
-    assert not (vault / "wiki/profiles/sample.qmd").exists()
+    assert not (wiki / "wiki/profiles/sample.qmd").exists()
 
 
 @pytest.mark.parametrize(
@@ -638,38 +638,38 @@ def test_legacy_run_refuses_without_touching_paid_results(vault, capsys):
         "../../text/link/../source/link.qmd",
     ],
 )
-def test_reference_rejects_escaping_and_symlink_paths(vault, tmp_path, target):
+def test_reference_rejects_escaping_and_symlink_paths(wiki, tmp_path, target):
     outside = tmp_path / "outside.qmd"
     outside.write_text("Forbidden bytes.")
-    (vault / "text/source").mkdir(parents=True)
-    (vault / "text/link").symlink_to(tmp_path, target_is_directory=True)
-    (vault / "text/source/link.qmd").symlink_to(outside)
+    (wiki / "text/source").mkdir(parents=True)
+    (wiki / "text/link").symlink_to(tmp_path, target_is_directory=True)
+    (wiki / "text/source/link.qmd").symlink_to(outside)
     reference = {**PAGE, "reference": {"text": target}}
-    (vault / "wiki/references").mkdir()
-    (vault / "wiki/references/reference.qmd").write_text(
+    (wiki / "wiki/references").mkdir()
+    (wiki / "wiki/references/reference.qmd").write_text(
         "---\n" + yaml.safe_dump(reference) + "---\n"
     )
     args = SimpleNamespace(reference="references/reference.qmd")
     with pytest.raises(ValueError, match="text/|symlink"):
-        profile._sections(vault, args, profile._run_dir("run"))
+        profile._sections(wiki, args, profile._run_dir("run"))
 
 
-def test_metadata_problem_keeps_source_and_line(vault):
-    (vault / "wiki/inventories/_metadata.yml").write_text("inventory: [\n")
+def test_metadata_problem_keeps_source_and_line(wiki):
+    (wiki / "wiki/inventories/_metadata.yml").write_text("inventory: [\n")
     with pytest.raises(ValueError, match=r"wiki/inventories/_metadata.yml:\d+"):
-        profile._page(vault, INVENTORY)
+        profile._page(wiki, INVENTORY)
 
 
-def test_empty_source_refuses_and_empty_profile_stays_unchecked(vault, jev):
-    _bag(vault, "empty-source", "empty.txt", b"123\n")
-    before = _snapshot(vault)
+def test_empty_source_refuses_and_empty_profile_stays_unchecked(wiki, jev):
+    _bag(wiki, "empty-source", "empty.txt", b"123\n")
+    before = _snapshot(wiki)
     assert _run("extract --source empty-source") == 2
     run = profile._run_dir("run")
     assert not (run / "text/empty-source.txt").exists()
     run.mkdir(parents=True, exist_ok=True)
     _proposals(run)
     assert _run(f"{RECORD} --unchecked") == 0
-    front, problems = read_metadata(vault, "wiki/profiles/sample.qmd")
+    front, problems = read_metadata(wiki, "wiki/profiles/sample.qmd")
     assert not problems and front["profile"]["checker"] == "none"
     assert front["profile"]["counts"] == {
         "sentences": 0,
@@ -677,13 +677,13 @@ def test_empty_source_refuses_and_empty_profile_stays_unchecked(vault, jev):
         "dropped": 0,
         "unclear": 0,
     }
-    assert (vault / "wiki/profiles/sample.jsonl").read_bytes() == b""
-    assert not jev.calls and _snapshot(vault) == before
+    assert (wiki / "wiki/profiles/sample.jsonl").read_bytes() == b""
+    assert not jev.calls and _snapshot(wiki) == before
 
 
-def test_korean_proposal_is_checked_when_present_in_source(vault, jev):
+def test_korean_proposal_is_checked_when_present_in_source(wiki, jev):
     text = "\uccab \ubb38\uc7a5."
-    _bag(vault, "korean-source", "synthetic.txt", text.encode())
+    _bag(wiki, "korean-source", "synthetic.txt", text.encode())
     assert _run("extract --source korean-source") == 0
     run = profile._run_dir("run")
     proposal = {
@@ -767,7 +767,7 @@ def test_verification_launcher_uses_gated_proxy(monkeypatch, config):
     ]
 
 
-@pytest.mark.usefixtures("vault")
+@pytest.mark.usefixtures("wiki")
 def test_text_usage_is_retained_without_inventing_token_counts(jev, capsys):
     assert _run("extract --source material-source") == 0
     run = profile._run_dir("run")

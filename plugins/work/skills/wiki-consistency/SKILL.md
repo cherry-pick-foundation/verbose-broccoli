@@ -20,7 +20,7 @@ not turn retained source text into English knowledge or published material.
 
 `DATA` and `CACHE` below are the `verbose-broccoli` folders under the XDG data
 and cache roots (by default `~/.local/share` and `~/.cache`). The Wiki lives
-in vaults, `DATA/vaults/<name>/`; this skill uses the `work` vault unless the
+in the shared container, `DATA/llm-wiki/<name>/`; this skill uses the `work` wiki unless the
 user selects another with `--wiki <name>`.
 
 ## Commands
@@ -164,11 +164,11 @@ fresh private cache `sources.json` only within its context, cleaning it on
 success, failure and catchable interruption. CSL entries use `id: source-id/revision`,
 `type: document`, the BagIt payload filename as `title`, and custom provenance;
 no invented author/date, sender or absolute paths. Earlier output is not new-run
-authority. No bibliography belongs in vault Git. F2 supplies renderer source and
+authority. No bibliography belongs in wiki Git. F2 supplies renderer source and
 audience selection and owns Korean site tags, freshness and publishing; there is
 no `ko/` tree. Main's publication and student decisions remain undecided.
 `prepare` derives only its selected revisions; index and search do not build
-an unused whole-vault bibliography.
+an unused whole-wiki bibliography.
 
 ## After an operation that changed the Wiki
 

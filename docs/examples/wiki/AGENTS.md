@@ -1,5 +1,5 @@
 ---
-# The topics this vault's pages may list; see the page rules below.
+# The topics this wiki's pages may list; see the page rules below.
 topics: []
 ---
 
@@ -25,8 +25,8 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   original path, modification time, admission time and SHA-256 digest. Raw
   is create-only: a changed original becomes a new revision, and earlier
   revisions and their provenance stay. Exported conversations are raw
-  evidence only in the `chat` and `work` vaults, exported Claude Code and
-  Codex sessions in any vault they belong to, and other conversation records
+  evidence only in the `chat` and `work` wikis, exported Claude Code and
+  Codex sessions in any wiki they belong to, and other conversation records
   in none.
 - Write pages in English, whatever the language of the raw evidence, which
   stays unchanged. Student names keep the roster's romanized spelling, a school is
@@ -55,7 +55,7 @@ Cite raw evidence by the source ID and revision recorded in each bag's
   converter/version and honest extracted/partial/unknown status. Extracted backend
   output is not a completeness or review claim. True original review requires
   actual evidence bound to both raw and full `.qmd` hashes; corrections invalidate
-  earlier review evidence. Keep text, Wiki and schema in vault-local Git, no remote.
+  earlier review evidence. Keep text, Wiki and schema in wiki-local Git, no remote.
   Shared PDF extraction uses `pdftotext -raw` content-stream order with its actual
   version; missing/failed backends are unreadable and warnings mark output partial.
 - Supported knowledge sentences use bag-derived `source-id/revision` citations
@@ -84,7 +84,7 @@ Cite raw evidence by the source ID and revision recorded in each bag's
 - `site/` is Korean delivery derived from chosen English versions, with tags;
   there is no `ko/` tree. F2/CHE-12 owns freshness and publishing. New conversion,
   student-bearing, audience and publication decisions remain held with main.
-  Bibliography is fresh private run-local cache only, never vault Git or a second
+  Bibliography is fresh private run-local cache only, never wiki Git or a second
   source registry; previous output never establishes new-run authority.
 - Retained analysis from query or lint belongs in the appropriate maintained
   page. A query or lint without retained analysis changes no page.

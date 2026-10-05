@@ -15,12 +15,12 @@ modification time, the admission time and the SHA-256 digest. The instance's
 raw, retained original-language text, English `.qmd` Wiki and derived Korean
 site roles. Admission does not authorize conversion or publication; new real
 conversion and student/audience choices stay with main. Raw stays outside Git,
-while schema, text and Wiki use vault-local Git with no remote.
+while schema, text and Wiki use wiki-local Git with no remote.
 
 `CONFIG`, `DATA`, `STATE` and `CACHE` below are the `verbose-broccoli` folders
 under the XDG configuration, data, state and cache roots (by default
 `~/.config`, `~/.local/share`, `~/.local/state` and `~/.cache`). Each Wiki
-instance, called a vault, is `DATA/vaults/<vault>/`. The user keeps four:
+instance is `DATA/llm-wiki/<wiki>/`. The user keeps four:
 `work` for education work, the default here; `default` for knowledge that
 belongs to no single plugin; `chat` for exported conversations; and `code`
 for coding knowledge from any project.
@@ -33,7 +33,7 @@ uv run --locked --script scripts/raw_import.py admit --selection <file>
 uv run --locked --script scripts/raw_import.py verify
 ```
 
-Add `--wiki <vault>` for a vault other than `work`; use the vault the user
+Add `--wiki <wiki>` for a wiki other than `work`; use the wiki the user
 names, and ask when it is unclear. Exit 0 means every
 item succeeded, 1 means at least one item was refused or failed (or `verify`
 found an invalid revision), and 2 means an error stopped the command. For an
@@ -67,14 +67,14 @@ was written.
    files to copy, with each file's raw kind: `files` (default), `notes` (the
    user's own text notes), `assets` (images and other media) or `web`
    (captured web pages). Exported conversations, admitted only into the
-   `chat` and `work` vaults, and exported Claude Code and Codex sessions,
-   admitted into any vault, are `files`. Expand folders into files. Point
+   `chat` and `work` wikis, and exported Claude Code and Codex sessions,
+   admitted into any wiki, are `files`. Expand folders into files. Point
    out files whose names or locations suggest operational or private data.
    Point out files that look like derivatives, as in step 1, and list one only
    if the user confirms it is an original. Show the list and its total size to
    the user and wait for approval.
 5. **Write the selection.** Write the approved list as JSON Lines to
-   `STATE/vaults/<vault>/selections/<name>.jsonl`, one
+   `STATE/llm-wiki/<wiki>/selections/<name>.jsonl`, one
    `{"path": "/absolute/path", "kind": "files"}` per line.
 6. **Import.** Run `init` (it changes nothing that exists), then `admit
    --selection <file>`. Keep the JSON Lines report outside every repository.
@@ -96,12 +96,17 @@ was written.
    Commit it in the instance's own Git repository (`raw/` is ignored there).
 9. **Clean up.** Remove the selection file after `verify` passes.
 
+The selection path above is for new lists. Existing lists at the historical
+`STATE/vaults/<wiki>/selections/` path stay where they are: pass their exact
+path to `admit --selection`. The command does not discover selections from a
+state container. Do not move or delete retained state as part of a naming change.
+
 ## ChatGPT exports
 
-The user's ChatGPT conversations reach the vaults through OpenAI's account
+The user's ChatGPT conversations reach the wikis through OpenAI's account
 data export. An export holds the whole account; conversations cannot be
-picked. Each export is admitted unchanged into the `chat` vault and then into
-the `work` vault, whose pages about students can cite it.
+picked. Each export is admitted unchanged into the `chat` wiki and then into
+the `work` wiki, whose pages about students can cite it.
 
 1. **The user requests it.** In ChatGPT on the web: **Settings > Data
    controls > Export data > Export**, then **Confirm export**. This and every
@@ -119,20 +124,20 @@ the `work` vault, whose pages about students can cite it.
    `python3 -m zipfile -t ~/Documents/chatgpt/chatgpt-export.zip`. If it does
    not exit 0 after printing `Done testing`, stop: the download is partial or
    damaged, and the user downloads it again or requests a new export.
-5. **Admit it into both vaults.** The selection is the one line
+5. **Admit it into both wikis.** The selection is the one line
    `{"path": "<absolute path of the file>", "kind": "files"}`. Follow steps 5
-   to 9 of the procedure above for the `chat` vault, then for the `work`
-   vault (`--wiki chat`, then `--wiki work`), so each vault gets its own
+   to 9 of the procedure above for the `chat` wiki, then for the `work`
+   wiki (`--wiki chat`, then `--wiki work`), so each wiki gets its own
    selection, log entry and commit. An unchanged export is reported as
    `already_admitted`.
 
 ## Claude Code and Codex sessions
 
-To offer the local Claude Code and Codex sessions to the vaults, follow
+To offer the local Claude Code and Codex sessions to the wikis, follow
 [references/session-selection.md](references/session-selection.md). It
 renders, filters, scans and classifies them through the always-gated `jev-mcp`
 proxy and ends with the lists the user
-approves, which then go through steps 5 to 9 above, one selection per vault.
+approves, which then go through steps 5 to 9 above, one selection per wiki.
 
 ## Boundaries
 
@@ -142,7 +147,7 @@ approves, which then go through steps 5 to 9 above, one selection per vault.
   commits and Orca or Linear messages. Records there give locations,
   decisions and counts only.
 - Exported conversations are raw evidence only in the `chat` and `work`
-  vaults, exported Claude Code and Codex sessions in any vault they belong
+  wikis, exported Claude Code and Codex sessions in any wiki they belong
   to, and other conversation records in none. Program-owned data (for example a sync client's journals or a
   reference manager's database) is not raw evidence. Copy an item from a
   program-owned folder only when the user selects it.

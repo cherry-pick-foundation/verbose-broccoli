@@ -1,6 +1,6 @@
 ---
 name: grammatical-competence
-description: Build or update a grammatical inventory record, sentence profile, or reference mapping in a Wiki vault from admitted raw sources. Use when every sentence of a material must be linked to inventory items, checked, and recorded for later lookup.
+description: Build or update a grammatical inventory record, sentence profile, or reference mapping in a Wiki instance from admitted raw sources. Use when every sentence of a material must be linked to inventory items, checked, and recorded for later lookup.
 ---
 
 Read [the work plugin rules](../../AGENTS.md) before using this skill.

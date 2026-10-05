@@ -8,7 +8,7 @@ the raw revisions with that skill. Read only the admitted revisions; never
 edit or delete anything in `raw/`.
 
 From this skill folder, the script runs in the Wiki consistency environment.
-`--wiki <vault>` (default `work`) and `--run <name>` come before the command:
+`--wiki <wiki>` (default `work`) and `--run <name>` come before the command:
 
 ```sh
 uv run --project ../../../../packages/wiki-consistency --frozen --offline --no-sync python scripts/grammatical_competence.py --run <name> <command>
@@ -136,7 +136,7 @@ The command prints one JSON object over all recorded results: `rows`,
 `record --inventory inventories/<inventory>.qmd --name <material> --title
 <title> --summary <line> --proposer '<agent, model and effort>'
 [--auto-accept <t> | --unchecked]` writes `wiki/profiles/<material>.qmd` and
-`<material>.jsonl`, and replaces both when they exist; the vault's Git keeps
+`<material>.jsonl`, and replaces both when they exist; the wiki's Git keeps
 the earlier record. It stops with exit code 2 unless `checks.jsonl` covers
 every proposal, unless `--unchecked` is given.
 
@@ -160,13 +160,13 @@ then the inventory page's sources; `topics` come from the inventory page.
 
 After recording, use the work plugin's `wiki-consistency` skill: run `update`
 and `check`, fix failures, append the required entry to `wiki/log.qmd`, and
-commit the page, data file, index and log in the vault. Delete the run folder
+commit the page, data file, index and log in the wiki. Delete the run folder
 after the record commit. A failed or interrupted run keeps its folder for a
 rerun.
 
 ## Record layouts
 
-All records live in the work vault's `wiki/`, use the declared topic
+All records live in the work wiki's `wiki/`, use the declared topic
 `Teaching materials`, and cite their raw source revisions. Page front matter
 also requires `title`, `summary`, `topics` and `sources`. Paths in a block are
 relative to its page.
@@ -237,7 +237,7 @@ all rows, `unclear` the unclear ones, and `dropped` every other proposal.
 ### Reference: `wiki/references/<reference>.qmd`
 
 A reference book's original PDF stays in raw. Its full original-language
-extraction is `text/<source-id>/<revision>.qmd`, versioned in vault-local Git
+extraction is `text/<source-id>/<revision>.qmd`, versioned in wiki-local Git
 with no remote. It is not an English Wiki page; English page lint does not
 apply to the source body. The approved student-data privacy boundary still applies. The reference page cites the exact PDF bag
 revision, records known converter and review facts without guessing missing

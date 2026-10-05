@@ -52,15 +52,15 @@ ROOT = Path(__file__).resolve().parents[5]
 
 
 def stage_dir(value):
-    """Create a private stage outside repositories and vault raw folders."""
+    """Create a private stage outside repositories and wiki raw folders."""
     stage = Path(value).expanduser().resolve()
     if any(
         (parent / ".git").exists()
-        or (parent.name == "raw" and parent.parent.parent.name == "vaults")
+        or (parent.name == "raw" and parent.parent.parent.name == "llm-wiki")
         for parent in (stage, *stage.parents)
     ):
         raise ValueError(
-            "stage must be outside repositories and vault raw folders"
+            "stage must be outside repositories and wiki raw folders"
         )
     stage.mkdir(mode=0o700, parents=True, exist_ok=True)
     stage.chmod(0o700)

@@ -1,5 +1,5 @@
 ---
-# The topics this vault's pages may list; see "Pages".
+# The topics this wiki's pages may list; see "Pages".
 topics: []
 ---
 
@@ -62,8 +62,8 @@ Rules:
   user; repairing it is the user's decision.
 - `raw/` is outside this instance's Git history (see `.gitignore`).
 - Exported conversations are raw evidence only in the `chat` and `work`
-  vaults; in every other vault they stay in the user's workspace. Exported
-  Claude Code and Codex sessions are raw evidence in any vault they belong
+  wikis; in every other wiki they stay in the user's workspace. Exported
+  Claude Code and Codex sessions are raw evidence in any wiki they belong
   to. Other conversation records are never raw evidence.
 
 ## Retained text and derived site
@@ -75,7 +75,7 @@ raw revision in its original language. Its front matter records `source-id`,
 Unknown legacy facts remain `null` and are reported; partial output stays
 explicit. `conversion-status: extracted` describes backend output, not
 completeness or review. Do not alter raw or replace an existing extraction by
-reconverting it. Reviewed text corrections belong in vault-local Git with no
+reconverting it. Reviewed text corrections belong in wiki-local Git with no
 remote; a new raw revision has a separate text file.
 Shared PDF conversion uses `pdftotext -raw` content-stream order and records
 its actual version. Missing/failed backends remain unreadable; warnings mark
@@ -338,6 +338,6 @@ success, failure or catchable interruption. Entries have CSL `id` as
 `source-id/revision`, `type: document`, the bag payload filename as `title`,
 and custom provenance. Never invent author/date fields or export sender or
 absolute paths. Earlier output is never new-run authority; no bibliography is
-kept in vault Git. F2 supplies source and audience selection for rendering.
+kept in wiki Git. F2 supplies source and audience selection for rendering.
 
 The ingest and query workflows come from a later change to this file.
