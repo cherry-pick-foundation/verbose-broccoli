@@ -9,3 +9,9 @@ Commands accept their existing --wiki placement. The old container is not a
 fallback. Session staging refuses raw trees inside llm-wiki before mkdir.
 Real sources, Wiki history and actual container/link settings are outside this
 change. Readiness inspection alone cannot authorize removing the existing link.
+
+New selection-list guidance uses `STATE/llm-wiki/<name>/selections/`. Existing
+selection files remain untouched wherever stored, including historical
+`STATE/vaults/<name>/selections/`: `admit --selection <path>` opens that explicit
+file. There is no automatic state-container lookup, migration or import lock.
+Readiness reports inspect counts/paths only; they never authorize state moves.

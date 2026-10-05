@@ -76,7 +76,7 @@ define five distinct roles:
    from page metadata. Source summaries belong in `sources/`; entities,
    concepts, comparisons, and synthesis retain their own directories. Adopted
    knowledge MUST NOT be classified as disposable because it was LLM-authored.
-   Vault-local Git with no remote owns its history.
+   Wiki-local Git with no remote owns its history.
 4. **Site** under `site/` is Korean delivery derived from chosen English Wiki
    versions, with tags. F2/CHE-12 owns translation freshness and publishing.
    There is no `ko/` tree.
@@ -300,4 +300,4 @@ and each instance to a wiki, to avoid implying an Obsidian dependency.
 CHE-90 changes repository paths and current wording only; data and history
 remain preserved, and removing the temporary link stays a separate action.
 
-**Version**: 2.7.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-05
+**Version**: 2.7.2 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-05

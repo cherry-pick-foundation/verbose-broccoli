@@ -72,7 +72,10 @@ def test_instance_path_uses_llm_wiki_without_legacy_link(
     expected = data / "verbose-broccoli" / "llm-wiki" / name
     expected.mkdir(parents=True)
     assert instance_path(name, env) == expected
-    assert not (data / "verbose-broccoli" / "vaults").exists()
+    legacy = data / "verbose-broccoli" / "vaults"
+    assert not legacy.exists()
+    (legacy / name).mkdir(parents=True)
+    assert instance_path(name, env) == expected
 
 
 def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):

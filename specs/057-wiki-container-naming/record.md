@@ -14,6 +14,8 @@ Current Wiki rules, skills, examples and architecture use wiki for an instance.
 Historical specs, upstream vocabulary, external password-vault references and
 historical constitution Governance are preserved. The current constitution
 amendment uses commitizen's normal fix/PATCH step, from 2.7.0 to 2.7.1.
+A follow-up fix/PATCH correction to current capitalized wording advances it
+once more to 2.7.2, as required for a second amending commit.
 
 Synthetic acceptance runs without the old container link for default, chat,
 code and work. Instance tests also cover absolute, unset, empty and relative
@@ -78,3 +80,14 @@ Claude Code claude-sonnet-5-5/medium, chosen by fresh Jev (.68 probability,
 .59 confidence, no escape/contradiction). Only positive native start and final
 review receipts establish the reviewer and outcome. Root owns the finish,
 post-merge verification and task ticks; main owns the link decision.
+
+The first independent Claude built-in review inspected 633d5c5. Its two
+current-spelling findings were fixed, including remaining test helper names.
+The instance regression now also creates a legacy folder and still selects the
+new folder. The decision date and amendment date intentionally differ. Three
+container literals remain the minimal implementation; no shared abstraction is
+needed. State-list guidance is now explicit: old lists are passed unchanged via
+`--selection`, with no automatic lookup or state lock. Metadata-only inspection
+found empty legacy selections directories for code and work, none for default
+or chat, and no new state selections directories. No list names or contents were
+read or moved. The corrected frozen snapshot requires renewed final review.

@@ -210,7 +210,7 @@ def test_update_refuses_topic_problems_without_writing(
     assert (tree_hash(instance), tree_hash(cache)) == before
 
 
-def test_check_passes_for_an_empty_vault(tmp_path, monkeypatch, capsys):
+def test_check_passes_for_an_empty_wiki(tmp_path, monkeypatch, capsys):
     instance, env = ready_instance(tmp_path)
     for folder in ("concepts", "sources"):
         for page in (instance / "wiki" / folder).glob("*.qmd"):

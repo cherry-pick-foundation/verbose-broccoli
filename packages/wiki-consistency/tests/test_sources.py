@@ -49,7 +49,7 @@ def test_page_catalog_groups_sorted_pages_by_topic_without_reading_schema(
     assert page_catalog("wiki/**/*.qmd") == expected
 
 
-def test_page_catalog_is_empty_when_the_vault_has_no_pages(
+def test_page_catalog_is_empty_when_the_wiki_has_no_pages(
     tmp_path, monkeypatch
 ):
     instance, _ = make_instance(tmp_path)

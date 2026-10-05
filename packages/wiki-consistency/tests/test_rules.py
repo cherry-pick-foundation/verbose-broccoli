@@ -61,7 +61,7 @@ def write_roster(tmp_path, rows=None):
     return path
 
 
-def ready_vault(tmp_path):
+def ready_wiki(tmp_path):
     instance, _ = make_instance(tmp_path)
     assert update_regions(instance) == []
     return instance
@@ -135,7 +135,7 @@ def has_rule(problems, rule, document=None):
 def test_page_rules_report_page_and_line_without_the_match(
     tmp_path, rule, body, matched
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, body)
 
@@ -155,7 +155,7 @@ def test_page_rules_report_page_and_line_without_the_match(
     ),
 )
 def test_student_page_must_be_named_by_a_roster_id(tmp_path, stem):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     page = instance / "wiki" / "students" / f"{stem}.qmd"
     page.parent.mkdir()
@@ -169,7 +169,7 @@ def test_student_page_must_be_named_by_a_roster_id(tmp_path, stem):
 
 
 def test_student_page_named_by_a_roster_id_passes(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     page = instance / "wiki" / "students" / f"s-{IDS[0]}.qmd"
     page.parent.mkdir()
@@ -181,7 +181,7 @@ def test_student_page_named_by_a_roster_id_passes(tmp_path):
 @pytest.mark.parametrize("opening, closing", QUOTES)
 @pytest.mark.parametrize("form", ("original-first", "translation-first"))
 def test_short_translated_quotes_allow_cjk(tmp_path, opening, closing, form):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     original = f"{opening}學生{closing}"
     translation = f"{opening}meaning{closing}"
@@ -198,7 +198,7 @@ def test_short_translated_quotes_allow_cjk(tmp_path, opening, closing, form):
 
 
 def test_unquoted_translation_after_original_is_allowed(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "“學生” (meaning)")
 
@@ -208,7 +208,7 @@ def test_unquoted_translation_after_original_is_allowed(tmp_path):
 
 
 def test_overlong_quote_and_cjk_in_translation_fail(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(
         instance, f"“{'學' * 101}” (meaning)\n\n“學生” (meaning 学生)"
@@ -220,7 +220,7 @@ def test_overlong_quote_and_cjk_in_translation_fail(tmp_path):
 
 
 def test_translated_quote_of_100_characters_passes(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, f"“{'學' * 100}” (meaning)")
 
@@ -241,7 +241,7 @@ def test_translated_quote_of_100_characters_passes(tmp_path):
 def test_korean_roster_names_fail_even_in_translated_quotes(
     tmp_path, name, template
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, template.format(name))
 
@@ -252,7 +252,7 @@ def test_korean_roster_names_fail_even_in_translated_quotes(
 
 
 def test_korean_roster_name_fails_in_front_matter_and_sources(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     page.write_text(
@@ -268,7 +268,7 @@ def test_korean_roster_name_fails_in_front_matter_and_sources(tmp_path):
 
 
 def test_romanized_roster_names_and_other_hangul_pass_the_name_rule(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, f"{ROMANIZED[0]}; Haneul; 가상인물.")
 
@@ -279,7 +279,7 @@ def test_romanized_roster_names_and_other_hangul_pass_the_name_rule(tmp_path):
 
 
 def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path, [("나[하늘", "", "")])
     write_overview(instance, "나[하늘")
 
@@ -287,7 +287,7 @@ def test_roster_regex_metacharacters_do_not_break_vale(tmp_path):
 
 
 def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path, [("가.온", "", "")])
     write_overview(instance, "가x온")
 
@@ -295,7 +295,7 @@ def test_roster_regex_metacharacters_do_not_match_loosely(tmp_path):
 
 
 def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, f"{STUDENTS[0]}은 good.")
 
@@ -303,7 +303,7 @@ def test_roster_name_followed_by_a_particle_still_fails_english(tmp_path):
 
 
 def test_roster_school_name_is_flagged_but_a_translated_quote_passes(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, SCHOOL)
 
@@ -347,7 +347,7 @@ def test_roster_school_name_is_flagged_but_a_translated_quote_passes(tmp_path):
 def test_privacy_and_time_rules_check_code_and_link_targets(
     tmp_path, rule, body, matched
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, body)
 
@@ -357,7 +357,7 @@ def test_privacy_and_time_rules_check_code_and_link_targets(
 
 
 def test_language_school_and_date_skip_link_targets(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(
         instance,
@@ -373,7 +373,7 @@ def test_language_school_and_date_skip_link_targets(tmp_path):
 
 
 def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     skipped = (
         "[a](https://w1012345678-iwc1.slack.invalid/archives/C1/p1)",
@@ -401,7 +401,7 @@ def test_phone_rule_skips_slack_link_numbers_but_not_other_phones(tmp_path):
 
 
 def test_hangul_link_text_still_fails_english(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(
         instance, f"[{SCHOOL}](https://example.invalid/original.pdf)"
@@ -420,7 +420,7 @@ def test_hangul_link_text_still_fails_english(tmp_path):
     ],
 )
 def test_text_rules_skip_code(tmp_path, rule, body):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, body)
 
@@ -428,7 +428,7 @@ def test_text_rules_skip_code(tmp_path, rule, body):
 
 
 def test_date_rule_flags_common_non_iso_forms(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(
         instance,
@@ -443,7 +443,7 @@ def test_date_rule_flags_common_non_iso_forms(tmp_path):
 
 
 def test_iso_shaped_impossible_date_passes_and_valid_iso_dates_pass(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "2026-02-30; 2026-09-29")
 
@@ -453,7 +453,7 @@ def test_iso_shaped_impossible_date_passes_and_valid_iso_dates_pass(tmp_path):
 
 
 def test_fraction_and_partial_dates_pass(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(
         instance,
@@ -467,7 +467,7 @@ def test_fraction_and_partial_dates_pass(tmp_path):
 
 
 def test_invalid_registration_birth_date_is_still_flagged(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "Record 990232-1000000.")
 
@@ -496,7 +496,7 @@ def test_invalid_registration_birth_date_is_still_flagged(tmp_path):
     ],
 )
 def test_time_rule_allows_zoned_forms_and_ranges(tmp_path, body):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, body)
 
@@ -520,7 +520,7 @@ def test_time_rule_allows_zoned_forms_and_ranges(tmp_path, body):
     ],
 )
 def test_time_rule_flags_unzoned_or_invalid_forms(tmp_path, body):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, body)
 
@@ -528,7 +528,7 @@ def test_time_rule_flags_unzoned_or_invalid_forms(tmp_path, body):
 
 
 def test_fractional_seconds_require_a_zone(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "Retrieved 15:54:00.420.")
 
@@ -537,7 +537,7 @@ def test_fractional_seconds_require_a_zone(tmp_path):
 
 @pytest.mark.parametrize("zone", ("Z", "+09:00"))
 def test_fractional_iso_seconds_with_zone_pass(tmp_path, zone):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, f"Retrieved 2026-09-27T15:54:00.420{zone}.")
 
@@ -547,7 +547,7 @@ def test_fractional_iso_seconds_with_zone_pass(tmp_path, zone):
 
 
 def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     alpha = instance / "wiki" / "concepts" / "alpha.qmd"
     alpha.write_text(
@@ -566,7 +566,7 @@ def test_text_scope_front_matter_and_log_are_skipped_by_page_rules(tmp_path):
 
 
 def test_non_privacy_rules_skip_front_matter(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     page.write_text(
@@ -581,7 +581,7 @@ def test_non_privacy_rules_skip_front_matter(tmp_path):
 
 
 def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     page.write_text(
@@ -602,7 +602,7 @@ def test_privacy_rules_check_page_title_but_skip_sources(tmp_path):
 
 
 def test_privacy_rules_skip_unindented_sources_list(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     # PyYAML writes a list under a key without indenting its items.
     page.write_text(
@@ -625,7 +625,7 @@ def test_privacy_rules_skip_unindented_sources_list(tmp_path):
 def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
     monkeypatch, tmp_path
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "---\ntitle: 010-0000-0000\n---\n\n"
@@ -641,7 +641,7 @@ def test_raw_scope_finds_front_matter_and_cog_without_python_filter(
 
 
 def test_cog_regions_are_skipped_but_malformed_markers_are_checked(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     page = instance / "wiki" / "overview.qmd"
     page.write_text(
         "# Overview\n<!-- [[[cog synthetic ]]] -->\n"
@@ -661,7 +661,7 @@ def test_cog_regions_are_skipped_but_malformed_markers_are_checked(tmp_path):
 def test_roster_is_not_read_without_a_student_page_or_untranslated_cjk(
     tmp_path,
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     _config(tmp_path).unlink(missing_ok=True)
     write_overview(instance, "Ordinary English text.")
 
@@ -675,7 +675,7 @@ def test_roster_is_not_read_without_a_student_page_or_untranslated_cjk(
 def test_roster_failures_report_once_and_hide_language_findings(
     tmp_path, failure
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_overview(instance, "學生")
     config, roster = _config(tmp_path), _roster(tmp_path)
     if failure != "missing-config":
@@ -713,7 +713,7 @@ def test_roster_failures_report_once_and_hide_language_findings(
 
 
 def test_cache_temp_is_private_and_cleaned(monkeypatch, tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "Ordinary English text.")
     seen = []
@@ -740,7 +740,7 @@ def test_cache_temp_is_private_and_cleaned(monkeypatch, tmp_path):
 def test_vale_arguments_use_explicit_config_and_verified_files(
     monkeypatch, tmp_path
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "學生")
     seen = []
@@ -780,7 +780,7 @@ def test_vale_arguments_use_explicit_config_and_verified_files(
 
 
 def test_canary_output_never_contains_synthetic_phone_or_name(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     write_roster(tmp_path)
     write_overview(instance, "Call 010-0000-0000 about 가상인물.")
 
@@ -791,7 +791,7 @@ def test_canary_output_never_contains_synthetic_phone_or_name(tmp_path):
 
 
 def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     outside = tmp_path / "outside.qmd"
     outside.write_text("Call 010-0000-0000.", encoding="utf-8")
     (instance / "wiki" / "linked.qmd").symlink_to(outside)
@@ -806,7 +806,7 @@ def test_symlinked_markdown_and_directories_are_not_linted(tmp_path):
 
 
 def test_a_link_leaving_the_wiki_does_not_skip_the_other_pages(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     outside = tmp_path / "outside.qmd"
     outside.write_text("Nothing here.", encoding="utf-8")
     (instance / "wiki" / "linked.qmd").symlink_to(outside)
@@ -818,7 +818,7 @@ def test_a_link_leaving_the_wiki_does_not_skip_the_other_pages(tmp_path):
 
 
 def test_real_vale_checks_identical_md_and_qmd_negative_canary(tmp_path):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     text = "# Canary\n\nCall 010-0000-0000.\n"
     documents = {f"wiki/canary.{suffix}": text for suffix in ("md", "qmd")}
     for document, content in documents.items():
@@ -833,7 +833,7 @@ def test_real_vale_checks_identical_md_and_qmd_negative_canary(tmp_path):
 def test_original_language_text_is_excluded_from_wiki_rules(
     tmp_path, monkeypatch
 ):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     (instance / "text").mkdir()
     (instance / "text/original.qmd").write_text("原文 한국어 010-0000-0000\n")
     monkeypatch.setattr(
@@ -843,7 +843,7 @@ def test_original_language_text_is_excluded_from_wiki_rules(
 
 
 def test_vale_start_failure_cannot_pass_as_no_findings(tmp_path, monkeypatch):
-    instance = ready_vault(tmp_path)
+    instance = ready_wiki(tmp_path)
     monkeypatch.setattr(
         rules.subprocess,
         "run",

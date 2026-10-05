@@ -50,3 +50,11 @@ Use existing builders, preserve all behavior besides the selected container,
 then current prose and read-only readiness. No new runtime implementation.
 Authoritative evidence and paid results:
 `~/.local/state/verbose-broccoli/workspaces/feature-wiki-container-naming/che-90/ctx_0944eec65615/`.
+
+2026-10-05 review follow-up: the first fresh Claude built-in review (ctx_a266cde28a6d)
+settled and was released; corrected capitalized Wiki-local spelling and remaining
+synthetic helper/test names in test_rules.py, test_sources.py and test_check.py.
+Clarified existing state selections remain explicit --selection inputs and recorded
+metadata-only counts in state-readiness.json; no state data moved. Narrow corrected
+checks and renewed neutral review follow before root integration. Actual parent
+assistant messages showed claude-sonnet-5-5; forked built-in effort was unverified.

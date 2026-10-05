@@ -96,6 +96,11 @@ was written.
    Commit it in the instance's own Git repository (`raw/` is ignored there).
 9. **Clean up.** Remove the selection file after `verify` passes.
 
+The selection path above is for new lists. Existing lists at the historical
+`STATE/vaults/<wiki>/selections/` path stay where they are: pass their exact
+path to `admit --selection`. The command does not discover selections from a
+state container. Do not move or delete retained state as part of a naming change.
+
 ## ChatGPT exports
 
 The user's ChatGPT conversations reach the wikis through OpenAI's account
