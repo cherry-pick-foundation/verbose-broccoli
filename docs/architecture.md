@@ -866,8 +866,8 @@ use live in `plugins/code/skills` instead.
 
 Features are finished into `develop` with git-flow-next 2.1.0
 (<https://github.com/gittower/git-flow-next>, BSD-2-Clause). Its source is
-unchanged; only its settings and one hook adapt it to the constitution's git
-flow rule.
+unchanged; repository-local settings and pre- and post-finish hooks adapt it
+to the constitution's git flow rule and safe cleanup procedure.
 
 - git-flow-next is pinned through mise (see the mise paragraph under
   [Current skeleton](#current-skeleton)); the mise copy is byte-identical to
