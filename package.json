@@ -67,7 +67,8 @@
     "test": "npm run turborepo -- run test",
     "test:wiki-raw-import": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/wiki-raw-import-test.ts",
     "test:turbo-cache": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/turbo-cache-test.ts",
-    "test:root-config": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/root-config-test.ts"
+    "test:root-config": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/root-config-test.ts",
+    "test:coordinator-context": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/coordinator-context-test.ts"
   },
   "devDependencies": {
     "@cliffy/command": "npm:@jsr/cliffy__command@1.2.1",

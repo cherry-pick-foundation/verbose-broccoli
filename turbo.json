@@ -219,7 +219,8 @@
         "//#test:grammatical-competence",
         "//#test:wiki-raw-import",
         "//#test:turbo-cache",
-        "//#test:root-config"
+        "//#test:root-config",
+        "//#test:coordinator-context"
       ],
       "cache": false
     },
@@ -241,6 +242,7 @@
         "verbose-broccoli-python#check"
       ],
       "cache": false
-    }
+    },
+    "//#test:coordinator-context": {}
   }
 }
