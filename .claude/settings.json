@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CODEX_MCP_NODE_PATH:-node}\" --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process \"$(git rev-parse --show-toplevel)/scripts/coordinator-context.ts\" claude",
+            "command": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/scripts/coordinator-context.ts\" claude",
             "timeout": 5
           }
         ]

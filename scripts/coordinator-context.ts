@@ -82,24 +82,26 @@ async function main() {
     ),
     state,
   ];
+  let stateUnavailable = false;
   const contents = paths.map(path => {
     try {
       return readFileSync(path, 'utf8');
     } catch {
+      if (path === state) stateUnavailable = true;
       return `Unavailable source: ${path}. Read it in full when available; do not invent its contents.`;
     }
   });
   const owner = `Coordinator session: ${client}/${input.session_id}`;
-  let instructions = `If this output is truncated or spilled, read every source in full before continuing, in chunks without omitted middle text: ${paths.join(', ')}. Restore the standing notes and current state below in full. Only if your assigned role is this worktree's coordinator, before starting other work overwrite ${state} in place with decisions, holds/reasons, live owners, open questions and next steps; preserve existing decisions and explicitly set the single owner line to ${owner}. Narrow workers must not claim or write coordinator state. Fresh sessions and every compaction require the complete notes and state, never a summary.\n`;
   const ownerLines = contents
     .at(-1)!
     .split(/\r?\n/)
     .filter(line => line.startsWith('Coordinator session: '));
-  if (
-    ownerLines.length === 1 &&
-    ownerLines[0] === owner &&
-    ['compact', 'resume'].includes(input.source)
-  ) {
+  const owned = ownerLines.length === 1 && ownerLines[0] === owner;
+  const visiblePaths = owned ? paths : paths.slice(0, -1);
+  let instructions = `If this output is truncated or spilled, read every source shown here in full before continuing, in chunks without omitted middle text: ${visiblePaths.join(', ')}. Restore the standing notes below in full. Only if your assigned role is this worktree's coordinator, read ${state} in full before starting other work, then overwrite it in place with decisions, holds/reasons, live owners, open questions and next steps; preserve existing decisions and explicitly set the single owner line to ${owner}. Narrow workers must not read, claim or write coordinator checkpoints. Coordinators must read complete notes and state on fresh sessions and every compaction, never a summary.\n`;
+  if (stateUnavailable)
+    instructions += `Unavailable source: ${state}. Only an assigned coordinator may establish missing state from current decisions; do not invent past contents.\n`;
+  if (owned && ['compact', 'resume'].includes(input.source)) {
     try {
       const count = await compactions(
         input.transcript_path,
@@ -129,14 +131,14 @@ async function main() {
         'Compaction count unavailable: read the current session transcript; do not assume a zero count.\n';
     }
   }
-  const full = paths
+  const full = visiblePaths
     .map((path, i) => `\n--- ${path} ---\n${contents[i]}`)
     .join('\n');
   const context =
     Buffer.byteLength(instructions + full) <= config.maxContextBytes
       ? instructions + full
       : instructions +
-        `Read every source in full before continuing, in chunks without omitted middle text:\n${paths.join('\n')}\n`;
+        `Read every source in full before continuing, in chunks without omitted middle text:\n${visiblePaths.join('\n')}\n`;
   console.log(
     JSON.stringify({
       hookSpecificOutput: {
@@ -153,7 +155,7 @@ void main().catch(() => {
       hookSpecificOutput: {
         hookEventName: 'SessionStart',
         additionalContext:
-          'Coordinator context hook failed. Read the complete standing notes and your coordinator state using .config/coordinator-context.json before continuing. Narrow workers must not claim coordinator state.',
+          'Coordinator context hook failed. Read the complete standing notes using .config/coordinator-context.json before continuing. Only assigned coordinators may read and claim coordinator state; narrow workers must not read, claim or write checkpoints.',
       },
     }),
   );

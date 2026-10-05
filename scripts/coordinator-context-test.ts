@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {dirname, join, resolve} from 'node:path';
 
 const config = JSON.parse(
   readFileSync('.config/coordinator-context.json', 'utf8'),
@@ -171,9 +171,11 @@ void test('both client hooks restore context and isolate coordinator thresholds'
       assert.equal(readFileSync(transcript, 'utf8'), before);
       assert.equal(readFileSync(join(root, 'notes.md'), 'utf8'), notes);
       rmSync(notification);
-      assert.ok(
-        !run(client, 'compact', 'worker').includes('Start no new work'),
-      );
+      const workerContext = run(client, 'compact', 'worker');
+      assert.ok(!workerContext.includes('Start no new work'));
+      assert.ok(!workerContext.includes('retain this decision'));
+      assert.ok(workerContext.includes('Only if your assigned role'));
+      assert.ok(workerContext.includes(state));
       assert.throws(() => readFileSync(notification));
       writeFileSync(state, owner.replace('/current', '/replacement'));
       saveTranscript(1, 'replacement');
@@ -189,7 +191,7 @@ void test('both client hooks restore context and isolate coordinator thresholds'
         assert.ok(context.includes(notes));
         assert.ok(context.includes(owner));
         assert.ok(context.includes(`Coordinator session: ${client}/current`));
-        assert.ok(context.includes('Narrow workers must not claim'));
+        assert.ok(context.includes('Narrow workers must not read, claim'));
         assert.ok(!context.includes('Start no new work'));
       }
       saveTranscript(2);
@@ -228,6 +230,31 @@ void test('both client hooks restore context and isolate coordinator thresholds'
       const context = run('codex');
       assert.equal(context.includes('Start no new work'), role === 'main');
     }
+    const command = JSON.parse(readFileSync('.claude/settings.json', 'utf8'))
+      .hooks.SessionStart[0].hooks[0].command;
+    const native = spawnSync('/bin/sh', ['-c', command], {
+      cwd: scratch,
+      input: JSON.stringify({
+        hook_event_name: 'SessionStart',
+        source: 'startup',
+        session_id: 'worker',
+        cwd: scratch,
+      }),
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        CLAUDE_PROJECT_DIR: root,
+        CODEX_MCP_NODE_PATH: '/missing-codex-node',
+        XDG_STATE_HOME: stateHome,
+        PATH: `${dirname(process.execPath)}:/usr/bin`,
+      },
+    });
+    assert.equal(native.status, 0, native.stderr);
+    assert.ok(
+      JSON.parse(native.stdout).hookSpecificOutput.additionalContext.includes(
+        notes,
+      ),
+    );
     testConfig.maxContextBytes = 50;
     configure();
     const fallback = run('codex', 'startup');

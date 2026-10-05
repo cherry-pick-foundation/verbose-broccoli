@@ -19,7 +19,7 @@ A coordinator gets the complete standing notes and its current state on a fresh 
 
 1. **Given** complete notes and state, **when** a session starts, resumes, clears or compacts, **then** the complete content is restored or an explicit full re-read instruction identifies every source.
 2. **Given** missing state, **when** the hook runs, **then** it reports the absence and a coordinator can establish state without the hook writing private files.
-3. **Given** a narrow worker in the same worktree, **when** it starts, **then** it receives no ownership of coordinator state.
+3. **Given** a narrow worker in the same worktree, **when** it starts, **then** it receives neither the coordinator checkpoint contents nor ownership of its state.
 
 ### User Story 2 - Request a fresh coordinator (Priority: P2)
 
