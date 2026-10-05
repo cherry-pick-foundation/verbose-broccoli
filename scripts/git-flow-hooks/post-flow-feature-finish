@@ -22,12 +22,13 @@ worktree=$(git worktree list --porcelain | awk -v branch="refs/heads/${branch}" 
   /^worktree / {path = substr($0, 10)}
   $1 == "branch" && $2 == branch {print path; exit}
 ')
+removal_selector=
 printf '\nPost-merge cleanup for %s\n' "${branch}"
 printf 'Source branch tip: %s\n' "${tip}"
 if [ -z "${worktree}" ]; then
   printf '%s\n' 'Source worktree: not found; inspect Orca and Git worktree state before cleanup.'
 else
-  printf 'Source worktree: "%s"\n' "${worktree}"
+  printf 'Source worktree:%s\n' "$(git rev-parse --sq-quote "${worktree}")"
   if [ ! -d "${worktree}" ]; then
     printf '%s\n' 'The source directory is missing; inspect it before removing any worktree metadata.'
   elif ! status=$(git -C "${worktree}" status --porcelain --untracked-files=all); then
@@ -36,14 +37,19 @@ else
     printf '%s\n' 'The source worktree is dirty; preserve it and inspect its changes.'
   else
     printf '%s\n' 'The source worktree is clean.'
-    printf 'Orca removal command: orca-ide worktree rm --worktree%s\n' \
-      "$(git rev-parse --sq-quote "path:${worktree}")"
+    removal_selector=$(git rev-parse --sq-quote "path:${worktree}")
   fi
 fi
 cat <<'EOF'
 Before removal, record the source tip above. In Orca, settle workers first and
 close only idle feature sessions and terminals. Preserve active or unsettled
 workers, unrelated tabs, dirty or unmerged worktrees, and source evidence. Use
-Orca to remove only the completed clean source worktree. If Orca deleted its
-branch, recreate it at the recorded tip with: git branch <source-branch> <tip>.
+Orca to remove only the completed clean source worktree.
 EOF
+printf 'If Orca deleted the source branch, recreate it at the recorded tip with: git branch%s%s\n' \
+  "$(git rev-parse --sq-quote "${branch}")" \
+  "$(git rev-parse --sq-quote "${tip}")"
+if [ -n "${removal_selector}" ]; then
+  printf 'Orca removal command: orca-ide worktree rm --worktree%s\n' \
+    "${removal_selector}"
+fi

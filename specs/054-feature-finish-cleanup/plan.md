@@ -48,11 +48,11 @@ status, tip or worktree facts produce a preserve-and-inspect message.
 
 ## Reuse
 
-| Need | Reused implementation | Owned glue |
-| --- | --- | --- |
-| Finish event | `.gitflow` hook directory and git-flow-next hook runner | One post-finish shell hook |
-| Branch tip and worktree | Git `rev-parse`, `worktree list`, and `status` | Safe output and manual cleanup steps |
-| Regression | Existing synthetic real-finish harness | Two finishes and a failed finish case |
+| Need                    | Reused implementation                                   | Owned glue                            |
+| ----------------------- | ------------------------------------------------------- | ------------------------------------- |
+| Finish event            | `.gitflow` hook directory and git-flow-next hook runner | One post-finish shell hook            |
+| Branch tip and worktree | Git `rev-parse`, `worktree list`, and `status`          | Safe output and manual cleanup steps  |
+| Regression              | Existing synthetic real-finish harness                  | Two finishes and a failed finish case |
 
 ## Constitution Check
 
@@ -83,6 +83,6 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ## Split Review
 
 The implementation is a small shell hook plus an existing harness regression;
-no split is needed. Final source is 49 shell lines; the test diff adds 208 and
-removes 2 lines; the three records total 199 lines. The five-file diff adds
-456 and removes 2 lines, with no separate tooling or dependency.
+no split is needed. Final source is 55 shell lines; the test diff adds 279 and
+removes 2 lines; the three records total 193 lines. The five-file diff adds
+527 and removes 2 lines, with no separate tooling or dependency.
