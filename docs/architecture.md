@@ -364,8 +364,8 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   decision limits and caller evidence budgets differ from complete serialized
   tool-argument character/byte measurements; none establishes a whole-body cap
   or the provider's unknown HTTP/token expansion limits.
-- The agent translates Korean evidence into English first and sends the
-  requests to the shared `jev-mcp` proxy. Its mandatory gate replaces registered
+- The agent sends prepared requests to the shared `jev-mcp` proxy without
+  requiring translation of Korean evidence. Its mandatory gate replaces registered
   person/school spellings and phone, e-mail, ten-digit EduOK and resident-number
   patterns before the provider call, then restores result text. Korean text,
   grades, classes and school years remain unchanged; unknown spellings can pass.
