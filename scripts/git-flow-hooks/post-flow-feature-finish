@@ -2,14 +2,14 @@
 set -eu
 
 if [ -z "${EXIT_CODE:-}" ]; then
-  printf '%s\n' 'Post-merge cleanup: git-flow did not report the finish result; inspect the finish manually.'
+  printf '%s\n' 'Post-merge cleanup: git-flow did not report the finish result; inspect the finish manually and preserve the source branch and worktree.'
   exit 0
 fi
 [ "${EXIT_CODE}" = 0 ] || exit 0
 
 branch=${BRANCH:-${3-}}
 if [ -z "${branch}" ]; then
-  printf '%s\n' 'Post-merge cleanup: git-flow did not provide the source branch; inspect the finish manually.'
+  printf '%s\n' 'Post-merge cleanup: git-flow did not provide the source branch; inspect the finish manually and preserve the source branch and worktree.'
   exit 0
 fi
 
@@ -28,7 +28,8 @@ printf 'Source branch tip: %s\n' "${tip}"
 if [ -z "${worktree}" ]; then
   printf '%s\n' 'Source worktree: not found; inspect Orca and Git worktree state before cleanup.'
 else
-  printf 'Source worktree:%s\n' "$(git rev-parse --sq-quote "${worktree}")"
+  quoted_worktree=$(git rev-parse --sq-quote "${worktree}")
+  printf 'Source worktree: %s\n' "${quoted_worktree# }"
   if [ ! -d "${worktree}" ]; then
     printf '%s\n' 'The source directory is missing; inspect it before removing any worktree metadata.'
   elif [ ! -e "${worktree}/.git" ]; then
@@ -48,10 +49,11 @@ close only idle feature sessions and terminals. Preserve active or unsettled
 workers, unrelated tabs, dirty or unmerged worktrees, and source evidence. Use
 Orca to remove only the completed clean source worktree.
 EOF
-printf 'If Orca deleted the source branch, recreate it at the recorded tip with: git branch%s%s\n' \
-  "$(git rev-parse --sq-quote "${branch}")" \
-  "$(git rev-parse --sq-quote "${tip}")"
+restore_branch=$(git rev-parse --sq-quote "${branch}")
+restore_tip=$(git rev-parse --sq-quote "${tip}")
+printf 'If Orca deleted the source branch, recreate it at the recorded tip with: git branch %s %s\n' \
+  "${restore_branch# }" "${restore_tip# }"
 if [ -n "${removal_selector}" ]; then
-  printf 'Orca removal command: orca-ide worktree rm --worktree%s\n' \
-    "${removal_selector}"
+  printf 'Orca removal command: orca-ide worktree rm --worktree %s\n' \
+    "${removal_selector# }"
 fi

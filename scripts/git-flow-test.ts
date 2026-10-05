@@ -629,6 +629,7 @@ void test('git-flow: post hook uses its positional source branch and asks to ins
       missingOutput,
       /did not provide the source branch; inspect the finish manually/i,
     );
+    assertMatch(missingOutput, /preserve the source branch and worktree/i);
     assert(!missingOutput.includes('orca-ide worktree rm'), missingOutput);
     assertEquals(await snapshot(develop, feature), before);
   });
@@ -729,6 +730,7 @@ void test('git-flow: missing finish result asks for inspection without suggestin
       output,
       /did not report the finish result; inspect the finish manually/i,
     );
+    assertMatch(output, /preserve the source branch and worktree/i);
     assert(!output.includes('orca-ide worktree rm'), output);
   });
 });

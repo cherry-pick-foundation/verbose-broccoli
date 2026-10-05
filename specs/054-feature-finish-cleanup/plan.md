@@ -83,6 +83,6 @@ specs/054-feature-finish-cleanup/{spec.md,plan.md,tasks.md}
 ## Split Review
 
 The implementation is a small shell hook plus an existing harness regression;
-no split is needed. Final source is 57 shell lines; the test diff adds 295 and
+no split is needed. Final source is 59 shell lines; the test diff adds 297 and
 removes 2 lines; the three records total 193 lines. The five-file diff adds
-545 and removes 2 lines, with no separate tooling or dependency.
+549 and removes 2 lines, with no separate tooling or dependency.

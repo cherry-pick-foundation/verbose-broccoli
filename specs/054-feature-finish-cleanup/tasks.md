@@ -23,6 +23,6 @@ full verification, independent review, final task ticks, and feature finish.
 
 The focused git-flow suite passes 24/24. ShellCheck, Prettier, and diff checks
 also pass; the current receipts are under
-`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-04/`.
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-07/`.
 The feature branch includes develop at `00ae841`. The develop coordinator owns
 full verification, final task ticks, the review record, and feature finish.
