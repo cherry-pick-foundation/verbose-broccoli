@@ -53,7 +53,7 @@ compatibility. Record every unperformed check accurately.
 
 ### VI. Wiki Layers and Storage Ownership
 
-For the user-selected Wiki layout, each Wiki instance, called a vault, MUST
+For the user-selected Wiki layout, each Wiki instance MUST
 define five distinct roles:
 
 1. **Raw** is immutable, create-only BagIt original evidence under `raw/`,
@@ -61,12 +61,12 @@ define five distinct roles:
    maintenance MUST NOT edit or delete admitted raw bytes. Changed evidence
    creates a new source revision while earlier revisions remain resolvable and
    recoverable. Conversation records and
-   exported chats are not Raw evidence; they stay outside the vault in the
+   exported chats are not Raw evidence; they stay outside the wiki in the
    user's workspace. Two exceptions apply: exported conversations are Raw
-   evidence in the `chat` and `work` vaults, and exported Claude Code and
-   Codex sessions are Raw evidence in any vault they belong to.
+   evidence in the `chat` and `work` wikis, and exported Claude Code and
+   Codex sessions are Raw evidence in any wiki they belong to.
 2. **Text** under `text/` retains one full original-language `.qmd` extraction
-   per converted raw revision in vault-local Git with no remote. Each extraction
+   per converted raw revision in wiki-local Git with no remote. Each extraction
    MUST record its source ID, revision, SHA-256, converter and version, and
    whether it was checked against the original. Review it once against the
    original; corrections are recorded in Git without changing raw evidence.
@@ -82,14 +82,14 @@ define five distinct roles:
    There is no `ko/` tree.
 5. **Schema** is the instance's `AGENTS.md`, above the content layers. It defines
    these roles, page conventions and ingest/query/lint workflows. It has its own
-   vault-local Git history with no remote and MUST NOT be confused with the
+   wiki-local Git history with no remote and MUST NOT be confused with the
    repository's development AGENTS.md or a duplicate runtime-settings file.
 
 Use the `verbose-broccoli` namespace under XDG configuration, data, state,
 and cache roots. The defaults are `~/.config/`, `~/.local/share/`,
 `~/.local/state/`, and `~/.cache/` respectively. Configuration owns `config.toml`
-and profile files; durable data owns `registry.json` and `vaults/`, which holds
-one folder per vault: `default` for knowledge that belongs to no single plugin,
+and profile files; durable data owns `registry.json` and `llm-wiki/`, which holds
+one folder per wiki: `default` for knowledge that belongs to no single plugin,
 and `chat`, `code` and `work` for the plugins of those names. Restart/recovery
 state belongs in state storage. Only
 rebuildable indexes, embeddings, chunks, parsed data, citation bibliographies,
@@ -152,7 +152,7 @@ A package joins a toolchain workspace, such as the uv workspace, only when it
 has executable code for that toolchain.
 The chat package's skills are `web-agent` and `credit-offers`, which run in
 local Codex CLI or Claude Code sessions; it has no MCP declaration or
-scripts, and its persistent state is the `chat` vault (principle VI).
+scripts, and its persistent state is the `chat` wiki (principle VI).
 Code and Work run in Codex CLI and
 Claude Code, and no plugin depends on the desktop hub that launches them.
 Do not require one repository-wide runtime, server or composition entry point.
@@ -295,4 +295,9 @@ bags remain the only source registry and every run generates its citation
 bibliography into rebuildable cache. This decision preserves the existing
 conversation/session exceptions and cache-independent reading guarantees.
 
-**Version**: 2.7.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-04
+On 2026-10-04 the user renamed the current Wiki container to `llm-wiki`
+and each instance to a wiki, to avoid implying an Obsidian dependency.
+CHE-90 changes repository paths and current wording only; data and history
+remain preserved, and removing the temporary link stays a separate action.
+
+**Version**: 2.7.1 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-05

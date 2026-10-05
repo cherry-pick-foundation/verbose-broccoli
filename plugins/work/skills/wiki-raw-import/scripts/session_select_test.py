@@ -113,9 +113,12 @@ def empty_scan(stage):
     (stage / "scan.json").write_text("[]\n", encoding="utf-8")
 
 
-def test_stage_dir_rejects_vault_raw_path(tmp_path):
+@pytest.mark.parametrize("name", ("default", "chat", "code", "work"))
+def test_stage_dir_rejects_wiki_raw_path(tmp_path, name):
+    stage = tmp_path / "llm-wiki" / name / "raw" / "stage"
     with pytest.raises(ValueError, match="outside repositories"):
-        selector.stage_dir(tmp_path / "vaults" / "work" / "raw" / "stage")
+        selector.stage_dir(stage)
+    assert not stage.exists()
 
 
 def synthetic_catalog(tmp_path):

@@ -49,19 +49,30 @@ def test_roots_fall_back_for_unset_empty_or_relative_xdg_values(tmp_path):
 def test_instance_path_and_invalid_names(tmp_path):
     env = {"HOME": str(tmp_path), "XDG_DATA_HOME": str(tmp_path / "data")}
     assert instance_path("default", env) == (
-        tmp_path / "data" / "verbose-broccoli" / "vaults" / "default"
+        tmp_path / "data" / "verbose-broccoli" / "llm-wiki" / "default"
     )
     for name in ("", ".", "..", "two/names", "null\0name"):
         with pytest.raises(ValueError):
             instance_path(name, env)
 
 
-def test_instance_path_uses_vaults_for_work(tmp_path):
-    env = {"HOME": str(tmp_path), "XDG_DATA_HOME": str(tmp_path / "data")}
-
-    assert instance_path("work", env) == (
-        tmp_path / "data" / "verbose-broccoli" / "vaults" / "work"
-    )
+@pytest.mark.parametrize("name", ("default", "chat", "code", "work"))
+@pytest.mark.parametrize("configured", (None, "", "relative", "absolute"))
+def test_instance_path_uses_llm_wiki_without_legacy_link(
+    tmp_path, name, configured
+):
+    env = {"HOME": str(tmp_path)}
+    data = tmp_path / ".local/share"
+    if configured is not None:
+        if configured == "absolute":
+            data = tmp_path / "data"
+            env["XDG_DATA_HOME"] = str(data)
+        else:
+            env["XDG_DATA_HOME"] = configured
+    expected = data / "verbose-broccoli" / "llm-wiki" / name
+    expected.mkdir(parents=True)
+    assert instance_path(name, env) == expected
+    assert not (data / "verbose-broccoli" / "vaults").exists()
 
 
 def test_pages_parse_metadata_sort_paths_and_mark_special_pages(tmp_path):

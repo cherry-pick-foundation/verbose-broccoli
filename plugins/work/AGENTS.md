@@ -32,7 +32,7 @@ English-only requests. Preserve raw bytes and the English Wiki page rules.
 Registered names and school spellings are masked with fresh per-call stand-ins;
 unregistered spellings remain a known risk.
 
-Read the current vault schema before writing pages or resolving a Korean name
+Read the current wiki schema before writing pages or resolving a Korean name
 to a page. The [schema template](skills/wiki-raw-import/assets/AGENTS.md) holds
 the existing English prose, romanized names, school domains and limits on
 personal details, including permitted source quotes and private name resolution.
@@ -56,7 +56,7 @@ Record its source and keep the copy unchanged. Application-owned Zotero and
 ownCloud files stay where their applications expect them. User-made lessons,
 edited exams and deliverables stay in the user's documents. Legacy backups are
 archives, not automatically raw sources. Ask when original status is unclear.
-The constitution and the vault's own schema govern admission.
+The constitution and the wiki's own schema govern admission.
 
 Judge original status, not the file format. The constitution's selected
 conversation and Claude Code/Codex session exceptions do not admit every
@@ -64,9 +64,9 @@ generated derivative. Student-bearing sessions belong only in work. Do not
 treat worksheets, dated or selected lists, or marked-up and trimmed exams as
 original evidence; cite the original instead. Keep a book's original PDF in
 raw and its full original-language extraction in
-`text/<source-id>/<revision>.qmd`, citing that exact raw revision. The vault
+`text/<source-id>/<revision>.qmd`, citing that exact raw revision. The wiki
 schema owns the raw, text, English Wiki and Korean site roles. Retain text and
-English `.qmd` pages in vault-local Git with no remote; site derives from chosen
+English `.qmd` pages in wiki-local Git with no remote; site derives from chosen
 English versions, with freshness and publishing owned by F2/CHE-12. New real
 conversion, student and audience decisions stay with main.
 Past cleanup permission never authorizes deleting an admitted raw revision.
@@ -77,7 +77,7 @@ Profile every structure in every sentence, not only lesson targets or tested
 points. Record each real textbook volume and original exam paper separately.
 Keep the first inventory unchanged. Reference books map to it in separate
 records, one per book; do not merge them into inventory entries. Keep actual
-source names and records in the private work vault; tests use synthetic data.
+source names and records in the private work wiki; tests use synthetic data.
 
 Before a full profiling run, use a bounded pilot and measure accuracy, judgment
 calls and time. Keep confident results and take unclear ones to the user.
@@ -88,9 +88,9 @@ independent human key.
 
 Choose clear domain names that stay neutral about a particular dataset, site,
 subject or language. Put actual inventory, lexicon, site and language names in
-vault data, run names and archive names. Repository specs use generic source
+wiki data, run names and archive names. Repository specs use generic source
 references and raw source IDs. Read language-specific mappings, closed classes,
-phrase patterns, spellings, addresses and search steps from vault data instead
+phrase patterns, spellings, addresses and search steps from wiki data instead
 of hard-coding them.
 
 Use Common European Framework of Reference (CEFR) domain terms for language

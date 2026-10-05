@@ -1,11 +1,11 @@
 # Session selection
 
-Offer the local Claude Code and Codex sessions to the Wiki vaults. The
+Offer the local Claude Code and Codex sessions to the Wiki instances. The
 sessions are rendered to Markdown, filtered, scanned for secrets and
 classified by Jev through the gated `jev-mcp` proxy; the user approves the lists, and the raw import
 (steps 5 to 9 of [SKILL.md](../SKILL.md)) admits the rendered Markdown as
 `files`. Exported Claude Code and Codex sessions are raw evidence in any
-vault they belong to, but a session that names a student, guardian or school
+wiki they belong to, but a session that names a student, guardian or school
 goes only to `work`.
 
 ## Scope
@@ -89,7 +89,7 @@ uv --directory packages/education-privacy-gate run --frozen --offline --no-sync 
    registered person or school, or the work-owned domain roster finds a
    student number (`student_data`), and writes one digest of at
    most 2,000 characters per session to `STAGE/digests.jsonl`. This local scan
-   restricts destination vaults; the proxy masks identifiers independently.
+   restricts destination wikis; the proxy masks identifiers independently.
    An empty registry stops the step. It also stops when the scan report is
    missing or older than a rendered file, so run step 2 again after every
    render. A match counts only at a word start, and a Latin-letter match only
@@ -112,15 +112,15 @@ uv --directory packages/education-privacy-gate run --frozen --offline --no-sync 
    decision: `auto`, or `review` when Jev is not sure.
 6. **Decide with the user.** Show the counts per label and decision. Every
    `review` result is open: show its label, confidence and project path, and
-   let the user choose a vault or `none`. The user may also change any `auto`
+   let the user choose a wiki or `none`. The user may also change any `auto`
    result. Read a rendered session only when the user asks.
-7. **Write the selections.** For each vault with approved sessions, write
-   `STATE/vaults/<vault>/selections/sessions.jsonl` with one line per session:
+7. **Write the selections.** For each wiki with approved sessions, write
+   `STATE/llm-wiki/<wiki>/selections/sessions.jsonl` with one line per session:
    `{"path": "<absolute path of STAGE/rendered/...md>", "kind": "files"}`.
-   Then follow steps 5 to 9 of [SKILL.md](../SKILL.md) for that vault. A
+   Then follow steps 5 to 9 of [SKILL.md](../SKILL.md) for that wiki. A
    rendered file keeps its path when it is rendered again, so a session that
    continued becomes a new revision of the same source.
-8. **Clean up.** After every approved vault passes `verify`, delete `STAGE`'s
+8. **Clean up.** After every approved wiki passes `verify`, delete `STAGE`'s
    contents. They are rebuilt by the next run.
 
 ## Catalog

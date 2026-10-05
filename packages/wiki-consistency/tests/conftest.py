@@ -91,7 +91,7 @@ def make_instance(tmp_path, *, wiki_id="work", commit=False):
         "XDG_CACHE_HOME": str(cache_home),
         "XDG_CONFIG_HOME": str(tmp_path / "xdg-config"),
     }
-    instance = data_home / "verbose-broccoli" / "vaults" / wiki_id
+    instance = data_home / "verbose-broccoli" / "llm-wiki" / wiki_id
     (instance / "wiki" / "concepts").mkdir(parents=True)
     (instance / "wiki" / "sources").mkdir(parents=True)
     (instance / "raw").mkdir()

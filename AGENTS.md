@@ -120,7 +120,7 @@ that removes the copy or replaces it with an installed dependency.
   preferring Copilot when Claude Code and Codex both implemented parts of a
   feature, and give it only the review scope and the requirements, not
   suspected defects, prior findings, or expected outcomes.
-- Workers and reviewers that read student data (the work vault's student
+- Workers and reviewers that read student data (the work wiki's student
   pages, the gate's registered list or raw student sources) run only on Claude Code or
   Codex, the user's own Claude and ChatGPT accounts, never on another agent;
   this overrides the Copilot preference above.
@@ -143,7 +143,7 @@ Heartbeats need acknowledgment only.
 
 - Development memory is the Spec Kit records in `specs/`,
   `.specify/assessments/` and `.specify/bugs/` plus code and Git. Do not keep a
-  separate memory system or development wiki. The code plugin's `code` vault
+  separate memory system or development wiki. The code plugin's `code` wiki
   holds coding knowledge for work in any project (libraries, patterns,
   decisions); it is not this repository's development memory.
 - When a session ends or a task moves to another provider, the task coordinator

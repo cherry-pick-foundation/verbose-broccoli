@@ -72,7 +72,7 @@ MiniMax Code (`mcode`) is not a candidate for workers, reviewers or
 orchestrators, because Orca does not supervise it. Use it only in scripted
 runs (`mcode exec`).
 
-A task that reads student data (the work vault's student pages, the gate's
+A task that reads student data (the work wiki's student pages, the gate's
 registered list or raw student sources) takes only Claude Code and Codex candidates,
 which run on the user's own Claude and ChatGPT accounts; never another
 agent.
