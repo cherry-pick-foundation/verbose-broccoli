@@ -31,6 +31,8 @@ else
   printf 'Source worktree:%s\n' "$(git rev-parse --sq-quote "${worktree}")"
   if [ ! -d "${worktree}" ]; then
     printf '%s\n' 'The source directory is missing; inspect it before removing any worktree metadata.'
+  elif [ ! -e "${worktree}/.git" ]; then
+    printf '%s\n' 'The source worktree metadata is missing; inspect and preserve it.'
   elif ! status=$(git -C "${worktree}" status --porcelain --untracked-files=all); then
     printf '%s\n' 'The source worktree status could not be checked; do not remove it.'
   elif [ -n "${status}" ]; then

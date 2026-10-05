@@ -21,8 +21,8 @@ full verification, independent review, final task ticks, and feature finish.
 
 ## Handoff
 
-The original focused run passed 22/22, plus ShellCheck, Prettier, and whitespace
-checks. Its receipt remains under
-`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/CHE-87/ctx_06b1cefdf48e/attempt-05/`.
-The feature branch now includes develop at `00ae841`. The develop coordinator
-owns full verification, final task ticks, the review record, and feature finish.
+The focused git-flow suite passes 24/24. ShellCheck, Prettier, and diff checks
+also pass; the current receipts are under
+`~/.local/state/verbose-broccoli/workspaces/feature-finish-cleanup/task_ac135e0aee30/ctx_ae01c79acc0f/attempt-04/`.
+The feature branch includes develop at `00ae841`. The develop coordinator owns
+full verification, final task ticks, the review record, and feature finish.

@@ -732,3 +732,19 @@ void test('git-flow: missing finish result asks for inspection without suggestin
     assert(!output.includes('orca-ide worktree rm'), output);
   });
 });
+
+void test('git-flow: cleanup command is withheld when the source worktree metadata is missing', async () => {
+  await temporary(async (_root, develop) => {
+    const branch = 'feature/nested-cleanup';
+    const worktree = join(develop, 'nested-feature-worktree');
+    await git(develop, 'worktree', 'add', '-b', branch, worktree, 'develop');
+    await rm(join(worktree, '.git'));
+    assertEquals(await git(worktree, 'rev-parse', '--show-toplevel'), develop);
+
+    const result = runPostHook(develop, [], {BRANCH: branch, EXIT_CODE: '0'});
+    const output = `${decoder.decode(result.stdout)}\n${decoder.decode(result.stderr)}`;
+    assert(result.success, output);
+    assertMatch(output, /source worktree metadata is missing/i);
+    assert(!output.includes('orca-ide worktree rm'), output);
+  });
+});
