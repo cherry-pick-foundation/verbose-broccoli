@@ -4,9 +4,9 @@ Read [the code plugin rules](../../../AGENTS.md) before making a choice.
 
 Every worker, reviewer and orchestrator started through Orca gets its agent
 (Codex, Claude Code, Copilot, OMP, Antigravity, Grok or Cursor), model and
-reasoning effort from a backfire judgment made for that task on a Jev model.
+reasoning effort from a jev-mcp judgment made for that task on a Jev model.
 There is no default model and no table from task difficulty or risk to a
-model, agent or effort; backfire weighs the facts each time, including the
+model, agent or effort; jev-mcp weighs the facts each time, including the
 task's difficulty and every candidate's remaining usage. One rule stays
 fixed: a change's final review comes from a provider other than the
 implementer's (`AGENTS.md`, "Review").
@@ -72,14 +72,14 @@ MiniMax Code (`mcode`) is not a candidate for workers, reviewers or
 orchestrators, because Orca does not supervise it. Use it only in scripted
 runs (`mcode exec`).
 
-A task that reads student data (the work vault's student pages, backfire's
-roster or raw student sources) takes only Claude Code and Codex candidates,
+A task that reads student data (the work vault's student pages, the gate's
+registered list or raw student sources) takes only Claude Code and Codex candidates,
 which run on the user's own Claude and ChatGPT accounts; never another
 agent.
 
 ## Evidence
 
-Give backfire facts:
+Give jev-mcp facts:
 
 - The task spec: scope, files, kind of work, and whether it is read-only.
 - The task's difficulty on the user's five-level scale: very easy, easy,
@@ -99,7 +99,7 @@ Give backfire facts:
   and state the rule in `priorities`.
 
 Follow [the code plugin's judgment rules](../../../AGENTS.md) for evidence
-privacy and language. Keep the evidence minimal.
+privacy. Keep the evidence minimal.
 
 ### Usage limits
 
@@ -160,7 +160,7 @@ Codex also reports its usage-limit reset credits in `usage.codexResetCredits`:
 `availableCount` and `credits[]`, each with `title`, `reset_type`, `status`,
 `granted_at` and `expires_at`. Claude and the other providers report none; say
 "none reported" for them, and for Codex when the field is missing. Reset
-credits are evidence, not a rule. Give backfire
+credits are evidence, not a rule. Give jev-mcp
 the `availableCount` and the `expires_at` of each `available` credit, so that a
 provider with unused resets that expire is not steered away from early. Leave
 out the credits' descriptions and any credit IDs, for example with:
@@ -208,7 +208,7 @@ grep -h 'subscription:free-usage-exhausted' ~/.grok/logs/unified.jsonl | tail -1
 
 It prints the entry's time, model and `actual/limit`. On 2026-10-01
 the last entry read `2026-10-01T13:11:58.698Z grok-4.7 1012248/1000000`.
-Give that line to backfire as evidence. Grok counts as unavailable for that
+Give that line to jev-mcp as evidence. Grok counts as unavailable for that
 model until about 24 hours after the heavy use that hit the cap, so about
 24 hours after the entry's time at the earliest. No entry, or one older than
 24 hours, shows no known cap, not that Grok is free of one: the log may be
@@ -219,7 +219,7 @@ Copilot's and Cursor's trackers show the same kind of window their plans
 cap (monthly). A tracker reading does not override an observed limit
 refusal. Antigravity's weekly quota is unread (see above), so its candidates
 keep an unknown limit. When any agent refuses with a limit message, give
-that refusal and its time to backfire and leave the agent out until its
+that refusal and its time to jev-mcp and leave the agent out until its
 window clears or fresh successful-use evidence shows it is available.
 
 Dropping candidates is a fact check, not a threshold table. Drop the
@@ -239,18 +239,17 @@ evidence and do not guess. Give the remaining limits and their reset times to
 example with `jev_rerank` over the catalog entries with the task as the query,
 or decide in steps: agent, then model, then effort. When `jev_rerank` scores
 every candidate the same, it cannot narrow; decide in steps. Read the
-[`jev_decide`](../../backfire-code/reference/tools.md#jev_decide) and
-[`jev_rerank`](../../backfire-code/reference/tools.md#jev_rerank) blocks before the
+[upstream tool contract](../../../../../specs/053-jev-mcp-privacy/contracts/upstream-tools.md) and
+the [`jev` skill](../../jev/SKILL.md) before the
 first call.
 
-The code plugin's Jev-only rule requires the explicit route below. Backfire's
-shipped order tries the `openrouter` profile (Jev), then
-`hive` (DeepSeek), and the plugin's backfire MCP tools follow that order. So
-call backfire with the snippet below, which starts `serve-mcp --profile
-openrouter`: an empty OpenRouter balance then fails instead of switching.
-Check that each answer names `provider` `openrouter` and a Jev `model`, for
-example `typesafe/jev-1.13`. Follow the code plugin's escalation rule if that
-profile cannot answer.
+The single registered `jev-mcp` FastMCP proxy always applies the education
+privacy gate and launches unmodified `@jkudish/jev-mcp` 0.13.0 with
+`JEV_PROVIDER=openrouter` and `JEV_MCP_MODEL=typesafe/jev-1.13`.
+There is no provider fallback. Check returned `provider` and `model` evidence
+when present; do not invent missing fields. Follow the code plugin's
+escalation rule if the route cannot answer. Model-choice inputs must still
+contain no student data, other personal records or credentials.
 
 ## Acting on the answer
 
@@ -275,56 +274,59 @@ profile cannot answer.
   `orca worktree set --worktree path:<worktree> --workspace-status in-review`
   at In Review, and `completed` right after the finish into `develop`. Check
   the flags with `--help`.
-- When backfire escapes (`ask_user`, `investigate` or `none`) or fails
-  (`invalid_response` or a transport error), ask the user; a worker asks
+- When jev-mcp escapes (`ask_user`, `investigate` or `none`) or fails
+  (an MCP error result, malformed output or a transport error), ask the user; a worker asks
   through its `orca orchestration ask` command. Do not call again or fall back
   to a default.
 - Report the pick with its probability and confidence, and name it under its
   task in the feature's `tasks.md`.
 
-## Calling backfire
+## Calling jev-mcp
 
-Call backfire from the repository package, never through a marketplace or
-client installation. Save this snippet in your session scratch space, not in
-the repository. It starts `backfire serve-mcp` over stdio with the command in
-the code plugin's `mcp.json` plus `--profile openrouter`, through the locked
-`mcp` client library:
+Call the gated repository package, never the hidden upstream server or an
+unpinned marketplace entry. Save this snippet in session scratch. It uses
+the locked FastMCP client and checks MCP errors before parsing text JSON.
+The launcher loads its protected provider key itself; never read or pass it.
 
 ```python
-"""Call one backfire tool: python backfire_call.py <tool> <args.json>."""
+"""Call one gated tool: python jev_call.py <tool> <args.json>."""
 
+import asyncio
 import json
 import subprocess
 import sys
 
-import anyio
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+from fastmcp import Client
+from fastmcp.client.transports import StdioTransport
 
 root = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                       capture_output=True, text=True, check=True).stdout.strip()
-server = StdioServerParameters(command="uv", args=[
-    "--directory", f"{root}/packages/backfire", "run", "--frozen", "--offline",
-    "--no-sync", "backfire", "serve-mcp", "--profile", "openrouter"])
+transport = StdioTransport("uv", [
+    "--directory", f"{root}/packages/education-privacy-gate",
+    "run", "--frozen", "--offline", "--no-sync", "jev-mcp"])
 
 
 async def main(tool, path):
     with open(path) as file:
         arguments = json.load(file)
-    async with stdio_client(server) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(tool, arguments)
-            for block in result.content:
-                print(getattr(block, "text", block))
+    async with Client(transport, timeout=60) as session:
+        result = await session.call_tool_mcp(tool, arguments)
+        if result.isError:
+            raise RuntimeError("Judgment failed.")
+        for block in result.content:
+            print(json.loads(block.text))
 
 
-anyio.run(main, sys.argv[1], sys.argv[2])
+asyncio.run(main(sys.argv[1], sys.argv[2]))
 ```
 
-Write the tool's arguments to a JSON file, then run the snippet from a
-worktree root:
+Write the tool's task facts to the argument JSON, then run from a worktree root:
 
 ```sh
-uv run --frozen --offline --no-sync --package backfire python <file> <tool> <args.json>
+uv run --frozen --offline --no-sync --package education-privacy-gate python <file> <tool> <args.json>
 ```
+
+Read the [operator guide](../../../../../docs/jev-mcp.md) for schemas,
+privacy limits and installation. Unknown fields reject; the old typed error-code
+envelope does not exist. Korean text is allowed. Each judgment spends provider
+credit.

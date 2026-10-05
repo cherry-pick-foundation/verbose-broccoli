@@ -14,8 +14,11 @@ With dependencies installed, `npm run plugins:prepare` refreshes live local
 skills and project Model Context Protocol (MCP) configuration for Codex and
 Claude Code. Edit canonical skills under `plugins/*/skills/`; `.agents/skills`
 indexes them through relative links, and `.claude/skills` links to that index.
-`backfire-code` forbids student
-data; `backfire-education` retains its education privacy gate.
+The upstream `jev` skill calls one registered `jev-mcp` server: a FastMCP
+proxy with an always-on education privacy gate in front of unmodified
+`@jkudish/jev-mcp` 0.13.0 over OpenRouter (`typesafe/jev-1.13`).
+Model-choice evidence still forbids student data and other personal records.
+See the [Jev MCP operator guide](docs/jev-mcp.md) for calls and privacy limits.
 See [local discovery and reload limits](docs/architecture.md#live-checkout-discovery).
 Before a normal git-flow finish, clean both develop and feature worktrees by
 running `npm run plugins:clean-codex` separately to remove only their

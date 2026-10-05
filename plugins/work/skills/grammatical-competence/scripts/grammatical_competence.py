@@ -26,7 +26,7 @@ from wiki_consistency.instance import roots
 
 LIMIT = 200 * 1024**2
 SECTION = 20_000  # Characters of one reference section sent as evidence.
-BACKFIRE = Path(__file__).resolve().parents[5] / "packages/backfire"
+PROXY = Path(__file__).resolve().parents[5] / "packages/education-privacy-gate"
 HANGUL = re.compile("[\u1100-\u11ff\u3130-\u318f\uac00-\ud7a3]")
 OUTCOMES = {
     ("auto", "verified"): "kept",
@@ -205,11 +205,15 @@ def _extract_command(args, root, run):
 
 
 @asynccontextmanager
-async def _backfire(*mode):
+async def _jev():
     server = StdioServerParameters(
         command="uv",
-        args=["--directory", str(BACKFIRE), "run", "--frozen", "--offline"]
-        + ["--no-sync", "backfire", "serve-mcp", *mode],
+        args=["--directory", str(PROXY), "run", "--frozen", "--offline"]
+        + ["--no-sync", "jev-mcp"],
+        env={"XDG_CONFIG_HOME": config}
+        if (config := os.environ.get("XDG_CONFIG_HOME"))
+        and Path(config).is_absolute()
+        else None,
     )
     async with stdio_client(server) as (read, write):
         async with ClientSession(read, write) as session:
@@ -219,9 +223,21 @@ async def _backfire(*mode):
 
 async def _verify(session, arguments):
     result = await session.call_tool("jev_verify", arguments)
-    if result.is_error:
-        raise ValueError(result.content[0].text)
-    return json.loads(result.content[0].text)
+    if (
+        result.is_error
+        or len(result.content) != 1
+        or result.content[0].type != "text"
+    ):
+        raise ValueError("jev-mcp verification failed")
+    try:
+        payload = json.loads(result.content[0].text)
+    except json.JSONDecodeError:
+        raise ValueError("jev-mcp verification failed") from None
+    if not isinstance(payload, dict) or not isinstance(
+        payload.get("results"), list
+    ):
+        raise ValueError("jev-mcp verification failed")
+    return payload
 
 
 def _refusals(run, proposals, entries):
@@ -230,9 +246,7 @@ def _refusals(run, proposals, entries):
         for p in (run / "text").glob("*.txt")
     }
     for n, row in enumerate(proposals, 1):
-        if HANGUL.search(row["text"]):
-            yield f"proposal {n}: backfire takes English only, no Hangul"
-        elif _norm(row["text"]) not in texts.get(row["source"], ""):
+        if _norm(row["text"]) not in texts.get(row["source"], ""):
             yield f"proposal {n}: sentence is absent from the extracted text"
         elif not set(row["items"]) <= entries.keys():
             yield f"proposal {n}: item key is not in the inventory"
@@ -286,8 +300,8 @@ def _map_refusals(rows, entries, lines, index):
             yield f"mapping {n}: section is over {SECTION} characters"
 
 
-async def _send(run, todo, field, done, mode):
-    async with _backfire(*mode) as session:
+async def _send(run, todo, field, done):
+    async with _jev() as session:
         for n, names, claims, evidence in todo:
             started = time.monotonic()
             arguments = {"claims": claims, "evidence": evidence}
@@ -320,7 +334,7 @@ async def _send(run, todo, field, done, mode):
             done.append(check)
 
 
-def _checks(run, rows, prepare, field, *mode):
+def _checks(run, rows, prepare, field):
     """Check rows not yet in checks.jsonl, print counts, return exit code."""
     path = run / "checks.jsonl"
     lines = path.read_bytes().split(b"\n") if path.exists() else [b""]
@@ -330,8 +344,8 @@ def _checks(run, rows, prepare, field, *mode):
     todo = [(n, *prepare(r)) for n, r in enumerate(rows, 1) if n > len(done)]
     if todo:
         try:
-            asyncio.run(_send(run, todo, field, done, mode))
-        except Exception as error:  # noqa: BLE001 - any backfire failure.
+            asyncio.run(_send(run, todo, field, done))
+        except Exception as error:  # noqa: BLE001 - any Jev failure.
             while getattr(error, "exceptions", None):  # A task group.
                 error = error.exceptions[0]
             print(f"row {len(done) + 1}: {error}", file=sys.stderr)
@@ -342,9 +356,11 @@ def _checks(run, rows, prepare, field, *mode):
         "calls": sum(bool(c["results"]) for c in done),
         "invalid": sum(r.get("verdict") in (None, "unknown") for r in results),
         "tokens": sum(
-            c["usage"].get("input_tokens", 0)
-            + c["usage"].get("output_tokens", 0)
+            value
             for c in done
+            if isinstance(c["usage"], dict)
+            for key in ("input_tokens", "output_tokens")
+            if type(value := c["usage"].get(key)) in (int, float)
         ),
         "seconds": round(sum(c["seconds"] for c in done), 1),
     }
@@ -378,7 +394,7 @@ def _check_command(args, root, run):
         claims = [claim.format(text=text, **e) for e in found]
         return [e["id"] for e in found], claims, evidence
 
-    return _checks(run, proposals, prepare, "item", "--education")
+    return _checks(run, proposals, prepare, "item")
 
 
 def _map_command(args, root, run):
@@ -403,7 +419,6 @@ def _map_command(args, root, run):
             )
         return row["sections"], claims, "\n\n".join(texts)
 
-    # A reference holds no student data, so education mode is not needed.
     return _checks(run, rows, prepare, "section")
 
 
@@ -427,7 +442,7 @@ def _record_command(args, root, run):
         reference, lines, index = _sections(root, args, run)
         if refused := list(_map_refusals(rows, entries, lines, index)):
             return _refuse(refused)
-    if args.unchecked:  # Keep every proposed item, without backfire.
+    if args.unchecked:  # Keep every proposed item, without Jev.
         if refused := list(_refusals(run, rows, entries)):
             return _refuse(refused)
         checks = [

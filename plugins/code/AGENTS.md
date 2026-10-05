@@ -3,7 +3,7 @@
 ## Model-choice judgments
 
 Choose within the user's session roles and native Orca launch limits. Give
-backfire task facts, the task's difficulty and each eligible candidate's
+jev-mcp task facts, the task's difficulty and each eligible candidate's
 live catalog and remaining usage. Probabilities do not prove correctness.
 
 Model-choice judgments use Jev-family models only. Check the answer's provider
@@ -12,7 +12,7 @@ never fall back to a general model. Follow
 [the model-choice procedure](skills/model-choice/references/model-choice.md).
 
 Never include student data, other personal records or credentials in these
-judgments. Requests to backfire must be English.
+judgments.
 
 ## Judgment routes
 

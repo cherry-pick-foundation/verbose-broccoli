@@ -1,18 +1,17 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "backfire-code": {
+    "jev-mcp": {
       "type": "stdio",
       "command": "uv",
       "args": [
         "--directory",
-        "${PLUGIN_ROOT}/../../packages/backfire",
+        "${PLUGIN_ROOT}/../../packages/education-privacy-gate",
         "run",
         "--frozen",
         "--offline",
         "--no-sync",
-        "backfire",
-        "serve-mcp"
+        "jev-mcp"
       ]
     }
   }

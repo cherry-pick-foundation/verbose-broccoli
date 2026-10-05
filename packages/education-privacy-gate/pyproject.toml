@@ -1,0 +1,32 @@
+[build-system]
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "education-privacy-gate"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+  "fastmcp==4.0.10",
+  "faker==40.40.0",
+  "phonenumbers==9.0.40",
+  "jsonschema==4.26.0",
+  "python-dotenv==1.2.3",
+  "mcp-types==2.2.0",
+]
+
+[project.scripts]
+jev-mcp = "education_privacy_gate.__main__:main"
+
+[dependency-groups]
+dev = ["pytest==9.1.1"]
+
+[tool.uv.build-backend]
+module-name = "education_privacy_gate"
+module-root = "src"
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider"]
+
+[tool.ruff]
+extend = "../../pyproject.toml"

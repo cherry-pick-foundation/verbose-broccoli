@@ -97,13 +97,28 @@ function errorResult(
   return parsed;
 }
 
-void test('CLI contract: backfire install syncs the complete Python workspace', async () => {
+void test('CLI contract: wiki install syncs the complete Python workspace', async () => {
   const packageJson = JSON.parse(
     await readFile(join(root, 'package.json'), 'utf8'),
   );
   assertEquals(
-    packageJson.scripts['backfire:install'],
-    'uv sync --locked --all-packages --extra education --no-build-package grimp',
+    packageJson.scripts['wiki-consistency:install'],
+    'uv sync --locked --all-packages --no-build-package grimp && npm ci --ignore-scripts --no-audit --no-fund --prefix packages/wiki-consistency',
+  );
+});
+
+void test('CLI contract: the privacy gate installs its locked npm child locally', async () => {
+  const packageJson = JSON.parse(
+    await readFile(join(root, 'package.json'), 'utf8'),
+  );
+  assert(packageJson.workspaces.includes('!packages/education-privacy-gate'));
+  assertEquals(
+    packageJson.scripts['education-privacy-gate:install'],
+    'npm ci --ignore-scripts --no-audit --no-fund --prefix packages/education-privacy-gate',
+  );
+  const mise = await readFile(join(root, '.config/mise.toml'), 'utf8');
+  assert(
+    mise.includes('"mise exec -- npm run education-privacy-gate:install"'),
   );
 });
 

@@ -28,7 +28,8 @@ export LC_ALL=C
   vale --version
   git config --system --includes --list
   git config --global --includes --list
-  for tree in node_modules packages/wiki-consistency/node_modules; do
+  for tree in node_modules packages/wiki-consistency/node_modules \
+    packages/education-privacy-gate/node_modules; do
     find "${tree}" -printf '%m %y %p %l\n' | sort
     find "${tree}" -type f -print0 | sort -z | xargs -0 sha256sum
   done

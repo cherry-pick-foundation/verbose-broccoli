@@ -8,7 +8,7 @@ Read [the work plugin rules](../../AGENTS.md) before using this skill.
 # Wiki Consistency
 
 An English `.qmd` Wiki page is made of mechanical regions, which a generator rebuilds from
-named files, and agent-written text, which backfire judges against the raw
+named files, and agent-written text, which Jev judges against the raw
 evidence the page cites. Agent-written text is in English, apart from short
 direct quotes kept next to their translation. Student names use the
 roster's romanized spelling so that step 3 can replace them, the Korean
@@ -36,14 +36,13 @@ Install it once after the plugin is installed or updated:
 
 ```sh
 uv sync --project ../../../../packages/doc-regions --frozen --no-dev
-uv sync --project ../../../../packages/backfire --frozen --no-dev --extra education
+uv sync --project ../../../../packages/education-privacy-gate --frozen --no-dev
 uv sync --project ../../../../packages/wiki-consistency --frozen --no-dev
 npm ci --ignore-scripts --no-audit --no-fund --prefix ../../../../packages/wiki-consistency
 ```
 
-The first two lines give `doc-regions` and `backfire`, which the tool uses
-as libraries, the `.venv/` their builds need. `check` uses local Vale 3.23.0
-regex rules for page text; it reads backfire's roster only when a direct student
+The first two lines prepare `doc-regions` and the gated judgment proxy. `check` uses local Vale 3.23.0
+regex rules for page text; it reads the work-owned domain roster only when a direct student
 page or Hangul, Chinese or Japanese text needs roster checks.
 
 | Command | What it does | Network | Writes |
@@ -52,7 +51,7 @@ page or Hangul, Chinese or Japanese text needs roster checks.
 | `update` | Regenerates stale mechanical regions | none | region text in `wiki/` |
 | `convert [--scope changed\|lint]` | Retains selected cited raw revisions as full original-language `.qmd`, reusing existing text | none | `text/<source-id>/<revision>.qmd`; failure diagnostics in `CACHE/wiki-evidence/` |
 | `index` | Builds the local search index | the embedding model's one-time download | `CACHE/qmd/` |
-| `prepare --scope changed\|lint [--review-receipts <json>]` | Prints backfire requests and reason-bearing unverifiable diagnostics | none | nothing |
+| `prepare --scope changed\|lint [--review-receipts <json>]` | Prints Jev requests and reason-bearing unverifiable diagnostics | none | nothing |
 
 On success a command prints one JSON object and exits 0. `prepare` also prints
 its diagnostic JSON on stdout when `unverifiable` is nonempty, then exits 1.
@@ -89,7 +88,7 @@ registration numbers and dates not shaped as `YYYY-MM-DD`. Registration
 numbers are not birth-date validated, and impossible dates in the fixed ISO
 shape pass. Time patterns accept `Z`, numeric offsets and UTC forms; a range
 with a zoned end is a pattern approximation. Phone and email detection uses
-Vale regexes instead of backfire's phone and email code.
+Vale regexes instead of the privacy gate's phone and email code.
 
 Direct pages in `wiki/students/` must be named `s-<id>`, with `<id>` a value of
 the roster's `id` column (the EduOK student number). No page may hold the
@@ -181,25 +180,22 @@ an unused whole-vault bibliography.
    where required. On exit 1 with stdout JSON, read and report `unverifiable`
    reasons before sending any request; a zero call count does not establish
    success. Read `calls`:
-   it counts the requests per backfire tool. If `prepare`'s
+   it counts the requests per Jev tool. If `prepare`'s
    `search.not_searched` is not empty, semantic search was not ready: tell
    the user that other pages and cross-references were not searched. The
    cause is a missing embedding model (`index` downloads it once) or
    documents qmd has not embedded yet; when `index` gave a `semantic_error`,
    pass it on as it is. Report any `partial` revisions from `convert` with
    their warning details.
-3. Translate any Korean text in each request's `arguments`, such as a quoted
-   passage of the evidence, into English yourself, in your own session, and
-   keep the structure and IDs as they are. Then send the `arguments` to the
-   backfire tool the request names, on the **work plugin's** backfire server.
-   Before the provider sees them, its judge replaces the identifiers it
-   detects (names and numbers from the operator's roster, schools, regions,
-   school years, birth dates, addresses, phone numbers and email addresses)
-   with English stand-ins and refuses a request that still contains Hangul
-   (`hangul_remaining`); all other text is sent as it is. Select
-   `backfire-education`; Claude Code lists it as
-   `plugin:work:backfire-education`. Never use the code plugin's server for
-   Wiki text.
+3. Send each request's `arguments` to its named tool on the only registered
+   server, `jev-mcp`, following the upstream `jev` skill and work privacy rules.
+   Its gate always swaps registered person and school spellings, phone numbers,
+   e-mail addresses, EduOK student numbers and resident numbers for fresh
+   per-call stand-ins, then restores result text. Korean text is allowed;
+   translation is not required by the server. School years, regions, addresses
+   and observations remain unchanged unless they match registered spellings or
+   covered patterns. Unregistered names/schools remain a known risk: a passing
+   gate does not establish safe disclosure. Never send credentials to Jev.
 4. For a `pages` request whose result is `contradicted`, call
    `jev_compare` with the two units' texts. Report every confirmed
    contradiction between pages to the user.
@@ -215,7 +211,7 @@ an unused whole-vault bibliography.
    `## [YYYY-MM-DD] <operation> | <detail>` with counts of changed pages and
    findings, and commit the instance.
 
-If backfire is not configured or cannot be reached, stop after step 2 and
+If `jev-mcp` is not configured or cannot be reached, stop after step 2 and
 tell the user that the judgment step did not run. Do not report the
 operation as checked.
 

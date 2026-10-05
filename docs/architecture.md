@@ -14,14 +14,14 @@ MCP declarations come from
 the [plugin reference](reference/plugins.md).
 The `code` package contains the adapted Wondel Clean Code skill
 and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
-an MCP declaration for the `backfire-code` server.
+an MCP declaration for the gated `jev-mcp` server and the upstream `jev` skill.
 The `work` package contains the `quarto-authoring`, `session-migrate`,
-`wiki-raw-import`, `wiki-consistency` and `backfire-education` skills, the `google-workspace`
+`wiki-raw-import`, `wiki-consistency` and upstream `jev` skills, the `google-workspace`
 skill with ten copied `gws-*` skills
 (see [Google Workspace through gws](#google-workspace-through-gws--2026-09-30)),
 and an MCP declaration for its own
-`backfire-education` server, which
-replaces student identifiers with English stand-ins and refuses Hangul, and
+`jev-mcp` server, shared with Code and always protected by education privacy
+middleware, and
 for the `reference-library` server (see
 [Reference library](#reference-library--2026-10-01)); its other business capabilities have no
 implementation until new features specify them. The package has a small
@@ -254,7 +254,7 @@ Only the `chat` and `work` vaults admit exported conversations; the skill
 admits each ChatGPT export into both. Exported Claude Code and Codex
 sessions, rendered to Markdown by SpecStory's command-line tool, may go into
 any vault they belong to; the skill's session selection reference picks
-them with backfire, and the user approves the list. Each copy is one
+them with `jev-mcp`, and the user approves the list. Each copy is one
 read-only BagIt bag whose `bag-info.txt` records the source ID, the original
 path and modification time, and the admission time, and whose manifest holds
 the SHA-256 digest. The bags
@@ -268,7 +268,7 @@ left by a crash, or hashes the original again after copying.
 
 Wiki pages follow the region model of repository documents (below): each part
 is a mechanical region that a generator rebuilds from named instance files, or
-agent-written text that backfire judges. The engine is the uv project
+agent-written text that Jev MCP judges. The engine is the uv project
 `packages/wiki-consistency/`, which calls `packages/doc-regions/` as a library
 with the instance as its root; the work plugin's build ships both projects,
 and the plugin's `wiki-consistency` skill runs the commands. The instance's
@@ -300,7 +300,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   roster school names in Hangul outside such a quote, instead of domain IDs; and dates not written as YYYY-MM-DD or times
   without a zone. The privacy and time rules also check code and link
   targets; the language, school and date rules skip them. A small Python
-  step reads backfire's roster only when a page needs it, checks that a
+  step reads the work-owned domain roster only when a page needs it, checks that a
   student page is `wiki/students/s-<EduOK student number>.qmd` with a number
   from the roster's `id` column, reports the Korean spelling of a roster
   student, given or guardian name anywhere in a page, quotes and front matter
@@ -310,7 +310,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   skipped), and a failure never repeats the matched text. The rules are
   patterns: an impossible date such as 2026-02-30 in the YYYY-MM-DD shape
   passes, a registration-number shape is flagged even with an impossible
-  birth date, phone and email detection is Vale's, not backfire's, and only
+  birth date, phone and email detection is Vale's, not the gate's, and only
   the student-name rule reads the front matter's title and summary. The
   check creates temporary rule and link-check files, leaves maintained vault
   source unchanged, and uses no network.
@@ -355,7 +355,7 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   `jev_verify` requests (units against their cited evidence, and against
   candidate units of other pages), `jev_find` cross-reference requests
   in a lint, and `jev_classify` requests for new units. qmd only finds
-  candidates; backfire judges. The API records `outcome: unverifiable` units
+  candidates; Jev MCP judges. The API records `outcome: unverifiable` units
   and their reasons. The CLI prints diagnostic JSON on stdout and exits 1 when
   any unit is unverifiable; boundary, bag, index and execution errors use stderr
   diagnostics and exit 1, while invalid command-line arguments exit 2.
@@ -364,17 +364,16 @@ and the plugin's `wiki-consistency` skill runs the commands. The instance's
   decision limits and caller evidence budgets differ from complete serialized
   tool-argument character/byte measurements; none establishes a whole-body cap
   or the provider's unknown HTTP/token expansion limits.
-- The agent translates Korean evidence into English first and sends the
-  requests to the work plugin's backfire server, which replaces student,
-  guardian and school identifiers, regions, school years, birth dates,
-  addresses, phone numbers and email addresses with English stand-ins before
-  the provider call, refuses a request that still holds Hangul or a detected
-  identifier, and sends all other text as it is; the agent confirms a
-  contradiction between two pages with `jev_compare`.
+- The agent sends prepared requests to the shared `jev-mcp` proxy without
+  requiring translation of Korean evidence. Its mandatory gate replaces registered
+  person/school spellings and phone, e-mail, ten-digit EduOK and resident-number
+  patterns before the provider call, then restores result text. Korean text,
+  grades, classes and school years remain unchanged; unknown spellings can pass.
+  The agent confirms a contradiction between two pages with `jev_compare`.
 - `npm run wiki-consistency:install` installs both environments, after
-  backfire's with its `education` extra, which `wiki-consistency` uses as a
-  library; `mise run setup` runs the same installs, and `npm run
-  doctor` checks them. `npm run test:wiki-consistency` runs
+  the education privacy gate's; Wiki domain checks remain work-owned and
+  separate from the gate's minimal registered list. `mise run setup` runs the
+  same installs, and `npm run doctor` checks them. `npm run test:wiki-consistency` runs
   the package's tests.
 - Not automated: sending the requests and acting on the results, accepting
   suggestions, updating stale citations, writing `log.qmd` entries, applying a
@@ -426,36 +425,27 @@ including front matter. Moves or header changes need verified reconciliation,
 never guessed offsets. JSON Lines order, repeats, empty entries and checker `none`
 remain unchanged. The absent held lexical-semantics skill is not rebuilt here.
 
-### Backfire server
+### Jev MCP server
 
-`plugins/code/mcp.json` declares `backfire-code` and `plugins/work/mcp.json`
-declares `backfire-education`. Both start the stdio server from the repository with `uv --directory
-${PLUGIN_ROOT}/../../packages/backfire run --frozen --offline --no-sync
-backfire serve-mcp`, the work plugin adding `--education`; backfire is used
-from the repository and never installed. The server is PyModel's
-jev-judge-mcp 0.6.0, a pinned PyPI dependency: backfire's entry point builds
-PyModel's server from PyModel's tools plus `jev_noul` and passes PyModel's
-runtime a provider factory. The factory reads one ordered list of
-profiles, shared by both plugins, from
-`packages/backfire/src/backfire/config.toml` and the optional
-`$XDG_CONFIG_HOME/verbose-broccoli/backfire/config.toml` (OpenRouter, then
-Hive, by default). It uses the first profile not known to be out of
-credit: before first use it reads the provider's credit through CodexBar's
-command-line tool when the profile names a CodexBar provider, and it moves
-to the next profile when a provider answers insufficient balance. Each profile is either a
-general-model provider through system-one-adapter (Hive) or one of
-PyModel's Jev providers (OpenRouter). With `--education` it replaces the
-identifiers of every judgment with English stand-ins, using the module in
-`packages/backfire/src/backfire_education/`, scans the result again and
-refuses it if an identifier is left, before any profile receives it. Both modes
-refuse a request that contains Hangul. The region names it replaces come from
-the Ministry of the Interior and Safety's legal-district codes, vendored in
-`packages/backfire/vendor/` and turned into `regions.json` by
-`scripts/backfire-regions.ts`, which `npm run verify` checks. What backfire needs from
-PyModel's own code (CHE-38) is prepared as a patch for PyModel in
-`specs/021-backfire-rebuild/upstream/`. See the
-[Backfire operator guide](backfire.md) for setup, profiles and
-troubleshooting.
+Code and Work declare one judgment server named `jev-mcp`. The installed uv
+package `packages/education-privacy-gate/` runs a FastMCP proxy with mandatory
+education privacy middleware. It launches the unmodified pinned npm package
+`@jkudish/jev-mcp` 0.13.0 as a hidden stdio child, with OpenRouter and
+`typesafe/jev-1.13` fixed. There is no direct registered child or provider fallback.
+
+The gate masks registered person and school spellings, phone and e-mail patterns,
+isolated ten-digit EduOK numbers and resident-number patterns per call.
+Each person gets one default-English Faker first name across their registered
+forms; schools use `School NN` labels. Korean text, grades, classes and school
+years remain unchanged. Every result text field is traversed for restoration.
+Only the source-backed registered list persists outside Git; pairs stay in memory
+for one call. Unknown spellings and identifying context remain residual risks.
+
+The [Jev MCP operator guide](jev-mcp.md) gives commands, twelve upstream tools,
+restoration rules, bounds and the independent dependency review. `jev_score` is
+absent; `jev_audit` audits extraction. The legacy judgment implementation and
+its dependencies have been removed. External activation waits for the first
+official release.
 
 ### Google Workspace through gws — 2026-09-30
 
@@ -527,19 +517,15 @@ package two skills backed by two uv workspace packages.
 - `packages/jev-ultrafast/` is Browser Use's Jev Ultrafast (MIT) copied at a
   fixed revision and patched in two modules; its
   [`upstream.md`](../packages/jev-ultrafast/upstream.md) lists the revision,
-  the original file hashes and every difference. Its Jev calls go to the
-  provider that `JEV_PROVIDER` names in `jev_ultrafast/providers.toml`:
-  `typesafe`, as upstream; `vercel`, Vercel AI Gateway in the request format
-  of jev-mcp 0.9.0's Vercel carrier; `cloudflare`, Cloudflare Workers AI; or
-  `openrouter`, OpenRouter's decisions API.
+  the original file hashes and every difference. Browser-choice judgments
+  call `jev_classify` through the gated `jev-mcp` proxy.
   By default the agent opens its own
   tab in Orca's built-in browser and attaches to it through that tab's own
   browser control address; `JEV_BROWSER=chrome` keeps upstream's Chrome
   connection. The `web-agent` skill runs it.
 - `packages/credit-offers/` checks the freetokens tracker over plain HTTP for
   offers that entered its published list during the latest 6-hour block,
-  asks once per run, through backfire's shared provider order (feature 029,
-  [spec](../specs/029-offer-search-backfire/spec.md)), whether each costs
+  asks once per run through the gated proxy's `jev_classify` whether each costs
   nothing and states no time limit or end date, and sends a desktop
   notification for those that do. It saves
   nothing. The `credit-offers` skill runs it, and the user approved an Orca
@@ -551,10 +537,9 @@ package two skills backed by two uv workspace packages.
   `~/.config`), one `0600` file per provider (`vercel.env`, `cloudflare.env`,
   `openrouter.env`, `hive.env`, `github.env` for the offer search's
   optional GitHub token, and `copilot.env` for CodexBar's Copilot usage
-  call), which every plugin uses. The web agent gets its
-  provider key through `uv run --env-file`; credit offers passes only the
-  optional `github.env`. Backfire reads provider keys through its own shipped
-  profiles' `credential_file` fields and follows its shared provider order.
+  call), which every plugin uses. Credit offers passes only the optional
+  `github.env`. Both callers pass only an absolute `XDG_CONFIG_HOME` to the
+  gated `jev-mcp` launcher, which loads its protected OpenRouter key itself.
   `npm run secrets:refresh` refreshes provider and approved client files from
   multiple Bitwarden Secrets Manager sources with the existing pinned `bws`
   (feature 052, [spec](../specs/052-secrets-refresh-sources/spec.md)). The
@@ -567,7 +552,11 @@ package two skills backed by two uv workspace packages.
   `client_secret.json`; see the [operator contract](../specs/052-secrets-refresh-sources/contracts/operator-config.md).
   All private temporary files are prepared before rename, with mode `0600`
   outputs; validation failures preserve targets, while rename-time filesystem
-  failures have no multi-file rollback. Backfire readers remain unchanged.
+  failures have no multi-file rollback. Provider-key storage remains unchanged.
+- Ultrafast browser-choice judgments use the gated `jev-mcp` proxy.
+  The text-generation helper stays held, with no
+  authorized ungated student-data route. See the
+  [migration handoffs](../specs/053-jev-mcp-privacy/contracts/migration.md#chat-handoffs-exact-dependency-edges).
 - `npm run test:jev-ultrafast` and `npm run test:credit-offers` run the
   offline tests; both are part of `npm run check`.
 - Not automated: live provider calls, which spend paid credit; catching up
@@ -580,8 +569,8 @@ Reuse existing dependencies directly first. Constitution IX puts reusable
 implementation packages, including libraries and MCP servers, under
 `packages/<name>/src/`; add one only for a concrete shared need. A package joins
 a toolchain workspace only when it has executable code for that toolchain, so
-the Python package `packages/backfire/` joins the root uv workspace and no npm
-workspace.
+the Python package `packages/education-privacy-gate/` joins the root uv
+workspace; its npm manifest pins the hidden upstream judgment server.
 Shared packages are implementation dependencies, not a fourth plugin. Plugins do not deep-import
 another plugin's private files or open another plugin's private operational
 store; Wiki vaults are not such a store (see [Wiki storage](#wiki-storage)).
@@ -598,7 +587,7 @@ flow through the links and do not need preparation.
 Edit skills in `plugins/*/skills/<name>/`, their canonical source directories.
 The repository's `.agents/skills` is a real directory containing individual
 relative directory links, such as
-`backfire-code -> ../../plugins/code/skills/backfire-code`.
+`jev -> ../../plugins/code/skills/jev`.
 `.claude/skills -> ../.agents/skills` gives Claude Code the same index.
 These links stay within the checkout and expose source edits without copying,
 reinstalling a plugin or bumping its version.
@@ -606,8 +595,8 @@ reinstalling a plugin or bumping its version.
 The existing generator, `scripts/plugin-clients.ts`, reads the canonical
 `plugins/code/mcp.json` and `plugins/work/mcp.json` declarations. It generates
 Claude's root `.mcp.json` and a managed block in `.codex/config.toml`, with
-absolute paths to this checkout. Code and education Backfire use the installed
-uv workspace under `packages/backfire`, with `--education` only for education;
+absolute paths to this checkout. Code and Work share one gated `jev-mcp` declaration using the installed
+uv workspace under `packages/education-privacy-gate`;
 the reference connector uses `plugins/work/node_modules`. Project discovery
 needs those dependencies and client trust/permission decisions. It changes no
 global client configuration and performs no provider judgment or library read.
@@ -688,16 +677,17 @@ state location. It refuses unsafe conflicts rather than replacing user-edited
 entries. Inspect a conflict before rerunning instead of deleting user-owned content.
 
 Keep folder and frontmatter names equal. Local invocation uses
-`$backfire-code` or `$backfire-education` in Codex and `/backfire-code` or
-`/backfire-education` in Claude Code. Code Backfire forbids student data;
-education Backfire keeps its privacy gate and documented detector limits.
-The distinct names do not relax either boundary.
+`$jev` in Codex and `/jev` in Claude Code. Code and Work keep byte-identical
+portable copies; discovery chooses one deterministic local link while retaining
+both ownership sources and independent plugin selection. Divergent copies reject
+preparation. Model-choice judgments still forbid student data and other personal
+records; the shared gate does not relax that boundary.
 
 Claude's shared `.claude/rules/claude-code.md` requires filesystem `realpath`
 of a linked project skill directory before constructing relative Read or Bash
 paths for rules, references, helpers or assets. Use that canonical base rather
 than the session's working directory or the shared index. For example,
-Backfire's `../../AGENTS.md` names its owning plugin's rules. Root `AGENTS.md`
+`model-choice`'s `../../AGENTS.md` names its owning plugin's rules. Root `AGENTS.md`
 also requires reading those rules; discovering a skill alone does not prove
 the client loaded them. Local discovery is not plugin installation and does
 not supply plugin-only runtime variables. Distributed resources stay inside
@@ -725,8 +715,8 @@ Use a fresh session if reload does not expose the canonical source. Plugin
 component changes use `/reload-plugins`; that is separate from local skill text.
 
 Packaged skills may coexist with these local entries. Claude keeps both local
-and namespaced plugin skills, such as `/backfire-code` and
-`/code:backfire-code`; enterprise skills win over personal, which win over
+and namespaced plugin skills, such as `/jev` and
+`/code:jev`; enterprise skills win over personal, which win over
 project skills of the same name. Codex does not merge equal skill names and
 can show both entries. Inspect paths before invoking; a packaged copy is not
 evidence of the live source. Preparation does not uninstall or disable existing
@@ -754,7 +744,7 @@ Developer notes on ownership:
 
 ### Optional copied client packages
 
-Backfire and the reference connector run from the repository checkout.
+The gated Jev MCP proxy and the reference connector run from the repository checkout.
 `npm run plugins:distribute` validates canonical manifests and prepares copied
 client packages in
 `$XDG_CACHE_HOME/verbose-broccoli/workspaces/<checkout-id>/plugin-discovery/plugin-clients/`
@@ -800,16 +790,16 @@ global skill migration remain separate.
 
 Maintain each skill body only in its owning package. The shared local discovery
 index links to those directories; it does not hold another source tree.
-`backfire-code` and `backfire-education` each carry their own vendored upstream
+`jev` in Code and Work carries byte-identical upstream skill bodies and
 resources, because a distributed plugin may not link to another plugin's files.
-`scripts/plugin-skills-test.ts` keeps their shared tool reference identical.
+`scripts/plugin-skills-test.ts` checks equality and shared discovery ownership.
 
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
 | `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `backfire-code`, `clean-code`, `git-commit`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
-| `plugins/work/skills` | `backfire-education`, `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/code/skills` | `clean-code`, `git-commit`, `jev`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `jev`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
@@ -1014,7 +1004,7 @@ Linear extension is used. The design and its reasons are in
 
 ### Document consistency — 2026-09-28
 
-`README.md`, `docs/architecture.md` and `docs/backfire.md` follow one region
+`README.md`, `docs/architecture.md` and `docs/jev-mcp.md` follow one region
 model, from [feature 008](../specs/008-doc-consistency/spec.md). Every part of
 these target documents is either a mechanical region, written by a generator,
 or an agent region, written by agents. No part is human-written.
@@ -1025,7 +1015,7 @@ or an agent region, written by agents. No part is human-written.
   are in the [regions contract](../specs/008-doc-consistency/contracts/regions.md).
   Documents link to it instead of quoting a marker, because Cog would run a
   quoted marker as a region.
-- Everything else is an agent region. Backfire judges it before each `develop`
+- Everything else is an agent region. Jev MCP judges it before each `develop`
   merge review.
 - `scripts/doc-regions.toml` lists the targets, including the generated
   `docs/reference/` pages, and root and plugin `AGENTS.md` files and the
@@ -1049,9 +1039,8 @@ or an agent region, written by agents. No part is human-written.
   agent regions into units with markdown-it-py 4.2.0 (MIT). It prints
   `jev_verify` requests, with units as claims and the feature diff as
   evidence, and `jev_classify` requests for the units the feature added.
-  Backfire refuses a request that holds Hangul, so the requests spell every
-  Hangul run in Latin letters, in claims and evidence alike, with anyascii
-  0.3.3 (ISC); the printed `units` keep the original text.
+  Korean text is allowed; no provider-era Hangul transliteration is required.
+  Send requests through the gated `jev-mcp` proxy.
   Each `jev_verify` request holds at most 110 claims and 12,000 claim
   characters, below the sizes OpenRouter refused (the real limit is not
   published); a longer claim stops the command with an error naming it.
@@ -1061,12 +1050,12 @@ or an agent region, written by agents. No part is human-written.
 - `npm run doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
   on root and plugin `AGENTS.md` files and the constitution. It downloads the pinned archive once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
-  Findings for these rule files, from the audit or from backfire, are only
+  Findings for these rule files, from the audit or from Jev MCP, are only
   reported to the user; the tooling never changes them.
 - The engine is the uv project `packages/doc-regions/`. `mise run setup`
   syncs it, `npm run doctor` checks its environment, and mise pins lychee.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
-- Not automated: sending the backfire requests and acting on the results,
+- Not automated: sending the Jev MCP requests and acting on the results,
   reporting drift in root and plugin `AGENTS.md` files and the constitution, and
   choosing which candidates become mechanical regions.

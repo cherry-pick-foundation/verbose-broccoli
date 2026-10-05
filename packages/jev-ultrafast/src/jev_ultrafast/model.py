@@ -1,83 +1,138 @@
-"""TypeSafe makes choices; an optional small OpenAI-compatible model writes field values."""
+"""Jev makes choices through the gated jev-mcp proxy; the text helper is held."""
 
+import asyncio
 import json
-import math
 import os
 import time
-import tomllib
 from pathlib import Path
 
-import httpx
+from mcp import ClientSession, StdioServerParameters, stdio_client
 
-from .questions import NEXT_ACTION, TARGET, TEXT_VALUE
+from .questions import NEXT_ACTION, TARGET
 
-CLIENT = httpx.Client(http2=True, timeout=25)
+# The only route to a model: the gated jev-mcp proxy, which loads its own key.
+GATE = StdioServerParameters(
+    command="uv",
+    args=[
+        "--directory",
+        str(Path(__file__).resolve().parents[3] / "education-privacy-gate"),
+        "run",
+        "--frozen",
+        "--offline",
+        "--no-sync",
+        "jev-mcp",
+    ],
+    env={"XDG_CONFIG_HOME": config}
+    if (config := os.environ.get("XDG_CONFIG_HOME")) and Path(config).is_absolute()
+    else None,
+)
+# Seconds per request; the proxy's own upstream deadline is 60.
+TIMEOUT = 90
 
 
-def post_json(url, key, body, headers=None):
-    for attempt in range(3):
-        try:
-            response = CLIENT.post(url, json=body, headers=headers or {"Authorization": f"Bearer {key}"})
-        except httpx.HTTPError:
-            raise RuntimeError("Model connection failed; no action executed.") from None
-        if response.status_code in {429, 529, 503} and attempt < 2:
-            time.sleep(0.5 * 2**attempt)
-            continue
-        if response.is_error:
-            raise RuntimeError(f"Model provider returned HTTP {response.status_code}; no action executed.")
-        return response.json()
-    raise RuntimeError("Model unavailable")
-
-
-def request_jev(body):
-    providers = tomllib.loads(Path(__file__).with_name("providers.toml").read_text())
-    name = os.environ.get("JEV_PROVIDER") or "typesafe"
-    if name not in providers:
-        raise ValueError(f"Unknown JEV_PROVIDER {name!r}; known providers: {', '.join(providers)}")
-    provider = providers[name]
-    key = os.environ.get(provider["key_env"])
-    if not key:
-        raise ValueError(f"{provider['key_env']} is required for {name}; no request sent")
-    if provider["protocol"] == "systemone":
-        return post_json(provider["url"], key, {**body, "model": provider.get("model", body["model"])})
-    if provider["protocol"] == "ai-run":
-        if not (account := os.environ.get(provider["account_env"])):
-            raise ValueError(f"{provider['account_env']} is required for {name}; no request sent")
-        payload = {"model": provider["model"], "input": {"state": body["state"], "questions": body["questions"]}}
-        result = post_json(provider["url"].format(account=account), key, payload)
-        return (result.get("result") or {}).get("result") or result.get("result") or result
-    model = provider["model"]
-    headers = {"Authorization": f"Bearer {key}", **provider["headers"], "ai-model-id": model}
-    result = post_json(provider["url"], key, {"state": body["state"], "questions": body["questions"]}, headers)
-    confidence = (result.get("providerMetadata") or {}).get("typesafe", {}).get("confidence", {})
-    answers = {
-        question: {**answer, "confidence": confidence.get(question)} if answer.get("type") == "choice" else answer
-        for question, answer in result["answers"].items()
-    }
-    usage = result.get("usage") or {}
+def classify(head, text, classes, purpose, context):
+    """One jev_classify request: a single question over a catalog of options."""
     return {
-        "answers": answers,
-        "usage": {"input_tokens": usage.get("inputTokens", 0), "output_tokens": usage.get("outputTokens", 0)},
-        "model": model,
+        "items": [{"id": head, "text": text}],
+        "classes": [{"id": key, "description": description} for key, description in classes.items()],
+        "purpose": purpose,
+        "context": context,
     }
+
+
+async def ask_gate(first, followup, before_call=None):
+    """Send `first`, then the request `followup` builds from its result, in one gated session."""
+    try:
+        async with (
+            stdio_client(GATE) as (read, write),
+            ClientSession(read, write, read_timeout_seconds=TIMEOUT) as session,
+        ):
+            await session.initialize()
+            if before_call:
+                before_call()
+            results = [await session.call_tool("jev_classify", first)]
+            if (second := followup(results[0])) is not None:
+                if before_call:
+                    before_call()
+                results.append(await session.call_tool("jev_classify", second))
+    except ExceptionGroup as group:
+        error = group
+        while isinstance(error, ExceptionGroup):
+            error = error.exceptions[0]
+        raise RuntimeError(f"Jev gate failed: {error}; no action executed.") from None
+    return results
+
+
+def parse(result):
+    """The JSON in one jev_classify result; a refusal or error stops the step."""
+    if result.is_error:
+        text = " ".join(getattr(block, "text", "") for block in result.content)
+        raise RuntimeError(f"Jev gate refused or failed: {text}; no action executed.")
+    try:
+        [block] = result.content
+        return json.loads(block.text)
+    except (AttributeError, ValueError):
+        raise ValueError("Invalid Jev gate result; no action executed.") from None
+
+
+def answer(parsed, head):
+    """The one classification row of a jev_classify result, shaped as validate_choice reads an answer."""
+    try:
+        [row] = parsed["results"]
+        if row["id"] != head or row.get("status") == "invalid_response":
+            raise ValueError("Invalid TypeSafe response; no action executed.")
+        return {
+            "choice": row["classification"],
+            "probabilities": row["probabilities"],
+            "confidence": row.get("confidence"),
+        }
+    except (KeyError, IndexError, TypeError, ValueError):
+        raise ValueError("Invalid TypeSafe response; no action executed.") from None
+
+
+def total_usage(results):
+    """Sum the numeric counts of every call; upstream does not validate usage values."""
+    usage = {}
+    for parsed in results:
+        counts = parsed.get("usage")
+        for key, value in counts.items() if isinstance(counts, dict) else ():
+            if type(value) in (int, float):
+                usage[key] = usage.get(key, 0) + value
+    return usage
 
 
 def validate_choice(answer, ids):
+    # jev_judge_mcp/validation/choice.py:12-57: sum/argmax tolerances;
+    # numbers.py:33-35: malformed confidence is unknown; no margin condition.
     try:
         probabilities = answer["probabilities"]
-        numbers = [*probabilities.values(), answer["confidence"]]
         valid = (
-            answer["choice"] in ids
+            isinstance(answer["choice"], str)
+            and answer["choice"] in ids
+            and isinstance(probabilities, dict)
             and set(probabilities) == set(ids)
-            and all(type(n) in (int, float) and math.isfinite(n) and 0 <= n <= 1 for n in numbers)
-            and abs(sum(probabilities.values()) - 1) < 0.02
-            and probabilities[answer["choice"]] >= max(probabilities.values()) - 1e-6
+            and all(type(n) in (int, float) and 0 <= n <= 1 for n in probabilities.values())
         )
-    except (KeyError, TypeError, ValueError):
+        if not valid:
+            raise ValueError
+        # JS array-index keys first, then insertion order; left-to-right float64 sum.
+        indices = {k for k in probabilities if k.isascii() and k.isdigit() and str(int(k)) == k and int(k) < 2**32 - 1}
+        total = 0.0
+        for key in sorted(indices, key=int) + [k for k in probabilities if k not in indices]:
+            total += float(probabilities[key])
+        valid = (
+            abs(total - 1) <= 0.01 + 1e-12
+            and probabilities[answer["choice"]] >= max(probabilities.values()) - 1e-9
+        )
+    except (KeyError, TypeError, ValueError, AttributeError):
         valid = False
     if not valid:
         raise ValueError("Invalid TypeSafe response; no action executed.")
-    return answer
+    confidence = answer.get("confidence")
+    return {
+        **answer,
+        "confidence": float(confidence) if type(confidence) in (int, float) and 0 <= confidence <= 1 else None,
+    }
 
 
 def action_space(actions):
@@ -113,7 +168,7 @@ def action_space(actions):
     return elements, targets, controls
 
 
-def choose(state, goal, history):
+def choose(state, goal, history, *, before_call=None):
     elements, targets, controls = action_space(state["actions"])
     labels = {
         "CLICK": "Click an element, button, menu option, autocomplete suggestion, or calendar day.",
@@ -123,43 +178,58 @@ def choose(state, goal, history):
     operations = {key: labels[key] for key in targets}
     operations.update({key: value["label"] for key, value in controls.items()})
     operations.update(DONE="Every requirement is visibly satisfied.", BLOCKED="No supported operation can progress.")
-    questions = {
-        "operation": {"type": "choice", "criteria": operations, "instructions": {"goal": goal, "rules": NEXT_ACTION}}
+    context = {
+        "goal": goal,
+        "page": {k: state[k] for k in ("url", "title", "text")},
+        "elements": elements,
+        "recent_actions": [{k: h.get(k) for k in ("action", "kind", "text", "page_changed")} for h in history[-10:]],
     }
-    for operation, candidates in targets.items():
-        questions[operation.lower() + "_target"] = {
-            "type": "choice",
-            "criteria": {
-                index: {
+
+    def target_request(operation):
+        classes = {
+            index: json.dumps(
+                {
                     "element": f"[{index}] {a['label']}",
                     "current_value": a.get("current_value", a.get("value", "")),
                     **{k: a[k] for k in ("role", "checked", "selected", "expanded") if k in a},
-                }
-                for index, a in candidates.items()
-            },
-            "instructions": {"goal": goal, "operation": operation, "rules": [NEXT_ACTION, TARGET]},
+                },
+                ensure_ascii=False,
+            )
+            for index, a in targets[operation].items()
         }
-    body = {
-        "model": os.environ.get("TYPESAFE_MODEL", "jev-latest"),
-        "state": {
-            "page": {k: state[k] for k in ("url", "title", "text")},
-            "elements": elements,
-            "recent_actions": [
-                {k: h.get(k) for k in ("action", "kind", "text", "page_changed")} for h in history[-10:]
-            ],
-        },
-        "questions": questions,
-    }
+        return classify(
+            operation.lower() + "_target",
+            f"Which element should the {operation} operation use?",
+            classes,
+            f"{NEXT_ACTION}\n\n{TARGET}",
+            {**context, "operation": operation},
+        )
+
+    def followup(result):
+        # Only the chosen operation's target is requested, and only when it has options to choose between
+        # (jev_classify needs two). A bad answer gets no second request; it is rejected below.
+        try:
+            operation = validate_choice(answer(parse(result), "operation"), operations)["choice"]
+        except (RuntimeError, ValueError):
+            return None
+        return target_request(operation) if len(targets.get(operation, ())) > 1 else None
+
+    first = classify("operation", "Which operation should run next?", operations, NEXT_ACTION, context)
     started = time.perf_counter()
-    result = request_jev(body)
-    operation_answer = validate_choice(result["answers"].get("operation", {}), operations)
+    parsed = [parse(result) for result in asyncio.run(ask_gate(first, followup, before_call))]
+    operation_answer = validate_choice(answer(parsed[0], "operation"), operations)
     operation = operation_answer["choice"]
     target = None
     target_answer = None
     probabilities = {}
     if operation in targets:
-        # Unused target heads cannot cause an action. Validate the head selected by the operation.
-        target_answer = validate_choice(result["answers"].get(operation.lower() + "_target", {}), targets[operation])
+        # Only the head selected by the operation is requested and validated; no other head can cause an action.
+        if len(targets[operation]) > 1:
+            target_answer = validate_choice(answer(parsed[1], operation.lower() + "_target"), targets[operation])
+        else:
+            # A lone option is no judgment: it is chosen without a model call.
+            (only,) = targets[operation]
+            target_answer = {"choice": only, "probabilities": {only: 1.0}, "confidence": 1.0}
         target = target_answer["choice"]
         choice = targets[operation][target]["id"]
         probabilities = {a["id"]: target_answer["probabilities"][index] for index, a in targets[operation].items()}
@@ -175,11 +245,11 @@ def choose(state, goal, history):
         "operation_probabilities": operation_answer["probabilities"],
         "target_probabilities": target_answer["probabilities"] if target_answer else {},
         "target_confidence": target_answer["confidence"] if target_answer else None,
-        "raw_answers": result["answers"],
-        "model": result["model"],
-        "usage": result.get("usage", {}),
+        "raw_answers": {"operation": operation_answer, **({operation.lower() + "_target": target_answer} if target_answer else {})},
+        "model": parsed[0].get("model"),
+        "usage": total_usage(parsed),
         "latency_ms": round((time.perf_counter() - started) * 1000),
-        "request": body,
+        "request": [first, target_request(operation)] if len(parsed) > 1 else [first],
     }
 
 
@@ -193,41 +263,5 @@ def field_context(goal, action, page, history):
 
 
 def field_text(context):
-    key = os.environ.get("TEXT_MODEL_API_KEY")
-    if not key:
-        raise ValueError("TYPE_TEXT needs TEXT_MODEL_API_KEY; no text is hardcoded or guessed by the executor.")
-    base = os.environ.get("TEXT_MODEL_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
-    model = os.environ.get("TEXT_MODEL", "deepseek-chat")
-    reasoning = {"thinking": {"type": "disabled"}} if "api.deepseek.com/" in base else {"reasoning": {"effort": "low"}}
-    if os.environ.get("TEXT_MODEL_REASONING") == "none":
-        reasoning = {"reasoning": {"enabled": False}}
-    started = time.perf_counter()
-    result = post_json(
-        base + "/chat/completions",
-        key,
-        {
-            "model": model,
-            "max_tokens": 1024,
-            "response_format": {"type": "json_object"},
-            **reasoning,
-            "messages": [
-                {"role": "system", "content": TEXT_VALUE},
-                {
-                    "role": "user",
-                    "content": json.dumps(context),
-                },
-            ],
-        },
-    )
-    try:
-        output = json.loads(result["choices"][0]["message"]["content"])
-        value = output["text"]
-        if set(output) != {"text"} or not isinstance(value, str) or not value.strip() or len(value) > 2000:
-            raise ValueError()
-    except (ValueError, KeyError, TypeError):
-        raise ValueError("Text helper returned no valid field value; nothing typed.") from None
-    return value, {
-        "model": model,
-        "latency_ms": round((time.perf_counter() - started) * 1000),
-        "usage": result.get("usage", {}),
-    }
+    # Held: page and goal text has no gated route, so no text model is called and nothing is typed.
+    raise ValueError("TYPE_TEXT is held until the text helper has a gated route; nothing typed.")

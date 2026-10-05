@@ -47,6 +47,8 @@ const DENIED = [
 type Ownership = {
   links?: Record<string, string>;
   servers?: Record<string, Server>;
+  serverOwners?: Record<string, string[]>;
+  skillOwners?: Record<string, string[]>;
   codex?: string;
 };
 
@@ -82,28 +84,86 @@ function storagePath(root: string, kind: 'STATE' | 'CACHE') {
   );
 }
 
+function resolveDeclaration(source: string) {
+  const declaration = JSON.parse(
+    readFileSync(join(source, 'mcp.json'), 'utf8'),
+  );
+  return JSON.parse(
+    JSON.stringify(declaration, (_key, value) => {
+      if (typeof value !== 'string') return value;
+      const prefix = '${PLUGIN_ROOT}';
+      return value.startsWith(`${prefix}/`)
+        ? resolve(source, value.slice(prefix.length + 1))
+        : value.replaceAll(prefix, () => source);
+    }),
+  );
+}
+
 function readServers(root: string) {
   const servers: Record<string, Server> = {};
+  const serverOwners: Record<string, string[]> = {};
   for (const plugin of PLUGINS) {
     const source = join(root, 'plugins', plugin);
     const path = join(source, 'mcp.json');
     if (!existsSync(path)) continue;
-    const declaration = JSON.parse(readFileSync(path, 'utf8'));
-    const resolved = JSON.parse(
-      json(declaration).replaceAll('${PLUGIN_ROOT}', () =>
-        JSON.stringify(source).slice(1, -1),
-      ),
-    );
+    const resolved = resolveDeclaration(source);
     for (const [name, server] of Object.entries(resolved.mcpServers)) {
-      if (Object.hasOwn(servers, name))
+      if (
+        Object.hasOwn(servers, name) &&
+        !isDeepStrictEqual(servers[name], server)
+      )
         throw new Error(`Duplicate plugin server: ${name}`);
       const value = server as Server;
       if (value.type !== 'stdio' || typeof value.command !== 'string')
         throw new Error(`Unsupported project server: ${name}`);
       servers[name] = value;
+      (serverOwners[name] ??= []).push(plugin);
     }
   }
-  return servers;
+  return {servers, serverOwners};
+}
+
+function readSkills(root: string) {
+  const links: Record<string, string> = {};
+  const skillOwners: Record<string, string[]> = {};
+  const contents = new Map<string, Record<string, Buffer>>();
+  for (const plugin of PLUGINS) {
+    const source = join(root, 'plugins', plugin, 'skills');
+    for (const entry of readdirSync(source, {withFileTypes: true})) {
+      if (!entry.isDirectory())
+        throw new Error(`Skill must be a canonical directory: ${entry.name}`);
+      const directory = join(source, entry.name);
+      const files: Record<string, Buffer> = {};
+      for (const resource of readdirSync(directory, {
+        recursive: true,
+        withFileTypes: true,
+      })) {
+        if (resource.isSymbolicLink())
+          throw new Error(
+            `Plugin resources must be local files: ${entry.name}/${resource.name}`,
+          );
+        if (resource.isFile()) {
+          const path = join(resource.parentPath, resource.name);
+          files[relative(directory, path)] = readFileSync(path);
+        }
+      }
+      const text = readFileSync(join(directory, 'SKILL.md'), 'utf8');
+      const name = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
+        .exec(text)?.[1]
+        .match(/^name:\s*["']?([a-z0-9-]+)["']?\s*$/m)?.[1];
+      if (name !== entry.name || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name))
+        throw new Error(
+          `Skill name must match folder: ${plugin}/${entry.name}`,
+        );
+      if (contents.has(name) && !isDeepStrictEqual(contents.get(name), files))
+        throw new Error(`Duplicate skill: ${name}`);
+      contents.set(name, files);
+      (skillOwners[name] ??= []).push(relative(root, directory));
+      const path = `.agents/skills/${name}`;
+      links[path] ??= relative(dirname(join(root, path)), directory);
+    }
+  }
+  return {links, skillOwners};
 }
 
 // Preflight every owned entry before mutation. The receipt contains only the
@@ -185,44 +245,46 @@ export function preparePluginDiscovery(root = ROOT) {
     )
       throw new Error('Conflict: invalid ownership receipt');
   }
-  const links: Record<string, string> = {};
-  const names = new Set<string>();
-  for (const plugin of PLUGINS) {
-    const source = join(root, 'plugins', plugin, 'skills');
-    for (const entry of readdirSync(source, {withFileTypes: true})) {
-      if (!entry.isDirectory())
-        throw new Error(`Skill must be a canonical directory: ${entry.name}`);
-      for (const resource of readdirSync(join(source, entry.name), {
-        recursive: true,
-        withFileTypes: true,
-      })) {
-        if (resource.isSymbolicLink())
-          throw new Error(
-            `Plugin resources must be local files: ${entry.name}/${resource.name}`,
-          );
-      }
-      const text = readFileSync(join(source, entry.name, 'SKILL.md'), 'utf8');
-      const name = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/
-        .exec(text)?.[1]
-        .match(/^name:\s*["']?([a-z0-9-]+)["']?\s*$/m)?.[1];
-      if (name !== entry.name || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name))
-        throw new Error(
-          `Skill name must match folder: ${plugin}/${entry.name}`,
-        );
-      if (names.has(name)) throw new Error(`Duplicate skill: ${name}`);
-      names.add(name);
-      const path = `.agents/skills/${name}`;
-      links[path] = relative(dirname(join(root, path)), join(source, name));
-    }
+  const {links, skillOwners} = readSkills(root);
+  const names = new Set(Object.keys(skillOwners));
+  // Keep an owned, still-selected source rather than retargeting a live link.
+  for (const [name, sources] of Object.entries(skillOwners)) {
+    const path = `.agents/skills/${name}`;
+    if (
+      sources.some(
+        source =>
+          relative(dirname(join(root, path)), join(root, source)) ===
+          receipt.links?.[path],
+      )
+    )
+      links[path] = receipt.links![path];
   }
   links['.claude/skills'] = '../.agents/skills';
   for (const [path, target] of Object.entries({...old.links, ...links})) {
     const value = stat(join(root, path));
     if (
       value &&
-      (!value.isSymbolicLink() || readlinkSync(join(root, path)) !== target)
+      (!value.isSymbolicLink() ||
+        ![
+          target,
+          receipt.links?.[path],
+          pending?.old.links?.[path],
+          pending?.intended.links?.[path],
+          ...(path.startsWith('.agents/skills/') && skillOwners[basename(path)]
+            ? PLUGINS.map(plugin =>
+                relative(
+                  dirname(join(root, path)),
+                  join(root, 'plugins', plugin, 'skills', basename(path)),
+                ),
+              )
+            : []),
+        ].includes(readlinkSync(join(root, path))))
     )
       throw new Error(`Conflict: ${path}`);
+    if (value) {
+      old.links ??= {};
+      old.links[path] = readlinkSync(join(root, path));
+    }
   }
   const index = join(root, '.agents/skills');
   if (existsSync(index)) {
@@ -239,7 +301,7 @@ export function preparePluginDiscovery(root = ROOT) {
       if (name && names.has(name)) throw new Error(`Duplicate skill: ${name}`);
     }
   }
-  const servers = readServers(root);
+  const {servers, serverOwners} = readServers(root);
   const mcpPath = join(root, '.mcp.json');
   const codexPath = join(root, '.codex/config.toml');
   const staging = randomUUID();
@@ -326,7 +388,7 @@ export function preparePluginDiscovery(root = ROOT) {
   // The receipt owns the separator this generator adds, so cleanup restores
   // the original bytes without guessing about a user's final newline.
   if (codex && !codex.endsWith('\n')) block = '\n' + block;
-  const intended = {links, servers, codex: block};
+  const intended = {links, servers, serverOwners, skillOwners, codex: block};
   const journal = json({receipt, old, intended, staging});
   if (Buffer.byteLength(journal) > 64 * 1024)
     throw new Error('Ownership journal exceeds 64 KiB');
@@ -349,6 +411,8 @@ export function preparePluginDiscovery(root = ROOT) {
   renameSync(`${receiptPath}.next`, pendingPath);
   for (const [path, target] of Object.entries(links)) {
     mkdirSync(dirname(join(root, path)), {recursive: true});
+    if (stat(join(root, path)) && readlinkSync(join(root, path)) !== target)
+      rmSync(join(root, path));
     if (!stat(join(root, path))) symlinkSync(target, join(root, path), 'dir');
   }
   for (const path of Object.keys(old.links ?? {})) {
@@ -429,11 +493,22 @@ export function preparePluginClients(root = ROOT) {
   const out = join(storagePath(root, 'CACHE'), 'plugin-clients');
   const stage = `${out}.next`;
   const previous = `${out}.previous`;
+  try {
+    readServers(root);
+    readSkills(root);
+  } catch (error) {
+    // Keep existing recovery for torn source JSON; duplicate conflicts never
+    // change even staging or recovery directories.
+    if (error instanceof SyntaxError) {
+      if (existsSync(previous) && !existsSync(out)) renameSync(previous, out);
+      rmSync(stage, {recursive: true, force: true});
+    }
+    throw error;
+  }
   mkdirSync(dirname(out), {recursive: true});
   if (existsSync(previous) && !existsSync(out)) renameSync(previous, out);
   rmSync(stage, {recursive: true, force: true});
   let bytes = 0;
-  const servers = new Set<string>();
   try {
     for (const name of PLUGINS) {
       const source = join(root, 'plugins', name);
@@ -467,15 +542,7 @@ export function preparePluginClients(root = ROOT) {
       if (existsSync(join(source, 'mcp.json'))) {
         // Replace JSON-escaped path text, preserving quotes and backslashes in
         // checkout names. PLUGIN_DATA remains a client-owned runtime variable.
-        const mcp = JSON.parse(readFileSync(join(source, 'mcp.json'), 'utf8'));
-        for (const server of Object.keys(mcp.mcpServers)) {
-          if (servers.has(server))
-            throw new Error(`Duplicate plugin server: ${server}`);
-          servers.add(server);
-        }
-        const contents = json(mcp).replaceAll('${PLUGIN_ROOT}', () =>
-          JSON.stringify(source).slice(1, -1),
-        );
+        const contents = json(resolveDeclaration(source));
         writeFileSync(join(target, 'mcp.json'), contents);
         claude.mcpServers = './mcp.json';
       }

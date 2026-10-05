@@ -13,15 +13,20 @@ time zone). It finds the offers that entered the freetokens tracker's
 published list (<https://github.com/luongnv89/freetokens>) during that block,
 drops those that are no longer active or that have an end date, and asks Jev,
 in one call, whether each remaining offer costs nothing to claim and states
-no time limit or end date. It saves nothing; the tracker's own history tells
-it what is new. Why it runs every 6 hours, and the data behind that, are in
-`specs/021-chat-jev-ultrafast/research.md` (R9).
+no time limit or end date. The call is one `jev_classify` request, one item
+per offer, with the classes `qualifies` and `excluded`, sent through the
+repository's gated `jev-mcp` proxy. It saves nothing; the tracker's own
+history tells it what is new. Why it runs every 6 hours, and the data behind
+that, are in `specs/021-chat-jev-ultrafast/research.md` (R9).
 
 ## Run
 
-From the repository root. Backfire reads provider keys from the shared provider
-folder through its profiles and tries them in its shared provider order. Only
-the optional GitHub token file is passed to the command:
+From the repository root. The command starts the gated `jev-mcp` proxy
+(`packages/education-privacy-gate/`) itself, with `uv`, and talks to it as an
+MCP client. The proxy loads its own OpenRouter key from the shared provider
+folder, so the command passes no provider key and no other environment. Only
+the optional GitHub token file is passed to the command. Install the proxy's
+npm closure once with `mise run setup`:
 
 ```sh
 providers="${XDG_CONFIG_HOME:-$HOME/.config}/verbose-broccoli/providers"
@@ -41,7 +46,8 @@ to 5,000 requests an hour.
 - `--hours <n>` changes the block length; `n` must divide 24.
 
 The command prints one line per judged offer and `jev_calls=<n>`: 0 when the
-block has no new candidate, otherwise 1.
+block has no new candidate, otherwise 1. One call judges at most 64 offers; a
+block with more new candidates ends with status 3.
 
 ## Exit status
 
@@ -50,7 +56,7 @@ block has no new candidate, otherwise 1.
 | 0 | At least one strong offer (notified with `--notify`) |
 | 1 | No strong offer |
 | 2 | Invalid arguments |
-| 3 | The tracker, GitHub, the provider or the notification failed; the message names it and never shows a key |
+| 3 | The tracker, GitHub, the gate, the provider or the notification failed; the message names it and never shows a key |
 
 An Orca automation precheck treats anything but 0 as "skip this run", and
 Orca has no failed state for a precheck: it records the run as skipped with
@@ -75,6 +81,9 @@ is an error to look at.
   address, shared by every tool on the laptop; a run uses two, and a run
   that finds the limit used up ends with status 3, so its block is not
   checked.
-- If backfire cannot find a usable provider in its shared profile order, a
-  block with candidates ends with status 3. It skips profiles without credit
-  and moves to the next profile when a provider reports insufficient balance.
+- The judgment goes through the gated proxy only, on OpenRouter. If the proxy
+  cannot start, has no key or credit, does not answer within 90 seconds, or
+  refuses the call (it says only "Privacy gate rejected the call."), a block
+  with candidates ends with status 3. The command never falls back to another
+  route or provider.
+- Which provider the scheduled automation uses stays the user's decision.

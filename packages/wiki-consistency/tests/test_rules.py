@@ -703,12 +703,12 @@ def test_roster_failures_report_once_and_hide_language_findings(
     ]
 
     assert len(roster_problems) == 1, problems
-    expected = (
-        str(config)
-        if failure in {"missing-config", "relative-path"}
-        else str(roster)
+    assert roster_problems[0]["message"] == (
+        "page rule roster: cannot read the roster: "
+        "The Wiki roster configuration or source is missing or invalid."
     )
-    assert expected in roster_problems[0]["message"]
+    assert str(config) not in roster_problems[0]["message"]
+    assert str(roster) not in roster_problems[0]["message"]
     assert sum("page rule" in item["message"] for item in problems) == 1
 
 
