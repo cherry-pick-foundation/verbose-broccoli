@@ -5,7 +5,7 @@ Feature: CHE-88, spec055. Develop owns final task ticks. Unchecked boxes describ
 ## Phase 1: Setup and design
 
 - [x] T001 Check both installed clients' hook capability and write spec/plan/research/data-model/quickstart plus checklist under specs/055-compaction-continuity/.
-  2026-10-05: Approved brief and all standing notes read fully; hook input/output and Codex context limit checked against official docs and version-matched source. Develop approved explicit session ownership in state. Native Codex gpt-6.1-sol/medium was selected through Jev typesafe/jev-1.13 (probability 0.68, confidence 0.63); receipts are in develop/compaction-continuity/attempt-20261005T0225Z under approved state storage. The 60-minute advisory checkpoint is not a stopping deadline.
+      2026-10-05: Approved brief and all standing notes read fully; hook input/output and Codex context limit checked against official docs and version-matched source. Develop approved explicit session ownership in state. Native Codex gpt-6.1-sol/medium was selected through Jev typesafe/jev-1.13 (probability 0.68, confidence 0.63); receipts are in develop/compaction-continuity/attempt-20261005T0225Z under approved state storage. The 60-minute advisory checkpoint is not a stopping deadline.
 
 ## Phase 2: Foundation
 
