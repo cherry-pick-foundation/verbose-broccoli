@@ -11,5 +11,19 @@
       "mcp__reference-library__zotero_delete_collection",
       "mcp__reference-library__zotero_empty_trash"
     ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CODEX_MCP_NODE_PATH:-node}\" --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-child-process \"$(git rev-parse --show-toplevel)/scripts/coordinator-context.ts\" claude",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   }
 }

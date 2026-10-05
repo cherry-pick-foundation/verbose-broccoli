@@ -133,6 +133,12 @@ that removes the copy or replaces it with an installed dependency.
 - A review before merging into `develop` favors speed; one before merging into
   `main` favors accuracy.
 
+## Coordinator messages
+
+Develop messages main only with questions or user-relevant merges, user blocks and finished features.
+Main answers by convention and relays user decisions; it does not re-verify develop evidence or reply to routine status.
+Heartbeats need acknowledgment only.
+
 ## Records
 
 - Development memory is the Spec Kit records in `specs/`,

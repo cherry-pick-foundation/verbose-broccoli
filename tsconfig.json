@@ -36,6 +36,8 @@
     "plugins/code/skills/clean-code/scripts/clean-code-test.ts",
     "scripts/backfire-regions.ts",
     "scripts/secrets-refresh.ts",
-    "scripts/workflow.ts"
+    "scripts/workflow.ts",
+    "scripts/coordinator-context.ts",
+    "scripts/coordinator-context-test.ts"
   ]
 }
