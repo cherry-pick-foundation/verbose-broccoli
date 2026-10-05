@@ -39,3 +39,17 @@ Full injection is preferred. Codex's handler limit is set above the script's con
 Run the smallest hook/transcript tests, then type/style/graph checks, required document prepare/audit and one full verification in a develop-granted slot. Batch commands use the approved low-priority CPU scope. Commit the feature record, request In Review through develop, obtain a fresh native Claude built-in /code-review, resolve findings, then align current develop and create the content-free review-record tip. Develop alone finishes the feature.
 
 Initial estimate: source 50–70 lines, test 60, hook 20 and rule 3–5. This is advisory; report actual size and review splitting only under the existing 1,000-line rule.
+
+## Acceptance record (2026-10-05)
+
+Develop f868ec043769c03d62ecfe8e45a6c0393524944e was merged at 89c2dee. The sole generated-table conflict was aborted, reported and retried with develop's explicit permission to regenerate that region from both merged manifests. The foreign generated Codex discovery block remains unstaged.
+
+Full verification attempt 1 stopped on a missing newly merged Python package. The locked workspace sync and installed privacy child corrected the environment; the affected 42-case session-selection check passed. Attempt 2 exited zero with workflow phase VERIFIED and a same-run Turbo summary: 46/46 successful, 0 cached, 5m54.467s. Hook acceptance covers both formats, complete notes/state, all four sources, thresholds, replacement, narrow workers, missing/damaged sources and notification failure. Hook processes have no filesystem write permission. Scoped lint and TypeScript passed; mechanical document checks report no problems.
+
+Current document preparation produced 11 gated Jev calls, retained without repeats: 333 units, 55 review flags. The 52 low-subject flags do not establish drift. The three related flags concern unchanged connector/discovery guidance; retain canonical documentation because the foreign checkout-local block predates privacy and is not the canonical generator. MemoryLint's 21 existing constitution placement warnings are report-only. Disposition and receipts are in the current attempt directory. Tool-reported document usage: 211,146 input and 59,673 output tokens.
+
+Owned size before this record: 161 source lines, 261 test lines, 26 hook lines and three rule sentences; the whole feature is below the existing 1,000-line split-review threshold. The complexity-only diff inspection found no speculative abstraction or added dependency. No source cut is required for that scope.
+
+Evidence: ~/.local/state/verbose-broccoli/workspaces/feature-compaction-continuity/compaction-continuity/ctx_14adf1f5da09/acceptance-after-privacy-01/ contains document requests, receipts and disposition; acceptance-after-privacy-02/ contains the successful verification log and immutable Turbo summary. Live compacted model responses and desktop display were not exercised; capability/source evidence and synthetic notification checks are recorded accurately. Client activation remains a user-owned rollout after integration.
+
+Independent native Claude built-in review remains pending. The saved choice is claude-sonnet-5-5 medium (probability 0.88, confidence 0.85). Develop owns final ticks, Linear and finish; this record is not the implementer's final approval.
