@@ -471,8 +471,9 @@ def test_numbered_labels_skip_literals_and_exhaust_safely():
         assert masker.restore(masked) == original
 
     labels = " ".join(f"Phone {index:02d}" for index in range(1, 257))
-    with gate() as masker, pytest.raises(
-        GateError, match="^Privacy gate rejected the call\\.$"
+    with (
+        gate() as masker,
+        pytest.raises(GateError, match="^Privacy gate rejected the call\\.$"),
     ):
         masker.mask("010-2345-6789 " + labels)
 
