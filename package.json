@@ -16,6 +16,8 @@
     "constitution:bump": "mise exec -- uv run --project tools/commitizen --frozen --no-sync cz bump --files-only --yes --increment",
     "test:constitution-bump": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/constitution-bump-test.ts",
     "test:reference-library": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/reference-library-test.ts",
+    "skills:validate": "for skill in skills/*/*/ plugins/*/skills/*/; do case \"$skill\" in plugins/code/skills/ponytail*) continue;; esac; [ -d \"$skill\" ] || continue; env -u _AGENTSKILLS_COMPLETE uv run --project tools/skills-ref --frozen --offline --no-sync agentskills validate \"$skill\" || exit 1; done",
+    "test:skills-links": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/skills-links-test.ts",
     "test:ruff": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/ruff-test.ts",
     "test:gts": "NODE_OPTIONS='--disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process' node --test scripts/gts-test.ts",
     "test:git-flow": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=* --allow-child-process --test scripts/git-flow-test.ts",

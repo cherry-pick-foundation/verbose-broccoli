@@ -37,6 +37,7 @@ run = [
   "mise exec -- uv sync --locked --project tools/spec-kit",
   "mise exec -- uv sync --locked --project tools/shellcheck",
   "mise exec -- uv sync --locked --project tools/ruff",
+  "mise exec -- uv sync --locked --project tools/skills-ref",
   "mise exec -- uv sync --locked --project tools/commitizen",
   "npm ci --ignore-scripts --no-audit --no-fund --prefix plugins/work",
   "mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py",
@@ -80,6 +81,13 @@ timeout = "30s"
 description = "The tools/ruff environment matches uv.lock"
 run = "uv sync --locked --check"
 dir = "tools/ruff"
+hint = "Run `mise run setup`."
+timeout = "30s"
+
+[doctor.checks.uv-skills-ref]
+description = "The tools/skills-ref environment matches uv.lock"
+run = "uv sync --locked --check"
+dir = "tools/skills-ref"
 hint = "Run `mise run setup`."
 timeout = "30s"
 

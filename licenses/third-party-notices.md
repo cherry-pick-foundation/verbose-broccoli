@@ -97,14 +97,13 @@ below remain the source provenance; the pointer is a local patch.
   <https://github.com/jkudish/jev-mcp/tree/5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93/skills/jev>
 - Revision: `5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93` (version 0.13.0).
 - Reused: `SKILL.md`, `reference/tools.md` and `LICENSE`, copied into
-  `plugins/code/skills/jev/` and `plugins/work/skills/jev/`.
+  `plugins/code/skills/jev/`.
 - Adaptations: remove the direct unpinned `mcpServers.jev` launch block;
   add a pointer to shared local privacy and provider guidance in
-  `references/verbose-broccoli.md`. Each copy's `upstream.json` records
-  the original and adapted file hashes. Both copies have identical bytes.
+  `references/verbose-broccoli.md`. Its `upstream.json` records
+  the original and adapted file hashes.
 - Copyright (c) 2026 Joey Kudish.
-  MIT licenses shipped with the [Code copy](../plugins/code/skills/jev/LICENSE)
-  and the [Work copy](../plugins/work/skills/jev/LICENSE).
+  [MIT license](../plugins/code/skills/jev/LICENSE).
 
 ## typesafe-ai/skills — model-choice
 
@@ -138,7 +137,7 @@ below remain the source provenance; the pointer is a local patch.
 - Reused: the skill folders `gws-shared`, `gws-docs`, `gws-docs-write`,
   `gws-sheets`, `gws-sheets-read`, `gws-sheets-append`, `gws-slides`,
   `gws-forms`, `gws-drive-upload` and `gws-calendar-insert`, copied into
-  `plugins/work/skills/`. Each copy's `upstream.json` records the original
+  `plugins/work/skills/`. Its `upstream.json` records the original
   `SKILL.md`'s SHA-256.
 - Adaptations: all ten have the plugin-rule pointer. In `gws-shared`, the
   "Community & Feedback Etiquette" section is also removed, and a note after

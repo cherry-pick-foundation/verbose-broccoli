@@ -22,6 +22,7 @@
     "scripts/root-config-test.ts",
     "scripts/ruff-test.ts",
     "scripts/secrets-refresh-test.ts",
+    "scripts/skills-links-test.ts",
     "scripts/turbo-cache-test.ts",
     "scripts/wiki-raw-import-test.ts",
     "scripts/workflow-graph-test.ts",
