@@ -63,3 +63,18 @@ verify-2: Tasks: 46 successful, 46 total      (exit 0)
 Close the bug once the branch is merged into `develop` and the registered
 server runs the merged code, with a native Claude Code call as the last
 confirmation. Open a separate, evidence-backed issue if Codex still refuses.
+
+## Follow-through (2026-10-06, appended; earlier text unchanged)
+
+- The source repair merged into `develop` at
+  `677216dbec51742164c8c915431a0081fddfede0` (reviewed source `f55651b`,
+  review record `3b44646`); source and merged full verification each passed
+  46/46, exit 0.
+- Native acceptance receipts:
+  `~/.local/state/verbose-broccoli/workspaces/develop/jev-mcp-native-acceptance/ctx_18bbc79c6eb4`
+  and `.../ctx_ef419915b588`. A registered Claude Code call succeeded through
+  `typesafe/jev-1.13` on OpenRouter. Codex was refused before a provider,
+  model or usage could be observed, so Codex native acceptance is not claimed.
+- The Codex part has its own record, `../jev-mcp-codex-metadata/`, under the
+  same generic issue CHE-94. The limits above (no native Codex run before that
+  record, the deleted debug log, no independent review of this record) stand.
