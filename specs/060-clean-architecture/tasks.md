@@ -68,7 +68,7 @@ validate as before; the reference-library guard test still passes.
   Ledger 2026-10-06: done by the orchestrator from `develop` d9392f1 in `skills-inventory/` (47 skill links; both agents list `jev-mcp` and `reference-library`; inside `develop` Claude Code reports `reference-library` at both user and project scope, which S2a removes).
 - [x] T009 [US2] Recheck that no open feature branch changes `plugins/work/plugin.json`, `plugins/work/mcp.json`, `plugins/work/skills/jev` or `plugins/work/AGENTS.md` (plan Holds, "H2 exception"); stop and report if one does (FR-016).
   Ledger 2026-10-06: no open branch changes them (`skills-inventory/h2-exception-check-*.txt`); repeat when S2b starts.
-- [ ] T010 [US2] With the develop orchestrator, run the existing `npm run plugins:clean-codex` and delete the ignored `.mcp.json` in each prepared checkout (develop, feature-clean-architecture, document-pdf-fidelity, evp-oewn-senses, exam-calendar, korean-web-wiki, weekly-tool-update; the primary checkout had no generated block on 2026-10-06, recheck it) while the command still exists in each, and record the evidence (FR-005). In this worktree it runs before T011.
+- [x] T010 [US2] With the develop orchestrator, run the existing `npm run plugins:clean-codex` and delete the ignored `.mcp.json` in each prepared checkout (develop, feature-clean-architecture, document-pdf-fidelity, evp-oewn-senses, exam-calendar, korean-web-wiki, weekly-tool-update; the primary checkout had no generated block on 2026-10-06, recheck it) while the command still exists in each, and record the evidence (FR-005). In this worktree it runs before T011.
   Ledger 2026-10-06: this worktree is cleared (Codex block removed with `npm run plugins:clean-codex`, `.mcp.json` deleted, copies in `slices/s2a/`); develop runs the cleanup in the other checkouts and confirms before granting the S2a finish slot. At 22:02 KST develop had cleared develop and the five older prepared checkouts (receipts kept); one newer checkout for the gate fixes waits for its owner.
 - [x] T011 [US2] Delete the plugin packaging: `plugins/*/plugin.json`, `plugins/code/mcp.json`, `plugins/work/mcp.json`, `plugins/code/package.json`, `scripts/plugin-clients.ts`, `scripts/plugin-skills-test.ts`, `scripts/plugins-validate-test.ts`, `scripts/vendor/agent-plugins/`, `tools/check-jsonschema/`, `docs/reference/plugins.md`, `doc_sources.plugin_table` and its tests in `scripts/doc_sources_test.py`; remove their `package.json` scripts, `turbo.json` tasks, the `scripts/doc-regions.toml` target and the `check-jsonschema` lines of `scripts/toolchain.sh` and `.config/mise.toml` (setup and doctor), and the `public-api:plugins/code` entry of `.config/dependency-cruiser.json` that reads the deleted manifest (FR-005). Depends on T009, T010.
 - [x] T012 [US2] Rewrite `scripts/reference-library-test.ts` so it no longer reads `plugins/work/mcp.json`, keeping its checks of the connector pin and lock in `plugins/work/package.json`, of the blocked tools in the pinned connector, and of the deny rules in `.claude/settings.json` (FR-004). Depends on T011.
@@ -76,7 +76,7 @@ validate as before; the reference-library guard test still passes.
 - [x] T014 [US2] Update the documents for the removal: `docs/architecture.md` (remove the generator text of "Live checkout discovery" and "Optional copied client packages"; keep the skills table), `README.md` (installing elsewhere with `skills` and `add-mcp`), `docs/reference/commands.md` (regenerate), and `scripts/clean-architecture-test.ts` and other tests that name removed rules or files (FR-003, FR-005).
 - [x] T015 [US2] Run quickstart scenario 2 (FR-003 to FR-005). Depends on T010 to T014.
   Ledger 2026-10-06: T011 to T015 implemented by Claude Code Sonnet 5.5 high (Jev probability 0.33, confidence 0.25) in e3324d1, 5165be4, e02e17b, 9252dfc, cae6ca6 and 9f57051. The duplicate `plugins/work/skills/jev` was deleted here instead of in T020 (it is in the H2 exception; the orchestrator approved it). Owned code: 11,351 to 10,721 source lines and 21,030 to 18,904 test lines. Python 3.14 validator runs passed and failed as expected; quickstart scenario 2 passed. Evidence: `slices/s2a/ctx_fb4a3194057a/` in the feature's state folder.
-- [ ] T016 [US2] **Finish** slice S2a. Depends on T015.
+- [x] T016 [US2] **Finish** slice S2a. Depends on T015.
   Note: removing the plugin-discovery commit hook changes the shared Git hooks, so `npm run verify` stops only at the doctor's Lefthook check until develop installs the hooks from the develop worktree at the finish slot, as in specs/056-guarded-mise-trust T005; the other 43 checks pass. Full checks in this worktree wait for a slot from develop.
 
 ## Phase 3: Slice S2b — skills moved into areas (User Story 2, P1)
@@ -203,3 +203,15 @@ gets a split review before its develop merge review (root `AGENTS.md`).
 - 2026-10-06: T006 finished into develop at 8988dbd, review record f2be377
   for 122daa3. Guarded finish and merged develop each passed 46/46 checks;
   merged run 3KJzXQqB2AxyiiWRCJ4AxGrETUo. CHE-93 remains open; S2a is next.
+
+- 2026-10-07: S2a finished into develop at 6929592, review record d22d90b
+  for the built-in-reviewed 07ed1d5/tree 19a2f3f. T010 cleanup is confirmed
+  in all prepared checkouts; reviewed Lefthook hooks are installed. Source
+  retry, mandatory finish and merged develop each passed 45/45 tasks; merged
+  summary 3KKaBgNUHEnOrjbz1CX1Cqzg4fP. The first source command
+  passed its tasks but failed after an empty ref change; its logs are kept.
+  The built-in review's ungranted full attempt was sandbox-blocked, not a
+  passing full run. Authoritative receipts: `$XDG_STATE_HOME/verbose-broccoli/
+  workspaces/develop/clean-architecture-s2a/attempt-20261006t164714z/`.
+  CHE-93 stays open for S2b and later slices; S1's historical built-in
+  follow-through remains with the architecture owner.
