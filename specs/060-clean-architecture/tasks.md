@@ -189,3 +189,8 @@ gets a split review before its develop merge review (root `AGENTS.md`).
   approved after one fix: the quickstart's before-inventory moves from `/tmp`
   to the feature's state folder. The user added the Spec Kit 1.1.0 step
   (U-2026-10-06l) as slice S2c, renumbering later tasks.
+- 2026-10-06 about 20:45 KST: a fresh Codex confirmation (gpt-6.1-sol
+  medium) found two more quickstart problems (the after-S2b block relied on a
+  variable from an earlier shell; a relative `XDG_STATE_HOME` was accepted);
+  both fixed as it recommended. Both reviewers' Jev review calls were refused
+  by the privacy gate; they finished with their own assessment, as allowed.

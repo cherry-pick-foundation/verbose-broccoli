@@ -8,10 +8,14 @@ and run one `npm run verify` at a time.
 ## 1. Skills are the same set, once each (S2a and S2b; SC-001, FR-002, FR-003)
 
 Before S2a, on `develop`, keep the list in the feature's state folder,
-because it must survive until S2b:
+because it must survive until S2b. The first three lines find that folder,
+ignoring a relative `XDG_STATE_HOME` as the XDG specification requires; they
+are repeated after S2b because that runs in a later shell:
 
 ```sh
-evidence="${XDG_STATE_HOME:-$HOME/.local/state}/verbose-broccoli/workspaces/feature-clean-architecture/skills-inventory"
+state=${XDG_STATE_HOME:-}
+case "$state" in /*) ;; *) state="$HOME/.local/state" ;; esac
+evidence="$state/verbose-broccoli/workspaces/feature-clean-architecture/skills-inventory"
 mkdir -p "$evidence"
 ls .agents/skills | sort > "$evidence/skills-before.txt"
 ```
@@ -19,6 +23,9 @@ ls .agents/skills | sort > "$evidence/skills-before.txt"
 After S2b:
 
 ```sh
+state=${XDG_STATE_HOME:-}
+case "$state" in /*) ;; *) state="$HOME/.local/state" ;; esac
+evidence="$state/verbose-broccoli/workspaces/feature-clean-architecture/skills-inventory"
 ls .agents/skills | sort | diff "$evidence/skills-before.txt" -
 for skill in skills/*/*/ tools/ponytail/skills/*/ plugins/work/skills/*/; do
   uv run --project tools/skills-ref --frozen --offline --no-sync skills-ref validate "$skill"
@@ -98,7 +105,9 @@ contract](contracts/judgment.md)).
 
 ```sh
 pgrep -af "turbo run" || systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7 npm run verify
-python3 "$XDG_STATE_HOME/verbose-broccoli/workspaces/feature-clean-architecture/code-size/measure.py"
+state=${XDG_STATE_HOME:-}
+case "$state" in /*) ;; *) state="$HOME/.local/state" ;; esac
+python3 "$state/verbose-broccoli/workspaces/feature-clean-architecture/code-size/measure.py"
 ```
 
 Expected: `VERIFIED`; the measured owned-code change is reported to the user
