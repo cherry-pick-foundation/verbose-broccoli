@@ -52,7 +52,7 @@ verify:     Tasks: 46 successful, 46 total (exit 0)
   from source, not from a captured live request.
 - Accepted values are discarded by the existing `meta.clear()`; the test
   checks a registered-looking value does not reach the upstream.
-- Unretained history: my first run of the new test failed on a boolean
+- Retained failed attempt: my first run of the new test failed on a boolean
   progress case the SDK client coerces; that log is in `attempt-1-superseded/`.
 
 ## Recommendation

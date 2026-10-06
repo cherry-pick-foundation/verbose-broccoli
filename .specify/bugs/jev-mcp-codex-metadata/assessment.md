@@ -111,5 +111,7 @@ wider than the evidence supports; Codex sends unprefixed names.
 
 ## Open Questions
 
-- [NEEDS CLARIFICATION: native Codex acceptance after the repair; root decides
-  when and whether to spend a paid call.]
+- Pending implementation step: native Codex acceptance after the repair is
+  integrated. Root already has normal development-credit authority and will
+  make one public native Codex confirmation call then; no new user permission
+  is required.

@@ -76,5 +76,8 @@ confirmation. Open a separate, evidence-backed issue if Codex still refuses.
   `typesafe/jev-1.13` on OpenRouter. Codex was refused before a provider,
   model or usage could be observed, so Codex native acceptance is not claimed.
 - The Codex part has its own record, `../jev-mcp-codex-metadata/`, under the
-  same generic issue CHE-94. The limits above (no native Codex run before that
-  record, the deleted debug log, no independent review of this record) stand.
+  same generic issue CHE-94.
+- Limits at the time of the original record: no native-client run, and no
+  independent review. The successful native Claude Code receipt above now
+  covers the native Claude check. The native Codex confirmation is still
+  pending, and Codex native acceptance is not claimed.

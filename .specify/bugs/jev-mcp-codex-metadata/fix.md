@@ -67,7 +67,8 @@ All commands ran under `systemd-run --user --scope -q -p CPUWeight=20 nice -n
   kept (`ruff-check-attempt1.log`, `ruff-check-attempt2.log`).
 - `npm run workflow` before and after; policy graph exit 0. The impact graph
   does not support Python files and returned an error (kept).
-- No full `npm run verify` yet: no slot has been granted.
+- Full verification: `npm run verify` at `8424490`, base `677216d` → exit 0,
+  same-run summary 46 tasks, every task exit code 0 (details in `./test.md`).
 - No model call, no private registry read; fixtures are synthetic.
 
 ## Deviations from Assessment
