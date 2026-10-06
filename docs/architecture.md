@@ -489,17 +489,17 @@ and run `systemctl --user daemon-reload`. If the Caddy pin changes, change the
 version in `reference-library-gateway.service` too; `npm run
 test:reference-library` checks that they agree.
 
-The `zotero-native-mcp` 1.0.1 connector is the `reference-library` server,
-registered once per agent in the user's own settings and pointed at the
-socket's port. `plugins/work/package.json` and its lock pin the connector
-(installed by `npm ci --ignore-scripts --prefix plugins/work`), and
-`npm run test:reference-library` checks the pin and lock. Its delete-items,
-delete-collection and empty-trash tools are blocked in each client's own
-settings: Claude Code's permission deny rules (`.claude/settings.json` and the
-user's settings) and Codex's `disabled_tools` in the user's
-`~/.codex/config.toml`, whose `reference-library` entry runs a separate
-install of the same pinned version under `~/.local/share/mcp-servers/zotero/1.0.1`.
-The test also checks that each blocked name is a tool of the pinned connector
+The `zotero-native-mcp` 1.0.1 connector is the `reference-library` server.
+Both agents' registrations in the user's own settings run a separate install
+of that version under `~/.local/share/mcp-servers/zotero/1.0.1`, pointed at
+the socket's port. `plugins/work/package.json` and its lock pin the same
+version in the repository (installed by
+`npm ci --ignore-scripts --prefix plugins/work`) so that
+`npm run test:reference-library` can check the pin, the lock and the tool
+names. Its delete-items, delete-collection and empty-trash tools are blocked
+in each client's own settings: Claude Code's permission deny rules
+(`.claude/settings.json` and the user's settings) and Codex's
+`disabled_tools` in the user's `~/.codex/config.toml`. The test also checks that each blocked name is a tool of the pinned connector
 and that the repository's deny rules list it. See
 [Sharing and distribution](#sharing-and-distribution) for how servers reach
 agents.

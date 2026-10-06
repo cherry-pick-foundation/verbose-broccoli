@@ -7,8 +7,9 @@ as middleware. Behind it runs the unmodified npm package
 Its route is OpenRouter and its pinned model is `typesafe/jev-1.13`.
 There is no provider fallback or optional ungated mode.
 
-The upstream skill is named `jev`. Code and Work carry byte-identical portable
-copies. Model-choice evidence must still contain no student data, other
+The upstream skill is named `jev`. The repository keeps one copy, in the code
+area's skills, and agents working in any area find it through
+`.agents/skills/jev`. Model-choice evidence must still contain no student data, other
 personal records or credentials. Education work belongs to authorized Claude
 Code or Codex sessions on the user's own accounts, with model training disabled.
 The gate covers the upstream judgment call, not what an agent itself reads.
