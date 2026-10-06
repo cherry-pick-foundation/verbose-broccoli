@@ -1,8 +1,9 @@
 """One tools-only proxy with mandatory per-call privacy middleware.
 
-Accept SDK integer progress counters and fixed logging levels, discard all
-frontend metadata, and reject string counters/application metadata. The backend
-SDK stamps its own counters/connection fields; no caller metadata is relayed.
+Accept SDK integer progress counters, fixed logging levels and the vendor-
+prefixed metadata of known clients, discard all frontend metadata, and reject
+string counters/other application metadata. The backend SDK stamps its own
+counters/connection fields; no caller metadata is relayed.
 """
 
 from contextlib import redirect_stderr
@@ -45,6 +46,9 @@ _CONNECTION_META = {
     CLIENT_INFO_META_KEY,
     PROTOCOL_VERSION_META_KEY,
 }
+# Claude Code's `_meta` namespaces, such as `claudecode/toolUseId` and
+# `anthropic/requestId`.
+_CLIENT_META_PREFIXES = ("claudecode/", "anthropic/")
 
 
 async def _discard(*unused_args):
@@ -71,8 +75,7 @@ def _pattern(schema, path):
 class PrivacyGate(Middleware):
     """Mask, validate and restore each call, failing closed with fixed text."""
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
         self.schemas = None
 
     async def on_call_tool(self, context, call_next):
@@ -87,7 +90,11 @@ class PrivacyGate(Middleware):
             if (
                 meta
                 and (
-                    set(meta)
+                    {
+                        key
+                        for key in meta
+                        if not key.startswith(_CLIENT_META_PREFIXES)
+                    }
                     - _CONNECTION_META
                     - {"progressToken", LOG_LEVEL_META_KEY}
                     or (
@@ -112,13 +119,12 @@ class PrivacyGate(Middleware):
                 meta.clear()
             with Masker(roster.load_registry()) as call:
                 if self.schemas is None:
-                    async with self.client:
-                        tools = await self.client.list_tools()
-                    if any(tool.output_schema is not None for tool in tools):
+                    # Through the proxy, whose backend clients share one stdio
+                    # transport; a gate-owned client there is refused while
+                    # concurrent calls are active. on_list_tools fills it.
+                    await ctx.fastmcp.list_tools()
+                    if self.schemas is None:
                         raise GateError()
-                    self.schemas = {
-                        tool.name: tool.input_schema for tool in tools
-                    }
                 schema = self.schemas[context.message.name]
                 validate(context.message.arguments or {}, schema)
                 masked = call.mask(
@@ -243,7 +249,7 @@ def build_proxy(*, key, command=None, args=None, log_file=None, timeout=60):
         mask_error_details=True,
         tasks=False,
     )
-    proxy.add_middleware(PrivacyGate(client))
+    proxy.add_middleware(PrivacyGate())
     return proxy
 
 
