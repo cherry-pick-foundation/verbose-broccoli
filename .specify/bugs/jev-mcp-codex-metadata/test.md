@@ -59,3 +59,18 @@ verify:     Tasks: 46 successful, 46 total (exit 0)
 
 Close the code part after the merge into `develop` and an other-provider
 review. Native Codex acceptance stays open until root decides on a native call.
+
+## Native follow-through (2026-10-07)
+
+The reviewed source merged into `develop` at `321dfc4`, with review record
+`4d87b91` over `7774c5b`. The mandatory finish and merged repository checks
+each passed all 46 tasks with exit 0. A fresh native Codex session then made
+one registered `jev_noul` call with `37 is a prime number.` It returned
+`isError: false`, status `ok`, provider `openrouter`, model
+`typesafe/jev-1.13`, and usage of 366 input and 25 output tokens.
+
+The exact input, tool result and report are retained at
+`~/.local/state/verbose-broccoli/workspaces/develop/jev-mcp-codex-native/ctx_74f89122389a/`.
+This confirms this fresh client's public call. Other running clients and real
+private-data behavior were not tested. Earlier source-only limits above
+describe the pre-merge checkpoint; no earlier receipt was replaced.
