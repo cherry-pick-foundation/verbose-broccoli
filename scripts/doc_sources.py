@@ -105,52 +105,6 @@ def command_help(*sources: str) -> str:
     )
 
 
-def _link(label: str, path: str) -> str:
-    return f"[{_escape(label)}](../../{path})"
-
-
-def plugin_table(*sources: str) -> str:
-    """Return plugin declarations and MCP server names from their manifests."""
-    root = Path.cwd()
-    plugins = {}
-    servers = {}
-    for source in sources:
-        path = Path(source)
-        value = json.loads((root / path).read_text(encoding="utf-8"))
-        if path.name == "plugin.json":
-            plugins[path.parent.as_posix()] = value
-        elif path.name == "mcp.json":
-            servers[path.parent.as_posix()] = value["mcpServers"]
-        else:
-            raise ValueError(f"Unsupported manifest: {source}")
-
-    sections = []
-    ordered = sorted(plugins.items(), key=lambda entry: entry[1]["name"])
-    for package, plugin in ordered:
-        names = sorted(servers.get(package, {}))
-        rows = [
-            ["Field", "Declared value"],
-            ["Description", _escape(plugin.get("description") or "")],
-            ["Version", _escape(plugin.get("version") or "")],
-            ["Package", _link(package, f"{package}/")],
-            ["Manifest", _link("plugin.json", f"{package}/plugin.json")],
-            [
-                "MCP declaration",
-                _link("mcp.json", f"{package}/mcp.json")
-                if package in servers
-                else "Not declared",
-            ],
-            [
-                "MCP server names",
-                _escape(", ".join(names) if names else "None declared"),
-            ],
-        ]
-        sections.append(
-            f"## {_escape(plugin['name'])}\n\n{_table(rows).rstrip()}"
-        )
-    return "\n\n".join(sections) + "\n"
-
-
 def skill_table(pattern: str) -> str:
     """Return a Markdown table of skills grouped by plugin package."""
     root = Path.cwd()

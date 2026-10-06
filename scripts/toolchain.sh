@@ -20,8 +20,7 @@ export LC_ALL=C
   npm --version
   uv --version
   readlink -f "$(uv python find 3.14)" .venv/bin/python \
-    tools/ruff/.venv/bin/python tools/shellcheck/.venv/bin/python \
-    tools/check-jsonschema/.venv/bin/python
+    tools/ruff/.venv/bin/python tools/shellcheck/.venv/bin/python
   python3 --version
   git --version
   git flow version
@@ -33,8 +32,7 @@ export LC_ALL=C
     find "${tree}" -printf '%m %y %p %l\n' | sort
     find "${tree}" -type f -print0 | sort -z | xargs -0 sha256sum
   done
-  for venv in .venv tools/ruff/.venv tools/shellcheck/.venv \
-    tools/check-jsonschema/.venv; do
+  for venv in .venv tools/ruff/.venv tools/shellcheck/.venv; do
     find "${venv}" -name __pycache__ -prune -o -printf '%m %y %p %l\n' | sort
     grep -v '^prompt = ' "${venv}/pyvenv.cfg"
     find "${venv}/bin" "${venv}/lib" -type f ! -path '*/__pycache__/*' \

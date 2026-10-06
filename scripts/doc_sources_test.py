@@ -5,7 +5,6 @@ from types import SimpleNamespace
 
 import doc_sources
 from doc_sources import command_help
-from doc_sources import plugin_table
 from doc_sources import skill_table
 from doc_sources import task_table
 import pytest
@@ -120,47 +119,3 @@ def test_command_help_uses_normalized_environment_and_sorted_sections(
             "LC_ALL": "C",
             "TZ": "UTC",
         }
-
-
-def test_plugin_table_reads_manifests_but_only_publishes_server_names(
-    tmp_path, monkeypatch
-):
-    plugins = tmp_path / "plugins"
-    for package, name, description in (
-        ("chat", "zeta", "Text | *literal*\nsecond line"),
-        ("code", "alpha", "Development plugin"),
-    ):
-        directory = plugins / package
-        directory.mkdir(parents=True)
-        (directory / "plugin.json").write_text(
-            json.dumps(
-                {"name": name, "version": "0.1.0", "description": description}
-            ),
-            encoding="utf-8",
-        )
-    (plugins / "code" / "mcp.json").write_text(
-        json.dumps(
-            {
-                "mcpServers": {
-                    "server-z": {"command": "synthetic-private-command"},
-                    "server-a": {"env": {"SECRET": "synthetic-secret"}},
-                }
-            }
-        ),
-        encoding="utf-8",
-    )
-    monkeypatch.chdir(tmp_path)
-
-    output = plugin_table(
-        "plugins/chat/plugin.json",
-        "plugins/code/plugin.json",
-        "plugins/code/mcp.json",
-    )
-
-    assert output.index("## alpha") < output.index("## zeta")
-    assert "Text \\| \\*literal\\*<br>second line" in output
-    assert "server-a, server-z" in output
-    assert "Not declared" in output
-    assert "None declared" in output
-    assert "synthetic-private-command" not in output
-    assert "synthetic-secret" not in output

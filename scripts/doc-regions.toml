@@ -7,7 +7,6 @@ targets = [
   "docs/architecture.md",
   "docs/jev-mcp.md",
   "docs/reference/commands.md",
-  "docs/reference/plugins.md",
 ]
 report_only = ["AGENTS.md", "plugins/*/AGENTS.md", ".specify/memory/constitution.md"]
 generators = "doc_sources"

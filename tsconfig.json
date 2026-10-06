@@ -18,8 +18,6 @@
     "scripts/gts-test.ts",
     "scripts/lint-names-test.ts",
     "scripts/mise-doctor-test.ts",
-    "scripts/plugin-skills-test.ts",
-    "scripts/plugins-validate-test.ts",
     "scripts/reference-library-test.ts",
     "scripts/root-config-test.ts",
     "scripts/ruff-test.ts",

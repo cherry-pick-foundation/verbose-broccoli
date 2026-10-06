@@ -17,14 +17,6 @@ below remain the source provenance; the pointer is a local patch.
 - Copyright (c) 2025 Wondel.ai sp. z o.o.
   [MIT license](../plugins/code/skills/clean-code/LICENSE).
 
-## Agent Plugins
-
-The unchanged Agent Plugins 1.0 JSON Schemas are vendored for offline validation
-with the already approved Ajv dependency. Sources:
-<https://agent-plugins.org/schemas/1.0.0/plugin.schema.json> and
-<https://agent-plugins.org/schemas/1.0.0/mcp.schema.json>. The unchanged
-[Apache 2.0 license](../scripts/vendor/agent-plugins/LICENSE) is included.
-
 ## biomejs/biome — agent guidelines
 
 - Source:
