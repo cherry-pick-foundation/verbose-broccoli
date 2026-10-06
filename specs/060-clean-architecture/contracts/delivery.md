@@ -10,7 +10,7 @@ folder until hold H2 is released ([plan](../plan.md#holds)).
 | Item | Rule | Source |
 | --- | --- | --- |
 | Folder | `skills/<area>/<name>/SKILL.md`, areas `code`, `work`, `chat`; `name` in the front matter equals the folder name | U-2026-10-06h, R-UP-01 |
-| Validity | `skills-ref validate` passes for every skill in verification, including those under `tools/ponytail/skills/` and held `plugins/work/skills/` | R-UP-01 |
+| Validity | `agentskills validate` (from the pinned `skills-ref` package) passes for every skill in verification, including held `plugins/work/skills/`; the unchanged upstream Ponytail bundle is left out because its skills carry an `argument-hint` key the validator rejects | R-UP-01, [security review](../security/skills-ref-review.md) |
 | Uniqueness | one folder per name in the whole repository | FR-002 |
 | Area rules | `skills/<area>/AGENTS.md`; each skill's first instruction points to it as `../AGENTS.md` | R-REPO-12, `.claude/rules/claude-code.md` |
 | Discovery | `.agents/skills/<name>` is a committed relative link to `../../skills/<area>/<name>`; Codex scans `.agents/skills`; Claude Code reads `.claude/skills`, a committed link to `../.agents/skills` | R-UP-02 (project paths per agent), `docs/architecture.md` "Live checkout discovery" |

@@ -27,12 +27,13 @@ state=${XDG_STATE_HOME:-}
 case "$state" in /*) ;; *) state="$HOME/.local/state" ;; esac
 evidence="$state/verbose-broccoli/workspaces/feature-clean-architecture/skills-inventory"
 ls .agents/skills | sort | diff "$evidence/skills-before.txt" -
-for skill in skills/*/*/ tools/ponytail/skills/*/ plugins/work/skills/*/; do
-  uv run --project tools/skills-ref --frozen --offline --no-sync skills-ref validate "$skill"
+for skill in skills/*/*/ plugins/work/skills/*/; do
+  uv run --project tools/skills-ref --frozen --offline --no-sync agentskills validate "$skill"
 done
 ```
 
-Expected: no difference in names; every skill validates; the skills link
+Expected: no difference in names; every skill validates (Ponytail's
+unchanged upstream skills are left out, see plan Decision 3); the skills link
 check in `npm run verify` passes. Then open a fresh Claude Code session and a
 fresh Codex session in the worktree and ask each for its skill list: both
 show the same names, each once, with no `code:` or `work:` plugin copies.

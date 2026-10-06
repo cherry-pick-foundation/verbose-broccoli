@@ -98,9 +98,13 @@ Each decision cites a research row or a dated user decision.
    merges, each prepared worktree runs the generator's existing cleanup
    (`npm run plugins:clean-codex`) and deletes its ignored `.mcp.json`; the
    develop orchestrator coordinates the other worktrees (FR-005).
-3. **Skill validation by the upstream validator.** `skills-ref validate`
-   (R-UP-01) checks every `SKILL.md`, after its read-only security review
-   (FR-018); a test of about 60 lines checks only what it cannot: each link
+3. **Skill validation by the upstream validator.** The `skills-ref` package's
+   `agentskills validate` command (R-UP-01) checks every `SKILL.md`, after its
+   read-only security review (FR-018; [review](security/skills-ref-review.md):
+   adopt with conditions, pinned by hash, development use only). The
+   unchanged upstream Ponytail bundle is left out, because its skills carry an
+   `argument-hint` key the validator rejects and the bundle stays unchanged
+   (U-2026-10-06k); a test of about 60 lines checks only what it cannot: each link
    in `.agents/skills` resolves to exactly one skill folder and no name
    repeats (FR-002). This replaces the 2,017-line plugin discovery test.
 4. **Component package rings.** Inside `packages/<name>/src/<import_name>/`
