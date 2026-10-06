@@ -224,9 +224,10 @@ student-data request that would bypass the gate is refused.
 **Structure**
 
 - **FR-006**: Each capability with code MUST live in one component package
-  containing a domain without input or output, an application layer with use
-  cases and the ports they need, adapters, and one composition root
-  (U-2026-10-06c, R-CA-01, R-CA-02, R-CA-04).
+  organized in rings: a domain without input or output, an application layer
+  with use cases and the ports they need, adapters, and one composition root;
+  a ring with no code is not created (U-2026-10-06c, R-CA-01, R-CA-02,
+  R-CA-04, R-ARCH-05).
 - **FR-007**: Verification MUST fail when inner code depends on outer code,
   when domain code performs input or output, or when one component imports
   another component's non-public modules (R-CA-01, R-CA-03, R-REPO-03).
