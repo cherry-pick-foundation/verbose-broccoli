@@ -1,9 +1,9 @@
 """One tools-only proxy with mandatory per-call privacy middleware.
 
-Accept SDK integer progress counters, fixed logging levels and the vendor-
-prefixed metadata of known clients, discard all frontend metadata, and reject
-string counters/other application metadata. The backend SDK stamps its own
-counters/connection fields; no caller metadata is relayed.
+Accept SDK integer progress counters, fixed logging levels, Claude Code's
+vendor-prefixed metadata and Codex's exact keys, discard all frontend
+metadata, and reject string counters/other application metadata. The backend
+SDK stamps its own counters/connection fields; no caller metadata is relayed.
 """
 
 from contextlib import redirect_stderr
@@ -49,6 +49,18 @@ _CONNECTION_META = {
 # Claude Code's `_meta` namespaces, such as `claudecode/toolUseId` and
 # `anthropic/requestId`.
 _CLIENT_META_PREFIXES = ("claudecode/", "anthropic/")
+# Codex 0.160.0 uses these exact tool-call keys; the window, item, turn and
+# bridge fields are optional. Its sandbox-state key goes only to servers that
+# advertise it, which this gate never does.
+_CODEX_META = {
+    "callId",
+    "threadId",
+    "sessionId",
+    "windowId",
+    "itemId",
+    "x-codex-turn-metadata",
+    "codex_bridge_mcp_call_id",
+}
 
 
 async def _discard(*unused_args):
@@ -96,6 +108,7 @@ class PrivacyGate(Middleware):
                         if not key.startswith(_CLIENT_META_PREFIXES)
                     }
                     - _CONNECTION_META
+                    - _CODEX_META
                     - {"progressToken", LOG_LEVEL_META_KEY}
                     or (
                         LOG_LEVEL_META_KEY in meta
