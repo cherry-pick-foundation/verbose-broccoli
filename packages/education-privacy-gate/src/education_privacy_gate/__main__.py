@@ -46,7 +46,8 @@ _CONNECTION_META = {
     CLIENT_INFO_META_KEY,
     PROTOCOL_VERSION_META_KEY,
 }
-# Claude Code's `_meta` keys (`claudecode/toolUseId`, `anthropic/requestId`, ...).
+# Claude Code's `_meta` namespaces, such as `claudecode/toolUseId` and
+# `anthropic/requestId`.
 _CLIENT_META_PREFIXES = ("claudecode/", "anthropic/")
 
 
