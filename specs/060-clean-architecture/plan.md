@@ -290,13 +290,17 @@ is never the implementer's provider.
 | S1 Rules | Planning records; constitution 3.0.0; root `AGENTS.md` opening and packaging rule; the opening of `docs/architecture.md` | documents only | this orchestrator (constitution work stays on Claude or Codex) |
 | S2a Packaging removed | Clean each prepared checkout's generated configuration first; delete manifests, generator, its tests, the schema check and the plugin reference; adopt `skills-ref` with its review; the skills link test; keep the reference-library guard test without `mcp.json`; update tasks, mise setup and doctor, Cog regions and docs. Skills stay in place. | about −2,600 | chosen with Jev at dispatch |
 | S2b Skills moved | Move code and chat skills and Ponytail; area `AGENTS.md` files; retarget links; delete the duplicate `jev`; update paths in configuration, tests and documents | about −50 (moves count as renames) | chosen with Jev at dispatch |
+| S2c Spec Kit 1.1.0 | Upgrade Spec Kit from 1.0.1 project files and the 1.0.12 command line to 1.1.0 with its own commands; move the area-rules pointer into a preset with prepend overrides if Spec Kit supports it; security review of the upstream change (U-2026-10-06l) | measured then; small | chosen with Jev at dispatch |
 | S3 Checks | Rules D1–D6 in both checkers with breaking fixtures and a test that each fails; fixtures also settle whether `acyclic_siblings` sees cycles between root packages and how by-name workspace imports resolve | about +180 | chosen with Jev at dispatch |
 | S4 credit-offers | Rings and bootstrap; settings through `platformdirs`; tests split by scope with unchanged assertions | about +40 | chosen with Jev at dispatch |
 | S5 doc-regions | Rings and bootstrap; published modules unchanged | about +30 | chosen with Jev at dispatch |
 | S6 workflow | `packages/workflow` from `scripts/workflow*.ts`; imports the clean-code CLI serializer by package name | about +60 | chosen with Jev at dispatch |
 | H1–H4 | After each release, one slice per hold, planned then | measured then | chosen then |
 
-S2 is split because one change of both deletions and moves would pass 1,000
+S2c follows S2b because the user asked for the Spec Kit update right after
+the skill move (U-2026-10-06l); it writes through the new links, which the
+skills link test checks. S2 is split because one change of both deletions
+and moves would pass 1,000
 changed lines and mix two kinds of change (R-GG-01; root `AGENTS.md` split
 review). S3 lands before S4–S6 so every move is checked. S2's checks
 are the quickstart's first two scenarios; a fresh Claude Code and Codex

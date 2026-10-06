@@ -91,52 +91,68 @@ sessions list the same skill and server names as before S2a, once each
 - [ ] T023 [US2] Run quickstart scenario 1 and record the after-inventory from fresh Claude Code and Codex sessions; report any installed plugin copies in user folders to the user without removing them (SC-001, spec Edge Cases). Depends on T020 to T022.
 - [ ] T024 [US2] **Finish** slice S2b. Depends on T023.
 
-## Phase 4: Slice S3 — dependency checks (User Story 3, P2)
+## Phase 4: Slice S2c — Spec Kit 1.1.0 (User Story 2, P1)
+
+**Goal**: Spec Kit's command line and project files are at 1.1.0, installed
+by Spec Kit's own commands through the `.agents/skills` links
+(U-2026-10-06l).
+
+**Independent test**: `specify` reports 1.1.0 for the integration and
+extensions; the skills link test and `skills-ref validate` pass; every
+`speckit-*` skill still points to its area rules.
+
+- [ ] T025 [US2] Read-only security review of the upstream change from Spec Kit 1.0.1 project files and the 1.0.12 command line to 1.1.0, including the agent-context extension 1.0.1 to 1.0.2, with evidence for every finding, in `specs/060-clean-architecture/security/spec-kit-1.1.0-review.md` (FR-018). The reviewer stays on Claude Code or Codex.
+- [ ] T026 [US2] Check whether a Spec Kit preset with prepend command overrides, beside the existing `linear-issue` preset in `.specify/presets/`, can carry the area-rules pointer for the 20 `speckit-*` skills; if it can, plan moving the pointer there so upgrades stop overwriting local edits (U-2026-10-06l).
+- [ ] T027 [US2] Ask the develop orchestrator how its weekly tool-update job will treat Spec Kit, so its first Spec Kit update does not collide with this slice.
+- [ ] T028 [US2] Pin `specify-cli` at v1.1.0 in `tools/spec-kit/pyproject.toml`, then upgrade with `specify integration upgrade` and the extension and preset commands, not hand edits; confirm the writes went through the links into `skills/code/` (the link test passes and every entry is still a link); apply T026's preset if it works; record that `taskstoissues` moves to a bundled GitHub extension upstream and change nothing for it, since this repository uses Linear. Depends on T025 to T027.
+- [ ] T029 [US2] **Finish** slice S2c. Depends on T028.
+
+## Phase 5: Slice S3 — dependency checks (User Story 3, P2)
 
 **Goal**: verification fails when a dependency rule breaks.
 
 **Independent test**: quickstart scenario 3; each of D1 to D6 fails on its
 fixture in one run (SC-004).
 
-- [ ] T025 [P] [US3] Extend `.config/dependency-cruiser.json` with the ring-direction rules for `domain`, `application`, `adapters`, `entrypoints` and `bootstrap`, the D6 group-matching rule, severity `error` on each; replace `no-package-to-plugin` with a rule that lets `packages/` import `skills/` only for the `workflow` to `clean-code` edge; drop ring names no code uses (FR-007; contracts/dependency-rules.md).
-- [ ] T026 [P] [US3] Extend the import-linter contracts in `pyproject.toml`: one `layers` contract over the moved components with optional layers, `protected` contracts for the input and output libraries (D2, D3), and one `protected` contract per Python package with its published modules listed beside it (D4), keeping `acyclic_siblings` (FR-007).
-- [ ] T027 [US3] Add one breaking fixture per rule and a test that runs each checker on it and expects failure, in `scripts/clean-architecture-test.ts` and a Python fixture test under `scripts/`; include fixtures that settle cross-root cycles for `acyclic_siblings` and how by-name workspace imports resolve (SC-004). Depends on T025, T026.
-- [ ] T028 [US3] **Finish** slice S3. Depends on T027.
+- [ ] T030 [P] [US3] Extend `.config/dependency-cruiser.json` with the ring-direction rules for `domain`, `application`, `adapters`, `entrypoints` and `bootstrap`, the D6 group-matching rule, severity `error` on each; replace `no-package-to-plugin` with a rule that lets `packages/` import `skills/` only for the `workflow` to `clean-code` edge; drop ring names no code uses (FR-007; contracts/dependency-rules.md).
+- [ ] T031 [P] [US3] Extend the import-linter contracts in `pyproject.toml`: one `layers` contract over the moved components with optional layers, `protected` contracts for the input and output libraries (D2, D3), and one `protected` contract per Python package with its published modules listed beside it (D4), keeping `acyclic_siblings` (FR-007).
+- [ ] T032 [US3] Add one breaking fixture per rule and a test that runs each checker on it and expects failure, in `scripts/clean-architecture-test.ts` and a Python fixture test under `scripts/`; include fixtures that settle cross-root cycles for `acyclic_siblings` and how by-name workspace imports resolve (SC-004). Depends on T030, T031.
+- [ ] T033 [US3] **Finish** slice S3. Depends on T032.
 
-## Phase 5: Slice S4 — credit-offers into rings (User Story 3, P2)
+## Phase 6: Slice S4 — credit-offers into rings (User Story 3, P2)
 
 **Independent test**: quickstart scenarios 4 and 5 for `credit-offers`
 (SC-003).
 
-- [ ] T029 [US3] Split `packages/credit-offers/src/credit_offers/__init__.py` into `domain/` (block boundaries, new-offer selection, answer validation), `application/` (the find-offers use case and its judge port), `adapters/` (tracker HTTP, gated MCP judge, desktop notifier), `entrypoints/cli.py` and `bootstrap.py` with overridable adapters; keep the `credit-offers` command and its output unchanged; read settings through `platformdirs`; add `packages/credit-offers/AGENTS.md` and `README.md` (FR-006, FR-008 to FR-011; plan Decisions 4, 5, 13).
-- [ ] T030 [US3] Move `packages/credit-offers/tests/test_credit_offers.py` into `tests/unit/`, `tests/integration/` and `tests/e2e/` with unchanged assertions and the judge faked at its port (FR-013, FR-023). Depends on T029.
-- [ ] T031 [US3] **Finish** slice S4. Depends on T030.
+- [ ] T034 [US3] Split `packages/credit-offers/src/credit_offers/__init__.py` into `domain/` (block boundaries, new-offer selection, answer validation), `application/` (the find-offers use case and its judge port), `adapters/` (tracker HTTP, gated MCP judge, desktop notifier), `entrypoints/cli.py` and `bootstrap.py` with overridable adapters; keep the `credit-offers` command and its output unchanged; read settings through `platformdirs`; add `packages/credit-offers/AGENTS.md` and `README.md` (FR-006, FR-008 to FR-011; plan Decisions 4, 5, 13).
+- [ ] T035 [US3] Move `packages/credit-offers/tests/test_credit_offers.py` into `tests/unit/`, `tests/integration/` and `tests/e2e/` with unchanged assertions and the judge faked at its port (FR-013, FR-023). Depends on T034.
+- [ ] T036 [US3] **Finish** slice S4. Depends on T035.
 
-## Phase 6: Slice S5 — doc-regions into rings (User Story 3, P2)
+## Phase 7: Slice S5 — doc-regions into rings (User Story 3, P2)
 
-- [ ] T032 [US3] Arrange `packages/doc-regions/src/doc_regions/` into rings and `bootstrap.py`, keeping the modules that `wiki-consistency` imports (`config.files`, `regions.scan`, `regions.check`, `regions.update`, `regions.shape`, `regions._split_lf_lines`, `requests.classify_requests`, `requests.verify_requests`, `requests.MAX_CLAIM_CHARS`, `units.split`) importable unchanged; add `packages/doc-regions/AGENTS.md` (pointing to the published list in `pyproject.toml`) and `README.md`. It reads no user settings, only the repository's `scripts/doc-regions.toml` (FR-006, FR-011, D4).
-- [ ] T033 [US3] Move `packages/doc-regions/tests/` into scope folders with unchanged assertions; `wiki-consistency`'s tests pass untouched (FR-013). Depends on T032.
-- [ ] T034 [US3] **Finish** slice S5. Depends on T033.
+- [ ] T037 [US3] Arrange `packages/doc-regions/src/doc_regions/` into rings and `bootstrap.py`, keeping the modules that `wiki-consistency` imports (`config.files`, `regions.scan`, `regions.check`, `regions.update`, `regions.shape`, `regions._split_lf_lines`, `requests.classify_requests`, `requests.verify_requests`, `requests.MAX_CLAIM_CHARS`, `units.split`) importable unchanged; add `packages/doc-regions/AGENTS.md` (pointing to the published list in `pyproject.toml`) and `README.md`. It reads no user settings, only the repository's `scripts/doc-regions.toml` (FR-006, FR-011, D4).
+- [ ] T038 [US3] Move `packages/doc-regions/tests/` into scope folders with unchanged assertions; `wiki-consistency`'s tests pass untouched (FR-013). Depends on T037.
+- [ ] T039 [US3] **Finish** slice S5. Depends on T038.
 
-## Phase 7: Slice S6 — workflow package (User Story 3, P2)
+## Phase 8: Slice S6 — workflow package (User Story 3, P2)
 
-- [ ] T035 [US3] Create `packages/workflow/` (`package.json`, `src/{domain,application,adapters,entrypoints}/`, `bootstrap.ts`, `AGENTS.md`, `README.md`) from `scripts/workflow*.ts` and `scripts/hash.ts`, keeping `npm run workflow` and `npm run verify` and their CLI contract unchanged; it reads no user settings (FR-006, FR-011; docs/architecture.md "CLI contract").
-- [ ] T036 [US3] Move the workflow tests and the CLI-contract snapshots with unchanged assertions; update `package.json`, `turbo.json` and `.config/dependency-cruiser.json` (FR-013). Depends on T035.
-- [ ] T037 [US3] **Finish** slice S6. Depends on T036.
+- [ ] T040 [US3] Create `packages/workflow/` (`package.json`, `src/{domain,application,adapters,entrypoints}/`, `bootstrap.ts`, `AGENTS.md`, `README.md`) from `scripts/workflow*.ts` and `scripts/hash.ts`, keeping `npm run workflow` and `npm run verify` and their CLI contract unchanged; it reads no user settings (FR-006, FR-011; docs/architecture.md "CLI contract").
+- [ ] T041 [US3] Move the workflow tests and the CLI-contract snapshots with unchanged assertions; update `package.json`, `turbo.json` and `.config/dependency-cruiser.json` (FR-013). Depends on T040.
+- [ ] T042 [US3] **Finish** slice S6. Depends on T041.
 
-## Phase 8: Held work (User Story 4 and the work area)
+## Phase 9: Held work (User Story 4 and the work area)
 
 Each task starts only after its hold is released (FR-016; plan Holds), with
 its own plan update and slice.
 
-- [ ] T038 [US4] H1: after the gate's metadata bug is fixed and `system-one-adapter` (or a Pydantic AI provider found first under the reuse order) passes its security review, add the second gated judgment server, the provider profile, the time-limit settings and the judgment port per [contracts/judgment.md](contracts/judgment.md); the user approves its registration in both agents (FR-019 to FR-022, FR-024, SC-007).
-- [ ] T039 [US3] H2: after `document-pdf-fidelity`, `exam-calendar`, `korean-web-wiki` and `lexical-semantics` merge and the session-scan trial is decided, move the work skills and `plugins/work/AGENTS.md` to `skills/work/`, decide where the pinned reference-library connector (`plugins/work/package.json` and lock) lives, and arrange `packages/wiki-consistency` into rings.
-- [ ] T040 [US3] H3: after `lexical-semantics` merges and the Jev Browser trial is decided, arrange or replace `packages/jev-ultrafast`.
-- [ ] T041 [US3] H4: after the chezmoi trial is decided, keep or replace `scripts/secrets-refresh.ts`.
+- [ ] T043 [US4] H1: after the gate's metadata bug is fixed and `system-one-adapter` (or a Pydantic AI provider found first under the reuse order) passes its security review, add the second gated judgment server, the provider profile, the time-limit settings and the judgment port per [contracts/judgment.md](contracts/judgment.md); the user approves its registration in both agents (FR-019 to FR-022, FR-024, SC-007).
+- [ ] T044 [US3] H2: after `document-pdf-fidelity`, `exam-calendar`, `korean-web-wiki` and `lexical-semantics` merge and the session-scan trial is decided, move the work skills and `plugins/work/AGENTS.md` to `skills/work/`, decide where the pinned reference-library connector (`plugins/work/package.json` and lock) lives, and arrange `packages/wiki-consistency` into rings.
+- [ ] T045 [US3] H3: after `lexical-semantics` merges and the Jev Browser trial is decided, arrange or replace `packages/jev-ultrafast`.
+- [ ] T046 [US3] H4: after the chezmoi trial is decided, keep or replace `scripts/secrets-refresh.ts`.
 
 ## Dependencies
 
-- S1 (T002 approval) comes first; S2a, S2b and S3 to S6 follow in order, each
+- S1 (T002 approval) comes first; S2a, S2b, S2c and S3 to S6 follow in order, each
   after the previous slice's finish, so each starts from verified `develop`.
 - T010 runs in every prepared checkout before S2a reaches `develop`.
 - S3 lands before S4 to S6 so every move is checked.
@@ -148,7 +164,8 @@ its own plan update and slice.
 - S1: T004 and T005 after the approval.
 - S2a: T007, T008 and T009 at once.
 - S2b: T018 and T019 beside T017.
-- S3: T025 and T026.
+- S2c: T025, T026 and T027 at once.
+- S3: T030 and T031.
 
 ## Implementation strategy
 
@@ -168,3 +185,7 @@ gets a split review before its develop merge review (root `AGENTS.md`).
   remove; the audit's 20 warnings concern constitution lines this slice did
   not change; Jev verified the 8 rule-text claims. Reviewer picked by Jev:
   Codex gpt-6.1-sol medium (probability 0.50, confidence 0.41).
+- 2026-10-06 about 20:25 KST: the S1 review (Codex gpt-6.1-sol medium)
+  approved after one fix: the quickstart's before-inventory moves from `/tmp`
+  to the feature's state folder. The user added the Spec Kit 1.1.0 step
+  (U-2026-10-06l) as slice S2c, renumbering later tasks.

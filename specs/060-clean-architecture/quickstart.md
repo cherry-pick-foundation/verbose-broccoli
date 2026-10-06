@@ -7,16 +7,19 @@ and run one `npm run verify` at a time.
 
 ## 1. Skills are the same set, once each (S2a and S2b; SC-001, FR-002, FR-003)
 
-Before S2a, on `develop`:
+Before S2a, on `develop`, keep the list in the feature's state folder,
+because it must survive until S2b:
 
 ```sh
-ls .agents/skills | sort > /tmp/skills-before.txt
+evidence="${XDG_STATE_HOME:-$HOME/.local/state}/verbose-broccoli/workspaces/feature-clean-architecture/skills-inventory"
+mkdir -p "$evidence"
+ls .agents/skills | sort > "$evidence/skills-before.txt"
 ```
 
 After S2b:
 
 ```sh
-ls .agents/skills | sort | diff /tmp/skills-before.txt -
+ls .agents/skills | sort | diff "$evidence/skills-before.txt" -
 for skill in skills/*/*/ tools/ponytail/skills/*/ plugins/work/skills/*/; do
   uv run --project tools/skills-ref --frozen --offline --no-sync skills-ref validate "$skill"
 done
