@@ -9,13 +9,14 @@
   record and the `ponytail` skill) and `ponytail-gain` (a display of upstream
   benchmark figures). The four retained skills add only the plugin-rule pointer.
 - Upstream's six JavaScript hook modules and `tests/hooks.test.js` are retained
-  under `plugins/code/hooks` and `plugins/code/tests`. The instruction loader
-  resolves the plugin-rule pointer to the installed package's absolute path
-  before injecting the skill text; the other modules and upstream tests
-  remain byte-for-byte unchanged.
-  The hook license is retained at `plugins/code/hooks/LICENSE`. The original
-  instruction loader reads `../skills/ponytail/SKILL.md` inside the same package.
-- `.agents/ponytail` links to `../plugins/code`, preserving existing hook
+  under `tools/ponytail/hooks` and `tools/ponytail/tests`. The instruction
+  loader resolves the rules pointer to the bundle's `AGENTS.md` by absolute
+  path before injecting the skill text; the other modules and upstream tests
+  remain byte-for-byte unchanged. `tools/ponytail/AGENTS.md` is the only added
+  file: it points to the code area rules.
+  The hook license is retained at `tools/ponytail/hooks/LICENSE`. The original
+  instruction loader reads `../skills/ponytail/SKILL.md` inside the same bundle.
+- `.agents/ponytail` links to `../tools/ponytail`, preserving existing hook
   command definitions and their trust hashes after the source move.
 - `.codex/hooks.json` preserves existing hooks and adds SessionStart,
   SubagentStart and UserPromptSubmit from upstream's `claude-codex-hooks.json`.
