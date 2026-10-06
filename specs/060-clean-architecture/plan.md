@@ -267,7 +267,7 @@ under `scripts/` (Decisions 1, 4, 9, 10, 15).
 
 | ID | Paths | Reason | Released by | Reported by |
 | --- | --- | --- | --- | --- |
-| H1 | `packages/education-privacy-gate`, the GLM judgment server | The gate's Claude Code metadata bug; `system-one-adapter` needs its read-only security review (U-2026-10-06d) | the fix merged into `develop` and a passed security review | develop orchestrator |
+| H1 | `packages/education-privacy-gate`, the GLM judgment server | The gate's Claude Code metadata bug, fixed in `develop` on 2026-10-07 (CHE-94, CHE-95; fresh Claude Code and Codex calls pass); `system-one-adapter` still needs its read-only security review (U-2026-10-06d) | a passed security review | develop orchestrator |
 | H2 | `plugins/work/**`, `packages/wiki-consistency` | Open branches `document-pdf-fidelity`, `exam-calendar`, `korean-web-wiki`, `lexical-semantics` change them (checked 2026-10-06 with `git diff` against each merge base); the session-scan trial covers `session_select.py` | all four merged into `develop`, and the user's verdict on the session-scan trial | develop orchestrator; the user for the trial |
 | H2 exception | `plugins/work/plugin.json`, `plugins/work/mcp.json`, `plugins/work/skills/jev`, the plugin wording of `plugins/work/AGENTS.md` | Not held: no open branch changes them (checked 2026-10-06 with `git diff` against each merge base); the check is repeated when S2a and S2b start | not applicable | not applicable |
 | H3 | `packages/jev-ultrafast` | `lexical-semantics` changes it; the Jev Browser trial may replace it | the merge and the user's trial verdict | develop orchestrator; the user |
@@ -294,7 +294,7 @@ is never the implementer's provider.
 | S1 Rules | Planning records; constitution 3.0.0; root `AGENTS.md` opening and packaging rule; the opening of `docs/architecture.md` | documents only | this orchestrator (constitution work stays on Claude or Codex) |
 | S2a Packaging removed | Clean each prepared checkout's generated configuration first; delete manifests, generator, its tests, the schema check and the plugin reference; adopt `skills-ref` with its review; the skills link test; keep the reference-library guard test without `mcp.json`; update tasks, mise setup and doctor, Cog regions and docs. Skills stay in place. | about −2,600 | chosen with Jev at dispatch |
 | S2b Skills moved | Move code and chat skills and Ponytail; area `AGENTS.md` files; retarget links; delete the duplicate `jev`; update paths in configuration, tests and documents | about −50 (moves count as renames) | chosen with Jev at dispatch |
-| S2c Spec Kit 1.1.0 | Upgrade Spec Kit from 1.0.1 project files and the 1.0.12 command line to 1.1.0 with its own commands; move the area-rules pointer into a preset with prepend overrides if Spec Kit supports it; security review of the upstream change (U-2026-10-06l) | measured then; small | chosen with Jev at dispatch |
+| S2c Spec Kit 1.1.0 | Upgrade Spec Kit from 1.0.1 project files and the 1.0.12 command line to 1.1.0 with its own commands, run in a scratch copy with real skill folders and copied in, because through the links its cleanup deletes the new skill files (U-2026-10-07a; [security review](security/spec-kit-1.1.0-review.md)); move the area-rules pointer into a preset if that works there | measured then; small | chosen with Jev at dispatch |
 | S3 Checks | Rules D1–D6 in both checkers with breaking fixtures and a test that each fails; fixtures also settle whether `acyclic_siblings` sees cycles between root packages and how by-name workspace imports resolve | about +180 | chosen with Jev at dispatch |
 | S4 credit-offers | Rings and bootstrap; settings through `platformdirs`; tests split by scope with unchanged assertions | about +40 | chosen with Jev at dispatch |
 | S5 doc-regions | Rings and bootstrap; published modules unchanged | about +30 | chosen with Jev at dispatch |
@@ -321,7 +321,11 @@ survives each finish. No code goes past a slice's review record until
 back. If the develop coordinator is down, the next slice continues in a child
 worktree of this one, branched from the last review record, and merges
 `develop` back once it has finished the waiting slice; nothing is rebased
-(U-2026-10-06f; constitution "Development Workflow").
+(U-2026-10-06f; constitution "Development Workflow"). Full checks in this
+worktree run only in a slot that develop grants, and while develop holds one,
+nothing in the worktree is committed or moved: on 2026-10-07 an empty review
+record committed during develop's run moved the tip and failed its snapshot
+guard.
 
 ## Locally owned code
 

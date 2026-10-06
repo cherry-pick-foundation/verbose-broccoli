@@ -25,9 +25,14 @@ code with the session's `code-size/measure.py` and report it (FR-017,
 SC-008); run `npm run doc-regions:prepare -- --base develop
 --max-evidence-chars <n>` and `npm run doc-regions:audit` and resolve their
 judgments; check any new cited claim with Jev (SC-005); get the fresh
-other-provider review with only the slice's scope and requirements; resolve
+other-provider review with only the slice's scope and requirements (for a
+slice Claude built, Codex's built-in `codex review --base develop` with the
+scope and boundaries in `-c developer_instructions="..."`, since it takes no
+prompt together with `--base`); resolve
 findings and verify again; commit the review record; ask the develop
-orchestrator for the finish slot; after the finish, `develop` verifies
+orchestrator for the full-check and finish slots; while develop holds a
+slot for this worktree, commit nothing and change no ref, because a moved tip
+fails its snapshot guard (2026-10-07); after the finish, `develop` verifies
 (SC-006).
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -107,10 +112,13 @@ by Spec Kit's own commands through the `.agents/skills` links
 extensions; the skills link test and `skills-ref validate` pass; every
 `speckit-*` skill still points to its area rules.
 
-- [ ] T025 [US2] Read-only security review of the upstream change from Spec Kit 1.0.1 project files and the 1.0.12 command line to 1.1.0, including the agent-context extension 1.0.1 to 1.0.2, with evidence for every finding, in `specs/060-clean-architecture/security/spec-kit-1.1.0-review.md` (FR-018). The reviewer stays on Claude Code or Codex.
-- [ ] T026 [US2] Check whether a Spec Kit preset with prepend command overrides, beside the existing `linear-issue` preset in `.specify/presets/`, can carry the area-rules pointer for the 20 `speckit-*` skills; if it can, plan moving the pointer there so upgrades stop overwriting local edits (U-2026-10-06l).
-- [ ] T027 [US2] Ask the develop orchestrator how its weekly tool-update job will treat Spec Kit, so its first Spec Kit update does not collide with this slice.
-- [ ] T028 [US2] Pin `specify-cli` at v1.1.0 in `tools/spec-kit/pyproject.toml`, then upgrade with `specify integration upgrade` and the extension and preset commands, not hand edits; confirm the writes went through the links into `skills/code/` (the link test passes and every entry is still a link); apply T026's preset if it works; record that `taskstoissues` moves to a bundled GitHub extension upstream and change nothing for it, since this repository uses Linear. Depends on T025 to T027.
+- [x] T025 [US2] Read-only security review of the upstream change from Spec Kit 1.0.1 project files and the 1.0.12 command line to 1.1.0, including the agent-context extension 1.0.1 to 1.0.2, with evidence for every finding, in `specs/060-clean-architecture/security/spec-kit-1.1.0-review.md` (FR-018). The reviewer stays on Claude Code or Codex.
+  Ledger 2026-10-07: Claude Code Sonnet 5.5 high (Jev probability 0.60, confidence 0.53). Verdict: adopt with conditions (1 high, 3 medium, 4 low, 6 info): no telemetry, new host, dependency or install-time code; license unchanged. The high finding: run through the `.agents/skills` links, `specify integration upgrade` records resolved paths and its stale-file cleanup deletes the ten core `SKILL.md` files it has just written; conditions C1 to C7 are carried into T028.
+- [x] T026 [US2] Check whether a Spec Kit preset with prepend command overrides, beside the existing `linear-issue` preset in `.specify/presets/`, can carry the area-rules pointer for the 20 `speckit-*` skills; if it can, plan moving the pointer there so upgrades stop overwriting local edits (U-2026-10-06l).
+  Ledger 2026-10-07: Claude Code Sonnet 5.5 medium (Jev probability 0.71, confidence 0.65). Answer: partly. A preset with prepend overrides can add the pointer and `specify integration upgrade` reapplies enabled presets after rewriting skills, but the pointer line would be duplicated unless removed, and the preset skill writer refuses linked skill folders, so T028 tests it on the scratch copy first. Findings: `slices/s2c/t026/ctx_73be36b124e1/findings.md` in the feature's state folder.
+- [x] T027 [US2] Ask the develop orchestrator how its weekly tool-update job will treat Spec Kit, so its first Spec Kit update does not collide with this slice.
+  Ledger 2026-10-07: develop keeps the order S2c before the weekly tool-update job (CHE-50); that job needs the same scratch-copy step for Spec Kit (U-2026-10-07a), so S2c records the step for develop to reuse.
+- [ ] T028 [US2] Pin `specify-cli` at v1.1.0 in `tools/spec-kit/pyproject.toml` (the `uv.lock` entry must name commit `f1d3a4f8337ebbd3ae22760a9c12e3352b93a175` and nothing else in the lock may change). Run `specify integration upgrade --script sh` and `specify extension add agent-context --force` (never `self upgrade` or `check`) in a scratch copy of the repository where the ten core `speckit-*` skill folders are real folders, try T026's preset there, then copy the resulting `SKILL.md` files into `skills/code/` and keep every `.agents/skills` entry a link (U-2026-10-07a; review conditions C1 to C5). Afterwards: `git status` shows no deleted `SKILL.md`; the area-rules pointer is in all 20 skills (by the preset if it works, otherwise re-added); the `.cache/` rule of `.specify/.gitignore` is back; no real `.agents/skills/speckit-git-*` folders remain; `agent-context-config.yml` and root `AGENTS.md` are unchanged; the two agent-context hooks in `.specify/extensions.yml` are set back to `optional: false` by hand (accepted, U-2026-10-07a); `licenses/third-party-notices.md` and `docs/architecture.md` name 1.1.0; installed files match v1.1.0 by hash (C6, C7). Write the scratch-copy procedure into `docs/architecture.md` so develop's weekly tool-update job can reuse it. `taskstoissues` stays in the core in 1.1.0 and the new GitHub extension is opt-in, so nothing changes for it. Depends on T025 to T027.
 - [ ] T029 [US2] **Finish** slice S2c. Depends on T028.
 
 ## Phase 5: Slice S3 — dependency checks (User Story 3, P2)
