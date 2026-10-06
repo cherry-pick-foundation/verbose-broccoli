@@ -593,9 +593,10 @@ Two checks cover the skills. `npm run test:skills-links` fails when an
 `.agents/skills` entry is not a relative link, does not reach exactly one
 skill folder with a `SKILL.md`, repeats a name, or when a skill folder has no
 link. `npm run skills:validate` runs `agentskills validate` from `skills-ref`
-0.1.1, the Agent Skills reference validator, over every skill except
-Ponytail's four unchanged upstream skills, whose `argument-hint` key it
-rejects. `tools/skills-ref/` is a uv project whose `uv.lock` pins the validator
+0.1.1, the Agent Skills reference validator, over every skill under `skills/`
+and `plugins/work/skills/`. Ponytail's four unchanged upstream skills live in
+`tools/ponytail/skills/`, outside those folders, so they are not validated;
+the validator rejects their `argument-hint` key. `tools/skills-ref/` is a uv project whose `uv.lock` pins the validator
 and its four dependencies by hash with `no-build`; `mise run setup` syncs it
 once and `npm run doctor` checks it. Upstream calls the library a
 demonstration, so it is a development-time check only, never imported by
