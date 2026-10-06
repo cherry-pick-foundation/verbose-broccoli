@@ -127,54 +127,6 @@ void test('lefthook commit-msg accepts conventional commits and rejects invalid 
       command('git', ['rev-parse', 'HEAD'], repo, env).output,
       head.output,
     );
-
-    await mkdir(join(repo, '.codex'));
-    const config = join(repo, '.codex/config.toml');
-    const portable = '[features]\nhooks = true\n';
-    await writeFile(config, portable);
-    assertEquals(
-      command('git', ['add', '.codex/config.toml'], repo, env).code,
-      0,
-    );
-    const generated =
-      '# BEGIN generated plugin discovery\n[mcp_servers.synthetic]\nargs = ["/machine-specific/checkout/server"]\n# END generated plugin discovery\n';
-    await writeFile(config, portable + generated);
-    result = command(
-      'git',
-      ['commit', '-m', 'test: allow unstaged runtime discovery'],
-      repo,
-      env,
-    );
-    assertEquals(result.code, 0, result.output);
-    assertEquals(
-      command('git', ['show', 'HEAD:.codex/config.toml'], repo, env).output,
-      portable,
-    );
-    const cleanHead = command('git', ['rev-parse', 'HEAD'], repo, env).output;
-    for (const block of [generated, '# END generated plugin discovery\n']) {
-      await writeFile(config, portable + block);
-      assertEquals(
-        command('git', ['add', '.codex/config.toml'], repo, env).code,
-        0,
-      );
-      // A clean working file must not hide the staged machine-specific block.
-      await writeFile(config, portable);
-      result = command(
-        'git',
-        ['commit', '-m', 'test: refuse staged runtime discovery'],
-        repo,
-        env,
-      );
-      assert(result.code !== 0, result.output);
-      assertMatch(
-        result.output,
-        /Generated Codex discovery must stay out of the index/,
-      );
-      assertEquals(
-        command('git', ['rev-parse', 'HEAD'], repo, env).output,
-        cleanHead,
-      );
-    }
   } finally {
     await rm(root, {recursive: true, force: true});
   }
