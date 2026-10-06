@@ -1,11 +1,12 @@
 # verbose-broccoli
 
-A personal workspace of three agent plugins for education and knowledge
-work. `.specify/memory/constitution.md` governs; this file holds the rules every
-change follows. Constitution principle IX and `docs/architecture.md` describe the
-repository layout. Detailed procedures live in skills. Claude-only additions are
-in `.claude/rules/`; Codex-only additions are the `developer_instructions` in
-`.codex/config.toml`.
+A personal workspace of agent tools for education and knowledge work:
+skills, command-line tools and MCP servers in three areas, `code`, `work` and
+`chat`. `.specify/memory/constitution.md` governs; this file holds the rules
+every change follows. Constitution principle IX and `docs/architecture.md`
+describe the repository layout. Detailed procedures live in skills.
+Claude-only additions are in `.claude/rules/`; Codex-only additions are the
+`developer_instructions` in `.codex/config.toml`.
 
 Before working on a plugin, read its rules, including when invoking its skills
 from another directory: [code](plugins/code/AGENTS.md),
@@ -65,9 +66,9 @@ it. Do not duplicate protocol selection, standard HTTP status mapping, retries
 or finish-reason checks. Record unsupported unchosen providers as limits instead
 of building for them.
 
-Judge plugin packaging against the vendor-neutral Agent Plugins specification
-and example first. Add client-specific distribution packaging only when the user
-requests it. Client-specific popularity is not evidence of fit.
+Deliver capabilities as Agent Skills, command-line tools and MCP servers
+(constitution IX). Do not add plugin packaging or an installer; document
+`skills` and `add-mcp` for installing elsewhere.
 
 ## Necessary work and code size
 

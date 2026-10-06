@@ -1,9 +1,16 @@
-# Three-plugin workspace
+# Agent tool workspace
 
-The [plugin reference](reference/plugins.md) lists the three portable packages,
-their locations, identities and declared capabilities. Each capability is
-specified anew from current needs as a feature under `specs/`; earlier projects
-are not requirement, evidence or implementation sources.
+The repository is a collection of agent tools: Agent Skills, command-line
+tools and MCP servers in three skill areas, `code`, `work` and `chat`
+(constitution IX). Feature 060 moves it there from three Agent Plugins
+packages in slices ([plan](../specs/060-clean-architecture/plan.md)). Until
+those slices land, the skills still live in `plugins/<area>/skills/`, and the
+sections below that describe plugin manifests, discovery preparation and
+copied client packages describe that current layout; the
+[plugin reference](reference/plugins.md) lists the plugin declarations until
+they are removed. Each capability is specified anew from current needs as a
+feature under `specs/`; earlier projects are not requirement, evidence or
+implementation sources.
 
 ## Current skeleton
 
@@ -205,23 +212,23 @@ documentation. The dependency pins remain in `package.json` and
 
 ## Package and runtime ownership
 
-Each plugin is independently selectable and must eventually pass installation
-and capability checks without either of the other two plugin packages present. A
-plugin can contain skills, MCP entries, or both. Final checks cover Codex CLI and
-Claude Code: actual selected components, MCP processes, required hooks and
-permission/data paths; a manifest check or empty component list is insufficient.
-Three plugins do not require three servers, databases, or continuously running
-processes.
-
-The `code` package reuses selected upstream skills and tools.
-The `chat` package targets the ChatGPT and Claude chat projects; its two
-skills run in local Codex CLI or Claude Code sessions from the repository's
-uv workspace, and actual distribution and invocation remain separate from
-local validation. Business capabilities belong to the `work` package once
-features specify them. Create TypeScript entry points, source directories and
-internal layers only when a specified capability has an actual consumer. Selected
-Wiki storage follows constitution principle VI; restructuring code does not move
-live data or other external operational or source roots.
+Each capability with code lives in one component package under
+`packages/<name>/`, with its dependencies pointing inward: a domain without
+input or output, an application layer with its use cases and ports, adapters,
+entry points and one `bootstrap` module that reads settings (see the
+[dependency rules](../specs/060-clean-architecture/contracts/dependency-rules.md)).
+Packages move into that shape one slice at a time. Code that an open branch
+changes, that a replacement trial may replace, or that waits for the privacy
+gate's fix stays where it is until its hold is released (plan "Holds").
+Skills carry the instructions; command-line tools and MCP servers are the
+packages' entry points. Final checks cover Codex CLI and Claude Code: the
+skills and MCP servers each agent actually loads, required hooks and
+permission and data paths; a file or manifest check alone is insufficient.
+Business capabilities belong to the `work` area once features specify them.
+Create entry points, source folders and rings only when a specified
+capability has an actual consumer. Selected Wiki storage follows constitution
+principle VI; restructuring code does not move live data or other external
+operational or source roots.
 
 ### Wiki storage
 

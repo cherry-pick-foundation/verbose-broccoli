@@ -1,15 +1,19 @@
 <!--
 Sync Impact Report
-- Version: 2.6.0 -> 2.7.0 (user-approved `feat`/MINOR amendment).
-- Input: CHE-84, feature 050 (`specs/050-wiki-quarto-text/`): the user's
-  2026-10-04 decision to retain reviewed original-language text and maintain
-  English Quarto knowledge separately from Korean delivery.
-- Modified principles: VI. Wiki Layers and Storage Ownership (five roles,
-  retained text, Quarto pages and run-local citation bibliography).
-- Modified sections: Governance (the dated user decision and version).
+- Version: 2.7.2 -> 3.0.0 (user-approved breaking amendment, 2026-10-06).
+- Input: feature 060 (`specs/060-clean-architecture/`): the user's
+  2026-10-06 decisions to retire the Agent Plugins packaging and to build the
+  capabilities as a collection of tools in component packages whose
+  dependencies point inward.
+- Modified principles: IX. Three Plugin Packages -> IX. Component Packages
+  and Tool Delivery; VI and VII name skill areas and skills instead of
+  plugins.
+- Modified sections: Governance (version independence wording and the dated
+  decision).
 - Added sections: none. Removed sections: none.
-- Follow-up (outside this document): F1/CHE-84 implements the schema and
-  retained-text/Wiki contract; F2/CHE-12 owns site freshness and publishing.
+- Follow-up (outside this document): feature 060 removes the plugin
+  packaging and moves the skills into skill areas in later slices; root
+  AGENTS.md pointers change when the skills move.
 - Deferred placeholders: none.
 -->
 
@@ -89,9 +93,9 @@ Use the `verbose-broccoli` namespace under XDG configuration, data, state,
 and cache roots. The defaults are `~/.config/`, `~/.local/share/`,
 `~/.local/state/`, and `~/.cache/` respectively. Configuration owns `config.toml`
 and profile files; durable data owns `registry.json` and `llm-wiki/`, which holds
-one folder per wiki: `default` for knowledge that belongs to no single plugin,
-and `chat`, `code` and `work` for the plugins of those names. Restart/recovery
-state belongs in state storage. Only
+one folder per wiki: `default` for knowledge that belongs to no single skill
+area, and `chat`, `code` and `work` for the skill areas of those names.
+Restart/recovery state belongs in state storage. Only
 rebuildable indexes, embeddings, chunks, parsed data, citation bibliographies,
 temporary downloads and temporary work belong in cache. Bags are the only source
 registry. Every run MUST generate its citation bibliography from bags into
@@ -107,7 +111,7 @@ revision registries or a permanent generated-output archive.
 
 ### VII. One Decision Owner and Minimum Implementation
 
-Repository reference tables for selected plugin, server and command facts MUST
+Repository reference tables for selected skill, server and command facts MUST
 derive from their existing manifests, configuration and command definitions.
 Generated reference files MUST have deterministic output and a non-mutating
 drift check in repository verification. Authored introductions and design
@@ -130,36 +134,46 @@ implementations before writing adapters; locally owned code is limited to
 necessary integration and domain-specific glue. Do not add speculative
 services, compatibility copies or configuration matrices.
 
-### IX. Three Plugin Packages
+### IX. Component Packages and Tool Delivery
 
-The repository MUST use exactly three plugin package roots:
-`plugins/chat`, `plugins/code`, and `plugins/work`. Their plugin IDs are
-`chat`, `code`, and `work`.
-Use `packages/` for reusable implementation packages, including libraries and
-MCP servers. Keep their source code under `packages/<name>/src/`; do not retain
-empty placeholders.
+Capabilities reach agents as Agent Skills, command-line tools, and MCP
+servers where a tool needs a running process, a login or a filter in front
+of it. Agent Plugins packages and client-specific plugin formats are not
+used, and the repository contains no installer. Each skill exists once, at
+`skills/<area>/<name>/`, in the areas `code`, `work` and `chat`; each area
+keeps its rules in its own `AGENTS.md`; agents find skills through the
+committed `.agents/skills` links. MCP servers are registered once per agent
+in the user's own settings. An upstream bundle whose code finds its skills
+by relative path keeps its upstream layout under `tools/`.
+
+Each capability with code lives in one component package,
+`packages/<name>/`, with its own manifest and its source under `src/`; do
+not retain empty placeholders. Inside it, dependencies point inward: a
+domain without input or output, an application layer with use cases and the
+ports they need, adapters, and one composition root that reads settings. Add
+a port only where a use case must reach outside its package while it runs.
+Repository verification enforces these rules. A skill that must work when
+copied elsewhere keeps its code in its own `scripts/` folder. A package joins
+a toolchain workspace only when it has executable code for that toolchain. A
+shared package requires a second real consumer; no common framework is
+created in advance.
+
 Use `tools/` for development/release programs, `scripts/` for repository
-automation and its checks, including workspace integration and contract checks,
-`docs/` for explanations and their assets and examples, `specs/` for feature
-work, and `infra/` for environment/deployment files. Examples require actual
-content.
-Preserve repository verification results under `artifacts/`. Content drafts
-and user deliverables stay outside the repository; deliverables go in the user's
-documents folder. A directory rename does not authorize deleting its contents.
-Each plugin is its own Agent Plugins 1.0 package root and independently
-selectable. Skills and MCP components are added only for selected capabilities.
-A package joins a toolchain workspace, such as the uv workspace, only when it
-has executable code for that toolchain.
-The chat package's skills are `web-agent` and `credit-offers`, which run in
-local Codex CLI or Claude Code sessions; it has no MCP declaration or
-scripts, and its persistent state is the `chat` wiki (principle VI).
-Code and Work run in Codex CLI and
-Claude Code, and no plugin depends on the desktop hub that launches them.
-Do not require one repository-wide runtime, server or composition entry point.
+automation and its checks, including workspace integration and contract
+checks, `docs/` for explanations and their assets and examples, `specs/` for
+feature work, and `infra/` for environment/deployment files. Examples require
+actual content. Preserve repository verification results under `artifacts/`.
+Content drafts and user deliverables stay outside the repository;
+deliverables go in the user's documents folder. A directory rename does not
+authorize deleting its contents.
 
-Business capabilities belong to the work package. A shared package
-requires an actual consumer need; no common framework is created in advance.
-Plugin versions may move together; there is no new per-module release framework.
+The chat area's skills are `web-agent` and `credit-offers`, which run in
+local Codex CLI or Claude Code sessions; its persistent state is the `chat`
+wiki (principle VI). All areas run in Codex CLI and Claude Code, and no
+capability depends on the desktop hub that launches them. Do not require one
+repository-wide runtime, server or composition entry point. Business
+capabilities belong to the work area. Package versions may move together;
+there is no per-module release framework.
 
 ## Product and Data Boundaries
 
@@ -230,7 +244,7 @@ the middle digit, and `docs` or `fix` the last digit; commits of other types
 do not change this document. The author writes the new version with
 commitizen (`npm run constitution:bump -- PATCH`, `MINOR` or `MAJOR`), and
 reviewers check that it matches the commit type. Compliance review follows the
-root AGENTS.md workflow, verification and review requirements. Product, plugin,
+root AGENTS.md workflow, verification and review requirements. Product, package,
 document, and constitution versions remain
 independent. The latest user direction governs conflicts. The user's 2026-09-22
 plugin layout supersedes the earlier `apps/` and root `deno.jsonc` requirement,
@@ -300,4 +314,11 @@ and each instance to a wiki, to avoid implying an Obsidian dependency.
 CHE-90 changes repository paths and current wording only; data and history
 remain preserved, and removing the temporary link stays a separate action.
 
-**Version**: 2.7.2 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-05
+On 2026-10-06 the user retired the Agent Plugins packaging, because Claude
+Code does not load Agent Plugins, and chose a collection of tools that agents
+use: skills in the `code`, `work` and `chat` areas, command-line tools and
+MCP servers, with each capability's code in one component package whose
+dependencies point inward (feature 060). Principle IX was replaced;
+principles VI and VII name skill areas and skills instead of plugins.
+
+**Version**: 3.0.0 | **Ratified**: 2026-09-12 | **Last Amended**: 2026-10-06
