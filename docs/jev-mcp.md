@@ -173,9 +173,11 @@ It does not reveal the failing value, path or provider exception.
 Only tools are exposed, alongside required MCP lifecycle messages. Resources,
 resource templates and prompts are hidden and direct access rejects. Sampling,
 elicitation, roots, continuations and untrusted logging/progress relays cannot
-open another route. An integer progress counter is accepted and dropped;
-string tokens and other application `_meta` keys reject. Backend SDK
-counter/connection metadata contains no caller content.
+open another route. An integer progress counter and `_meta` keys with the
+`claudecode/` or `anthropic/` prefix (Claude Code's tool-use and request
+metadata) are accepted and dropped; string tokens and other application `_meta`
+keys reject. Backend SDK counter/connection metadata contains no caller
+content.
 
 Originals and stand-in pairs stay in memory for the call and are discarded on
 success, failure, cancellation or timeout. No per-call files, persistent map,
