@@ -47,9 +47,14 @@ export async function dependencyCruiser(
   }
   const roots =
     inputRoots ??
-    ['packages', 'plugins', 'scripts', 'tests'].filter(path =>
-      existsSync(`${root}/${path}`),
-    );
+    [
+      'packages',
+      'plugins',
+      'scripts',
+      'skills',
+      'tests',
+      'tools/ponytail',
+    ].filter(path => existsSync(`${root}/${path}`));
   if (inputRoots)
     args.push(
       '--do-not-follow',

@@ -17,8 +17,8 @@ const ruleNames = [
   'no-node-in-inner-layers',
   'no-unresolved-local-imports',
   'no-io-packages-in-inner-layers',
-  'public-api:plugins/chat',
-  'public-api:plugins/code',
+  'public-api:skills/chat',
+  'public-api:skills/code',
   'public-api:plugins/work',
   'public-api:packages/doc-regions',
   'public-api:packages/education-privacy-gate',
@@ -41,19 +41,18 @@ void test('clean architecture: every configured rule fires on synthetic imports'
     'plugins/demo/src/features/two/internal/data.ts': 'export const data = 1;',
     'plugins/demo/src/cycles/a.ts': "export {b} from './b.ts';",
     'plugins/demo/src/cycles/b.ts': "export {a} from './a.ts';",
-    'plugins/chat/private.ts': 'export const chat = 1;',
+    'skills/chat/private.ts': 'export const chat = 1;',
     'plugins/work/private.ts': 'export const work = 1;',
-    'plugins/code/src/private.ts': 'export const code = 1;',
-    'plugins/code/skills/clean-code/scripts/cli.ts': 'export const cli = 1;',
+    'skills/code/src/private.ts': 'export const code = 1;',
+    'skills/code/clean-code/scripts/cli.ts': 'export const cli = 1;',
     'packages/doc-regions/private.ts': 'export const docRegions = 1;',
     'packages/education-privacy-gate/private.ts': 'export const gate = 1;',
     'packages/wiki-consistency/private.ts': 'export const wiki = 1;',
     'packages/doc-regions/import.ts':
-      "export {code} from '../../plugins/code/src/private.ts';",
-    'scripts/public_chat.ts':
-      "export {chat} from '../plugins/chat/private.ts';",
+      "export {code} from '../../skills/code/src/private.ts';",
+    'scripts/public_chat.ts': "export {chat} from '../skills/chat/private.ts';",
     'scripts/public_code.ts':
-      "export {code} from '../plugins/code/src/private.ts';",
+      "export {code} from '../skills/code/src/private.ts';",
     'scripts/public_work.ts':
       "export {work} from '../plugins/work/private.ts';",
     'scripts/public_doc_regions.ts':
@@ -89,6 +88,7 @@ void test('clean architecture: every configured rule fires on synthetic imports'
         'packages',
         'plugins',
         'scripts',
+        'skills',
         'tests',
       ],
       {

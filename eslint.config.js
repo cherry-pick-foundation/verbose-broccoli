@@ -16,7 +16,11 @@ module.exports = [...customConfig, ...require('gts')];
 
 // Keep runtime and I/O globals out of domain code.
 module.exports.push({
-  files: ['plugins/**/domain/**', 'packages/**/domain/**'],
+  files: [
+    'plugins/**/domain/**',
+    'skills/**/domain/**',
+    'packages/**/domain/**',
+  ],
   rules: {
     'no-restricted-globals': [
       'error',

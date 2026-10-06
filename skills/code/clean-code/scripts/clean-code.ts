@@ -219,7 +219,7 @@ export async function classifyFile(
 
 async function discover(cwd: string) {
   const paths = new Set<string>();
-  for (const directory of ['plugins', 'packages', 'scripts']) {
+  for (const directory of ['plugins', 'packages', 'scripts', 'skills']) {
     for await (const entry of glob(`${directory}/**/*.{ts,tsx,mts,cts}`, {
       cwd,
       withFileTypes: true,

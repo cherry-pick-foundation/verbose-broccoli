@@ -194,7 +194,7 @@ help snapshots freeze the presentation. A copied-skill test checks that
 clean-code runs outside the repository. Update the snapshots only after review
 with `npm run test:cli-contract -- --update`, then rerun without updating.
 The Clean Code skill and checker share mechanically selected files; see
-the `code` area's [Clean Code skill](../plugins/code/skills/clean-code/SKILL.md). Adding a
+the `code` area's [Clean Code skill](../skills/code/clean-code/SKILL.md). Adding a
 workspace member does not make it an independently published JSR package.
 
 The root README is a short project summary; use specs and docs for detailed
@@ -661,12 +661,13 @@ exists once, so `jev` lives in `plugins/code/skills/jev` and `.agents/skills`
 links to it from every checkout. `scripts/skills-links-test.ts` checks that
 one-to-one match.
 
-<!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
+<!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("skills/*/*/SKILL.md", "tools/ponytail/skills/*/SKILL.md", "plugins/work/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `clean-code`, `git-commit`, `jev`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `skills/chat` | `credit-offers`, `web-agent` |
+| `skills/code` | `clean-code`, `git-commit`, `jev`, `model-choice`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `tools/ponytail/skills` | `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current

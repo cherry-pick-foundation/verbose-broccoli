@@ -1,7 +1,7 @@
 # Third-party notices
 
 Every packaged skill entrypoint has a local pointer after its front matter to
-read its plugin AGENTS.md. Original revisions, licenses and upstream hashes
+read its area's AGENTS.md. Original revisions, licenses and upstream hashes
 below remain the source provenance; the pointer is a local patch.
 
 ## wondelai/skills — clean-code
@@ -10,12 +10,12 @@ below remain the source provenance; the pointer is a local patch.
   <https://github.com/wondelai/skills/tree/c172996495bed0fcd26896a9416b2093fd7073f0/clean-code>
 - Revision: `c172996495bed0fcd26896a9416b2093fd7073f0` (skill version 1.4.0).
 - Reused: `SKILL.md` and all six reference files in
-  `plugins/code/skills/clean-code/`.
+  `skills/code/clean-code/`.
 - Adaptations: require the shared mechanical file selection; remove the
   diagnostic recommending extraction at twenty lines; let the checker own the
   length limit. Reference files remain unchanged.
 - Copyright (c) 2025 Wondel.ai sp. z o.o.
-  [MIT license](../plugins/code/skills/clean-code/LICENSE).
+  [MIT license](../skills/code/clean-code/LICENSE).
 
 ## biomejs/biome — agent guidelines
 
@@ -46,7 +46,7 @@ below remain the source provenance; the pointer is a local patch.
 
 - Source: <https://github.com/github/spec-kit/tree/9118ed15a0ba65053469a94c560ea5d233f75884>
 - Revision: `9118ed15a0ba65053469a94c560ea5d233f75884` (release 1.0.1).
-- Reused: the ten core `speckit-*` skills in `plugins/code/skills/` and Spec
+- Reused: the ten core `speckit-*` skills in `skills/code/` and Spec
   Kit 1.0.1's generated files under `.specify/`, except `.specify/extensions/`
   and `.specify/extensions.yml` (see release 1.0.12 below). Later local edits
   are recorded in Git history.
@@ -60,7 +60,7 @@ below remain the source provenance; the pointer is a local patch.
   optional. The ten skills
   generated from their commands, `speckit-agent-context-update`,
   `speckit-assess-*`, `speckit-bug-*` and `speckit-git-validate`, are reused
-  in `plugins/code/skills/` with the plugin-rule pointer.
+  in `skills/code/` with the area-rules pointer.
 - Copyright GitHub, Inc. [MIT license](github-spec-kit.txt).
 
 ## github/awesome-copilot — git-commit
@@ -68,7 +68,7 @@ below remain the source provenance; the pointer is a local patch.
 - Source:
   <https://github.com/github/awesome-copilot/tree/e24be77e6f203409cf99ab7d5a67e1540cb386d3/skills/git-commit>
 - Revision: `e24be77e6f203409cf99ab7d5a67e1540cb386d3`.
-- Reused: `plugins/code/skills/git-commit/SKILL.md`, with the plugin-rule pointer.
+- Reused: `skills/code/git-commit/SKILL.md`, with the area-rules pointer.
 - Copyright GitHub, Inc. [MIT license](github-awesome-copilot.txt).
 
 ## posit-dev/skills — quarto-authoring
@@ -97,24 +97,24 @@ below remain the source provenance; the pointer is a local patch.
   <https://github.com/jkudish/jev-mcp/tree/5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93/skills/jev>
 - Revision: `5e0ca5cacd1556dc0b8c227648843d3ebf5bdc93` (version 0.13.0).
 - Reused: `SKILL.md`, `reference/tools.md` and `LICENSE`, copied into
-  `plugins/code/skills/jev/`.
+  `skills/code/jev/`.
 - Adaptations: remove the direct unpinned `mcpServers.jev` launch block;
   add a pointer to shared local privacy and provider guidance in
   `references/verbose-broccoli.md`. Its `upstream.json` records
   the original and adapted file hashes.
 - Copyright (c) 2026 Joey Kudish.
-  [MIT license](../plugins/code/skills/jev/LICENSE).
+  [MIT license](../skills/code/jev/LICENSE).
 
 ## typesafe-ai/skills — model-choice
 
 - Source:
   <https://github.com/typesafe-ai/skills/tree/65a39f393687675ce170e6094757de20370365b9/skills/typesafe-ai>
 - Revision: `65a39f393687675ce170e6094757de20370365b9` (tag v0.5.7).
-- Reused: `SKILL.md` and `LICENSE` in `plugins/code/skills/model-choice/`.
+- Reused: `SKILL.md` and `LICENSE` in `skills/code/model-choice/`.
 - Adaptations: listed in the skill's `upstream.json`; the local
   `references/model-choice.md` is this repository's own text.
 - Copyright (c) 2026 TypeSafe AI.
-  [MIT license](../plugins/code/skills/model-choice/LICENSE).
+  [MIT license](../skills/code/model-choice/LICENSE).
 
 ## browser-use/jev-ultrafast — chat web agent
 

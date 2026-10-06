@@ -1,4 +1,4 @@
-# Work plugin
+# Work area
 
 ## Usable teaching materials
 
@@ -15,7 +15,7 @@ before planning around it; an earlier plan does not establish working access.
 Keep learning-status and progress judgments working through the approved always-on
 `jev-mcp` privacy gate. Do not impose a blanket prohibition on education data.
 The user's provider decisions apply within the current privacy boundary in
-[the upstream Jev skill](../code/skills/jev/SKILL.md) and
+[the upstream Jev skill](../../skills/code/jev/SKILL.md) and
 [the privacy gate contract](../../specs/053-jev-mcp-privacy/contracts/privacy-gate.md).
 Never send identifying student data through an ungated route or credentials to Jev.
 

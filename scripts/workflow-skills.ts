@@ -54,7 +54,7 @@ export function parseCleanCodeScope(output: string) {
 
 async function cleanCodeScope(root: string) {
   const skill = fromFileUrl(
-    new URL('../plugins/code/skills/clean-code/', import.meta.url),
+    new URL('../skills/code/clean-code/', import.meta.url),
   );
   const result = await new Promise<{
     success: boolean;

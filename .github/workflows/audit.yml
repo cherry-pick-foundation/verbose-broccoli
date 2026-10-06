@@ -34,7 +34,7 @@ jobs:
           npm audit
       - name: Audit clean-code dependencies
         if: ${{ !cancelled() }}
-        working-directory: plugins/code/skills/clean-code
+        working-directory: skills/code/clean-code
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           npm audit

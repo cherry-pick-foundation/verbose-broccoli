@@ -31,7 +31,7 @@
       "name": "no-package-to-plugin",
       "severity": "error",
       "from": {"path": "^packages/"},
-      "to": {"path": "^plugins/"}
+      "to": {"path": "^(plugins|skills)/"}
     },
     {
       "name": "no-node-in-inner-layers",
@@ -80,18 +80,18 @@
       }
     },
     {
-      "name": "public-api:plugins/chat",
+      "name": "public-api:skills/chat",
       "severity": "error",
-      "from": {"pathNot": "^plugins/chat/"},
-      "to": {"path": "^plugins/chat/"}
+      "from": {"pathNot": "^skills/chat/"},
+      "to": {"path": "^skills/chat/"}
     },
     {
-      "name": "public-api:plugins/code",
+      "name": "public-api:skills/code",
       "severity": "error",
-      "from": {"pathNot": "^plugins/code/"},
+      "from": {"pathNot": "^skills/code/"},
       "to": {
-        "path": "^plugins/code/",
-        "pathNot": "^plugins/code/skills/clean-code/scripts/cli\\.ts$"
+        "path": "^skills/code/",
+        "pathNot": "^skills/code/clean-code/scripts/cli\\.ts$"
       }
     },
     {
@@ -133,7 +133,11 @@
   ],
   "options": {
     "doNotFollow": {
-      "path": "^(?!(?:packages|plugins|scripts|tests)/)|(^|/)node_modules/"
+      "path": "^(?!(?:packages|plugins|scripts|skills|tests|tools/ponytail)/)|(^|/)node_modules/"
+    },
+    "enhancedResolveOptions": {
+      "exportsFields": ["exports"],
+      "conditionNames": ["import", "require", "node", "default"]
     },
     "exclude": "^scripts/vendor/|\\.md$",
     "tsPreCompilationDeps": true

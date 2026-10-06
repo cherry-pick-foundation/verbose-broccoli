@@ -225,6 +225,7 @@ void test('discovery applies fixed paths and excludes declaration files and syml
       'plugins',
       'packages',
       'scripts',
+      'skills',
       'scripts/vendor',
       'packages/node_modules',
       'tools',
@@ -243,8 +244,9 @@ void test('discovery applies fixed paths and excludes declaration files and syml
       'packages/sample.ts',
       'plugins/sample.ts',
       'scripts/sample.ts',
+      'skills/sample.ts',
     ]);
-    assertEquals(report.scope.length, 3);
+    assertEquals(report.scope.length, 4);
   } finally {
     await rm(cwd, {recursive: true});
   }

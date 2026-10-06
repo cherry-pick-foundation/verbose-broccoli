@@ -2,6 +2,9 @@
   "name": "clean-code-skill",
   "private": true,
   "type": "module",
+  "exports": {
+    "./cli": "./scripts/cli.ts"
+  },
   "engines": {
     "node": ">=24.12.0"
   },

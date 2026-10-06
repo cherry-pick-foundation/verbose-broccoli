@@ -3,7 +3,7 @@ import {
   createReport,
   runCli,
   ValidationError,
-} from '../plugins/code/skills/clean-code/scripts/cli.ts';
+} from 'clean-code-skill/cli';
 import {lstat, readFile} from 'node:fs/promises';
 import type {ICruiseResult} from 'dependency-cruiser';
 import {dependencyCruiser, publicEntries} from './workflow-depcruise.ts';
