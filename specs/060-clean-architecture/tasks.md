@@ -52,7 +52,7 @@ approval; verification passes (SC-002, first part).
 - [x] T003 [US1] Amend `.specify/memory/constitution.md` with the approved text: replace principle IX, change the wording of VI, VII and Governance, add the dated Governance paragraph, update the Sync Impact Report, and set version 3.0.0 with `npm run constitution:bump -- MAJOR` in a `!` commit (FR-015). Depends on T002.
 - [x] T004 [P] [US1] Change the opening line and the plugin packaging rule of `AGENTS.md` as approved; leave the pointers and "code plugin's" phrases for S2b (FR-001, FR-015). Depends on T002.
 - [x] T005 [P] [US1] Retitle `docs/architecture.md` and rewrite its opening and "Package and runtime ownership" to describe skill areas, component packages and the holds, keeping the plugin sections S2a removes (FR-001, FR-016).
-- [ ] T006 [US1] **Finish** slice S1, including a Jev check of the final rule text against its cited rows (SC-005). Depends on T003 to T005.
+- [x] T006 [US1] **Finish** slice S1, including a Jev check of the final rule text against its cited rows (SC-005). Depends on T003 to T005.
 
 ## Phase 2: Slice S2a — plugin packaging removed (User Story 2, P1)
 
@@ -194,3 +194,6 @@ gets a split review before its develop merge review (root `AGENTS.md`).
   variable from an earlier shell; a relative `XDG_STATE_HOME` was accepted);
   both fixed as it recommended. Both reviewers' Jev review calls were refused
   by the privacy gate; they finished with their own assessment, as allowed.
+- 2026-10-06: T006 finished into develop at 8988dbd, review record f2be377
+  for 122daa3. Guarded finish and merged develop each passed 46/46 checks;
+  merged run 3KJzXQqB2AxyiiWRCJ4AxGrETUo. CHE-93 remains open; S2a is next.
