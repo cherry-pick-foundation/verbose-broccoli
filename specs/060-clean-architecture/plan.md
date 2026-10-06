@@ -69,8 +69,8 @@ outside its tests.
 | --- | --- | --- |
 | IX "Three Plugin Packages": exactly three Agent Plugins roots with plugin IDs | **Conflicts** with U-2026-10-06a | Rewritten by slice S1 as "Component Packages and Tool Delivery" ([text](#rule-changes-for-the-users-approval)); breaking, needs the user's approval (Governance) |
 | VI wiki folders "for the plugins of those names" | Wording conflict | S1 says "for the skill areas of those names"; storage unchanged |
-| VII reference tables for "plugin, server and command facts" | Wording conflict | S1 says "skill, server and command facts"; the plugin reference table is removed in S2 |
-| Root `AGENTS.md` "Judge plugin packaging against … Agent Plugins" and plugin rule pointers | Conflicts | S1 replaces the packaging rule; S2 changes the pointers when the files move ([text](#rule-changes-for-the-users-approval)) |
+| VII reference tables for "plugin, server and command facts" | Wording conflict | S1 says "skill, server and command facts"; the plugin reference table is removed in S2a |
+| Root `AGENTS.md` "Judge plugin packaging against … Agent Plugins" and plugin rule pointers | Conflicts | S1 replaces the packaging rule; S2b changes the pointers when the files move ([text](#rule-changes-for-the-users-approval)) |
 | I Proven dependencies, pinned | Pass | `skills-ref` pinned in a `tools/` uv project after review |
 | II, III, IV, V | Pass | Moves keep behavior; acceptance uses synthetic fixtures (V) |
 | VI Wiki storage | Pass | No wiki data moves; `infra/` and wiki data are out of scope |
@@ -79,7 +79,7 @@ outside its tests.
 
 Gate result: the plan may proceed to tasks. Slice S1 must land, with the
 user's approval of its text, before any slice that depends on the new rules
-(S2 onward).
+(S2a onward).
 
 ## Decisions
 
@@ -243,13 +243,14 @@ under `scripts/` (Decisions 1, 4, 9, 10, 15).
 
 | Today | Target | Slice | Hold |
 | --- | --- | --- | --- |
-| `plugins/code/skills/*` (29 skills) | `skills/code/<name>/`; Ponytail's four to `tools/ponytail/skills/` | S2 | none |
-| `plugins/code/hooks`, `plugins/code/tests` | `tools/ponytail/hooks`, `tools/ponytail/tests` | S2 | none |
-| `plugins/code/{plugin.json,mcp.json,package.json}` | deleted | S2 | none |
-| `plugins/chat/skills/*`, `plugins/chat/AGENTS.md` | `skills/chat/` | S2 | none |
-| `plugins/chat/plugin.json`, `plugins/work/{plugin.json,mcp.json}` | deleted | S2 | none (no open branch touches them) |
-| `plugins/work/skills/jev` (byte-identical copy) | deleted; `skills/code/jev` is the one copy | S2 | none |
-| `scripts/plugin-clients.ts`, `plugin-skills-test.ts`, `plugins-validate-test.ts`, `scripts/vendor/agent-plugins/`, `tools/check-jsonschema/`, `docs/reference/plugins.md`, `doc_sources.plugin_table` | deleted | S2 | none |
+| `plugins/code/skills/*` (29 skills) | `skills/code/<name>/`; Ponytail's four to `tools/ponytail/skills/` | S2b | none |
+| `plugins/code/hooks`, `plugins/code/tests` | `tools/ponytail/hooks`, `tools/ponytail/tests` | S2b | none |
+| `plugins/code/{plugin.json,mcp.json,package.json}` | deleted | S2a | none |
+| `plugins/chat/skills/*`, `plugins/chat/AGENTS.md` | `skills/chat/` | S2b | none |
+| `plugins/chat/plugin.json`, `plugins/work/{plugin.json,mcp.json}` | deleted | S2a | excepted from H2 (see Holds) |
+| `plugins/work/skills/jev` (byte-identical copy) | deleted; `skills/code/jev` is the one copy | S2b | excepted from H2 (see Holds) |
+| `scripts/plugin-clients.ts`, `plugin-skills-test.ts`, `plugins-validate-test.ts`, `scripts/vendor/agent-plugins/`, `tools/check-jsonschema/`, `docs/reference/plugins.md`, `doc_sources.plugin_table` | deleted | S2a | none |
+| `plugins/work/{package.json,package-lock.json}` (the pinned reference-library connector that `scripts/reference-library-test.ts` checks) | decided when H2 is released; the user-scope registration runs a separate install in `~/.local/share/mcp-servers/zotero/1.0.1/` (checked 2026-10-06), so a move does not break it | later | H2 |
 | `packages/credit-offers` (one module) | rings + `bootstrap.py` | S4 | none |
 | `packages/doc-regions` | rings; published modules kept stable for `wiki-consistency` | S5 | none |
 | `scripts/workflow*.ts`, `scripts/hash.ts` | `packages/workflow/` | S6 | none |
@@ -264,6 +265,7 @@ under `scripts/` (Decisions 1, 4, 9, 10, 15).
 | --- | --- | --- | --- | --- |
 | H1 | `packages/education-privacy-gate`, the GLM judgment server | The gate's Claude Code metadata bug; `system-one-adapter` needs its read-only security review (U-2026-10-06d) | the fix merged into `develop` and a passed security review | develop orchestrator |
 | H2 | `plugins/work/**`, `packages/wiki-consistency` | Open branches `document-pdf-fidelity`, `exam-calendar`, `korean-web-wiki`, `lexical-semantics` change them (checked 2026-10-06 with `git diff` against each merge base); the session-scan trial covers `session_select.py` | all four merged into `develop`, and the user's verdict on the session-scan trial | develop orchestrator; the user for the trial |
+| H2 exception | `plugins/work/plugin.json`, `plugins/work/mcp.json`, `plugins/work/skills/jev`, the plugin wording of `plugins/work/AGENTS.md` | Not held: no open branch changes them (checked 2026-10-06 with `git diff` against each merge base); the check is repeated when S2a and S2b start | not applicable | not applicable |
 | H3 | `packages/jev-ultrafast` | `lexical-semantics` changes it; the Jev Browser trial may replace it | the merge and the user's trial verdict | develop orchestrator; the user |
 | H4 | `scripts/secrets-refresh.ts` | The chezmoi trial may replace it | the user's trial verdict | the user |
 
@@ -285,25 +287,41 @@ is never the implementer's provider.
 
 | Slice | Scope | Size estimate (owned lines) | Candidate implementer |
 | --- | --- | --- | --- |
-| S1 Rules | Planning records; constitution 3.0.0; root `AGENTS.md`; the opening of `docs/architecture.md`; `.claude/rules/claude-code.md` | documents only | this orchestrator (constitution work stays on Claude or Codex) |
-| S2 Delivery | Move code and chat skills and Ponytail; area `AGENTS.md` files; retarget links; delete plugin packaging; adopt `skills-ref` with its review; link test; update tasks, scripts, mise setup and doctor, Cog regions, docs | about −2,650 | chosen with Jev at dispatch |
+| S1 Rules | Planning records; constitution 3.0.0; root `AGENTS.md` opening and packaging rule; the opening of `docs/architecture.md` | documents only | this orchestrator (constitution work stays on Claude or Codex) |
+| S2a Packaging removed | Clean each prepared checkout's generated configuration first; delete manifests, generator, its tests, the schema check and the plugin reference; adopt `skills-ref` with its review; the skills link test; keep the reference-library guard test without `mcp.json`; update tasks, mise setup and doctor, Cog regions and docs. Skills stay in place. | about −2,600 | chosen with Jev at dispatch |
+| S2b Skills moved | Move code and chat skills and Ponytail; area `AGENTS.md` files; retarget links; delete the duplicate `jev`; update paths in configuration, tests and documents | about −50 (moves count as renames) | chosen with Jev at dispatch |
 | S3 Checks | Rules D1–D6 in both checkers with breaking fixtures and a test that each fails; fixtures also settle whether `acyclic_siblings` sees cycles between root packages and how by-name workspace imports resolve | about +180 | chosen with Jev at dispatch |
 | S4 credit-offers | Rings and bootstrap; settings through `platformdirs`; tests split by scope with unchanged assertions | about +40 | chosen with Jev at dispatch |
 | S5 doc-regions | Rings and bootstrap; published modules unchanged | about +30 | chosen with Jev at dispatch |
 | S6 workflow | `packages/workflow` from `scripts/workflow*.ts`; imports the clean-code CLI serializer by package name | about +60 | chosen with Jev at dispatch |
 | H1–H4 | After each release, one slice per hold, planned then | measured then | chosen then |
 
-S3 lands before S4–S6 so every move is checked. S2's Linux checks are the
-quickstart's first two scenarios; a fresh Claude Code and Codex session
-before and after S2 records the skill and server lists (SC-001).
+S2 is split because one change of both deletions and moves would pass 1,000
+changed lines and mix two kinds of change (R-GG-01; root `AGENTS.md` split
+review). S3 lands before S4–S6 so every move is checked. S2's checks
+are the quickstart's first two scenarios; a fresh Claude Code and Codex
+session before S2a and after S2b records the skill and server lists
+(SC-001).
+
+### Slice mechanics
+
+All slices use this branch. Each slice ends with a content-free review-record
+commit and a `git flow feature finish` from the `develop` worktree; the
+committed `.gitflow` sets `keep = true` under `feature.finish`, so the branch
+survives each finish. No code goes past a slice's review record until
+`develop` has finished it; the next slice then starts by merging `develop`
+back. If the develop coordinator is down, the next slice continues in a child
+worktree of this one, branched from the last review record, and merges
+`develop` back once it has finished the waiting slice; nothing is rebased
+(U-2026-10-06f; constitution "Development Workflow").
 
 ## Locally owned code
 
 Measured with the session's `code-size/measure.py` (non-blank lines; upstream
 copies, specs, documents and `.specify` excluded): 11,351 source and 21,030
 test lines on 2026-10-06. Estimate for the unheld slices: about −2,650 lines
-from S2 (the generator 589, its tests 2,062, the plugin table and task
-entries), about +310 for S3–S6, so about −2,300 net. The held slices are
+from S2a and S2b (the generator 589, its tests 2,062, the plugin table and
+task entries), about +310 for S3–S6, so about −2,300 net. The held slices are
 estimated when their holds are released. Each slice reports its measured
 change (FR-017); a line count does not stop work.
 
@@ -328,7 +346,8 @@ before S1 merges (Governance; FR-015).
 > by relative path keeps its upstream layout under `tools/`.
 >
 > Each capability with code lives in one component package,
-> `packages/<name>/`, with its own manifest and its source under `src/`.
+> `packages/<name>/`, with its own manifest and its source under `src/`; do
+> not retain empty placeholders.
 > Inside it, dependencies point inward: a domain without input or output, an
 > application layer with use cases and the ports they need, adapters, and one
 > composition root that reads settings. Add a port only where a use case must
@@ -357,8 +376,10 @@ before S1 merges (Governance; FR-015).
 
 ### Constitution wording changes
 
-- VI: "`chat`, `code` and `work` for the plugins of those names" becomes
-  "`chat`, `code` and `work` for the skill areas of those names".
+- VI: "`default` for knowledge that belongs to no single plugin, and `chat`,
+  `code` and `work` for the plugins of those names" becomes "`default` for
+  knowledge that belongs to no single skill area, and `chat`, `code` and
+  `work` for the skill areas of those names".
 - VII: "Repository reference tables for selected plugin, server and command
   facts" becomes "Repository reference tables for selected skill, server and
   command facts".
@@ -381,7 +402,7 @@ before S1 merges (Governance; FR-015).
   three areas, `code`, `work` and `chat`."
 - "Before working on a plugin, read its rules … [code](plugins/code/AGENTS.md),
   [work](plugins/work/AGENTS.md), or [chat](plugins/chat/AGENTS.md)." becomes,
-  in S2 when the files move, "Before working in a skill area, or using its
+  in S2b when the files move, "Before working in a skill area, or using its
   skills from another directory, read its rules: [code](skills/code/AGENTS.md),
   [work](plugins/work/AGENTS.md) or [chat](skills/chat/AGENTS.md)." The work
   link changes when H2 is released.
@@ -393,12 +414,15 @@ before S1 merges (Governance; FR-015).
   installer; document `skills` and `add-mcp` for installing elsewhere."
 - "Lessons that hold across features belong in this file or in
   `plugins/<name>/AGENTS.md`." becomes "… or in `skills/<area>/AGENTS.md`."
-  (S2).
+  (S2b).
+- "the code plugin's `model-choice` skill", "the code plugin's jev-mcp
+  judgments" and "The code plugin's `code` wiki" become "the code area's …"
+  (S2b).
 
 ### `.claude/rules/claude-code.md`
 
 "Read the owning plugin's `../../AGENTS.md` from that canonical base" becomes
-"Read the owning area's `../AGENTS.md` from that canonical base" (S2, when
+"Read the owning area's `../AGENTS.md` from that canonical base" (S2b, when
 the skills move).
 
 ## Open points

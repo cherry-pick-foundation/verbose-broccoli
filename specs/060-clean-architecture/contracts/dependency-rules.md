@@ -30,10 +30,19 @@ not yet moved, including held ones, keep today's checks until then. D4 to D6
 cover every package from the start.
 
 `forbidden_modules` in import-linter takes only root-level external packages
-(`urllib`, not `urllib.request`), which is why D2 uses `protected`
-allow-lists: a library added later is refused in inner rings until a
-contract allows it (R-ARCH-08, R-ARCH-11). When Pydantic AI is adopted,
-`pydantic_ai`, `openai` and `httpx2` join the D2 list (R-PAI-08).
+(`urllib`, not `urllib.request`) and names what inner rings may not import;
+D2 instead names each input or output library once in a `protected` contract
+with the rings allowed to import it (R-ARCH-08, R-ARCH-11). It is still a
+list of named libraries: one not on the list, added later, is not refused
+until it is added. When Pydantic AI is adopted, `pydantic_ai`, `openai` and
+`httpx2` join the list (R-PAI-08).
+
+D4's published modules are listed in `pyproject.toml` beside the contracts,
+because import-linter reads only its own configuration; a package's
+`AGENTS.md` points to that list instead of repeating it. Slice S3 writes the
+list for all five Python packages, including the held ones, from the imports
+that exist today (for example `wiki_consistency` uses `doc_regions.config`,
+`regions`, `requests` and `units`), which edits no held path.
 
 ## Probe
 
@@ -57,6 +66,9 @@ layer in every container unless the layer is written in parentheses.
   import-linter also follows indirect chains; `reachable` rules accept only
   `path` and `pathNot` (R-ARCH-12). A domain module reaching an adapter
   through a shared module passes in TypeScript.
+- Clock reads (`datetime.now()`, `time.time()`) are not detected: `datetime`
+  stays allowed in domain code for date values, so a use case passes "now"
+  in as a value, and a clock read in domain code is a review item.
 - `pathlib` stays allowed in domain code for pure path values; calls of
   `Path` methods that touch the disk are not detected and remain a review
   item.

@@ -65,7 +65,8 @@ and missing settings come back as tool execution errors the model can read
 ## Composition root
 
 The one `bootstrap` module per package that reads settings and wires adapters
-to use cases (R-CA-02 sample code; R-CA-04 bootstrap). Its function takes
+to use cases; "composition root" in the specification means this module, and
+entry points are the driving adapters that call it (R-CA-02 sample code; R-CA-04 bootstrap). Its function takes
 each adapter as an optional argument with the production default, so tests
 call the same function with fakes (R-CP-17, R-EX-11, R-EX-12). A stdio MCP
 server runs it at the start of every client session (R-FMCP-08). Reads settings only through

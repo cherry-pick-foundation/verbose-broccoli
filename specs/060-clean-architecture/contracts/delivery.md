@@ -2,7 +2,7 @@
 
 Claude Code and Codex find every skill and MCP server in each worktree of
 this repository with no installer inside it (FR-003, U-2026-10-06g). This
-contract holds after slice S2; held work-area skills keep their current
+contract holds after slices S2a and S2b; held work-area skills keep their current
 folder until hold H2 is released ([plan](../plan.md#holds)).
 
 ## Skills
@@ -10,7 +10,7 @@ folder until hold H2 is released ([plan](../plan.md#holds)).
 | Item | Rule | Source |
 | --- | --- | --- |
 | Folder | `skills/<area>/<name>/SKILL.md`, areas `code`, `work`, `chat`; `name` in the front matter equals the folder name | U-2026-10-06h, R-UP-01 |
-| Validity | `skills-ref validate` passes for every skill in verification | R-UP-01 |
+| Validity | `skills-ref validate` passes for every skill in verification, including those under `tools/ponytail/skills/` and held `plugins/work/skills/` | R-UP-01 |
 | Uniqueness | one folder per name in the whole repository | FR-002 |
 | Area rules | `skills/<area>/AGENTS.md`; each skill's first instruction points to it as `../AGENTS.md` | R-REPO-12, `.claude/rules/claude-code.md` |
 | Discovery | `.agents/skills/<name>` is a committed relative link to `../../skills/<area>/<name>`; Codex scans `.agents/skills`; Claude Code reads `.claude/skills`, a committed link to `../.agents/skills` | R-UP-02 (project paths per agent), `docs/architecture.md` "Live checkout discovery" |
@@ -32,7 +32,7 @@ agent in the user's own settings.
 | Server | Claude Code | Codex | Restrictions |
 | --- | --- | --- | --- |
 | `jev-mcp` | `~/.claude.json` `mcpServers` | `~/.codex/config.toml` `[mcp_servers.jev-mcp]` | always the gated proxy from the permanent `develop` checkout's `packages/education-privacy-gate` (FR-004, FR-021) |
-| `reference-library` | `~/.claude.json` `mcpServers` | `~/.codex/config.toml` `[mcp_servers.reference-library]` | delete and empty-trash tools blocked: Claude deny rules in `~/.claude/settings.json`, Codex `disabled_tools` (FR-004) |
+| `reference-library` | `~/.claude.json` `mcpServers` | `~/.codex/config.toml` `[mcp_servers.reference-library]` | delete and empty-trash tools blocked: Claude deny rules in `~/.claude/settings.json` and in the repository's `.claude/settings.json`, Codex `disabled_tools`; `scripts/reference-library-test.ts` keeps checking the repository's deny rules against the pinned connector's tool names (FR-004) |
 | second judgment server (GLM) | added when hold H1 is released | same | gated; see the [judgment contract](judgment.md) |
 
 Changing these registrations changes user-scope settings, which needs the

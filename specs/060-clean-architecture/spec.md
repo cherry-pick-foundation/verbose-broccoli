@@ -327,8 +327,9 @@ student-data request that would bypass the gate is refused.
 - **SC-001**: In fresh Claude Code and Codex sessions, 100% of the skills and
   MCP servers available before the change are available after it, under the
   same names, with no duplicates.
-- **SC-002**: After the rules slice, no rule document requires a plugin root,
-  plugin ID or plugin manifest.
+- **SC-002**: After the rules slice, no constitution principle or root
+  `AGENTS.md` rule requires a plugin root, plugin ID or plugin manifest; after
+  the delivery slices, no procedure text in the rule documents does either.
 - **SC-003**: For every migrated component, 100% of its pre-move behavior
   tests pass after the move with unchanged assertions.
 - **SC-004**: For each dependency rule, a deliberate violation makes
@@ -365,9 +366,10 @@ student-data request that would bypass the gate is refused.
 
 - The four open feature branches named under Edge Cases, for code under
   `plugins/work`, `packages/wiki-consistency` and `packages/jev-ultrafast`.
-- The replacement trials of U-2026-10-06e, for `scripts/plugin-clients.ts`,
+- The replacement trials of U-2026-10-06e still open, for
   `scripts/secrets-refresh.ts`, `session_select.py` and
-  `packages/jev-ultrafast`.
+  `packages/jev-ultrafast` (the rulesync trial for
+  `scripts/plugin-clients.ts` was closed by U-2026-10-06g).
 - The fix of the privacy gate's metadata bug, for
   `packages/education-privacy-gate` and User Story 4.
 - Read-only security reviews of `system-one-adapter` and any installer or

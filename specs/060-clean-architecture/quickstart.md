@@ -5,19 +5,21 @@ batch commands with the laptop's low-priority prefix
 (`systemd-run --user --scope -q -p CPUWeight=20 nice -n 10 taskset -c 4-7`)
 and run one `npm run verify` at a time.
 
-## 1. Skills are the same set, once each (S2; SC-001, FR-002, FR-003)
+## 1. Skills are the same set, once each (S2a and S2b; SC-001, FR-002, FR-003)
 
-Before S2, on `develop`:
+Before S2a, on `develop`:
 
 ```sh
 ls .agents/skills | sort > /tmp/skills-before.txt
 ```
 
-After S2:
+After S2b:
 
 ```sh
 ls .agents/skills | sort | diff /tmp/skills-before.txt -
-uv run --project tools/skills-ref --frozen --offline --no-sync skills-ref validate skills/*/*/
+for skill in skills/*/*/ tools/ponytail/skills/*/ plugins/work/skills/*/; do
+  uv run --project tools/skills-ref --frozen --offline --no-sync skills-ref validate "$skill"
+done
 ```
 
 Expected: no difference in names; every skill validates; the skills link
@@ -27,7 +29,7 @@ show the same names, each once, with no `code:` or `work:` plugin copies.
 Report any old installed plugin copy in user folders to the user instead of
 removing it (spec Edge Cases).
 
-## 2. MCP servers come from user settings only (S2; FR-003, FR-004, FR-005)
+## 2. MCP servers come from user settings only (S2a; FR-003, FR-004, FR-005)
 
 ```sh
 test ! -e .mcp.json && ! grep -q 'BEGIN' .codex/config.toml && echo clean
@@ -63,7 +65,11 @@ git diff -M "$base" -- packages/<name>/tests | grep -E '^[-+][[:space:]]*(assert
 Expected: only renames and import lines change; `no assertion changed`; the
 package's tests pass in `npm run verify`.
 
-## 5. Settings fall back safely (S4–S6; FR-009, FR-010)
+## 5. Settings fall back safely (S4; FR-009, FR-010)
+
+Only `credit-offers` reads user settings among the slices that can start now;
+`doc-regions` reads the repository's own `scripts/doc-regions.toml` and
+`workflow` reads none.
 
 Run a migrated command with an empty absolute configuration folder, then with
 a relative one:
