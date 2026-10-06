@@ -49,9 +49,9 @@ approval; verification passes (SC-002, first part).
   Ledger 2026-10-06: committed in 64690aa, 6c8cc77 and 3f39ba4 by the orchestrator (Claude Opus 5.5, the user's choice for this role); reading workers on Claude Code Sonnet 5.5 medium, picked by Jev (probability 0.61 for page digests, 0.36 for examples) after Antigravity's quota and Cursor's free-plan limit refused; consistency analysis by a Claude Code Sonnet 5.5 medium worker (Jev 0.70), its 24 findings resolved in the planning records.
 - [x] T002 [US1] Get the user's approval of the rule text in `specs/060-clean-architecture/plan.md` "Rule changes for the user's approval" and its open points, with the baseline measurement (11,351 source and 21,030 test lines) and the estimate, through the coordinator; record it as a dated user decision in `specs/060-clean-architecture/research.md` (FR-015, SC-008).
   Ledger 2026-10-06: the user chose A at about 20:10 KST (U-2026-10-06k); the empty-placeholder rule is kept in the new IX as the main session asked.
-- [ ] T003 [US1] Amend `.specify/memory/constitution.md` with the approved text: replace principle IX, change the wording of VI, VII and Governance, add the dated Governance paragraph, update the Sync Impact Report, and set version 3.0.0 with `npm run constitution:bump -- MAJOR` in a `!` commit (FR-015). Depends on T002.
-- [ ] T004 [P] [US1] Change the opening line and the plugin packaging rule of `AGENTS.md` as approved; leave the pointers and "code plugin's" phrases for S2b (FR-001, FR-015). Depends on T002.
-- [ ] T005 [P] [US1] Retitle `docs/architecture.md` and rewrite its opening and "Package and runtime ownership" to describe skill areas, component packages and the holds, keeping the plugin sections S2a removes (FR-001, FR-016).
+- [x] T003 [US1] Amend `.specify/memory/constitution.md` with the approved text: replace principle IX, change the wording of VI, VII and Governance, add the dated Governance paragraph, update the Sync Impact Report, and set version 3.0.0 with `npm run constitution:bump -- MAJOR` in a `!` commit (FR-015). Depends on T002.
+- [x] T004 [P] [US1] Change the opening line and the plugin packaging rule of `AGENTS.md` as approved; leave the pointers and "code plugin's" phrases for S2b (FR-001, FR-015). Depends on T002.
+- [x] T005 [P] [US1] Retitle `docs/architecture.md` and rewrite its opening and "Package and runtime ownership" to describe skill areas, component packages and the holds, keeping the plugin sections S2a removes (FR-001, FR-016).
 - [ ] T006 [US1] **Finish** slice S1, including a Jev check of the final rule text against its cited rows (SC-005). Depends on T003 to T005.
 
 ## Phase 2: Slice S2a — plugin packaging removed (User Story 2, P1)
@@ -161,3 +161,10 @@ gets a split review before its develop merge review (root `AGENTS.md`).
 
 - 2026-10-06: T001 done (see above). Next: T002, the user's approval, asked
   through the develop-worktree coordinator.
+- 2026-10-06 about 20:30 KST: T002 to T005 done by the orchestrator (Claude
+  Opus 5.5): constitution 3.0.0 in 2b4e96b, AGENTS.md and the architecture
+  document in 75f26a1. T006 in progress: the document judgments found the new
+  principle IX contradicted only by the plugin packages that S2a and S2b
+  remove; the audit's 20 warnings concern constitution lines this slice did
+  not change; Jev verified the 8 rule-text claims. Reviewer picked by Jev:
+  Codex gpt-6.1-sol medium (probability 0.50, confidence 0.41).
