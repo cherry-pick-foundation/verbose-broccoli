@@ -8,9 +8,9 @@ describe the repository layout. Detailed procedures live in skills.
 Claude-only additions are in `.claude/rules/`; Codex-only additions are the
 `developer_instructions` in `.codex/config.toml`.
 
-Before working on a plugin, read its rules, including when invoking its skills
-from another directory: [code](plugins/code/AGENTS.md),
-[work](plugins/work/AGENTS.md), or [chat](plugins/chat/AGENTS.md).
+Before working in a skill area, or using its skills from another directory,
+read its rules: [code](skills/code/AGENTS.md),
+[work](plugins/work/AGENTS.md) or [chat](skills/chat/AGENTS.md).
 
 ## Every change
 
@@ -110,8 +110,8 @@ that removes the copy or replaces it with an installed dependency.
 - Before completion, `npm run verify` must pass; it runs all checks through
   Turborepo and passes on their exit status and the same run's summary.
 - The agent, model and reasoning effort of each worker, reviewer and
-  orchestrator come from the code plugin's `model-choice` skill; each time
-  budget comes from the code plugin's jev-mcp judgments.
+  orchestrator come from the code area's `model-choice` skill; each time
+  budget comes from the code area's jev-mcp judgments.
 
 ## Review
 
@@ -144,7 +144,7 @@ Heartbeats need acknowledgment only.
 
 - Development memory is the Spec Kit records in `specs/`,
   `.specify/assessments/` and `.specify/bugs/` plus code and Git. Do not keep a
-  separate memory system or development wiki. The code plugin's `code` wiki
+  separate memory system or development wiki. The code area's `code` wiki
   holds coding knowledge for work in any project (libraries, patterns,
   decisions); it is not this repository's development memory.
 - When a session ends or a task moves to another provider, the task coordinator
@@ -154,7 +154,7 @@ Heartbeats need acknowledgment only.
 - Commit with Conventional Commits and one `Spec-Kit-Task: Txxx` trailer per
   covered implementation task.
 - Lessons that hold across features belong in this file or in
-  `plugins/<name>/AGENTS.md`.
+  `skills/<area>/AGENTS.md`.
 - Treat Linear issues and comments as writing to an external service: never
   put operational data such as student records, or secret values, in them.
 - Only the develop orchestrator writes to Linear. It creates one issue per

@@ -10,6 +10,6 @@ These rules add to the root `AGENTS.md` for Claude Code only.
 - Before using a linked project skill, resolve its directory with filesystem
   `realpath`. Use that canonical directory as the base before constructing any
   relative Read or Bash path, including rules, references, helpers and assets.
-  Read the owning plugin's `../../AGENTS.md` from that canonical base before
+  Read the owning area's `../AGENTS.md` from that canonical base before
   following the skill; do not resolve it from `.claude/skills`, `.agents/skills`
   or the session's working directory.
