@@ -57,3 +57,18 @@ verify-2: Tasks: 46 successful, 46 total (exit 0)
 
 Close the bug after the merge into `develop`; a concurrent cold-call check
 from a native client is optional and not required for this fix.
+
+## Follow-through (2026-10-06, appended; earlier text unchanged)
+
+- The source repair merged into `develop` at
+  `677216dbec51742164c8c915431a0081fddfede0` (reviewed source `f55651b`,
+  review record `3b44646`); source and merged full verification each passed
+  46/46, exit 0.
+- The native acceptance receipts
+  (`~/.local/state/verbose-broccoli/workspaces/develop/jev-mcp-native-acceptance/ctx_18bbc79c6eb4`
+  and `.../ctx_ef419915b588`) show a registered Claude Code call succeeding
+  through `typesafe/jev-1.13` on OpenRouter; Codex was refused before a
+  provider could be observed. The receipts do not show that refusal's cause;
+  the assessed cause is the metadata allowlist tracked in
+  `../jev-mcp-codex-metadata/`. No native concurrent cold-call check is
+  claimed.

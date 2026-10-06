@@ -587,6 +587,64 @@ def test_client_vendor_meta_is_accepted_and_discarded(mode, isolated):
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("mode", ["legacy", "auto"])
+def test_codex_meta_is_accepted_and_discarded(mode, isolated):
+    root, _ = isolated
+    codex = {
+        "callId": "call_synthetic",
+        "threadId": "thread_synthetic",
+        "sessionId": "session_synthetic",
+        "windowId": "window_synthetic",
+        "itemId": "item_synthetic",
+        "x-codex-turn-metadata": {"turn_id": ORIGINALS[0]},
+        "codex_bridge_mcp_call_id": "bridge_synthetic",
+        "progressToken": 7,
+    }
+
+    async def run():
+        async with connected(root, mode=mode) as (client, _, _):
+            result = await client.call_tool_mcp(
+                "echo", {"payload": {"text": ORIGINALS[0]}}, meta=codex
+            )
+            assert not result.is_error
+            seen = json.dumps(result.meta["request_meta"], ensure_ascii=False)
+            assert not any(
+                key in seen for key in codex if key != "progressToken"
+            )
+            assert "_synthetic" not in seen and ORIGINALS[0] not in seen
+            for meta in (
+                {"callid": "x"},
+                {"call_id": "x"},
+                {"codex/callId": "x"},
+                {"codex_apps": {}},
+                {"sandbox-state": {}},
+                {"callId": "x", "private": ORIGINALS[0]},
+                {"callId": "x", "progressToken": "7"},
+            ):
+                assert_generic(
+                    await client.session.call_tool(
+                        "echo", {"payload": {}}, meta=meta
+                    )
+                )
+            if mode == "legacy":  # auto mode demands protocol envelope keys
+                # Bypass SDK integer coercion to send the malformed wire value.
+                raw = await client.session._dispatcher.send_raw_request(
+                    "tools/call",
+                    {
+                        "name": "echo",
+                        "arguments": {"payload": {}},
+                        "_meta": {"callId": "x", "progressToken": True},
+                    },
+                )
+                assert raw["isError"]
+                assert raw["content"][0]["text"] == GENERIC
+            assert not (
+                await client.call_tool_mcp("echo", {"payload": {}})
+            ).is_error
+
+    asyncio.run(run())
+
+
 def test_concurrent_first_calls_need_no_warm_up(isolated):
     root, created = isolated
 

@@ -173,11 +173,15 @@ It does not reveal the failing value, path or provider exception.
 Only tools are exposed, alongside required MCP lifecycle messages. Resources,
 resource templates and prompts are hidden and direct access rejects. Sampling,
 elicitation, roots, continuations and untrusted logging/progress relays cannot
-open another route. An integer progress counter and `_meta` keys with the
-`claudecode/` or `anthropic/` prefix (Claude Code's tool-use and request
-metadata) are accepted and dropped; string tokens and other application `_meta`
-keys reject. Backend SDK counter/connection metadata contains no caller
-content.
+open another route. An integer progress counter, supported logging levels,
+`_meta` keys with the `claudecode/` or `anthropic/` prefix (Claude Code's
+tool-use and request metadata) and the seven exact Codex 0.160.0
+call/session/origin/turn/bridge keys, named in the
+[metadata assessment](../.specify/bugs/jev-mcp-codex-metadata/assessment.md),
+are accepted, then all frontend metadata is discarded. String or boolean
+progress tokens, unknown or near-miss keys and other application `_meta` keys
+reject. This does not claim native Codex acceptance. Backend SDK
+counter/connection metadata contains no caller content.
 
 Originals and stand-in pairs stay in memory for the call and are discarded on
 success, failure, cancellation or timeout. No per-call files, persistent map,
