@@ -1,36 +1,47 @@
-# Specification Quality Checklist: Clean Architecture Migration
+# Specification Quality Checklist: Clean Architecture Tool Collection
 
-**Purpose**: Check specification readiness before implementation planning.
+**Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-10-06
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
-- [x] Requirements describe user/maintainer outcomes and explicit user constraints.
-- [x] No speculative implementation or new business workflow is prescribed.
-- [x] Mandatory scenario, requirement, success and assumption sections are filled.
-- [x] Technical names identify the user's mandated architecture/backends only;
-  proposed files, libraries, transport choices and wiring belong in the plan.
+- [x] No implementation details (languages, frameworks, APIs)
+- [x] Focused on user value and business needs
+- [x] Written for non-technical stakeholders
+- [x] All mandatory sections completed
 
 ## Requirement Completeness
 
-- [x] No unresolved user clarification remains.
-- [x] Requirements have observable acceptance cases and explicit scope boundaries.
-- [x] Success criteria measure preserved behavior, usable routes and review evidence.
-- [x] Edge cases include held consumers, portable resources, configuration,
-  provider failures, slow calls and interrupted writes.
-- [x] Dependencies and the administrative issue/merge ownership are explicit.
+- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] Requirements are testable and unambiguous
+- [x] Success criteria are measurable
+- [x] Success criteria are technology-agnostic (no implementation details)
+- [x] All acceptance scenarios are defined
+- [x] Edge cases are identified
+- [x] Scope is clearly bounded
+- [x] Dependencies and assumptions identified
 
 ## Feature Readiness
 
-- [x] Three stories cover isolated maintenance, two backends and whole-move delivery.
-- [x] First slices, held paths and replacement trials are identified.
-- [x] User-stated choices require no further taste or scope decision for planning.
+- [x] All functional requirements have clear acceptance criteria
+- [x] User scenarios cover primary flows
+- [x] Feature meets measurable outcomes defined in Success Criteria
+- [x] No implementation details leak into specification
 
 ## Notes
 
-Validation is planning self-check, not the final independent merge review.
-The supplied architecture/provider requirements are intentional constraints,
-so the generic template's ban on implementation names is applied to invented
-design details, not to the user's chosen names. No behavior implementation task
-is complete when this checklist is checked.
+- The specification names Agent Skills, MCP servers, XDG folders, Jev,
+  OpenRouter, GLM and Hive because the user's decisions of 2026-10-06 fix them
+  as the delivery contract and the judgment backends; they are requirements,
+  not implementation choices. Languages, frameworks, check tools and folder
+  layouts are left to the plan.
+- Three markers remain for clarification, each a choice the user must make
+  (`AGENTS.md` and the shared preferences route these to the user): the
+  installer for skills and MCP servers (FR-003), how agents reach both
+  judgment backends and which is the default (FR-019), and when to adopt a
+  model-calling framework (FR-024). The skill source location is a fourth
+  clarification question, asked with them.
+- FR-020's 300-second floor is about three times the slowest GLM judgment
+  observed on 2026-10-06 (96 seconds for a verification); the value is a
+  setting.
