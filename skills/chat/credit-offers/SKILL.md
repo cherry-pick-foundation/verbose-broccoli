@@ -3,7 +3,7 @@ name: credit-offers
 description: Check the freetokens tracker for new API credit offers that cost nothing and state no time limit or end date, and show a desktop notification when one appears. Use for the scheduled Orca automation or to check a past 6-hour block by hand; not for claiming offers or for offers the tracker does not list.
 ---
 
-Read [the chat plugin rules](../../AGENTS.md) before using this skill.
+Read [the chat area rules](../AGENTS.md) before using this skill.
 
 # Credit Offers
 

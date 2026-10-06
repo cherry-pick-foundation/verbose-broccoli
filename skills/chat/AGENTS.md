@@ -1,4 +1,4 @@
-# Chat plugin
+# Chat area
 
 Target web chat applications: ChatGPT on the web first, claude.ai on the web
 later. Desktop applications are outside this scope unless the user asks for them.
