@@ -1,7 +1,0 @@
-{
-  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
-  "name": "chat",
-  "version": "0.1.0",
-  "description": "Chat plugin: a Jev Ultrafast web agent and a scheduled search for free API credit offers.",
-  "license": "Apache-2.0"
-}

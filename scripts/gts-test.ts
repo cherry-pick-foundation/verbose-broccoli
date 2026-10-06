@@ -108,7 +108,7 @@ void test('gts and Prettier configs enforce style, boundaries and vendor exclusi
     assert(!repositoryOwned.success);
     assertMatch(output(repositoryOwned), /prettier\/prettier/);
 
-    const generatedPath = '.local/plugin-clients/plugins/code/hooks/copied.js';
+    const generatedPath = '.local/copied/hooks/copied.js';
     await write(generatedPath, sameSource);
     const generated = gts(['lint', generatedPath], temp);
     assert(generated.success, output(generated));

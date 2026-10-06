@@ -7,8 +7,9 @@ as middleware. Behind it runs the unmodified npm package
 Its route is OpenRouter and its pinned model is `typesafe/jev-1.13`.
 There is no provider fallback or optional ungated mode.
 
-The upstream skill is named `jev`. Code and Work carry byte-identical portable
-copies. Model-choice evidence must still contain no student data, other
+The upstream skill is named `jev`. The repository keeps one copy, in the code
+area's skills, and agents working in any area find it through
+`.agents/skills/jev`. Model-choice evidence must still contain no student data, other
 personal records or credentials. Education work belongs to authorized Claude
 Code or Codex sessions on the user's own accounts, with model training disabled.
 The gate covers the upstream judgment call, not what an agent itself reads.
@@ -41,13 +42,12 @@ configuration. `npm run secrets:refresh` remains the supported key-refresh
 command; its [operator contract](../specs/052-secrets-refresh-sources/contracts/operator-config.md)
 covers multi-source collection and byte preservation.
 
-`npm run plugins:prepare` refreshes checkout-local skill links and MCP
-configuration for Codex and Claude Code. Local skill invocation is `$jev` in
-Codex or `/jev` in Claude Code. Optional copied packages use
-`npm run plugins:distribute`. Read the
-[discovery and receipt procedure](architecture.md#live-checkout-discovery)
-before preparing or cleaning client configuration. A fresh client session
-must verify changed server metadata; discovering a skill alone is insufficient.
+Each agent registers this server once in the user's own settings; the
+repository adds no project MCP configuration. Local skill invocation is `$jev`
+in Codex or `/jev` in Claude Code. Read the
+[discovery procedure](architecture.md#live-checkout-discovery) before changing
+client configuration. A fresh client session must verify changed server
+metadata; discovering a skill alone is insufficient.
 
 For scripts, use the locked FastMCP client, as the package's
 [protocol tests](../packages/education-privacy-gate/tests/test_upstream_tools.py)

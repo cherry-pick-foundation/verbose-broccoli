@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Linear issue**: none yet; the develop orchestrator creates it
+**Linear issue**: CHE-93
 
 **Input**: User decisions of 2026-10-06 (see [research](research.md#dated-user-decisions)):
 retire the Agent Plugins implementation and build the capabilities as a

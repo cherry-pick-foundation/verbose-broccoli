@@ -37,13 +37,12 @@ run = [
   "mise exec -- uv sync --locked --project tools/spec-kit",
   "mise exec -- uv sync --locked --project tools/shellcheck",
   "mise exec -- uv sync --locked --project tools/ruff",
-  "mise exec -- uv sync --locked --project tools/check-jsonschema",
+  "mise exec -- uv sync --locked --project tools/skills-ref",
   "mise exec -- uv sync --locked --project tools/commitizen",
   "npm ci --ignore-scripts --no-audit --no-fund --prefix plugins/work",
   "mise exec -- uv sync --locked --script plugins/work/skills/wiki-raw-import/scripts/raw_import.py",
   "git config gitflow.shared.trustHooks true",
   "mise exec -- git flow config sync",
-  "mise exec -- npm run plugins:prepare",
 ]
 
 [doctor.checks.quarto]
@@ -85,10 +84,10 @@ dir = "tools/ruff"
 hint = "Run `mise run setup`."
 timeout = "30s"
 
-[doctor.checks.uv-check-jsonschema]
-description = "The tools/check-jsonschema environment matches uv.lock"
+[doctor.checks.uv-skills-ref]
+description = "The tools/skills-ref environment matches uv.lock"
 run = "uv sync --locked --check"
-dir = "tools/check-jsonschema"
+dir = "tools/skills-ref"
 hint = "Run `mise run setup`."
 timeout = "30s"
 

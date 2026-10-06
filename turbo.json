@@ -6,7 +6,7 @@
     ".venv/lib/**",
     "tools/ruff/.venv/lib/**",
     "tools/shellcheck/.venv/lib/**",
-    "tools/check-jsonschema/.venv/lib/**",
+    "tools/skills-ref/.venv/lib/**",
     "!**/__pycache__/**",
     "!**/*.pth",
     "!**/*.dist-info/direct_url.json",
@@ -58,8 +58,7 @@
       "cache": false
     },
     "//#typecheck": {},
-    "//#plugins:validate": {},
-    "//#test:plugins-validate": {},
+    "//#skills:validate": {},
     "//#clean-code": {
       "inputs": [
         "$TURBO_DEFAULT$",
@@ -91,11 +90,8 @@
       "cache": false
     },
     "//#test:secrets-refresh": {},
+    "//#test:skills-links": {},
     "//#test:commit-msg": {},
-    "//#test:plugin-skills": {
-      "description": "Test live skill links, resources and copied distribution; uncached because filesystem discovery and conflicts are checked directly",
-      "cache": false
-    },
     "//#test:reference-library": {
       "description": "Test the reference-library setup; uncached because it runs gio, a desktop program whose presence and version are not hashed",
       "cache": false
@@ -199,7 +195,6 @@
     "//#test": {
       "command": ["true"],
       "dependsOn": [
-        "//#test:plugins-validate",
         "//#test:ruff",
         "//#test:gts",
         "//#test:git-flow",
@@ -207,8 +202,8 @@
         "//#test:worktree-branch",
         "//#test:lint-names",
         "//#test:secrets-refresh",
+        "//#test:skills-links",
         "//#test:commit-msg",
-        "//#test:plugin-skills",
         "//#test:reference-library",
         "//#test:clean-code",
         "//#test:clean-architecture",
@@ -233,7 +228,7 @@
         "//#lint:shell",
         "//#lint:names",
         "//#typecheck",
-        "//#plugins:validate",
+        "//#skills:validate",
         "//#clean-code",
         "//#clean-architecture",
         "//#python:imports",
