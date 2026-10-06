@@ -28,7 +28,6 @@ void test('reference library: the socket, proxy, gateway and app agree on ports'
   const caddyfile = await read(
     'infra/reference-library/reference-library.caddyfile',
   );
-  const mcp = JSON.parse(await read('plugins/work/mcp.json'));
 
   const socketPort = match(
     socket,
@@ -55,10 +54,6 @@ void test('reference library: the socket, proxy, gateway and app agree on ports'
     assert(caddyfile.includes(option), `Caddyfile must set ${option}`);
   }
   assertMatch(caddyfile, /bind 127\.0\.0\.1/);
-  assertEquals(
-    mcp.mcpServers['reference-library'].env.ZOTERO_LOCAL_BASE_URL,
-    `http://127.0.0.1:${socketPort}`,
-  );
 });
 
 void test('reference library: units start on demand, wait for the API and stop when unneeded', async () => {
@@ -219,15 +214,7 @@ void test('reference library: install.sh copies the files and starts the socket'
   }
 });
 
-void test('reference library: the work plugin pins the connector and clients block its delete tools', async () => {
-  const mcp = JSON.parse(await read('plugins/work/mcp.json'));
-  const server = mcp.mcpServers['reference-library'];
-  assertEquals(server.command, 'node');
-  assertEquals(server.args, [
-    '${PLUGIN_ROOT}/node_modules/zotero-native-mcp/build/index.js',
-  ]);
-  assertEquals(server.env.ZOTERO_LOCAL_APP_NAME, 'Agent reference library');
-
+void test('reference library: the work area pins the connector and Claude Code blocks its delete tools', async () => {
   const manifest = JSON.parse(await read('plugins/work/package.json'));
   assertEquals(manifest.dependencies, {'zotero-native-mcp': '1.0.1'});
   const lock = JSON.parse(await read('plugins/work/package-lock.json'));
@@ -253,16 +240,11 @@ void test('reference library: the work plugin pins the connector and clients blo
     );
   }
 
-  // Claude Code names a plugin server's tools mcp__plugin_<plugin>_<server>__<tool>
-  // and a user-added server's mcp__<server>__<tool>.
+  // Claude Code names a user-added server's tools mcp__<server>__<tool>.
   const deny: string[] = JSON.parse(await read('.claude/settings.json'))
     .permissions.deny;
-  for (const prefix of [
-    'mcp__plugin_work_reference-library__',
-    'mcp__reference-library__',
-  ]) {
-    for (const tool of BLOCKED_TOOLS) {
-      assert(deny.includes(prefix + tool), `${prefix + tool} must be denied`);
-    }
+  for (const tool of BLOCKED_TOOLS) {
+    const name = `mcp__reference-library__${tool}`;
+    assert(deny.includes(name), `${name} must be denied`);
   }
 });
