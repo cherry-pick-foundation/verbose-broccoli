@@ -15,6 +15,29 @@ as a Clean Architecture project of component packages with ports and adapters
 inside each (U-2026-10-06c); let configuration send judgments to Jev or GLM
 behind one judgment port (U-2026-10-06d).
 
+## Clarifications
+
+### Session 2026-10-06
+
+The user answered through the develop-worktree coordinator; each answer took
+the recommended option.
+
+- Q: How should skills and MCP servers reach Claude Code and Codex in this
+  repository's worktrees? → A: No installer inside the repository; skills
+  through committed folders, MCP servers through their one registration per
+  agent in the user's settings; `skills` and `add-mcp` only for installing
+  elsewhere; the plugin generator is deleted and the rulesync trial closed
+  (U-2026-10-06g; FR-003, FR-005).
+- Q: Where should the skill folders live once plugins are gone? → A:
+  `skills/<area>/<name>/` with areas `code`, `work` and `chat`, each keeping
+  its rules file, found through committed `.agents/skills` links
+  (U-2026-10-06h; FR-003a).
+- Q: How should agents reach GLM next to Jev? → A: Two gated servers side by
+  side; agents pick per task; tools in code default to Jev and switch by a
+  setting (U-2026-10-06i; FR-019).
+- Q: When should Pydantic AI come in for model calls inside tools? → A: Only
+  when a tool first needs to call a model directly (U-2026-10-06j; FR-024).
+
 ## User Scenarios & Testing *(mandatory)*
 
 The people and programs served are the user, who owns and maintains the
@@ -73,9 +96,10 @@ plugin manifest or plugin-only check remains in the repository.
 1. **Given** a skill that two plugins carried as identical copies, **When**
    the change lands, **Then** one copy remains and both agents still find it.
 2. **Given** the gated judgment server and the reference-library server,
-   **When** a fresh session starts in a worktree, **Then** both servers are
-   available to both agents, and the reference library's delete and
-   empty-trash tools stay blocked.
+   registered once in the user's settings for each agent, **When** a fresh
+   session starts in a worktree, **Then** both servers are available to both
+   agents without any per-worktree setup, and the reference library's delete
+   and empty-trash tools stay blocked.
 3. **Given** a worktree that the old plugin generator prepared, **When** the
    generator is removed, **Then** its generated configuration is cleaned up
    without touching unrelated settings, and nothing outside the repository is
@@ -179,17 +203,23 @@ student-data request that would bypass the gate is refused.
   exist once in the repository; upstream skills keep their names and
   recorded provenance (R-UP-01, U-2026-10-04a).
 - **FR-003**: Claude Code and Codex MUST find every skill and MCP server in
-  each worktree of this repository after the documented setup, using
-  [NEEDS CLARIFICATION: how skills and MCP servers reach the agents: rulesync
-  (the approved trial), Vercel's `skills` plus Neon's `add-mcp`, or committed
-  project discovery with no installer for this repository].
+  each worktree of this repository with no installer inside the repository:
+  skills through committed discovery folders, and the MCP servers through
+  their single registration per agent in the user's own settings. Vercel's
+  `skills` and Neon's `add-mcp` are documented only for installing into
+  other agents or projects (U-2026-10-06g, R-UP-02, R-UP-03).
+- **FR-003a**: Each skill MUST live at `skills/<area>/<name>/`, with the areas
+  `code`, `work` and `chat`; each area keeps its rules in its own
+  `AGENTS.md`, and agents find the skills through committed `.agents/skills`
+  links (U-2026-10-06h, R-UP-02, R-REPO-12).
 - **FR-004**: The reference library's destructive tools MUST stay blocked in
   both agents, and every judgment server registered for the agents MUST run
   behind the education privacy gate.
 - **FR-005**: Plugin manifests, the plugin manifest schema check and the
-  plugin generation and distribution code MUST be removed once the delivery
-  in FR-003 replaces them; generated configuration in prepared worktrees MUST
-  be cleaned up without touching unrelated settings.
+  plugin generation and distribution code MUST be removed with nothing
+  replacing them, and the rulesync replacement trial is closed
+  (U-2026-10-06g); generated configuration in prepared worktrees MUST be
+  cleaned up without touching unrelated settings.
 
 **Structure**
 
@@ -200,10 +230,12 @@ student-data request that would bypass the gate is refused.
 - **FR-007**: Verification MUST fail when inner code depends on outer code,
   when domain code performs input or output, or when one component imports
   another component's non-public modules (R-CA-01, R-CA-03, R-REPO-03).
-- **FR-008**: A port MUST exist only where its adapter is slow, paid,
-  nondeterministic or has two real implementations; no shared framework or
-  package is created without a second real consumer (R-CA-05, R-GG-05,
-  R-GG-14).
+- **FR-008**: A port MUST exist only where a use case has to reach outside
+  its component while it runs; data that can be gathered first is passed in
+  as plain values (R-CA-01). Tests use the real adapter where it is fast and
+  deterministic and a fake only where it is slow, paid or nondeterministic.
+  No shared framework or package is created without a second real consumer
+  (R-CA-05, R-GG-05, R-GG-14).
 - **FR-009**: Each composition root MUST read settings from the
   `verbose-broccoli` namespace under the XDG configuration, state, cache and
   data folders, honoring absolute XDG variables and the specification's
@@ -246,9 +278,9 @@ student-data request that would bypass the gate is refused.
 - **FR-019**: Tools MUST request judgments through one judgment interface
   whose backend comes from configuration: Jev on OpenRouter
   (`typesafe/jev-1.13`) or GLM 5.3 Flash on Hive through a System
-  One-compatible endpoint (U-2026-10-06d, R-CA-06). [NEEDS CLARIFICATION: how
-  agents reach both backends: two gated servers side by side, or one server
-  whose backend is set in configuration; and which backend is the default]
+  One-compatible endpoint (U-2026-10-06d, R-CA-06). Agents reach both
+  backends as two gated MCP servers side by side and pick per task; tools in
+  code default to Jev and switch to GLM by a setting (U-2026-10-06i).
 - **FR-020**: GLM calls MUST allow at least 300 seconds before timing out,
   and the limit MUST be a setting, not code (U-2026-10-06d, R-GG-15).
 - **FR-021**: Every judgment that may contain student data MUST pass the
@@ -257,9 +289,9 @@ student-data request that would bypass the gate is refused.
 - **FR-023**: Paid model calls MUST NOT run inside repository verification;
   live checks are separate runs whose call count is reported (R-GG-15,
   R-GG-16).
-- **FR-024**: Tools that call a model directly MUST use [NEEDS
-  CLARIFICATION: Pydantic AI from now on, or adopt it only when a tool first
-  needs a direct model call] (U-2026-10-06b).
+- **FR-024**: Pydantic AI MUST be adopted only when a tool first needs to
+  call a model directly, after its security review; until then every model
+  call goes through the gated judgment servers (U-2026-10-06j, R-CA-05).
 
 ### Key Entities
 

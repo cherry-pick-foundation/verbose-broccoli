@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -36,12 +36,10 @@
   as the delivery contract and the judgment backends; they are requirements,
   not implementation choices. Languages, frameworks, check tools and folder
   layouts are left to the plan.
-- Three markers remain for clarification, each a choice the user must make
-  (`AGENTS.md` and the shared preferences route these to the user): the
-  installer for skills and MCP servers (FR-003), how agents reach both
-  judgment backends and which is the default (FR-019), and when to adopt a
-  model-calling framework (FR-024). The skill source location is a fourth
-  clarification question, asked with them.
+- The three clarification markers (installer, judgment backends, model-calling
+  framework) and the skill location question were answered by the user on
+  2026-10-06, each with the recommended option; see the spec's
+  Clarifications section and research rows U-2026-10-06g to U-2026-10-06j.
 - FR-020's 300-second floor is about three times the slowest GLM judgment
   observed on 2026-10-06 (96 seconds for a verification); the value is a
   setting.

@@ -31,6 +31,10 @@ ID (for example `R-REPO-01` or `U-2026-10-06a`).
 | U-2026-10-06d | 2026-10-06 | GLM (Z.ai's model on Hive) and Jev are used heavily from the first version; cost is no constraint. One judgment port; configuration chooses Jev on OpenRouter (`typesafe/jev-1.13`) or GLM 5.3 Flash on Hive through TypeSafe's `system-one-adapter` as a System One-compatible endpoint. GLM needs a timeout far above 60 seconds. The education privacy gate sits in front of either backend for student data. Worker model choice stays Jev-only. `system-one-adapter` needs a read-only security review before adoption. |
 | U-2026-10-06e | 2026-10-06 | Approved replacement trials: Jev Browser for `packages/jev-ultrafast`, rulesync for `scripts/plugin-clients.ts`, chezmoi for `scripts/secrets-refresh.ts`, session-scan for `session_select.py`. Trial results return to the user before anything is replaced. |
 | U-2026-10-06f | 2026-10-06 about 18:30 KST, the orchestrator brief relayed by the develop-worktree session for the user | Small slices, each reviewed and merged on its own; the specification and plan first, with an estimate of locally owned code shown to the user before building. Code that open branches change waits (`plugins/work`, `packages/wiki-consistency`, `packages/jev-ultrafast`); code a trial may replace is left out; the privacy gate waits for its reported metadata bug. Plan the constitution amendment as its own slice and show its text to the user. Behavior is kept, with the same tests passing before and after. |
+| U-2026-10-06g | 2026-10-06, clarification answer relayed by the develop-worktree coordinator | No installer inside the repository: skills stay discoverable from committed folders; the gated Jev server and the reference library stay registered once per agent in the user's own settings; Vercel's `skills` and Neon's `add-mcp` are documented for installing elsewhere; the plugin generator and its tests are deleted; the rulesync replacement trial is closed as no longer needed. |
+| U-2026-10-06h | 2026-10-06, clarification answer | Skills live at `skills/<area>/<name>/` with areas `code`, `work` and `chat`, each keeping its rules file; agents find skills through the committed `.agents/skills` links. |
+| U-2026-10-06i | 2026-10-06, clarification answer | Two gated judgment servers side by side, the current Jev one and a second answered by GLM on Hive; agents pick per task; tools in code default to Jev and switch by a setting. |
+| U-2026-10-06j | 2026-10-06, clarification answer | Pydantic AI comes in only when a tool first needs to call a model directly. |
 | U-2026-09-30a | 2026-09-30 | New file and folder names use kebab-case, except names a language, tool or standard fixes. |
 | U-2026-10-04a | 2026-10-04 | A skill taken from upstream keeps its upstream name. |
 | U-2026-10-04b | 2026-10-04 | Commands Turborepo runs as tasks live in `turbo.json` task commands; `package.json` keeps hand-run entry points. The user accepted that the `command` option is experimental. |
@@ -153,20 +157,25 @@ decision with its time.
 
 ## Citation check
 
-On 2026-10-06 each row's attributions were split into 219 short claims and
+On 2026-10-06 each row's attributions were split into 217 short claims and
 sent with the cited passages to `jev_verify` through the gated `jev-mcp`
-server (Jev `typesafe/jev-1.13` on OpenRouter, the plain-client route of the
-model-choice reference), in 13 requests:
+server, in 13 requests:
 
-- 217 claims verified with confidence of at least 0.8, 2 verified with lower
-  confidence (R-REPO-06 on the layout example, whose wording was then
-  narrowed, and R-REPO-08 on running a command from a `src` layout), and none
-  contradicted or unsupported.
+- Jev (`typesafe/jev-1.13` on OpenRouter, the plain-client route of the
+  model-choice reference) verified all 217: 215 with confidence of at least
+  0.8 and 2 with lower confidence (R-REPO-06 on the layout example, whose
+  wording was then narrowed, and R-REPO-08 on running a command from a `src`
+  layout). None was contradicted or unsupported.
+- GLM 5.3 Flash on Hive, through the same gate and a local System
+  One-compatible endpoint (`system-one-adapter` 0.2.1, outside the
+  repository), verified all 217 as a second opinion: 213 with confidence of
+  at least 0.8 and 4 with lower confidence (R-CA-03, R-REPO-11, R-OS-14,
+  R-GG-17). None was contradicted. GLM refused requests whose answers grew
+  past its output limit, so the larger requests were re-sent in pieces of
+  about eight claims; its answers took 6 to 103 seconds each, Jev's under
+  2 seconds.
 - A second request checked the specification's 19 cited requirements against
-  the rows and dated decisions they cite: all 19 verified.
-
-The same requests were also sent to GLM 5.3 Flash on Hive through the same
-gate as a second opinion; its result is recorded below when complete.
+  the rows and dated decisions they cite: Jev verified all 19.
 
 The inputs, scripts and raw answers are kept outside the repository in
 `$XDG_STATE_HOME/verbose-broccoli/workspaces/feature-clean-architecture/citation-check/attempt-20261006T094848Z/`.
