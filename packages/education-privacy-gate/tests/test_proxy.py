@@ -64,7 +64,7 @@ def isolated(tmp_path, monkeypatch):
 
 
 @asynccontextmanager
-async def connected(tmp_path, timeout=3, mode="legacy"):
+async def connected(tmp_path, timeout=3, mode="legacy", warm=True):
     child_log = tmp_path / "child.log"
     with child_log.open("w") as log:
         proxy = proxy_module.build_proxy(
@@ -76,7 +76,8 @@ async def connected(tmp_path, timeout=3, mode="legacy"):
         )
         transport = proxy.client_factory().transport
         async with Client(proxy, timeout=10, mode=mode) as client:
-            await client.list_tools()
+            if warm:
+                await client.list_tools()
             yield client, proxy, transport
         await transport.close()
 
@@ -113,7 +114,7 @@ def test_sdk_logging_levels(level):
                 request_state=None,
             ),
         )
-        gate = proxy_module.PrivacyGate(None)
+        gate = proxy_module.PrivacyGate()
         gate.schemas = {"echo": {"type": "object"}}
         forwarded = []
 
@@ -143,7 +144,7 @@ def assert_cleared(created):
 @pytest.mark.usefixtures("isolated")
 def test_original_and_masked_schema_both_hold():
     async def run():
-        gate = proxy_module.PrivacyGate(None)
+        gate = proxy_module.PrivacyGate()
         gate.schemas = {
             "echo": {
                 "type": "object",
@@ -188,7 +189,7 @@ def test_original_and_masked_schema_both_hold():
 @pytest.mark.usefixtures("isolated")
 def test_numbered_label_collision_forwards_and_restores():
     async def run():
-        gate = proxy_module.PrivacyGate(None)
+        gate = proxy_module.PrivacyGate()
         gate.schemas = {
             "echo": {
                 "type": "object",
@@ -549,6 +550,106 @@ def test_frontend_meta_never_reaches_backend(mode, isolated):
                         "echo", {"payload": {}}, meta=meta
                     )
                 )
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("mode", ["legacy", "auto"])
+def test_client_vendor_meta_is_accepted_and_discarded(mode, isolated):
+    root, _ = isolated
+    vendor = {
+        "claudecode/toolUseId": "toolu_synthetic",
+        "claudecode/agentId": ORIGINALS[0],
+        "claudecode/isObserver": True,
+        "anthropic/requestId": "req_synthetic",
+    }
+
+    async def run():
+        async with connected(root, mode=mode) as (client, _, _):
+            result = await client.call_tool_mcp(
+                "echo", {"payload": {"text": ORIGINALS[0]}}, meta=vendor
+            )
+            assert not result.is_error
+            seen = json.dumps(result.meta["request_meta"], ensure_ascii=False)
+            assert not any(key in seen for key in vendor)
+            assert "toolu_synthetic" not in seen and ORIGINALS[0] not in seen
+            for meta in (
+                {"claudecode": "x"},
+                {"xclaudecode/toolUseId": "x"},
+                {"claudecode/toolUseId": "x", "private": ORIGINALS[0]},
+            ):
+                assert_generic(
+                    await client.session.call_tool(
+                        "echo", {"payload": {}}, meta=meta
+                    )
+                )
+
+    asyncio.run(run())
+
+
+def test_concurrent_first_calls_need_no_warm_up(isolated):
+    root, created = isolated
+
+    async def run():
+        async with connected(root, warm=False) as (client, _, _):
+            values = [{"text": ORIGINALS[0] + f" call {i}"} for i in range(4)]
+            results = await asyncio.gather(
+                *(
+                    client.call_tool_mcp("echo", {"payload": value})
+                    for value in values
+                )
+            )
+            assert not any(result.is_error for result in results)
+            assert [json.loads(r.content[0].text) for r in results] == values
+        assert_cleared(created)
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("output_schema", [None, {"type": "object"}])
+@pytest.mark.usefixtures("isolated")
+def test_cold_schema_fetch_refuses_output_schemas(output_schema):
+    async def run():
+        gate = proxy_module.PrivacyGate()
+        tools = [
+            SimpleNamespace(
+                name="echo",
+                parameters={"type": "object"},
+                output_schema=output_schema,
+            )
+        ]
+
+        async def list_tools():
+            async def tools_next(unused_context):
+                return tools
+
+            return await gate.on_list_tools(None, tools_next)
+
+        ctx = SimpleNamespace(
+            request_context=SimpleNamespace(meta=None),
+            input_responses=None,
+            request_state=None,
+            fastmcp=SimpleNamespace(list_tools=list_tools),
+        )
+        forwarded = []
+
+        async def next_call(masked):
+            forwarded.append(masked)
+            return ToolResult(content="safe synthetic")
+
+        result = await gate.on_call_tool(
+            MiddlewareContext(
+                message=CallToolRequestParams(name="echo", arguments={}),
+                fastmcp_context=ctx,
+            ),
+            next_call,
+        )
+        if output_schema is None:
+            assert not result.is_error
+            assert len(forwarded) == 1
+        else:
+            assert_generic(result)
+            assert not forwarded and gate.schemas is None
 
     asyncio.run(run())
 
