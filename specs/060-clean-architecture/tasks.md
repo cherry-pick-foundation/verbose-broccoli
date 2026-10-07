@@ -102,7 +102,7 @@ sessions list the same skill and server names as before S2a, once each
 - [x] T022 [US2] Update the rule pointers and documents: `docs/architecture.md` "Skill source ownership" and its Cog skill table glob, root `AGENTS.md` pointers, lessons line and "code plugin's" phrases, `.claude/rules/claude-code.md`, and the area `AGENTS.md` files' plugin wording (FR-003, FR-011, SC-002).
 - [x] T023 [US2] Run quickstart scenario 1 and record the after-inventory from fresh Claude Code and Codex sessions; report any installed plugin copies in user folders to the user without removing them (SC-001, spec Edge Cases). Depends on T020 to T022.
   Ledger 2026-10-07: T017 to T023 implemented by Claude Code Sonnet 5.5 high (Jev probability 0.61, confidence 0.54) in 3541b4a, 01fa65d, 94854ad, 9df3edc, daf3b31 and 10202a0; Ponytail's bundle is unchanged under `tools/ponytail/` with a new one-line `tools/ponytail/AGENTS.md` that its skills and hook loader resolve to. Narrow checks pass; 47 skill names are the same before and after; 43 non-Ponytail skills validate. Owned code: 10,740 to 10,750 source and 19,043 to 19,050 test lines. A fresh Claude Code session (Haiku 4.5) listed all 47 skills; a fresh Codex session (gpt-6-luna, low) listed all but `gws-shared`, a work skill whose link and folder this slice did not change (the list is the model's own answer, so a missing name is a limit of this check). User-scope links in `~/.agents/skills` point into develop's old plugin folders and will break after the merge; the user was asked how to retarget them. Evidence: `slices/s2b/ctx_9bbc09c6beb1/` and `skills-inventory/` in the feature's state folder.
-- [ ] T024 [US2] **Finish** slice S2b. Depends on T023.
+- [x] T024 [US2] **Finish** slice S2b. Depends on T023.
 
 ## Phase 4: Slice S2c — Spec Kit 1.1.0 (User Story 2, P1)
 
@@ -225,3 +225,12 @@ gets a split review before its develop merge review (root `AGENTS.md`).
   workspaces/develop/clean-architecture-s2a/attempt-20261006t164714z/`.
   CHE-93 stays open for S2b and later slices; S1's historical built-in
   follow-through remains with the architecture owner.
+
+- 2026-10-07: S2b finished into develop at 83b6fba, review record 23acde5
+  for 1f63043 (renewed Codex built-in review, no actionable defects). Source,
+  mandatory finish and merged develop passed 45/45 tasks; merged summary
+  3KLPlrXrroNPzXpelDwfASA0xG0. The mandatory hook summary
+  3KLOvXnZdApIXcUzq5QxfWQOpIw ran inside the finish command despite no
+  pre-hook output in its log. Receipts: `$XDG_STATE_HOME/verbose-broccoli/
+  workspaces/develop/clean-architecture-s2b/attempt-20261007t002945z/`.
+  The existing owner continues with S2c; CHE-93 stays open.
