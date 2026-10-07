@@ -712,7 +712,7 @@ use live in `skills/code` instead.
 
 - `assess` and `bug` run only when invoked. They keep their records in
   `.specify/assessments/<slug>/` and `.specify/bugs/<slug>/`.
-- One local preset, `linear-issue` in `.specify/presets/`, adds an `append`
+- The local preset `linear-issue` in `.specify/presets/` adds an `append`
   layer to the spec template for the feature's Linear issue line (see
   [Linear](#linear--2026-09-27)). Spec Kit's `specify preset add --dev`
   installed it and wrote `.specify/presets/.registry`; `specify preset resolve
