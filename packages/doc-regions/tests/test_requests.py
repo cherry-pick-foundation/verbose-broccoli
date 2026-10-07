@@ -74,6 +74,10 @@ def test_verify_limits_and_lossless_order(evidence_count):
         assert request["arguments"]["evidence"] == evidence
 
 
+def evidence_chars(request):
+    return sum(len(e["text"]) for e in request["arguments"]["evidence"])
+
+
 def claim_chars(request):
     return sum(len(c) for c in request["arguments"]["claims"])
 
@@ -219,19 +223,72 @@ def test_prepare_root_diff_schema_determinism_and_read_only(
     valid(first["requests"])
     verify = [r for r in first["requests"] if r["tool"] == "jev_verify"]
     classify = [r for r in first["requests"] if r["tool"] == "jev_classify"]
+    assert len(verify) > 1
     assert [i for r in verify for i in r["units"]] == [
         u["id"] for u in first["units"]
-    ]
+    ] * len(verify)
     assert [i for r in classify for i in r["units"]] == [
         u["id"] for u in first["units"] if u["added"]
     ]
-    evidence = verify[0]["arguments"]["evidence"]
+    evidence = [e for r in verify for e in r["arguments"]["evidence"]]
     assert evidence[0]["id"] == "source.txt#1"
-    assert all(len(e["text"]) <= 80 for e in evidence)
+    assert all(evidence_chars(r) <= 80 for r in verify)
     assert "".join(e["text"] for e in evidence) == git(
         repository, "diff", first["base"], "--", "source.txt"
     )
     assert "Working tree addition." in "".join(e["text"] for e in evidence)
+
+
+def verify_of(repository, limit):
+    result = prepare(
+        repository, "config.toml", base="develop", max_evidence_chars=limit
+    )
+    valid(result["requests"])
+    return result, [r for r in result["requests"] if r["tool"] == "jev_verify"]
+
+
+def test_prepare_bounds_total_evidence_in_every_request(repository, unchanged):
+    for i in range(3):
+        (repository / f"more-{i}.txt").write_text(
+            "after public synthetic evidence\n" * 60
+        )
+    git(repository, "add", ".")
+    with unchanged(repository):
+        _, whole = verify_of(repository, 10**6)
+        sizes = [len(e["text"]) for e in whole[0]["arguments"]["evidence"]]
+        assert len(whole) == 1 and len(sizes) > 3
+        for limit in (500, 2000, sizes[0] + sizes[1]):
+            _, requests = verify_of(repository, limit)
+            assert len(requests) > 1
+            # No request is over the budget, and an item over it was chunked.
+            assert all(evidence_chars(r) <= limit for r in requests)
+            # Every claim meets every evidence byte once, in diff order.
+            assert all(r["units"] == whole[0]["units"] for r in requests)
+            items = [e for r in requests for e in r["arguments"]["evidence"]]
+            assert len({e["id"] for e in items}) == len(items)
+            assert "".join(e["text"] for e in items) == "".join(
+                e["text"] for e in whole[0]["arguments"]["evidence"]
+            )
+
+
+def test_prepare_packs_evidence_up_to_the_exact_budget(repository, unchanged):
+    for name in ("a", "b", "c"):
+        (repository / f"{name}.txt").write_text(f"{name}\n" * 30)
+    git(repository, "add", ".")
+    with unchanged(repository):
+        _, whole = verify_of(repository, 10**6)
+        items = whole[0]["arguments"]["evidence"]
+        assert [e["id"] for e in items] == sorted(e["id"] for e in items)
+        a, b = (len(e["text"]) for e in items[:2])
+        _, fits = verify_of(repository, a + b)
+        _, over = verify_of(repository, a + b - 1)
+
+    def ids(requests):
+        return [[e["id"] for e in r["arguments"]["evidence"]] for r in requests]
+
+    assert ids(fits)[0] == [e["id"] for e in items[:2]]
+    assert ids(over)[0] == [items[0]["id"]]
+    assert ids(over)[1][0] == items[1]["id"]
 
 
 def test_prepare_keeps_a_rename_as_one_small_diff(repository, unchanged):
@@ -404,9 +461,13 @@ def test_prepare_new_file_and_empty_diff(repository, unchanged):
 
 
 def test_prepare_rejects_more_than_249_evidence_items(repository, unchanged):
-    (repository / "source.txt").write_text("x" * 500 + "\n")
+    for i in range(250):
+        (repository / f"many-{i}.txt").write_text("x\n")
+    git(repository, "add", ".")
     with unchanged(repository), pytest.raises(ValueError, match="249"):
-        prepare(repository, "config.toml", base="develop", max_evidence_chars=1)
+        prepare(
+            repository, "config.toml", base="develop", max_evidence_chars=10**6
+        )
 
 
 def cli(root, *args):
