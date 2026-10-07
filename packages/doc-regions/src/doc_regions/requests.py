@@ -31,8 +31,7 @@ CLASSES = [
 # A request of about 45,800 claim characters (106 claims) and one of 224
 # short claims drew OpenRouter's `400 max_tokens_exceeded`; 110 claims and
 # four hand-split requests of about 11,500 characters were answered. The
-# caller splits requests; evidence is the same in every
-# request of a group, so it does not count here.
+# caller splits requests; `prepare` bounds a group's evidence the same way.
 MAX_CLAIMS = 110
 MAX_CLAIM_CHARS = 12000
 
@@ -195,7 +194,16 @@ def prepare(root, config_path, *, base, max_evidence_chars):
             for index, chunk in enumerate(chunks, 1)
         )
 
-    requests = verify_requests([(units, evidence)]) if evidence else []
+    # Pack the items in order into groups of at most max_evidence_chars each;
+    # verify_requests pairs every group with every claim.
+    groups, size = [], 0
+    for item in evidence:
+        if not groups or size + len(item["text"]) > max_evidence_chars:
+            groups.append([])
+            size = 0
+        groups[-1].append(item)
+        size += len(item["text"])
+    requests = verify_requests([(units, group) for group in groups])
     for document in config["targets"]:
         added = [
             unit
