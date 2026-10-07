@@ -984,6 +984,14 @@ or an agent region, written by agents. No part is human-written.
   `jev_verify` requests, with units as claims and the feature diff as
   evidence, and `jev_classify` requests for the units the feature added.
   Korean text is allowed; no provider-era Hangul transliteration is required.
+  `--max-evidence-chars` bounds the total evidence text in each generated
+  `jev_verify` request. Evidence groups keep all evidence, so claim and unit IDs
+  repeat across groups. Consider every group's formal verdict and action for
+  each repeated claim ID: a verified result in one group must not hide a
+  contradiction or an unresolved review from another. Unsupported is silence.
+  Treat a subject-demoted relation flag as unsupported and needing review,
+  never as a formal contradiction. When a claim stands, record the reason or
+  disposition. No code combines the results.
   Send requests through the gated `jev-mcp` proxy.
   Each `jev_verify` request holds at most 110 claims and 12,000 claim
   characters, below the sizes OpenRouter refused (the real limit is not

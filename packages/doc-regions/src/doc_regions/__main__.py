@@ -30,7 +30,10 @@ def main(argv=None):
         if command == "prepare":
             sub.add_argument("--base", required=True)
             sub.add_argument(
-                "--max-evidence-chars", required=True, type=positive
+                "--max-evidence-chars",
+                required=True,
+                type=positive,
+                help="most evidence characters in one request",
             )
     args = parser.parse_args(argv)
     root = Path.cwd()
