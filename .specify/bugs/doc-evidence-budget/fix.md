@@ -24,11 +24,11 @@ Line numbers in the assessment refer to develop `fae0c02`, before the fix.
 | Field | Value |
 |-------|-------|
 | Task | T002 (fix) |
-| Worker | Claude Code, `claude-sonnet-5-5`, medium effort, as chosen by four gated Jev calls before this dispatch |
+| Worker | Claude Code, `claude-sonnet-5-5`, medium effort, as chosen by four gated Jev calls before this dispatch. Model decision probability .99 (confidence .97), effort medium .91 (confidence .90), original first 30-minute checkpoint .62 (confidence .56; not a cap). |
 | Dispatch | `ctx_1315de1bb7a6` (task `task_437aa5fda1a2`) |
 | Base | develop `fae0c0260e6b28799448caf9be9964f73d2417fa` |
 | Checkpoint | First reporting checkpoint, not a time cap; no blocker. Evidence directory: `~/.local/state/verbose-broccoli/workspaces/feature-doc-evidence-budget/doc-evidence-budget-fix/ctx_1315de1bb7a6/` |
-| Provider calls | 0 by this worker. The four model-choice calls were made before the dispatch. |
+| Provider calls | 0 by this worker. The four model-choice calls were made before the dispatch. Root later made one live acceptance call (see `test.md`). |
 
 ## Changes
 
@@ -52,9 +52,8 @@ Line numbers in the assessment refer to develop `fae0c02`, before the fix.
 - The 249-item cap of `verify_requests` still applies to one group, so a group
   of more than 249 evidence items still stops the command with the same error.
   A budget that holds that many tiny items is the only way to reach it.
-- `docs/architecture.md` (line 922 onward) still says the option "splits" the
-  agent regions and does not mention the total bound. That file is outside this
-  task's edit scope; root should add one sentence.
+- `docs/architecture.md` now explains the total bound in the document-consistency
+  request-bounds paragraph (done by the docs follow-through, T002/T003).
 
 ## Tests Added or Updated
 
@@ -89,7 +88,13 @@ See `test.md`.
 
 ## Follow-ups
 
-- Root: add the total-evidence sentence to `docs/architecture.md`.
+- Done: the operator explanation in `docs/architecture.md`. The docs worker was
+  a fresh Claude Code `claude-sonnet-5-5` at low effort with a first 5-minute
+  checkpoint (not a time cap), chosen as one tuple at probability .57
+  (confidence .47) with all requirements supported; it is a preference between
+  supported low and medium. Fresh Claude usage then was 10% session and 13%
+  weekly; the choice input's "about 8/12" was a stale approximation corrected by
+  the retained snapshot.
 - The provider's true token limit is still unknown; a limit that suits one
-  provider route is not shown to suit another. Live acceptance is outside this
-  record.
+  provider route is not shown to suit another. Live acceptance is recorded in
+  `test.md`.

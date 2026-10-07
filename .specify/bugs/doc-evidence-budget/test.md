@@ -13,18 +13,19 @@ Against the old `requests.py` (develop `fae0c02`) three tests fail; with the
 fix all 35 tests in `test_requests.py` pass. The saved synthetic reproduction,
 run with `max_evidence_chars=500`, gave one request of 6,411 evidence
 characters before the fix and 15 requests of at most 500 after it, with the
-same evidence bytes and zero model calls. No provider was called, so these
-results do not show that a provider accepts the new request sizes.
+same evidence bytes and zero model calls. The source worker itself made 0
+provider calls. Root later made one live call (see "Live acceptance"); the
+offline results alone do not show that a provider accepts the new request sizes.
 
 ## Task record
 
 | Field | Value |
 |-------|-------|
 | Task | T003 (verification) |
-| Worker | Claude Code, `claude-sonnet-5-5`, medium effort |
+| Worker | Claude Code, `claude-sonnet-5-5`, medium effort (model decision probability .99, confidence .97; effort medium .91, confidence .90; original first 30-minute checkpoint .62, confidence .56, not a cap) |
 | Dispatch | `ctx_1315de1bb7a6` (task `task_437aa5fda1a2`) |
 | Checkpoint | First reporting checkpoint, not a time cap; reached with no blocker |
-| Provider calls | 0 |
+| Provider calls | 0 by this worker; one by root later (see "Live acceptance") |
 
 ## Checks Performed
 
@@ -56,10 +57,33 @@ and CLI tests; and the 249-item error for one group.
 ## Not performed
 
 - `npm run verify` (full): no full-check slot was granted to this worker.
-- Any provider call. The 66 failed S2b requests and 264 paid split judgments
-  were not replayed. Provider acceptance of the new request sizes is unproven.
+- Any provider call by this worker. The original 66 failed and 264 paid split
+  results were not replayed.
 - A CLI `prepare` run on the real repository diff.
 - Independent review: root's fresh other-provider reviewer owns it.
+
+## Live acceptance
+
+Root later forwarded only the first newly generated public synthetic request
+(of 6 generated) through the sole registered, always-gated `jev-mcp`. Its
+`evidence.text` totals 500 characters. The route was OpenRouter,
+`typesafe/jev-1.13`; the response was normal and not an error, with 1,002 input
+and 128 output tokens, client call count 1. This is protocol acceptance for one
+evidence part. It is not full-corpus semantic validation and does not guarantee
+that every size-bounded input avoids provider errors. The heading had low
+confidence and the full-fixture claim was unsupported (subject-demoted,
+.16 same_subject), which is accurate for that part only. Evidence: root's
+`attempt-20261007t013919z/` under
+`~/.local/state/verbose-broccoli/workspaces/develop/doc-evidence-budget-fix/`
+(`live-acceptance-proof.json`). No further paid probe is required.
+
+## Docs follow-through
+
+The operator explanation is done in `docs/architecture.md` (T002/T003). It was
+written by a fresh Claude Code `claude-sonnet-5-5` worker at low effort with a
+first 5-minute checkpoint (not a time cap), one tuple chosen at probability .57
+(confidence .47), all requirements supported. Checks: `doc-regions:check` and
+`git diff --check`.
 
 ## Residual Risks
 
@@ -69,10 +93,11 @@ and CLI tests; and the 249-item error for one group.
   as an unsupported result needing review. This fix adds no combining code.
 - Claim and unit IDs repeat across requests, once per evidence group; more
   groups mean more provider calls.
-- `docs/architecture.md` line 922 onward does not yet mention the total bound.
+- One live part is not full acceptance: other size-bounded inputs may still
+  meet provider errors.
 - The provider's true limit is unpublished; the limit is characters, not tokens.
 
 ## Recommendation
 
-Ready for root's integration, full verification slot and independent review.
-Close the bug only after those and a counted live acceptance.
+Ready for root's integration. The full `npm run verify` and the independent
+review remain root-owned and pending; close the bug only after them.
