@@ -4,7 +4,7 @@
 - **Tested**: 2026-10-07
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: verified offline (narrow and affected tests); one generated evidence part accepted live by the provider (see "Live acceptance"); full `npm run verify` and independent review still pending
+- **Result**: verified offline (narrow and affected tests); one generated evidence part accepted live by the provider (see "Live acceptance"); root's full `npm run verify` passed at source commit b18d2a1 (see "Source full verification"); independent review, merge and combined develop verification still pending
 - **Spec-Kit-Task**: T003 (verification). T004 integration and acceptance belongs to root.
 
 ## Summary
@@ -56,11 +56,24 @@ and CLI tests; and the 249-item error for one group.
 
 ## Not performed
 
-- `npm run verify` (full): no full-check slot was granted to this worker.
+- `npm run verify` (full): not performed by this worker; no full-check slot
+  was granted to it. See "Source full verification" for root's later run.
 - Any provider call by this worker. The original 66 failed and 264 paid split
   results were not replayed.
 - A CLI `prepare` run on the real repository diff.
 - Independent review: root's fresh other-provider reviewer owns it.
+
+## Source full verification
+
+Root, not this worker, ran the full `npm run verify` at the exact source commit
+`b18d2a10ef3347b694b72941b66ce19ffcee4780`. It exited 0, all 45 task exits
+were 0 (42 executed, 3 cached), and the summary ID is
+`3KLdK4Oop8DkR7Bnz9yaLfMsmSx`. This is retained source evidence, not a new run
+for any later documentation commit: `source-full-proof.json` and
+`source-full-turbo-summary.json` under
+`~/.local/state/verbose-broccoli/workspaces/develop/doc-evidence-budget-fix/attempt-20261007t013919z/`.
+The independent final review, the merge and the combined `develop`
+verification are still pending.
 
 ## Live acceptance
 
@@ -89,8 +102,12 @@ first 5-minute checkpoint (not a time cap), one tuple chosen at probability .57
 
 - Evidence partitioning changes a judgment's context: a claim answered
   `unsupported` against one group may be supported by another group. The caller
-  must combine formal verdicts only and treat a subject-demoted relation flag
-  as an unsupported result needing review. This fix adds no combining code.
+  must consider every group's formal verdict and action for each repeated
+  claim ID, so a verified result in one group cannot hide a contradiction or
+  an unresolved review from another. Unsupported is silence. A
+  subject-demoted relation flag is an unsupported result needing review, not
+  a formal contradiction. When a claim stands, the caller records a reason or
+  disposition. This fix adds no aggregation algorithm and no combining code.
 - Claim and unit IDs repeat across requests, once per evidence group; more
   groups mean more provider calls.
 - One live part is not full acceptance: other size-bounded inputs may still

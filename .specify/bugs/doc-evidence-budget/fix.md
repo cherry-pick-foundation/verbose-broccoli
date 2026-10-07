@@ -42,10 +42,13 @@ Line numbers in the assessment refer to develop `fae0c02`, before the fix.
 
 - Claim and unit IDs now appear in several `jev_verify` requests, once per
   evidence group. Each answer judges the claim against that group only. The
-  caller must combine only the returned formal verdicts; a subject-demoted
-  relation flag stays an unsupported result for review and is not a verdict.
-  This change builds requests only; it adds no provider call and no combining
-  code.
+  caller must consider every group's formal verdict and action for each
+  repeated claim ID: a verified result in one group must not hide a
+  contradiction or an unresolved review from another. Unsupported is silence.
+  A subject-demoted relation flag stays an unsupported result needing review
+  and is not a formal contradiction. When a claim stands, the caller records a
+  reason or disposition. This change builds requests only; it adds no provider
+  call, no aggregation algorithm and no combining code.
 - With a limit smaller than the diff, one change now yields more requests
   (about the diff size divided by the limit, times the claim batches). Live
   acceptance and its call count stay outside this fix.
