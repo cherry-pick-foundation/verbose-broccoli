@@ -1,13 +1,18 @@
 ---
 name: speckit-assess-define
-description: 'Define the problem: who is affected, what hurts, goals, non-goals, and success metrics'
+description: 'Define the problem: who is affected, what hurts, goals, non-goals, and
+  success metrics'
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: assess:commands/speckit.assess.define.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Assess Define Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Define the Problem
 

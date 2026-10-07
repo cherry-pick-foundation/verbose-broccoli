@@ -1,0 +1,30 @@
+schema_version: "1.0"
+preset:
+  id: "area-rules-pointer"
+  name: "Area rules pointer"
+  version: "1.0.0"
+  description: "Adds the code area rules pointer to every speckit skill"
+requires:
+  speckit_version: ">=1.1.0"
+provides:
+  templates:
+    - { type: "command", name: "speckit.analyze", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.checklist", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.clarify", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.constitution", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.converge", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.implement", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.plan", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.specify", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.tasks", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.taskstoissues", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.agent-context.update", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.assess.intake", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.assess.research", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.assess.define", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.assess.shape", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.assess.decide", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.bug.assess", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.bug.fix", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.bug.test", file: "commands/pointer.md", strategy: "prepend" }
+    - { type: "command", name: "speckit.git.validate", file: "commands/pointer.md", strategy: "prepend" }

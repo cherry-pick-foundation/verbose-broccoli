@@ -1,13 +1,18 @@
 ---
 name: speckit-assess-shape
-description: 'Shape a concept: solution options, scope, appetite, and trade-offs (no implementation design)'
+description: 'Shape a concept: solution options, scope, appetite, and trade-offs (no
+  implementation design)'
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: assess:commands/speckit.assess.shape.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Assess Shape Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Shape a Concept
 

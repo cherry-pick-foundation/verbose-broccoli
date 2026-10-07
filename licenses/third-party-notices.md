@@ -44,23 +44,21 @@ below remain the source provenance; the pointer is a local patch.
 
 ## github/spec-kit — Spec Kit
 
-- Source: <https://github.com/github/spec-kit/tree/9118ed15a0ba65053469a94c560ea5d233f75884>
-- Revision: `9118ed15a0ba65053469a94c560ea5d233f75884` (release 1.0.1).
-- Reused: the ten core `speckit-*` skills in `skills/code/` and Spec
-  Kit 1.0.1's generated files under `.specify/`, except `.specify/extensions/`
-  and `.specify/extensions.yml` (see release 1.0.12 below). Later local edits
-  are recorded in Git history.
-- Extensions: the bundled `agent-context`, `assess`, `bug` and `git` extensions
-  from release 1.0.12
-  (<https://github.com/github/spec-kit/tree/e77daa9021d20db26b878f7dfa5640fe5a42d04e/extensions>)
-  are installed under `.specify/extensions/`, unchanged except the
-  `context_file` setting in `agent-context-config.yml`. The generated
-  `.specify/extensions.yml` disables every Git hook and enables the two
-  `agent-context` after hooks as non-optional; upstream marks those hooks
-  optional. The ten skills
-  generated from their commands, `speckit-agent-context-update`,
-  `speckit-assess-*`, `speckit-bug-*` and `speckit-git-validate`, are reused
-  in `skills/code/` with the area-rules pointer.
+- Source: <https://github.com/github/spec-kit/tree/f1d3a4f8337ebbd3ae22760a9c12e3352b93a175>
+- Revision: `f1d3a4f8337ebbd3ae22760a9c12e3352b93a175` (release 1.1.0).
+- Reused: the ten core `speckit-*` skills in `skills/code/` and Spec Kit's
+  generated files under `.specify/`, rendered by its own commands. Local
+  changes: the `.cache/` rule added to `.specify/.gitignore`, and the
+  `area-rules-pointer` preset in `.specify/presets/`, which makes Spec Kit
+  add the area-rules pointer to every packaged `speckit-*` skill.
+- Extensions: the bundled `agent-context`, `assess`, `bug` and `git`
+  extensions of the same release are installed under `.specify/extensions/`,
+  unchanged except the `context_file` setting in `agent-context-config.yml`.
+  The generated `.specify/extensions.yml` disables every Git hook and enables
+  the two `agent-context` after hooks as non-optional; upstream marks those
+  hooks optional. The ten skills generated from their commands,
+  `speckit-agent-context-update`, `speckit-assess-*`, `speckit-bug-*` and
+  `speckit-git-validate`, are reused in `skills/code/`.
 - Copyright GitHub, Inc. [MIT license](github-spec-kit.txt).
 
 ## github/awesome-copilot — git-commit

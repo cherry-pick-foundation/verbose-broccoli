@@ -1,13 +1,18 @@
 ---
 name: speckit-bug-test
-description: Validate that a previously fixed bug is resolved and record the verification report
+description: Validate that a previously fixed bug is resolved and record the verification
+  report
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: bug:commands/speckit.bug.test.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Bug Test Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Test Bug Fix
 

@@ -1,13 +1,18 @@
 ---
 name: speckit-assess-intake
-description: Capture and normalize a raw idea (text, URL, ticket, or codebase pointer) into an intake note
+description: Capture and normalize a raw idea (text, URL, ticket, or codebase pointer)
+  into an intake note
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: assess:commands/speckit.assess.intake.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Assess Intake Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Intake an Idea
 

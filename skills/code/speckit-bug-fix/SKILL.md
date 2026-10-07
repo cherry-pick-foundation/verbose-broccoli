@@ -3,11 +3,15 @@ name: speckit-bug-fix
 description: Apply the remediation from a bug assessment and record what was changed
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: bug:commands/speckit.bug.fix.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Bug Fix Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Fix Bug
 
