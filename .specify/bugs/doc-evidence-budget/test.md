@@ -4,7 +4,7 @@
 - **Tested**: 2026-10-07
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: verified offline (narrow and affected tests); full `npm run verify` and live provider acceptance not run
+- **Result**: verified offline (narrow and affected tests); one generated evidence part accepted live by the provider (see "Live acceptance"); full `npm run verify` and independent review still pending
 - **Spec-Kit-Task**: T003 (verification). T004 integration and acceptance belongs to root.
 
 ## Summary
