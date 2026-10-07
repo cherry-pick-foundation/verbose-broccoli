@@ -118,10 +118,23 @@ installed npm trees and of the programs and Git configuration outside the
 repository; the checks that read
 anything else stay uncached and say why in their description
 ([research](../specs/039-cpu-load-relief/research.md)). dependency-cruiser 18.2.0 answers the graph queries and checks
-TypeScript and JavaScript imports with the rules in `.config/dependency-cruiser.json`
-(`npm run clean-architecture`); a new package's public entries need a line
-there. import-linter 2.15 checks the Python packages' layers and cycles with
-the contracts in the root `pyproject.toml` (`npm run python:imports`). In
+TypeScript and JavaScript imports with the error-level rules in
+`.config/dependency-cruiser.json` (`npm run clean-architecture`): ring direction,
+inner-ring input and output imports, package public entries, cycles and local
+imports crossing package folders. Only `packages/workflow` may import the
+clean-code skill's CLI serializer, by package name. A new package's public
+entries need a rule there. import-linter 2.15 checks the Python packages with
+contracts in the root `pyproject.toml` (`npm run python:imports`): optional
+component rings, input and output libraries forbidden in inner rings,
+protected package modules with listed published exceptions, sibling cycles
+and root-package layers. The root layers cover cross-package cycles that
+`acyclic_siblings` misses; add every new Python root package to those layers.
+Packages enter the ring and input/output checks as their moving slice adds
+rings; flat and held code keeps its existing imports.
+`npm run test:clean-architecture` and `npm run test:python-imports` run the
+checkers against isolated breaking fixtures and passing controls, including
+workspace-name resolution and the Python cross-root-cycle probe (see the
+[dependency rules](../specs/060-clean-architecture/contracts/dependency-rules.md)). In
 REVIEW mode it asks the implementer or the orchestrator to review the
 diff before each commit and leaves the independent review to the merge into `develop` or
 `main` (see [Git flow](#git-flow--2026-09-27)). Reuse those commands for later

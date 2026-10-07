@@ -74,6 +74,7 @@
       ]
     },
     "//#python:imports": {},
+    "//#test:python-imports": {},
     "//#doc-regions:check": {
       "description": "Check mechanical regions and local links in the target documents, offline and without writing"
     },
@@ -207,6 +208,7 @@
         "//#test:reference-library",
         "//#test:clean-code",
         "//#test:clean-architecture",
+        "//#test:python-imports",
         "//#test:workflow",
         "//#test:mise-doctor",
         "//#test:cli-contract",

@@ -12,14 +12,40 @@
       "severity": "error",
       "from": {"path": "(^|/)domain/"},
       "to": {
-        "path": "(^|/)(application|infrastructure|presentation|platform|mcp|cli)/"
+        "path": "(^|/)(application|adapters|entrypoints)(/|$)|(^|/)bootstrap\\.[cm]?[jt]sx?$"
       }
     },
     {
       "name": "application-dependency-direction",
       "severity": "error",
       "from": {"path": "(^|/)application/"},
-      "to": {"path": "(^|/)(infrastructure|presentation|platform|mcp|cli)/"}
+      "to": {
+        "path": "(^|/)(adapters|entrypoints)(/|$)|(^|/)bootstrap\\.[cm]?[jt]sx?$"
+      }
+    },
+    {
+      "name": "adapters-dependency-direction",
+      "severity": "error",
+      "from": {"path": "(^|/)adapters/"},
+      "to": {"path": "(^|/)entrypoints/|(^|/)bootstrap\\.[cm]?[jt]sx?$"}
+    },
+    {
+      "name": "bootstrap-dependency-direction",
+      "severity": "error",
+      "from": {"path": "(^|/)bootstrap\\.[cm]?[jt]sx?$"},
+      "to": {"path": "(^|/)entrypoints/"}
+    },
+    {
+      "name": "no-cross-package-local-imports",
+      "severity": "error",
+      "from": {"path": "^((?:packages/[^/]+|skills/code/clean-code)/)"},
+      "to": {"dependencyTypes": ["local"], "pathNot": "^$1"}
+    },
+    {
+      "name": "clean-code-cli-importers",
+      "severity": "error",
+      "from": {"path": "^packages/", "pathNot": "^packages/workflow/"},
+      "to": {"path": "^skills/code/clean-code/scripts/cli\\.ts$"}
     },
     {
       "name": "no-feature-internals",
@@ -28,10 +54,13 @@
       "to": {"path": "/(?:modules|features)/[^/]+/internal/", "pathNot": "^$1"}
     },
     {
-      "name": "no-package-to-plugin",
+      "name": "no-package-to-skill-internals",
       "severity": "error",
       "from": {"path": "^packages/"},
-      "to": {"path": "^(plugins|skills)/"}
+      "to": {
+        "path": "^(plugins|skills)/",
+        "pathNot": "^skills/code/clean-code/scripts/cli\\.ts$"
+      }
     },
     {
       "name": "no-node-in-inner-layers",

@@ -44,6 +44,7 @@ constraint-dependencies = [
 members = ["packages/*"]
 
 [tool.importlinter]
+include_external_packages = true
 root_packages = [
   "credit_offers",
   "doc_regions",
@@ -56,10 +57,93 @@ root_packages = [
 name = "Workspace package layers"
 type = "layers"
 layers = [
-  "wiki_consistency",
+  "credit_offers | jev_ultrafast | wiki_consistency",
+  "doc_regions | education_privacy_gate",
+]
+
+[[tool.importlinter.contracts]]
+name = "Component ring layers"
+type = "layers"
+# Optional layers activate as S4, S5 and later held slices move each package.
+layers = ["(entrypoints)", "(bootstrap)", "(adapters)", "(application)", "(domain)"]
+containers = [
+  "credit_offers",
   "doc_regions",
   "education_privacy_gate",
+  "jev_ultrafast",
+  "wiki_consistency",
 ]
+
+[[tool.importlinter.contracts]]
+name = "Input and output only at the edge"
+type = "forbidden"
+# Ring wildcards activate as each slice moves its package; flat code stays held.
+source_modules = ["*.domain", "*.application"]
+forbidden_modules = [
+  "os", "sys", "subprocess", "socket", "shutil", "tempfile",
+  "urllib", "http", "httpx", "mcp", "fastmcp",
+]
+
+[[tool.importlinter.contracts]]
+name = "Published modules: credit_offers"
+type = "protected"
+protected_modules = ["credit_offers"]
+allowed_importers = ["credit_offers"]
+# Published modules (existing external imports); ignores target these modules only.
+ignore_imports = [
+  "** -> credit_offers",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "Published modules: doc_regions"
+type = "protected"
+protected_modules = ["doc_regions"]
+allowed_importers = ["doc_regions"]
+# Published modules (existing external imports); ignores target these modules only.
+ignore_imports = [
+  "** -> doc_regions.config",
+  "** -> doc_regions.regions",
+  "** -> doc_regions.requests",
+  "** -> doc_regions.units",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "Published modules: education_privacy_gate"
+type = "protected"
+protected_modules = ["education_privacy_gate"]
+allowed_importers = ["education_privacy_gate"]
+# Published modules (existing external imports); ignores target these modules only.
+ignore_imports = [
+  "** -> education_privacy_gate.__main__",
+  "** -> education_privacy_gate.roster",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "Published modules: jev_ultrafast"
+type = "protected"
+protected_modules = ["jev_ultrafast"]
+allowed_importers = ["jev_ultrafast"]
+# Published modules (existing external imports); ignores target these modules only.
+ignore_imports = [
+  "** -> jev_ultrafast",
+]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+name = "Published modules: wiki_consistency"
+type = "protected"
+protected_modules = ["wiki_consistency"]
+allowed_importers = ["wiki_consistency"]
+# Published modules (existing external imports); ignores target these modules only.
+ignore_imports = [
+  "** -> wiki_consistency.evidence",
+  "** -> wiki_consistency.instance",
+  "** -> wiki_consistency.roster",
+]
+unmatched_ignore_imports_alerting = "none"
 
 [[tool.importlinter.contracts]]
 name = "Python package sibling cycles"
