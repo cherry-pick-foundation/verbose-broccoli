@@ -4,8 +4,8 @@
 - **Tested**: 2026-10-07
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: verified offline (narrow and affected tests); one generated evidence part accepted live by the provider (see "Live acceptance"); root's full `npm run verify` passed at source commit b18d2a1 (see "Source full verification"); independent review, merge and combined develop verification still pending
-- **Spec-Kit-Task**: T003 (verification). T004 integration and acceptance belongs to root.
+- **Result**: verified and integrated into local `develop` at b97603e; one generated evidence part accepted live, with the limits below
+- **Spec-Kit-Task**: T003 (verification) and T004 (integration and acceptance) completed; root owns T004.
 
 ## Summary
 
@@ -54,14 +54,15 @@ the same claims, unique evidence IDs and byte-identical joined evidence in
 diff order; the unchanged claim-count, claim-character, rename, schema, Hangul
 and CLI tests; and the 249-item error for one group.
 
-## Not performed
+## Not performed by the source worker
 
 - `npm run verify` (full): not performed by this worker; no full-check slot
   was granted to it. See "Source full verification" for root's later run.
 - Any provider call by this worker. The original 66 failed and 264 paid split
   results were not replayed.
 - A CLI `prepare` run on the real repository diff.
-- Independent review: root's fresh other-provider reviewer owns it.
+- Independent review: completed later by root's fresh other-provider reviewer;
+  see "Integration".
 
 ## Source full verification
 
@@ -72,8 +73,8 @@ were 0 (42 executed, 3 cached), and the summary ID is
 for any later documentation commit: `source-full-proof.json` and
 `source-full-turbo-summary.json` under
 `~/.local/state/verbose-broccoli/workspaces/develop/doc-evidence-budget-fix/attempt-20261007t013919z/`.
-The independent final review, the merge and the combined `develop`
-verification are still pending.
+The later final-source run, independent review and combined `develop`
+verification are recorded in "Integration".
 
 ## Live acceptance
 
@@ -116,5 +117,40 @@ first 5-minute checkpoint (not a time cap), one tuple chosen at probability .57
 
 ## Recommendation
 
-Ready for root's integration. The full `npm run verify` and the independent
-review remain root-owned and pending; close the bug only after them.
+The aggregate evidence-budget fix is integrated and verified. Keep the
+per-group review and provider-limit qualifications above when using it.
+
+## Integration
+
+On 2026-10-07, root integrated the final source `c613b9d` through the normal
+git-flow finish. A fresh Codex built-in review used `gpt-6-luna`, OpenAI,
+high effort and the scope and requirements only. It exited 0 with no actionable
+findings after a separate documentation correction. The native review tuple
+was chosen at probability .93, confidence .91, with a first 15-minute reporting
+checkpoint, not a deadline. The actual built-in header and unchanged refs/diff
+were inspected; its unexpected `npm run workflow` added no tracked changes,
+and no reviewer tests or full verification were credited.
+
+| Run | Commit | Result | Summary |
+|-----|--------|--------|---------|
+| Final source | c613b9d | exit 0; all 45 task exits 0, 40 executed and 5 cached | 3KLffW6sUDZxdZc0SCw2JWYvHNO |
+| Mandatory finish hook | 85ba861 | exit 0; all 45 task exits 0, 15 executed and 30 cached | 3KLhVEwYUxfmoxDSKd4bqawDQqf |
+| Combined develop | b97603e | exit 0; all 45 task exits 0, 40 executed and 5 cached | 3KLhyH5JeLeHGlKntgiY40pQgdU |
+
+The content-free review record `85ba861` names its parent `c613b9d`. Merge
+`b97603e3d9a8e8cfcba92c68fc41ca9e918378d0` has exact parents `fae0c02` and
+`85ba861`, and preserves the reviewed tree. Production changes are 15 added
+and 4 removed lines; tests are 66 added and 5 removed lines, with no dependency
+or shared-interface change. The 424-line branch diff did not reach the split
+review threshold.
+
+The completion judgment verified all five supplied facts, with no contradicted
+or unsupported claim. Its risk advisory escalated (composite .43675,
+safe-to-apply .13, correctness confidence 0). The retained disposition uses
+the accepted independent review, actual run summaries, red/green regression
+and direct contract checks; it makes no automatic-safe or full semantic
+acceptance claim. Only the changed operator unit was judged again; unchanged
+document judgments and the original 66 failed/264 split results were retained.
+
+Root's immutable receipts are under
+`~/.local/state/verbose-broccoli/workspaces/develop/doc-evidence-budget-fix/attempt-20261007t013919z/post-review-01/`.
