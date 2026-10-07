@@ -4,16 +4,21 @@ The repository is a collection of agent tools: Agent Skills, command-line
 tools and MCP servers in three skill areas, `code`, `work` and `chat`
 (constitution IX). Feature 060 moves it there from three Agent Plugins
 packages in slices ([plan](../specs/060-clean-architecture/plan.md)). The
-plugin manifests, the generator and the copied client packages are gone; until
-the move slice lands, the skills still live in `plugins/<area>/skills/`.
+plugin manifests, the generator and the copied client packages are gone. The
+`code` and `chat` skills live in `skills/<area>/`, Ponytail's upstream bundle
+in `tools/ponytail/`, and the `work` skills stay in `plugins/work/skills/`
+until the work area's hold is released.
 Each capability is specified anew from current needs as a
 feature under `specs/`; earlier projects are not requirement, evidence or
 implementation sources.
 
 ## Current skeleton
 
-Each of the three areas has a `skills/` folder; the clean-code skill has its
-own npm package manifest with the skill's dependencies.
+Each area keeps its skills and its rules file together: `skills/code/`,
+`skills/chat/` and, until its hold is released, `plugins/work/`. The clean-code
+skill has its own npm package manifest with the skill's dependencies; it is an
+npm workspace member that exports its command-line serializer as
+`clean-code-skill/cli`.
 The `code` area contains the adapted Wondel Clean Code skill
 and `clean-code.ts`, the Spec Kit, Ponytail, commit and verification skills, and
 and the upstream `jev` skill, which uses the gated `jev-mcp` server.
@@ -155,7 +160,7 @@ runtime complexity, graph independence or model capability. The JSON result
 includes the policy version, scope, level, Korean description and measured facts.
 A required REVIEW can coexist with `very_easy`; difficulty never relaxes gates
 or selects a model by itself. Agents, models and efforts are chosen with the
-code plugin's `model-choice` skill, whose Jev judgment takes the level as
+code area's `model-choice` skill, whose Jev judgment takes the level as
 evidence together with each candidate's remaining usage.
 CodexBar 0.69.0, a host tool at `~/.local/bin/codexbar` linking to
 `~/.local/opt/codexbar-0.69.0/`, gives that skill most usage limits and Codex's
@@ -194,7 +199,7 @@ help snapshots freeze the presentation. A copied-skill test checks that
 clean-code runs outside the repository. Update the snapshots only after review
 with `npm run test:cli-contract -- --update`, then rerun without updating.
 The Clean Code skill and checker share mechanically selected files; see
-the `code` area's [Clean Code skill](../plugins/code/skills/clean-code/SKILL.md). Adding a
+the `code` area's [Clean Code skill](../skills/code/clean-code/SKILL.md). Adding a
 workspace member does not make it an independently published JSR package.
 
 The root README is a short project summary; use specs and docs for detailed
@@ -574,9 +579,11 @@ private operational store; Wiki instances are not such a store (see [Wiki storag
 
 ### Live checkout discovery
 
-Edit skills in `plugins/*/skills/<name>/`, their canonical source folders. The
-repository's `.agents/skills` is a real directory of relative links, such as
-`jev -> ../../plugins/code/skills/jev`, and `.claude/skills ->
+Edit skills in `skills/<area>/<name>/`, their canonical source folders
+(Ponytail's four in `tools/ponytail/skills/`, the work area's in
+`plugins/work/skills/` while it is held). The repository's `.agents/skills` is
+a real directory of relative links, such as
+`jev -> ../../skills/code/jev`, and `.claude/skills ->
 ../.agents/skills` gives Claude Code the same index. The links stay inside the
 checkout and show source edits at once, with no copy, installer or version
 bump. Codex and Claude Code read the links from the checkout's own folders, so
@@ -586,9 +593,10 @@ Two checks cover the skills. `npm run test:skills-links` fails when an
 `.agents/skills` entry is not a relative link, does not reach exactly one
 skill folder with a `SKILL.md`, repeats a name, or when a skill folder has no
 link. `npm run skills:validate` runs `agentskills validate` from `skills-ref`
-0.1.1, the Agent Skills reference validator, over every skill except
-Ponytail's four unchanged upstream skills, whose `argument-hint` key it
-rejects. `tools/skills-ref/` is a uv project whose `uv.lock` pins the validator
+0.1.1, the Agent Skills reference validator, over every skill under `skills/`
+and `plugins/work/skills/`. Ponytail's four unchanged upstream skills live in
+`tools/ponytail/skills/`, outside those folders, so they are not validated;
+the validator rejects their `argument-hint` key. `tools/skills-ref/` is a uv project whose `uv.lock` pins the validator
 and its four dependencies by hash with `no-build`; `mise run setup` syncs it
 once and `npm run doctor` checks it. Upstream calls the library a
 demonstration, so it is a development-time check only, never imported by
@@ -617,7 +625,7 @@ Claude's shared `.claude/rules/claude-code.md` requires filesystem `realpath`
 of a linked project skill directory before constructing relative Read or Bash
 paths for rules, references, helpers or assets. Use that canonical base rather
 than the session's working directory or the shared index. For example,
-`model-choice`'s `../../AGENTS.md` names its owning plugin's rules. Root `AGENTS.md`
+`model-choice`'s `../AGENTS.md` names its owning area's rules. Root `AGENTS.md`
 also requires reading those rules; discovering a skill alone does not prove
 the client loaded them.
 
@@ -657,26 +665,29 @@ alone do not establish native client acceptance.
 
 Maintain each skill body only in its owning area. The shared local discovery
 index links to those folders; it does not hold another source tree. Each skill
-exists once, so `jev` lives in `plugins/code/skills/jev` and `.agents/skills`
+exists once, so `jev` lives in `skills/code/jev` and `.agents/skills`
 links to it from every checkout. `scripts/skills-links-test.ts` checks that
 one-to-one match.
 
-<!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("plugins/*/skills/*/SKILL.md")) ]]] -->
+<!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("skills/*/*/SKILL.md", "tools/ponytail/skills/*/SKILL.md", "plugins/work/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/chat/skills` | `credit-offers`, `web-agent` |
-| `plugins/code/skills` | `clean-code`, `git-commit`, `jev`, `model-choice`, `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `skills/chat` | `credit-offers`, `web-agent` |
+| `skills/code` | `clean-code`, `git-commit`, `jev`, `model-choice`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
+| `tools/ponytail/skills` | `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review` |
 <!-- [[[end]]] -->
 
 `session-migrate` owns task handoff and resumption, including checks of current
 sources.
 
-Ponytail's unchanged upstream modules and tests live in `plugins/code/hooks`
-and `plugins/code/tests`. `.agents/ponytail` is a compatibility link to that
-folder, so the commands in `.codex/hooks.json` and their trust hashes stay
-unchanged. The shared discovery index points to the canonical Ponytail skill
-directory. Runtime state remains in the Git-local `ponytail` directory.
+Ponytail is one unchanged upstream bundle in `tools/ponytail/`: its hooks in
+`hooks/`, its tests in `tests/` and its four skills in `skills/`. Its skills
+and instruction loader find `tools/ponytail/AGENTS.md`, the only file added to
+the bundle, which points to the code area's rules. `.agents/ponytail` is a
+compatibility link to that folder, so the commands in `.codex/hooks.json` and
+their trust hashes stay unchanged. The shared discovery index points to the
+canonical Ponytail skill directory. Runtime state remains in the Git-local `ponytail` directory.
 Client hook registration remains project configuration, not a new portable
 hook manifest. The existing project policy hook is separate from this migration.
 
@@ -686,7 +697,8 @@ initialized `.specify` scripts, templates and constitution. Quarto retains its
 existing host runtime requirement.
 
 `npm run test:skills-links` compares the `.agents/skills` links with the skill
-folders under `plugins/*/skills`, the roots listed once in the test, and
+folders under `skills/*`, `tools/ponytail/skills` and `plugins/work/skills`,
+the roots listed once in the test, and
 `npm run skills:validate` validates each skill's front matter. Neither replaces
 fresh native client discovery and invocation evidence.
 
@@ -696,7 +708,7 @@ fresh native client discovery and invocation evidence.
 The project uses Spec Kit's bundled `agent-context`, `assess`, `bug` and `git`
 extensions, installed under `.specify/extensions/`. `specify extension add`
 writes their skills to `.agents/skills`; following the table above, the ten in
-use live in `plugins/code/skills` instead.
+use live in `skills/code` instead.
 
 - `assess` and `bug` run only when invoked. They keep their records in
   `.specify/assessments/<slug>/` and `.specify/bugs/<slug>/`.
@@ -890,7 +902,7 @@ or an agent region, written by agents. No part is human-written.
 - Everything else is an agent region. Jev MCP judges it before each `develop`
   merge review.
 - `scripts/doc-regions.toml` lists the targets, including the generated
-  `docs/reference/` pages, and root and plugin `AGENTS.md` files and the
+  `docs/reference/` pages, and root and area `AGENTS.md` files and the
   constitution as report-only documents. `specs/` and vendored skills are not
   listed. Other plugin documents become targets when explicitly configured.
 - To add a mechanical region, add a function to `scripts/doc_sources.py` and a
@@ -920,7 +932,7 @@ or an agent region, written by agents. No part is human-written.
   contradicted or flagged for review, or records why they stand, and decides
   which suggested candidates become mechanical regions.
 - `npm run doc-regions:audit` runs MemoryLint 1.5.1's read-only audit (MIT)
-  on root and plugin `AGENTS.md` files and the constitution. It downloads the pinned archive once
+  on root and area `AGENTS.md` files and the constitution. It downloads the pinned archive once
   into `~/.cache/verbose-broccoli/memorylint/1.5.1/` after a hash check.
   Findings for these rule files, from the audit or from Jev MCP, are only
   reported to the user; the tooling never changes them.
@@ -929,5 +941,5 @@ or an agent region, written by agents. No part is human-written.
   Feature 010 calls its modules as a library, with a Wiki instance as the root
   and its own targets, generators and evidence.
 - Not automated: sending the Jev MCP requests and acting on the results,
-  reporting drift in root and plugin `AGENTS.md` files and the constitution, and
+  reporting drift in root and area `AGENTS.md` files and the constitution, and
   choosing which candidates become mechanical regions.

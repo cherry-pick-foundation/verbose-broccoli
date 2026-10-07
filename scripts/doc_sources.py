@@ -105,12 +105,15 @@ def command_help(*sources: str) -> str:
     )
 
 
-def skill_table(pattern: str) -> str:
-    """Return a Markdown table of skills grouped by plugin package."""
+def skill_table(*patterns: str) -> str:
+    """Return a Markdown table of skills grouped by the folder holding them."""
     root = Path.cwd()
-    matches = sorted(path for path in root.glob(pattern) if path.is_file())
-    if not matches:
-        raise ValueError(f"Pattern matches no files: {pattern}")
+    matches = []
+    for pattern in patterns:
+        found = sorted(path for path in root.glob(pattern) if path.is_file())
+        if not found:
+            raise ValueError(f"Pattern matches no files: {pattern}")
+        matches.extend(found)
 
     packages: dict[str, set[str]] = {}
     for path in matches:

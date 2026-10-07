@@ -209,12 +209,11 @@ void test('workflow: binary and symlink additions cannot become direct work', as
 void test('workflow: static public entry rules identify configured exports', async () => {
   await repository(
     {
-      'plugins/code/skills/clean-code/scripts/cli.ts':
-        'export const value = 1;\n',
+      'skills/code/clean-code/scripts/cli.ts': 'export const value = 1;\n',
     },
     async root => {
       await writeFile(
-        join(root, 'plugins/code/skills/clean-code/scripts/cli.ts'),
+        join(root, 'skills/code/clean-code/scripts/cli.ts'),
         'export const value = 2;\n',
       );
       const result = await inspectChanges(root);

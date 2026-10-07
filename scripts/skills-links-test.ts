@@ -4,9 +4,13 @@ import {basename, fromFileUrl, isAbsolute, join, relative} from '@std/path';
 import {glob, lstat, readdir, readlink, realpath, stat} from 'node:fs/promises';
 
 const ROOT = fromFileUrl(new URL('../', import.meta.url));
-// The folders that hold skills; the next slice adds skills/<area> and
-// tools/ponytail/skills.
-const SKILL_ROOTS = ['plugins/*/skills'];
+// The folders that hold skills: the areas, Ponytail's upstream bundle and the
+// held work area.
+const SKILL_ROOTS = [
+  'skills/*',
+  'tools/ponytail/skills',
+  'plugins/work/skills',
+];
 
 async function skillFolders() {
   const folders: string[] = [];

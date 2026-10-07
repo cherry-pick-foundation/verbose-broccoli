@@ -15,12 +15,12 @@ import {delimiter, dirname} from 'node:path';
 import {tmpdir} from 'node:os';
 
 const root = fromFileUrl(new URL('../', import.meta.url));
-const skill = join(root, 'plugins/code/skills/clean-code');
+const skill = join(root, 'skills/code/clean-code');
 const commands = [
   {name: 'workflow', script: 'scripts/workflow.ts'},
   {
     name: 'clean-code',
-    script: 'plugins/code/skills/clean-code/scripts/clean-code.ts',
+    script: 'skills/code/clean-code/scripts/clean-code.ts',
   },
 ];
 const decoder = new TextDecoder();

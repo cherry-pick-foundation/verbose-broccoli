@@ -19,11 +19,13 @@ folder until hold H2 is released ([plan](../plan.md#holds)).
 | Portable skill | a skill meant to work when copied elsewhere carries its code in its own `scripts/`; today only `clean-code` | plan Decision 9, R-UP-02 |
 | Upstream names | a skill taken from upstream keeps its upstream name and provenance file | U-2026-10-04a |
 
-An upstream installer that writes into `.agents/skills`, such as Spec Kit's
-`specify integration upgrade`, writes through the links into the area
-folders. If an installer replaces a link with a folder of its own, the skills
-link test fails, and the step that ran the installer restores the link and
-moves the new files into the area folder (U-2026-10-06l).
+An upstream installer that writes into `.agents/skills` may not work through
+the links. Spec Kit's `specify integration upgrade` records the resolved paths
+and its cleanup then deletes the skill files it has just written, so it runs
+in a scratch copy with real folders and its results are copied into the area
+folders ([security review](../security/spec-kit-1.1.0-review.md),
+U-2026-10-07a). If an installer replaces a link with a folder of its own, the
+skills link test fails, and the step that ran it restores the link.
 
 A check in verification fails when a link is broken, points outside
 `skills/`, `tools/ponytail/skills/` or held `plugins/work/skills/`, when two

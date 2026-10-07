@@ -62,14 +62,14 @@
     "//#clean-code": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "{plugins,packages,scripts}/**/*.{ts,tsx,mts,cts}",
+        "{plugins,packages,scripts,skills}/**/*.{ts,tsx,mts,cts}",
         "!**/node_modules/**"
       ]
     },
     "//#clean-architecture": {
       "inputs": [
         "$TURBO_DEFAULT$",
-        "{packages,plugins,scripts}/**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
+        "{packages,plugins,scripts,skills,tools/ponytail}/**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}",
         "!**/node_modules/**"
       ]
     },

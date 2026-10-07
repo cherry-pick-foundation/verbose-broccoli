@@ -12,8 +12,9 @@ capability is specified anew from current needs.
 
 For a new checkout, trust its mise configuration and run `mise run setup`.
 Codex and Claude Code find the skills with no further step: edit canonical
-skills under `plugins/*/skills/`; `.agents/skills` indexes them through
-relative links, and `.claude/skills` links to that index. The `jev-mcp` and
+skills under `skills/<area>/` (Ponytail's under `tools/ponytail/skills/`, the
+work area's still under `plugins/work/skills/`); `.agents/skills` indexes them
+through relative links, and `.claude/skills` links to that index. The `jev-mcp` and
 `reference-library` servers are registered once per agent in the user's own
 settings; the repository adds no project MCP configuration.
 The upstream `jev` skill calls one registered `jev-mcp` server: a FastMCP

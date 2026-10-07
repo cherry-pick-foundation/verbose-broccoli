@@ -15,7 +15,7 @@ def test_skill_table_lists_full_names_by_package_and_skill(
 ):
     skills = {
         "plugins/work/skills": ["zebra", "alpha"],
-        "plugins/code/skills": [
+        "skills/code": [
             "verification-before-completion",
             "ponytail-review",
             "clean-code",
@@ -29,13 +29,15 @@ def test_skill_table_lists_full_names_by_package_and_skill(
             (folder / "SKILL.md").write_text("# Skill\n")
     monkeypatch.chdir(tmp_path)
 
-    assert skill_table("plugins/*/skills/*/SKILL.md") == (
+    assert skill_table(
+        "plugins/*/skills/*/SKILL.md", "skills/*/*/SKILL.md"
+    ) == (
         "| Package | Owned skills |\n"
         "| --- | --- |\n"
-        "| `plugins/code/skills` | `clean-code`, `ponytail-review`, "
+        "| `plugins/work/skills` | `alpha`, `zebra` |\n"
+        "| `skills/code` | `clean-code`, `ponytail-review`, "
         "`speckit-plan`, "
         "`verification-before-completion` |\n"
-        "| `plugins/work/skills` | `alpha`, `zebra` |\n"
     )
 
 
