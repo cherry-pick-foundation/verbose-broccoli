@@ -16,22 +16,14 @@
           "speckit.git.commit"
         ]
       },
-      "registered_skills": [],
+      "registered_skills": [
+        "speckit-git-feature",
+        "speckit-git-validate",
+        "speckit-git-remote",
+        "speckit-git-initialize",
+        "speckit-git-commit"
+      ],
       "installed_at": "2026-09-27T02:59:12.906838+00:00"
-    },
-    "agent-context": {
-      "version": "1.0.1",
-      "source": "local",
-      "manifest_hash": "sha256:132bcd2b1ab7a1e61e5072682340e0a7fef0d6aa815d4c42ac168cceb01e6308",
-      "enabled": true,
-      "priority": 10,
-      "registered_commands": {
-        "codex": [
-          "speckit.agent-context.update"
-        ]
-      },
-      "registered_skills": [],
-      "installed_at": "2026-09-27T02:59:13.090169+00:00"
     },
     "assess": {
       "version": "1.0.1",
@@ -48,7 +40,13 @@
           "speckit.assess.decide"
         ]
       },
-      "registered_skills": [],
+      "registered_skills": [
+        "speckit-assess-intake",
+        "speckit-assess-research",
+        "speckit-assess-define",
+        "speckit-assess-shape",
+        "speckit-assess-decide"
+      ],
       "installed_at": "2026-09-27T02:59:13.262746+00:00"
     },
     "bug": {
@@ -64,8 +62,28 @@
           "speckit.bug.test"
         ]
       },
-      "registered_skills": [],
+      "registered_skills": [
+        "speckit-bug-assess",
+        "speckit-bug-fix",
+        "speckit-bug-test"
+      ],
       "installed_at": "2026-09-27T02:59:13.435703+00:00"
+    },
+    "agent-context": {
+      "version": "1.0.2",
+      "source": "local",
+      "manifest_hash": "sha256:270100175bb742c37b8d549f2233c5b79114869dac754883dbecac2a4813beef",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "codex": [
+          "speckit.agent-context.update"
+        ]
+      },
+      "registered_skills": [
+        "speckit-agent-context-update"
+      ],
+      "installed_at": "2026-10-07T00:58:10.193557+00:00"
     }
   }
 }

@@ -3,11 +3,15 @@ name: speckit-git-validate
 description: Validate current branch follows feature branch naming conventions
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
-  author: spec-kit-core
-  source: git:commands/speckit.git.validate.md
+  author: github-spec-kit
+  source: preset:area-rules-pointer
 ---
 
+# Speckit Git Validate Skill
+
 Read [the code area rules](../AGENTS.md) before using this skill.
+
+
 
 # Validate Feature Branch
 

@@ -10,6 +10,62 @@
       "registered_commands": {},
       "registered_skills": {},
       "installed_at": "2026-09-27T15:51:59.150555+00:00"
+    },
+    "area-rules-pointer": {
+      "version": "1.0.0",
+      "source": "local",
+      "manifest_hash": "sha256:c7f3f1c78e3bc70134a4ab9cdae89e6943b6d38a223285808bdeb0df14f032dd",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "codex": [
+          "speckit.analyze",
+          "speckit.checklist",
+          "speckit.clarify",
+          "speckit.constitution",
+          "speckit.converge",
+          "speckit.implement",
+          "speckit.plan",
+          "speckit.specify",
+          "speckit.tasks",
+          "speckit.taskstoissues",
+          "speckit.agent-context.update",
+          "speckit.assess.intake",
+          "speckit.assess.research",
+          "speckit.assess.define",
+          "speckit.assess.shape",
+          "speckit.assess.decide",
+          "speckit.bug.assess",
+          "speckit.bug.fix",
+          "speckit.bug.test",
+          "speckit.git.validate"
+        ]
+      },
+      "registered_skills": {
+        "codex": [
+          "speckit-analyze",
+          "speckit-checklist",
+          "speckit-clarify",
+          "speckit-constitution",
+          "speckit-converge",
+          "speckit-implement",
+          "speckit-plan",
+          "speckit-specify",
+          "speckit-tasks",
+          "speckit-taskstoissues",
+          "speckit-agent-context-update",
+          "speckit-assess-intake",
+          "speckit-assess-research",
+          "speckit-assess-define",
+          "speckit-assess-shape",
+          "speckit-assess-decide",
+          "speckit-bug-assess",
+          "speckit-bug-fix",
+          "speckit-bug-test",
+          "speckit-git-validate"
+        ]
+      },
+      "installed_at": "2026-10-07T00:58:09.348108+00:00"
     }
   }
 }
