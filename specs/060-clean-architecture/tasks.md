@@ -103,7 +103,7 @@ sessions list the same skill and server names as before S2a, once each
 - [x] T023 [US2] Run quickstart scenario 1 and record the after-inventory from fresh Claude Code and Codex sessions; report any installed plugin copies in user folders to the user without removing them (SC-001, spec Edge Cases). Depends on T020 to T022.
   Ledger 2026-10-07: T017 to T023 implemented by Claude Code Sonnet 5.5 high (Jev probability 0.61, confidence 0.54) in 3541b4a, 01fa65d, 94854ad, 9df3edc, daf3b31 and 10202a0; Ponytail's bundle is unchanged under `tools/ponytail/` with a new one-line `tools/ponytail/AGENTS.md` that its skills and hook loader resolve to. Narrow checks pass; 47 skill names are the same before and after; 43 non-Ponytail skills validate. Owned code: 10,740 to 10,750 source and 19,043 to 19,050 test lines. A fresh Claude Code session (Haiku 4.5) listed all 47 skills; a fresh Codex session (gpt-6-luna, low) listed all but `gws-shared`, a work skill whose link and folder this slice did not change (the list is the model's own answer, so a missing name is a limit of this check). User-scope links in `~/.agents/skills` point into develop's old plugin folders and will break after the merge; the user was asked how to retarget them. Evidence: `slices/s2b/ctx_9bbc09c6beb1/` and `skills-inventory/` in the feature's state folder.
 - [x] T024 [US2] **Finish** slice S2b. Depends on T023.
-  User-scope follow-up 2026-10-07 (U-2026-10-07b): after the merge the main session retargeted the user's skill links to the new folders, removed two broken ones and removed the old Codex plugin entries and cached copies, with backups.
+  User-scope follow-up 2026-10-07 (U-2026-10-07b): after the merge the main session retargeted 60 links (30 in each of the two skill folders) to the new folders, removed four broken links and removed the old Codex plugin entries and cached copies, with backups.
 
 ## Phase 4: Slice S2c — Spec Kit 1.1.0 (User Story 2, P1)
 
@@ -123,7 +123,8 @@ extensions; the skills link test and `skills-ref validate` pass; every
   Ledger 2026-10-07: develop keeps the order S2c before the weekly tool-update job (CHE-50); that job needs the same scratch-copy step for Spec Kit (U-2026-10-07a), so S2c records the step for develop to reuse.
 - [x] T028 [US2] Pin `specify-cli` at v1.1.0 in `tools/spec-kit/pyproject.toml` (the `uv.lock` entry must name commit `f1d3a4f8337ebbd3ae22760a9c12e3352b93a175` and nothing else in the lock may change). Run `specify integration upgrade --script sh` and `specify extension add agent-context --force` (never `self upgrade` or `check`) in a scratch copy of the repository where the ten core `speckit-*` skill folders are real folders, try T026's preset there, then copy the resulting `SKILL.md` files into `skills/code/` and keep every `.agents/skills` entry a link (U-2026-10-07a; review conditions C1 to C5). Afterwards: `git status` shows no deleted `SKILL.md`; the area-rules pointer is in all 20 skills (by the preset if it works, otherwise re-added); the `.cache/` rule of `.specify/.gitignore` is back; no real `.agents/skills/speckit-git-*` folders remain; `agent-context-config.yml` and root `AGENTS.md` are unchanged; the two agent-context hooks in `.specify/extensions.yml` are set back to `optional: false` by hand (accepted, U-2026-10-07a); `licenses/third-party-notices.md` and `docs/architecture.md` name 1.1.0; installed files match v1.1.0 by hash (C6, C7). Write the scratch-copy procedure into `docs/architecture.md` so develop's weekly tool-update job can reuse it. `taskstoissues` stays in the core in 1.1.0 and the new GitHub extension is opt-in, so nothing changes for it. Depends on T025 to T027.
   Ledger 2026-10-07: implemented by Claude Code Sonnet 5.5 medium (Jev probability 0.40, confidence 0.30) in 45b1391, f146120 and 1e2016f. The upgrade ran in a scratch clone with real `speckit-*` folders; the 20 skills and `.specify/` changes were copied back with every link kept and no skill file deleted; the `speckit-git-*` skills were left out; the `.cache/` rule and the two `optional: false` hooks were restored; `agent-context-config.yml` and root `AGENTS.md` are unchanged; installed files match v1.1.0 by hash. The new `.specify/presets/area-rules-pointer` preset carries the area-rules pointer in all 20 skills, but only when the agent-context extension is re-added before `integration upgrade`, and it adds a generated "# Speckit X Skill" heading; `specify extension add` has no `--script` option in 1.1.0. The procedure is in `docs/architecture.md` for develop's weekly tool-update job. Owned code: no change (the preset is data). Evidence: `slices/s2c/ctx_32ab202265ae/` in the feature's state folder.
-- [ ] T029 [US2] **Finish** slice S2c. Depends on T028.
+- [x] T029 [US2] **Finish** slice S2c. Depends on T028.
+  Ledger 2026-10-07: finished into develop at c77e941, review record dfcfcf5 for 334fe68 (renewed Codex built-in review, gpt-6.1-sol medium, no actionable findings). The current-base merge preserves the reviewed tree; source, mandatory finish and combined develop each passed all 45 task exits, with merged summary 3KLxKdLGR3N9eZ2ZdxpDbVBwHFm. Only the local reviewed Spec Kit environment was synced to 1.1.0; no shared-hook reinstall or global client change. Owned code is unchanged; the preset is data. CHE-93 and the existing architecture owner remain for S3 and later slices.
 
 ## Phase 5: Slice S3 — dependency checks (User Story 3, P2)
 
@@ -236,3 +237,17 @@ gets a split review before its develop merge review (root `AGENTS.md`).
   pre-hook output in its log. Receipts: `$XDG_STATE_HOME/verbose-broccoli/
   workspaces/develop/clean-architecture-s2b/attempt-20261007t002945z/`.
   The existing owner continues with S2c; CHE-93 stays open.
+
+- 2026-10-07: S2c finished at c77e941, with the 1.1.0 CLI pin, rendered
+  project files and 20 skills, and the data-only area-rules preset. Source
+  summary 3KLtqLoGAJxpg43JjROodE6G3Hv, mandatory finish
+  3KLwz9qT7Bo6mS8YGzZnF2UzcSQ and merged develop
+  3KLxKdLGR3N9eZ2ZdxpDbVBwHFm each have 45 passing task exits.
+  The one-row cleanup-provenance correction and the reviewer sandbox limits
+  are retained. Three lossless completion-judgment partitions raised weak
+  advisories and disputed two facts; exact lock, tree and actual run proofs
+  resolved those claims with the accepted independent review, without a paid
+  replay or automatic-safe claim. Receipts: `$XDG_STATE_HOME/verbose-broccoli/
+  workspaces/develop/clean-architecture-s2c/attempt-20261007t045200z/`.
+  CHE-93 stays open. Next: S3; the weekly updater reuses the scratch-copy
+  procedure and still waits for approval of its exact disabled definition.
