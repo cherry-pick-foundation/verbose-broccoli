@@ -38,6 +38,7 @@
     "test:lint-names": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --permission --allow-fs-read=* --allow-fs-write=/tmp --allow-child-process --test scripts/lint-names-test.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "clean-architecture": "env GIT_OPTIONAL_LOCKS=0 depcruise --config .config/dependency-cruiser.json --no-cache --no-progress --output-type err packages plugins scripts skills tools/ponytail",
+    "test:python-imports": "PYTHONDONTWRITEBYTECODE=1 uv run --frozen --offline --no-sync --package wiki-consistency pytest -p no:cacheprovider -s scripts/python_imports_test.py",
     "python:imports": "uv run --project packages/wiki-consistency --frozen --offline --no-sync lint-imports --config pyproject.toml --no-cache",
     "clean-code": "node --permission --allow-fs-read=* skills/code/clean-code/scripts/clean-code.ts",
     "clean-code:scope": "npm run clean-code -- --scope",
