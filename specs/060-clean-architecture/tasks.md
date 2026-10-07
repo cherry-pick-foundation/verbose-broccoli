@@ -137,6 +137,7 @@ fixture in one run (SC-004).
 - [ ] T031 [P] [US3] Extend the import-linter contracts in `pyproject.toml`: one `layers` contract over the moved components with optional layers, `protected` contracts for the input and output libraries (D2, D3), and one `protected` contract per Python package with its published modules listed beside it (D4), keeping `acyclic_siblings` (FR-007).
 - [ ] T032 [US3] Add one breaking fixture per rule and a test that runs each checker on it and expects failure, in `scripts/clean-architecture-test.ts` and a Python fixture test under `scripts/`; include fixtures that settle cross-root cycles for `acyclic_siblings` and how by-name workspace imports resolve (SC-004). Depends on T030, T031.
 - [ ] T033 [US3] **Finish** slice S3. Depends on T032.
+  Ledger 2026-10-07: T030 to T032 implemented by Codex gpt-6.1-sol high (Jev probability 0.39, confidence 0.30) in cbb3979; the pre-review full check passed 46 of 46 tasks and the document judgments found no contradiction. Develop accepted that run at about 15:56 KST, after a pause for a computer restart. Reviewer picked by Jev: Claude Code's built-in `/code-review` on claude-sonnet-5-5 medium (probability 0.48, confidence 0.39). Next: the review, the review record and the finish packet.
 
 ## Phase 6: Slice S4 — credit-offers into rings (User Story 3, P2)
 
