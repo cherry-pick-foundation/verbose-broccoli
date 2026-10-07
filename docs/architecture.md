@@ -717,6 +717,11 @@ use live in `skills/code` instead.
   [Linear](#linear--2026-09-27)). Spec Kit's `specify preset add --dev`
   installed it and wrote `.specify/presets/.registry`; `specify preset resolve
   spec-template` shows the layers.
+- A second local preset, `area-rules-pointer`, adds the line that points to
+  the code area rules to all 20 packaged `speckit-*` skills as a `prepend`
+  command layer, so Spec Kit writes the line itself whenever it renders those
+  skills. It lists each command by name; a newly packaged `speckit-*` skill
+  needs its command added to the preset's `preset.yml`.
 - Every `git` hook is disabled in `.specify/extensions.yml`. Each worktree is
   created on its own feature branch, and the `before_specify` hook would create
   and switch to another branch inside it; the auto-commit hooks would bypass
@@ -730,11 +735,66 @@ use live in `skills/code` instead.
   Python with PyYAML from `SPECKIT_PYTHON`, which `.claude/settings.json` and
   `.codex/config.toml` set to `tools/spec-kit/.venv/bin/python`.
 - `tools/spec-kit/` is a uv project whose `uv.lock` pins the Spec Kit CLI
-  1.0.12 (commit `e77daa9`), PyYAML and Python 3.14. `mise run setup` runs `uv sync --locked --project
+  1.1.0 (commit `f1d3a4f`), PyYAML and Python 3.14. `mise run setup` runs `uv sync --locked --project
   tools/spec-kit` in each worktree to create the gitignored `.venv`, and
   `npm run doctor` fails when that environment is missing or differs from the
   lock. Run Spec Kit from the repository root as
   `uv run --project tools/spec-kit specify …`.
+
+#### Upgrading Spec Kit in a scratch copy
+
+Never run `specify integration upgrade` in a worktree. Through the
+`.agents/skills` links it records the resolved `skills/code/...` paths, and
+its stale-file cleanup then deletes the ten core `SKILL.md` files it has just
+written (security review of 1.1.0, finding F1, in
+`specs/060-clean-architecture/security/`). Upgrade in a disposable copy where
+the skill folders are real, then copy the result back:
+
+1. Pin the new tag in `tools/spec-kit/pyproject.toml`, run
+   `uv lock --project tools/spec-kit --upgrade-package specify-cli` and
+   `uv sync --locked --project tools/spec-kit`, and check that only the
+   `specify-cli` entry of `uv.lock` changed. Commit the pin first, because the
+   copy is cloned from `HEAD`.
+2. Make the copy and replace each `speckit-*` link with a real folder:
+
+   ```sh
+   WT=$PWD S=/tmp/spec-kit-upgrade
+   git clone -q --shared "$WT" "$S" && cd "$S"
+   for l in .agents/skills/speckit-*; do
+     t=$(readlink -f "$l"); rm "$l"; cp -a "$t" "$l"
+   done
+   specify() { uv run -q --project "$WT/tools/spec-kit" specify "$@"; }
+   ```
+
+3. Re-add each bundled extension whose upstream version changed, then
+   upgrade; the upgrade re-renders every skill and re-applies the presets, so
+   the area-rules line returns in all of them. Re-adding after the upgrade
+   would drop the line from that extension's skill.
+
+   ```sh
+   specify extension add agent-context --force
+   specify integration upgrade --script sh --force
+   ```
+
+   `--force` is needed because the skills differ from the hashes Spec Kit
+   recorded. Do not run `specify self upgrade`, `specify check`,
+   `specify extension update` (it fetches catalogs) or `--dev` on an
+   extension.
+4. Copy back each `.agents/skills/<name>/SKILL.md` whose folder exists in
+   `skills/code/`, and every changed file under `.specify/` except
+   `.specify/presets/*/.composed/` (rebuilt on every run). The git
+   extension's other four skills are not packaged; leave them out.
+5. In the worktree, restore what the run resets: the `.cache/` rule in
+   `.specify/.gitignore` and `optional: false` on the two `agent-context`
+   hooks in `.specify/extensions.yml`. Check that
+   `.specify/extensions/agent-context/agent-context-config.yml` and the root
+   `AGENTS.md` are unchanged, that `git status` shows no deleted `SKILL.md`,
+   and that `.agents/skills` holds only links (`npm run test:skills-links`).
+6. Compare `.specify/scripts`, `.specify/templates` and
+   `.specify/extensions` with the upstream tag by hash; scripts and templates
+   differ only by Spec Kit's rendering of command names as `$speckit-<name>`.
+   Update the Spec Kit entry in `licenses/third-party-notices.md` and the pin
+   above.
 
 ### Git flow — 2026-09-27
 
