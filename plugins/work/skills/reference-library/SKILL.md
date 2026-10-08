@@ -10,18 +10,18 @@ Read [the work area rules](../../AGENTS.md) before using this skill.
 
 # Reference library
 
-These are the user's decided library rules, maintained in the repository and
-reviewed like code. [Sources and rule provenance](references/sources.md) distinguish
+These are the user's library decisions of 2026-10-08, maintained in the
+repository and reviewed like code. [Sources and rule provenance](references/sources.md) distinguish
 those decisions from the supporting guidance. Reading this skill does not authorize
-changes to Zotero, its settings or its server. The rules pilot delivers documentation
-only; library changes and scheduling the triage session are separate tasks.
+changes to Zotero, its settings or its server. Changing the library or its settings
+and scheduling the triage session are separate tasks.
 
 ## Admission and items
 
 Keep one item for each outside source agents cite or reuse: papers, books,
 standards, official guides, laws and web documents. Exclude student data,
 personal data and private files, including in attachments and notes.
-This is the user's admission boundary (WHA-3).
+This is the user's admission boundary decided on 2026-10-08.
 
 Before adding an item, search the library using its Digital Object Identifier
 (DOI), International Standard Book Number (ISBN) or URL. Trust a matching DOI
@@ -44,7 +44,7 @@ under the source item; the first line must name the agent and date, for example
 line is the user's decision.
 
 Keep Zotero's automatic tags off. [Zotero's collections and tags documentation](references/sources.md#zotero-collections)
-describes the setting. Do not change settings as part of this rules pilot.
+describes the setting. Changing library settings is a separate task.
 
 ## Collections and topic homes
 
@@ -65,7 +65,7 @@ contribution is a teaching result; a new agent technique belongs with agent tool
 If the primary contribution remains unclear, keep the item unfiled pending the
 triage session's questions. Do not invent a sixth home or file it in two homes.
 
-These five home names were selected by the user in WHA-4. Their boundaries apply
+The user selected these five home names on 2026-10-08. Their boundaries apply
 the primary-contribution rule; they do not create Zotero collections.
 
 | Home | Belongs here | Does not belong here |
@@ -102,7 +102,7 @@ home or term choices into a few questions for the user instead of guessing.
 The writing roles and schedule are the user's decisions;
 [zotkit](references/sources.md#zotkit) supports batching ambiguous questions,
 and [NISO Z39.19](references/sources.md#niso) supports candidate-term records.
-This pilot does not schedule that session.
+Scheduling that session is a separate task.
 
 ## Analysis and safe writes
 
@@ -117,9 +117,10 @@ This follows the user's decision and
 [zotero-agent's safety rules](references/sources.md#zotero-agent).
 
 Keep delete tools blocked. When removal is authorized, move items to trash,
-never permanently erase them or empty trash. The user chose trash retention
-of 30 days; [Zotero](references/sources.md#zotero-collections) documents that as
-the default, which settings can change. Trash is not a replacement for a backup.
+never permanently erase them or empty trash. These are the user's decisions
+of 2026-10-08. [Zotero](references/sources.md#zotero-collections) documents a
+default trash retention period of 30 days, which settings can change. Trash is
+not a replacement for a backup.
 [zotero-agent](references/sources.md#zotero-agent) also recommends trash over erasure.
 
 [Zotero's local API documentation](references/sources.md#zotero-local-api) is

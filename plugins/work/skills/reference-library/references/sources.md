@@ -1,7 +1,7 @@
 # Sources and rule provenance
 
-The user decided the policy in WHA-3 and chose the five topic homes in WHA-4
-on 2026-10-08. Exact tag values, admission exclusions, Citation Key pattern,
+The user decided the policy and chose the five topic homes on 2026-10-08.
+Exact tag values, admission exclusions, Citation Key pattern,
 agent/date attribution, writing roles, triage scheduling and blocked delete tools
 are local decisions, not requirements imposed by the sources below. The skill
 paraphrases the relevant guidance and does not adopt upstream code or commands.
@@ -32,8 +32,9 @@ The library decides when a source requires a preserved copy.
 
 [Zotero: Local API](https://www.zotero.org/support/dev/web_api/v3/local_api).
 Describes the desktop interface and version-dependent write support. It does
-not establish this installation's version, authorization or tool availability;
-none was probed and no Zotero requests were made for this pilot.
+not establish this installation's version, authorization or tool availability.
+Reading this reference does not authorize probing the installation or making
+Zotero requests.
 
 ## zotkit
 
@@ -58,7 +59,7 @@ or authorize setup, restarts, merges or installation.
 [NISO: ANSI/NISO Z39.19-2005 (R2010), Guidelines for the Construction, Format,
 and Management of Monolingual Controlled Vocabularies](https://www.niso.org/publications/ansiniso-z3919-2005-r2010),
 sections 5.3 (principles), 11.1.4 (term records), 11.1.6 (candidate terms)
-and 11.3.2.2 (history of changes). The [standard text](https://www.anzsi.org/wp-content/uploads/2019/05/z39-19-2005r2010.pdf)
+and 11.3.2.2 (history of changes). The [standard text](https://groups.niso.org/higherlogic/ws/public/download/6484/Guidelines%20for%20the%20Construction,%20Format,%20and%20Management%20of%20Monolingual%20Controlled%20Vocabularies.pdf)
 supports preferred terms, candidate records and dated change history. Recording
 the author as well is the user's chosen traceability rule; the exact namespaces
 and terms remain the user's decisions.
