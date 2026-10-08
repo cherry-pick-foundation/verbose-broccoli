@@ -213,13 +213,16 @@ class PrivacyGate(Middleware):
 
 def _node_command():
     if shutil.which("mise"):
-        command = subprocess.check_output(
-            ["mise", "which", "node"],
-            text=True,
-            # Neutral cwd: the global Node, and no dependency on this checkout's
-            # mise configuration being trusted.
-            cwd="/",
-        ).strip()
+        try:
+            command = subprocess.check_output(
+                ["mise", "which", "node"],
+                text=True,
+                # Neutral cwd avoids loading this checkout's configuration.
+                cwd="/",
+            ).strip()
+        except subprocess.CalledProcessError:
+            # Runners can install native Node on PATH without a mise Node pin.
+            command = shutil.which("node")
     else:
         command = shutil.which("node")
     if (

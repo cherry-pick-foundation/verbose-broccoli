@@ -93,3 +93,40 @@ with only CodexBar failing. Reuse the reviewed release and checksum from
 `specs/024-model-choice/plan.md`, R7, and prepare the complete upstream archive
 on the runner. Preserve the original doctor check. No new tool adoption,
 provider usage, credential access or dependency is needed.
+
+## WHA-23: the remaining failure is the Node launcher
+
+The failed job log for Checks run 37744368251 at 9fa468f identifies
+`credit-offers#test`, with two failed and 64 passed cases. The real-gate
+end-to-end and upstream-error cases both fail because
+`_node_command` invokes `mise which node` from `/`, which exits 1.
+The workflow installs Node 24.19.0 directly on PATH, while mise has no global
+Node pin. Its successful CodexBar preparation does not address that launcher.
+The gate's startup failure appears to its caller as a closed connection.
+
+The earlier reproduction used the server's mise wrapper, which supplies a
+global Node configuration. Excluding the host CodexBar binary did not exclude
+that global configuration, so doctor passed while the integration failure
+remained hidden. The job log marks credit-offers as the failing Turbo task;
+doctor is not the reported cause.
+
+An isolated home and XDG_CONFIG_HOME, TZ=UTC, Node 24.19.0 and checksum-verified
+mise 2026.9.16 reproduce both failures. The PATH contains selected runner tools
+and system tools, not the server mise wrapper or host agent tools. Existing
+locked tools and dependency environments are reused, rather than claiming a
+fresh installation of every dependency.
+
+The clean run also reveals jev-ultrafast's unset-configuration assertion
+inheriting XDG_CONFIG_HOME. Its separate absolute/unset/relative/empty storage
+cases already specify the intended behavior. Apply the same explicit unset
+and module-state restoration used by credit-offers.
+
+The full restricted-PATH run then exposed three Wiki PDF test failures
+(`test_convert_supported_files_and_pass_through`,
+`test_unreadable_revisions_record_the_reason` and
+`test_pdf_retains_content_stream_order_once`): `pdftotext` was absent.
+The official ubuntu26/20260927.149 image manifest has no Poppler package,
+and the Checks workflow does not install it. Poppler is already adopted:
+`specs/050-wiki-quarto-text/tasks.md` records the existing pdftotext-raw
+path and regression. Prepare this existing host dependency on the runner;
+do not bypass PDF conversion tests.

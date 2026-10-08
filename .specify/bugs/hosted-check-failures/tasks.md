@@ -19,3 +19,14 @@ failed before the workflow fix and passed afterward. All 46 full checks passed; 
 unchanged-snapshot verification follows this record update. Commit and publish
 only on feature/hosted-check-fixes, then hand off to the configured Claude
 Reviewer stage and a Watchdog monitor of PR #2.
+
+- T005: repair neutral-cwd Node resolution for a runner without a global mise
+  Node pin; add failing resolver cases, isolate the remaining unset-config
+  test, and prepare the already adopted PDF converter exposed by full checks
+  (WHA-23).
+
+2026-10-08: Engineer (Codex, harness-assigned) implemented T005; original
+integration failure and missing-PDF failure reproduced, focused regressions
+pass. WHA-23 records the full clean verification result and local commit; the
+configured Claude Reviewer owns review, then Main must scan the commit range
+before GitHub publication.

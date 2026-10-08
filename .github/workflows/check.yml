@@ -39,6 +39,10 @@ jobs:
           curl --fail --silent --show-error --location "https://github.com/quarto-dev/quarto-cli/releases/download/v${version}/quarto-${version}-linux-amd64.deb" --output "$RUNNER_TEMP/quarto.deb"
           echo "${sha256}  $RUNNER_TEMP/quarto.deb" | sha256sum --check --strict
           sudo dpkg --install "$RUNNER_TEMP/quarto.deb"
+      - name: Prepare PDF text converter
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends poppler-utils
       - name: Prepare CodexBar
         run: |
           version="$(mise exec -- printenv CODEXBAR_VERSION)"

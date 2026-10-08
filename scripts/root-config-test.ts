@@ -341,3 +341,20 @@ void test("mise setup does not install the user's global tools", async () => {
     await rm(dir, {recursive: true, force: true});
   }
 });
+
+void test('hosted checks install the PDF text converter before checking evidence', async () => {
+  const workflow = await read('.github/workflows/check.yml');
+  const step = workflow.match(
+    / {6}- name: Prepare PDF text converter\n {8}run: \|\n([\s\S]*?)(?= {6}- name:)/,
+  );
+  assert(step, 'hosted checks do not prepare pdftotext');
+  assert(step[1].includes('sudo apt-get update'));
+  assert(
+    step[1].includes(
+      'sudo apt-get install --yes --no-install-recommends poppler-utils',
+    ),
+  );
+  assert(
+    workflow.indexOf(step[0]) < workflow.indexOf('- name: Run all checks'),
+  );
+});

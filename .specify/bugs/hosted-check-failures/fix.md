@@ -59,3 +59,29 @@ resource bundle stay together. The existing doctor check is unchanged.
 the configured pins, verifies the checksum before extracting, and exposes
 the complete archive directory. Its pin-duplication check includes CodexBar.
 The new regression test fails on the prior workflow and passes after the fix.
+
+## WHA-23: resolve a native Node installed outside mise
+
+The gate launcher keeps its neutral-directory mise lookup. If that lookup
+exits unsuccessfully, it reuses `shutil.which("node")` to find the runtime
+on PATH, retaining the existing absolute-file validation. The child still
+runs from `/` with the same upstream entry, environment, privacy middleware,
+and error boundary. This extends the previously documented PATH fallback
+to runners with mise present but no globally configured Node.
+
+Five focused resolver cases cover successful mise lookup, failed mise lookup
+with native Node on PATH, and missing, relative or nonexistent fallback paths.
+Four failed before the production fix and all five pass afterward. Existing
+real-gate integration cases exercise the actual upstream process.
+
+jev-ultrafast's unset-configuration test now explicitly unsets XDG_CONFIG_HOME
+before reloading the module and restores its GATE object afterward. Its
+assertions and separate storage-environment cases remain unchanged.
+
+Files changed are the gate launcher, its proxy tests, jev-ultrafast provider
+tests, the Checks workflow, root configuration tests, and the four existing hosted-check bug records. The workflow now installs the already adopted Poppler utilities through
+Ubuntu apt before checks. A new workflow regression requires preparation
+before checks and fails on the prior workflow. No workflow pin, dependency,
+check, hook or privacy control was removed. The implementation
+adds three net production lines, four workflow lines and 62 net test lines before records; the
+change is below the 1,000-line split-review threshold.

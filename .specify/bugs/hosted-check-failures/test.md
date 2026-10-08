@@ -89,3 +89,55 @@ The read-only complexity pass found no unnecessary dependency, framework or
 installer. Locally owned code adds 9 workflow lines and 30 test lines; the
 remaining changes are pins, comments and bug records. The patch stays below
 the repository's 1,000-line split-review threshold.
+
+## WHA-23 verification
+
+The requested `gh run view 37744368251 --log-failed` returned no output;
+`gh api repos/cherry-pick-foundation/verbose-broccoli/actions/jobs/113202237438/logs`
+supplied the actual failed job log. It reports two credit-offers integration
+failures caused by `mise which node` exiting 1. CodexBar preparation succeeded.
+
+Five resolver regression cases produced four failures and one pass before
+the fix, and five passes afterward. A separate run injected the original
+a974087 resolver into the integration child in memory, without modifying
+the shared checkout: both existing credit-offers integration cases failed
+under checksum-verified mise 2026.9.16 and Node 24.19.0. The fixed launcher
+passed all 66 credit-offers cases in the same clean setup.
+
+The setup uses an isolated home, absolute XDG_CONFIG_HOME, TZ=UTC and a
+selected-tool PATH plus /usr/bin:/bin. It excludes the server mise wrapper,
+global Node configuration and host agent tools. The exact reviewed mise
+archive and checksum come from `.github/actions/prepare-mise/action.yml`.
+Existing locked mise tools, uv dependency cache and repository environments
+are reused. Quarto and CodexBar are selected because CI prepares them too.
+
+A first full clean run stopped in raw-import tests: the isolated home's
+empty uv cache could not satisfy their offline script dependencies. The next
+run points UV_CACHE_DIR at the already prepared cache and supplies CI's
+synthetic Git identity, without changing repository checks. The selected
+PATH uses system Git, avoiding Paperclip helper diagnostics.
+
+The clean run passed 66 credit-offers, 107 jev-ultrafast and 203 privacy-gate
+cases. Doctor passed all 16 entries. Ruff check passed on all three changed
+Python files. The jev-ultrafast unset-config case failed before its test
+isolation update with XDG_CONFIG_HOME set.
+
+Full verification and commit evidence are reported in the task handoff.
+Independent review belongs to the configured Claude Reviewer stage.
+GitHub publication still requires Main's privacy-scan comment on WHA-7
+covering the eventual commit range. No merge or GitHub push was performed.
+
+The next full run completed 571 Wiki cases but failed three PDF cases because
+pdftotext was absent. Its actual result was 3 failed, 571 passed; no pass is
+claimed for that run. The official runner manifest was read through
+`gh api repos/actions/runner-images/contents/images/ubuntu/Ubuntu2604-Readme.md?ref=ubuntu26/20260927.149`.
+It has no Poppler entry. The workflow now installs poppler-utils before checks.
+After adding the prepared native pdftotext to the selected PATH, the evidence
+suite passes; the new workflow case fails before preparation and passes after.
+The server's already prepared Poppler executable is reused for local verification;
+this is not a claim to reproduce the runner's exact Ubuntu package version.
+Its actual converter version remains checked and recorded by existing tests.
+
+The final verification command is `npm run verify -- --task WHA-23 --base a974087`,
+run through checksum-verified mise with the clean environment described above.
+The final exit status, same-run Turbo summary and commit are recorded on WHA-23.
