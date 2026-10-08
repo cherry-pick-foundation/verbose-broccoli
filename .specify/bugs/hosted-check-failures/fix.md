@@ -46,3 +46,16 @@ entry were sufficient and remain unchanged. No new dependency was adopted.
 
 CEO review and review-record commit, then Main's privacy approval before any
 GitHub publication. Hosted execution remains untested until publication.
+
+## WHA-18: prepare the missing CodexBar host tool
+
+`.config/mise.toml` now supplies the previously reviewed CodexBar release
+version and Linux x86_64 archive checksum as runner inputs. The Checks workflow
+reads those inputs, downloads the release, checks SHA-256 before extraction,
+and adds the extracted directory to GITHUB_PATH. The binary, symlink and
+resource bundle stay together. The existing doctor check is unchanged.
+
+`scripts/root-config-test.ts` asserts that preparation precedes checks, uses
+the configured pins, verifies the checksum before extracting, and exposes
+the complete archive directory. Its pin-duplication check includes CodexBar.
+The new regression test fails on the prior workflow and passes after the fix.

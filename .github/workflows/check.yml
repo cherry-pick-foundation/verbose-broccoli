@@ -39,6 +39,15 @@ jobs:
           curl --fail --silent --show-error --location "https://github.com/quarto-dev/quarto-cli/releases/download/v${version}/quarto-${version}-linux-amd64.deb" --output "$RUNNER_TEMP/quarto.deb"
           echo "${sha256}  $RUNNER_TEMP/quarto.deb" | sha256sum --check --strict
           sudo dpkg --install "$RUNNER_TEMP/quarto.deb"
+      - name: Prepare CodexBar
+        run: |
+          version="$(mise exec -- printenv CODEXBAR_VERSION)"
+          sha256="$(mise exec -- printenv CODEXBAR_LINUX_AMD64_SHA256)"
+          curl --fail --silent --show-error --location "https://github.com/steipete/CodexBar/releases/download/v${version}/CodexBarCLI-v${version}-linux-x86_64.tar.gz" --output "$RUNNER_TEMP/codexbar.tar.gz"
+          echo "${sha256}  $RUNNER_TEMP/codexbar.tar.gz" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/codexbar"
+          tar -xzf "$RUNNER_TEMP/codexbar.tar.gz" -C "$RUNNER_TEMP/codexbar"
+          echo "$RUNNER_TEMP/codexbar" >> "$GITHUB_PATH"
       - name: Prepare the CI Git identity
         run: |
           git config --global user.name 'CI'

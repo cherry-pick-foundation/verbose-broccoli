@@ -21,6 +21,11 @@ run_auto_install = false
 QUARTO_VERSION = "1.10.18"
 QUARTO_LINUX_AMD64_SHA256 = "4bdf5a17df300003beb2f8f0e4dfe568e2ca0ff91318220c8537d2655015c430"
 
+# CodexBar remains a separately installed host tool. Keep its upstream bundle
+# beside the binary; the hosted check reads the reviewed release and checksum.
+CODEXBAR_VERSION = "0.69.0"
+CODEXBAR_LINUX_AMD64_SHA256 = "89a244a6713953719cc4211c147c0ff180a50e85776a742fc9013630b734e1d5"
+
 # One setup for a worktree, a runner and Orca. Run it after `mise trust`.
 # `mise install --locked` is given the repository's tool names only, so the
 # user's global tools are not installed; each name resolves to the version in

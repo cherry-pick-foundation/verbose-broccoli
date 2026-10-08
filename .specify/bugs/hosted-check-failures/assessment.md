@@ -78,3 +78,18 @@ tool adoption or pin update is needed; existing security review is in
 ## Open Questions
 
 None. The existing pin and Linux lock entry settle the tool choice.
+
+## WHA-18: remaining doctor failure in PR #2
+
+Checks run 37742618550 at commit 253bd49 reports `FAIL codexbar`; all
+other doctor entries pass. No credit-offer test is named as failing.
+`.config/mise.toml` requires CodexBar 0.69.0, but `[tasks.setup]` installs
+only `[tools]` entries and dependency trees. CodexBar is a separate host
+tool, absent from `.github/workflows/check.yml` runner preparation.
+
+A clean process environment on Node 24.19.0, with TZ=UTC, an absolute
+XDG_CONFIG_HOME and PATH excluding host CodexBar, reproduces doctor exit 1
+with only CodexBar failing. Reuse the reviewed release and checksum from
+`specs/024-model-choice/plan.md`, R7, and prepare the complete upstream archive
+on the runner. Preserve the original doctor check. No new tool adoption,
+provider usage, credential access or dependency is needed.

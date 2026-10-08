@@ -51,3 +51,41 @@ the CEO owns that merge-review step. No governing document was changed.
 
 Send the branch to the configured CEO review stage. The CEO adds the independent
 review record; Main authorizes GitHub publication after the privacy scan.
+
+## WHA-18 verification
+
+Node 24.19.0 was used for the reproduction and checks. A process environment
+containing only the home directory, selected tool PATH, TZ=UTC, an absolute
+scratch XDG_CONFIG_HOME and explicit mise trust/installation settings ran
+`mise exec -- npm run doctor`. The selected PATH excluded host CodexBar and
+used system Git. Existing locked tools and dependency environments were
+reused; this was not a fresh installation of every repository dependency.
+
+Before preparation, doctor exited 1 with only `FAIL codexbar`; all 15 other
+entries passed. Executing the actual new workflow shell block downloaded the
+reviewed release, passed its SHA-256 check and extracted the complete bundle.
+After adding its directory to PATH, doctor exited 0 and all 16 entries passed.
+The final run used the unchanged original CodexBar version check.
+
+The new workflow regression failed before the preparation step was added
+and passed afterward. `npm run test:root-config` passed 10 tests;
+`npm run test:mise-doctor` passed its negative diagnostic case. The first full
+verification found a counted-space lint error in the new test expression;
+that expression was corrected, and the targeted ESLint and regression checks
+passed before repeating full verification.
+
+Independent review is owned by this task's configured Claude Reviewer stage.
+No merge or provider usage call is part of this repair. Hosted execution must
+be observed separately after publishing the commit to the existing PR branch.
+
+All 46 checks passed in Turbo run `3KP2ApqmWuHpoa5dWAZV0rPSLWa`
+(5 cached), including doctor. Workflow then rejected the changed snapshot
+because this verification record was edited during the run. Completion
+requires a fresh unchanged-snapshot `npm run verify` after the record update.
+The full check command uses a scratch symlink to `/usr/bin/git` first on PATH,
+matching the earlier repair's workaround for Paperclip Git-helper diagnostics.
+
+The read-only complexity pass found no unnecessary dependency, framework or
+installer. Locally owned code adds 9 workflow lines and 30 test lines; the
+remaining changes are pins, comments and bug records. The patch stays below
+the repository's 1,000-line split-review threshold.
