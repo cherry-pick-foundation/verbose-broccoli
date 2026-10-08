@@ -173,6 +173,16 @@ void test('Python setup and the documentation runner read the root runtime pin',
   }
 });
 
+void test('documentation references installs its locked host tools', async () => {
+  const text = await read('.github/workflows/docs-check.yml');
+  const install = text.match(/^\s*mise install --locked (.+)$/m);
+  assert(install, 'documentation references has no locked tool installation');
+  assertEquals(install[1].split(/\s+/).sort(), [
+    'aqua:astral-sh/uv',
+    'aqua:lycheeverse/lychee',
+  ]);
+});
+
 void test('ruff, commitizen and prettier configs live in their owners', async () => {
   const pyproject = await read('pyproject.toml');
   assert(/^\[tool\.ruff\]$/m.test(pyproject));

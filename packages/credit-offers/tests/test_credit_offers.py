@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 from unittest.mock import Mock
 
 import httpx
@@ -69,6 +70,18 @@ proxy.build_proxy(
     key="sk-or-synthetic-dummy-not-a-real-key", args=sys.argv[1:4]
 ).run(transport="stdio", show_banner=False)
 """
+
+
+@pytest.fixture(autouse=True)
+def local_timezone(monkeypatch):
+    # END and the boundary assertions use Korean local time on every host.
+    try:
+        with monkeypatch.context() as zone:
+            zone.setenv("TZ", "Asia/Seoul")
+            time.tzset()
+            yield
+    finally:
+        time.tzset()
 
 
 def offer(slug, status="active", expiry_date=None):
@@ -611,7 +624,10 @@ def assert_stopped(entries):
             os.kill(launch["pid"], 0)
 
 
-def test_gate_is_the_one_frozen_offline_proxy_without_keys():
+def test_gate_is_the_one_frozen_offline_proxy_without_keys(monkeypatch):
+    monkeypatch.setattr(credit_offers, "GATE", credit_offers.GATE)
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    importlib.reload(credit_offers)
     gate = credit_offers.GATE
     assert gate.command == "uv"
     assert gate.args == [
