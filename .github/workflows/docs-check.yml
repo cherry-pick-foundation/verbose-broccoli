@@ -29,7 +29,7 @@ jobs:
         uses: ./.github/actions/prepare-mise
       - name: Prepare frozen dependencies
         run: |
-          mise install --locked aqua:astral-sh/uv
+          mise install --locked aqua:astral-sh/uv aqua:lycheeverse/lychee
           mise exec -- uv python install --no-bin "$(cat .python-version)"
           npm ci --ignore-scripts --no-audit --no-fund
           mise exec -- uv sync --locked --no-dev --project packages/doc-regions

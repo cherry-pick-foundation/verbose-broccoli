@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import json
 from pathlib import Path
 import resource
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -872,3 +873,44 @@ def test_continuations_and_raw_boolean_progress_are_blocked(isolated):
             )
 
     asyncio.run(run())
+
+
+@pytest.mark.parametrize("managed", [True, False])
+def test_node_resolution_with_mise_and_path(managed, tmp_path, monkeypatch):
+    node = tmp_path / "node"
+    node.write_text("")
+    calls = []
+
+    def lookup(name):
+        return "/synthetic/mise" if name == "mise" else str(node)
+
+    def resolve(command, *, text, cwd):
+        calls.append((command, text, cwd))
+        if not managed:
+            raise subprocess.CalledProcessError(1, command)
+        return str(node) + "\n"
+
+    monkeypatch.setattr(proxy_module.shutil, "which", lookup)
+    monkeypatch.setattr(proxy_module.subprocess, "check_output", resolve)
+    assert proxy_module._node_command() == str(node)
+    assert calls == [(["mise", "which", "node"], True, "/")]
+
+
+@pytest.mark.parametrize("node", [None, "relative/node", "/missing/node"])
+def test_node_resolution_rejects_missing_or_relative_path(node, monkeypatch):
+    monkeypatch.setattr(
+        proxy_module.shutil,
+        "which",
+        lambda name: "/synthetic/mise" if name == "mise" else node,
+    )
+
+    def unavailable(command, **unused_options):
+        raise subprocess.CalledProcessError(1, command)
+
+    monkeypatch.setattr(
+        proxy_module.subprocess,
+        "check_output",
+        unavailable,
+    )
+    with pytest.raises(GateError):
+        proxy_module._node_command()

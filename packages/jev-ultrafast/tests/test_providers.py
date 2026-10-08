@@ -189,7 +189,10 @@ def heads(entries):
     return [e["items"][0]["id"] for e in entries() if e["event"] == "call"]
 
 
-def test_gate_is_the_one_frozen_offline_proxy_without_keys():
+def test_gate_is_the_one_frozen_offline_proxy_without_keys(monkeypatch):
+    monkeypatch.setattr(model, "GATE", model.GATE)
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    importlib.reload(model)
     gate = model.GATE
     assert gate.command == "uv"
     assert gate.args == [

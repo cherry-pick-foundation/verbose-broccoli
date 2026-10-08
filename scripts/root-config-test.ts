@@ -85,8 +85,8 @@ const rootFiles = [
   'uv.lock',
 ];
 
-// The tools pinned in the mise file: `[tools]` entries, and the Quarto
-// installer's version and checksum, which stay outside `[tools]`.
+// The tools pinned in the mise file: `[tools]` entries, and separate
+// host tools' versions and checksums, which stay outside `[tools]`.
 async function pins() {
   const mise = await read('.config/mise.toml');
   const tools = /^\[tools\]\n([\s\S]*?)\n\n/m.exec(mise);
@@ -94,10 +94,10 @@ async function pins() {
   const versions = [...tools[1].matchAll(/^"[^"]+" = "([^"]+)"$/gm)].map(
     match => match[1],
   );
-  const env = [...mise.matchAll(/^(QUARTO_[A-Z0-9_]+) = "([^"]+)"$/gm)].map(
-    match => match[2],
-  );
-  assert(versions.length > 0 && env.length === 2, 'no pins were found');
+  const env = [
+    ...mise.matchAll(/^((?:QUARTO|CODEXBAR)_[A-Z0-9_]+) = "([^"]+)"$/gm),
+  ].map(match => match[2]);
+  assert(versions.length > 0 && env.length === 4, 'no pins were found');
   return [...versions, ...env];
 }
 
@@ -171,6 +171,42 @@ void test('Python setup and the documentation runner read the root runtime pin',
     assert(text.includes('$(cat .python-version)'), file);
     assert(!text.includes('cat packages/'), file);
   }
+});
+
+void test('documentation references installs its locked host tools', async () => {
+  const text = await read('.github/workflows/docs-check.yml');
+  const install = text.match(/^\s*mise install --locked (.+)$/m);
+  assert(install, 'documentation references has no locked tool installation');
+  assertEquals(install[1].split(/\s+/).sort(), [
+    'aqua:astral-sh/uv',
+    'aqua:lycheeverse/lychee',
+  ]);
+});
+
+void test('hosted checks prepare the pinned CodexBar archive before doctor', async () => {
+  const workflow = await read('.github/workflows/check.yml');
+  const step = workflow.match(
+    / {6}- name: Prepare CodexBar\n {8}run: \|\n([\s\S]*?)(?= {6}- name:)/,
+  );
+  assert(step, 'hosted checks do not prepare CodexBar');
+  const run = step[1];
+  assert(run.includes('mise exec -- printenv CODEXBAR_VERSION'));
+  assert(run.includes('mise exec -- printenv CODEXBAR_LINUX_AMD64_SHA256'));
+  assert(run.includes('CodexBarCLI-v${version}-linux-x86_64.tar.gz'));
+  assert(run.includes('sha256sum --check --strict'));
+  assert(run.indexOf('sha256sum --check --strict') < run.indexOf('tar -xzf'));
+  assert(
+    run.includes(
+      'tar -xzf "$RUNNER_TEMP/codexbar.tar.gz" -C "$RUNNER_TEMP/codexbar"',
+    ),
+  );
+  assert(run.includes('echo "$RUNNER_TEMP/codexbar" >> "$GITHUB_PATH"'));
+  assert(
+    workflow.indexOf(step[0]) < workflow.indexOf('- name: Run all checks'),
+  );
+  const mise = await read('.config/mise.toml');
+  assert(mise.includes('CODEXBAR_VERSION = "0.69.0"'));
+  assert(mise.includes('^codexbar 0[.]69[.]0( |$)'));
 });
 
 void test('ruff, commitizen and prettier configs live in their owners', async () => {
@@ -304,4 +340,21 @@ void test("mise setup does not install the user's global tools", async () => {
   } finally {
     await rm(dir, {recursive: true, force: true});
   }
+});
+
+void test('hosted checks install the PDF text converter before checking evidence', async () => {
+  const workflow = await read('.github/workflows/check.yml');
+  const step = workflow.match(
+    / {6}- name: Prepare PDF text converter\n {8}run: \|\n([\s\S]*?)(?= {6}- name:)/,
+  );
+  assert(step, 'hosted checks do not prepare pdftotext');
+  assert(step[1].includes('sudo apt-get update'));
+  assert(
+    step[1].includes(
+      'sudo apt-get install --yes --no-install-recommends poppler-utils',
+    ),
+  );
+  assert(
+    workflow.indexOf(step[0]) < workflow.indexOf('- name: Run all checks'),
+  );
 });
