@@ -685,7 +685,7 @@ one-to-one match.
 <!-- [[[cog import doc_sources; cog.out(doc_sources.skill_table("skills/*/*/SKILL.md", "tools/ponytail/skills/*/SKILL.md", "plugins/work/skills/*/SKILL.md")) ]]] -->
 | Package | Owned skills |
 | --- | --- |
-| `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
+| `plugins/work/skills` | `google-workspace`, `grammatical-competence`, `gws-calendar-insert`, `gws-docs`, `gws-docs-write`, `gws-drive-upload`, `gws-forms`, `gws-shared`, `gws-sheets`, `gws-sheets-append`, `gws-sheets-read`, `gws-slides`, `quarto-authoring`, `reference-library`, `session-migrate`, `wiki-consistency`, `wiki-raw-import` |
 | `skills/chat` | `credit-offers`, `web-agent` |
 | `skills/code` | `clean-code`, `git-commit`, `jev`, `model-choice`, `speckit-agent-context-update`, `speckit-analyze`, `speckit-assess-decide`, `speckit-assess-define`, `speckit-assess-intake`, `speckit-assess-research`, `speckit-assess-shape`, `speckit-bug-assess`, `speckit-bug-fix`, `speckit-bug-test`, `speckit-checklist`, `speckit-clarify`, `speckit-constitution`, `speckit-converge`, `speckit-git-validate`, `speckit-implement`, `speckit-plan`, `speckit-specify`, `speckit-tasks`, `speckit-taskstoissues`, `verification-before-completion` |
 | `tools/ponytail/skills` | `ponytail`, `ponytail-audit`, `ponytail-debt`, `ponytail-review` |
